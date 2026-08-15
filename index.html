@@ -8,7 +8,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#2A1A10">
   <meta name="format-detection" content="telephone=no">
-  <title>Orion's Game</title>
+  <title>Moondrop Mountain</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -47,7 +47,7 @@
 </head>
 <body>
   <div id="frame">
-    <canvas id="game" width="320" height="192" role="application" aria-label="Orion's Game"></canvas>
+    <canvas id="game" width="320" height="192" role="application" aria-label="Moondrop Mountain"></canvas>
   </div>
   <script>
 (function () {
@@ -96,29 +96,44 @@
     blossom: "#E8A0A8",
     door: "#5A3A22",
     glass: "#7AB8C8",
-    letterbox: "#2A1A10"
+    letterbox: "#2A1A10",
+    skin: "#F0C090"
   };
 
   /* 5x7 bitmasks, bit4 = left */
   var FONT = {
     " ": [0,0,0,0,0,0,0],
     "A": [0x0E,0x11,0x11,0x1F,0x11,0x11,0x11],
+    "B": [0x1E,0x11,0x11,0x1E,0x11,0x11,0x1E],
+    "C": [0x0E,0x11,0x10,0x10,0x10,0x11,0x0E],
     "D": [0x1E,0x11,0x11,0x11,0x11,0x11,0x1E],
     "E": [0x1F,0x10,0x10,0x1E,0x10,0x10,0x1F],
+    "F": [0x1F,0x10,0x10,0x1E,0x10,0x10,0x10],
     "G": [0x0E,0x11,0x10,0x17,0x11,0x11,0x0E],
+    "H": [0x11,0x11,0x11,0x1F,0x11,0x11,0x11],
     "I": [0x1F,0x04,0x04,0x04,0x04,0x04,0x1F],
+    "J": [0x01,0x01,0x01,0x01,0x11,0x11,0x0E],
+    "K": [0x11,0x12,0x14,0x18,0x14,0x12,0x11],
+    "L": [0x10,0x10,0x10,0x10,0x10,0x10,0x1F],
     "M": [0x11,0x1B,0x15,0x15,0x11,0x11,0x11],
     "N": [0x11,0x19,0x15,0x13,0x11,0x11,0x11],
     "O": [0x0E,0x11,0x11,0x11,0x11,0x11,0x0E],
     "P": [0x1E,0x11,0x11,0x1E,0x10,0x10,0x10],
+    "Q": [0x0E,0x11,0x11,0x11,0x15,0x12,0x0D],
     "R": [0x1E,0x11,0x11,0x1E,0x14,0x12,0x11],
     "S": [0x0F,0x10,0x10,0x0E,0x01,0x01,0x1E],
     "T": [0x1F,0x04,0x04,0x04,0x04,0x04,0x04],
+    "U": [0x11,0x11,0x11,0x11,0x11,0x11,0x0E],
+    "V": [0x11,0x11,0x11,0x11,0x11,0x0A,0x04],
+    "W": [0x11,0x11,0x11,0x15,0x15,0x1B,0x11],
+    "X": [0x11,0x11,0x0A,0x04,0x0A,0x11,0x11],
     "Y": [0x11,0x11,0x0A,0x04,0x04,0x04,0x04],
+    "Z": [0x1F,0x01,0x02,0x04,0x08,0x10,0x1F],
     "1": [0x04,0x0C,0x04,0x04,0x04,0x04,0x0E],
     "'": [0x04,0x04,0x08,0x00,0x00,0x00,0x00],
     "·": [0x00,0x00,0x00,0x04,0x00,0x00,0x00],
-    ".": [0x00,0x00,0x00,0x00,0x00,0x04,0x04]
+    ".": [0x00,0x00,0x00,0x00,0x00,0x04,0x04],
+    "!": [0x04,0x04,0x04,0x04,0x04,0x00,0x04]
   };
 
   var canvas = document.getElementById("game");
@@ -130,6 +145,42 @@
   var selectedSlot = 0;
   var tick = 0;
   var lastTs = 0;
+  var dialogue = false;
+  var crops = {};
+  var pending = null;
+  var solid = null;
+  var player = {
+    tx: 14, ty: 6,
+    x: 14 * 16 + 8,
+    y: 6 * 16 + 14,
+    face: "down",
+    frame: 0,
+    moving: false,
+    path: [],
+    stepFrom: null,
+    stepT: 0,
+    anim: 0
+  };
+  var chicken = {
+    tx: 8, ty: 8,
+    x: 8 * 16 + 8,
+    y: 8 * 16 + 14,
+    face: "right",
+    frame: 0,
+    path: [],
+    stepFrom: null,
+    stepT: 0,
+    idle: 400,
+    anim: 0,
+    react: 0
+  };
+  var npc = {
+    tx: 10, ty: 5,
+    x: 10 * 16 + 8,
+    y: 5 * 16 + 14,
+    face: "right",
+    frame: 0
+  };
 
   /* Ground: g grass, d dirt path, p tilled, w water */
   var GROUND = [
@@ -614,6 +665,547 @@
     return o.c;
   }
 
+  function flipH(src) {
+    var o = make(src.width, src.height);
+    o.g.translate(src.width, 0);
+    o.g.scale(-1, 1);
+    o.g.drawImage(src, 0, 0);
+    return o.c;
+  }
+
+  function personColors(kind) {
+    if (kind === "npc") {
+      return {
+        hair: "#C4A070",
+        hairHi: "#E0C488",
+        skin: "#F0C090",
+        skinSh: "#D4A06A",
+        eye: "#3A4A62",
+        eyeHi: "#8AB0C8",
+        lip: "#C47A38",
+        shirt: "#8B4A6A",
+        shirtHi: "#B86A8A",
+        shirtSh: "#5A2A44",
+        pants: "#5A4A38",
+        pantsSh: "#3A2E24",
+        shoe: "#3D1A0C",
+        out: "#3D1A0C",
+        hat: "#E8C84A",
+        hatHi: "#F0D878",
+        hatSh: "#A86C14",
+        hatBand: "#C45A38",
+        apron: "#F3D2A3"
+      };
+    }
+    return {
+      hair: "#6B3A22",
+      hairHi: "#8B5A38",
+      skin: "#F0C090",
+      skinSh: "#D4A06A",
+      eye: "#2A4A38",
+      eyeHi: "#5CBC88",
+      lip: "#C47A38",
+      shirt: "#3D8C9C",
+      shirtHi: "#6CB8C4",
+      shirtSh: "#246070",
+      pants: "#4A5A28",
+      pantsSh: "#2E3A18",
+      shoe: "#5A2E18",
+      out: "#3D1A0C"
+    };
+  }
+
+  function buildPerson(kind, face, frame) {
+    var o = make(16, 32);
+    var g = o.g;
+    var p = personColors(kind);
+    var fr = frame ? 1 : 0;
+
+    if (face === "down" || face === "up") {
+      fill(g, 4, 22 + (fr ? 1 : 0), 3, 5, p.pants);
+      fill(g, 4, 27 + (fr ? 1 : 0), 3, 2, p.shoe);
+      fill(g, 9, 22 + (fr ? 0 : 0) - (fr ? 1 : 0), 3, 5, face === "up" ? p.pantsSh : p.pants);
+      fill(g, 9, 27 - (fr ? 1 : 0), 3, 2, p.shoe);
+    } else {
+      fill(g, 6, 22 + (fr ? 1 : 0), 3, 5, p.pantsSh);
+      fill(g, 6, 27 + (fr ? 1 : 0), 3, 2, p.shoe);
+      fill(g, 8, 22 - (fr ? 1 : 0), 3, 5, p.pants);
+      fill(g, 8, 27 - (fr ? 1 : 0), 3, 2, p.shoe);
+    }
+
+    if (face === "down") {
+      fill(g, 4, 13, 8, 9, p.shirt);
+      fill(g, 4, 13, 8, 1, p.shirtHi);
+      fill(g, 4, 13, 1, 9, p.shirtHi);
+      fill(g, 11, 13, 1, 9, p.shirtSh);
+      fill(g, 2, 14, 2, 6, p.shirt);
+      fill(g, 12, 14, 2, 6, p.shirt);
+      fill(g, 2, 19, 2, 2, p.skin);
+      fill(g, 12, 19, 2, 2, p.skin);
+      if (p.apron) fill(g, 5, 16, 6, 6, p.apron);
+    } else if (face === "up") {
+      fill(g, 4, 13, 8, 9, p.shirtSh);
+      fill(g, 4, 13, 8, 1, p.shirt);
+      fill(g, 2, 14, 2, 6, p.shirtSh);
+      fill(g, 12, 14, 2, 6, p.shirtSh);
+      fill(g, 2, 19, 2, 2, p.skin);
+      fill(g, 12, 19, 2, 2, p.skin);
+    } else {
+      fill(g, 5, 13, 6, 9, p.shirt);
+      fill(g, 5, 13, 6, 1, p.shirtHi);
+      fill(g, 10, 13, 1, 9, p.shirtSh);
+      fill(g, 10, 14 + fr, 2, 6, p.shirt);
+      fill(g, 10, 20 + fr, 2, 2, p.skin);
+      if (p.apron) fill(g, 6, 16, 4, 6, p.apron);
+    }
+
+    if (face === "down") {
+      fill(g, 3, 3, 10, 8, p.hair);
+      fill(g, 4, 2, 8, 2, p.hair);
+      fill(g, 4, 5, 8, 6, p.skin);
+      fill(g, 5, 4, 6, 1, p.skin);
+      fill(g, 4, 10, 8, 1, p.skinSh);
+      fill(g, 4, 3, 8, 2, p.hair);
+      fill(g, 4, 3, 2, 3, p.hair);
+      fill(g, 10, 3, 2, 3, p.hair);
+      fill(g, 5, 2, 6, 1, p.hairHi);
+      px(g, 5, 7, p.eye);
+      px(g, 6, 7, p.eyeHi);
+      px(g, 9, 7, p.eye);
+      px(g, 10, 7, p.eyeHi);
+      px(g, 7, 9, p.skinSh);
+      px(g, 8, 10, p.lip);
+      px(g, 3, 7, p.skin);
+      px(g, 12, 7, p.skin);
+      fill(g, 6, 11, 4, 2, p.skin);
+      px(g, 3, 2, p.out);
+      px(g, 12, 2, p.out);
+    } else if (face === "up") {
+      fill(g, 3, 3, 10, 8, p.hair);
+      fill(g, 4, 2, 8, 2, p.hairHi);
+      fill(g, 3, 4, 10, 7, p.hair);
+      fill(g, 6, 11, 4, 2, p.hair);
+      px(g, 3, 7, p.skin);
+      px(g, 12, 7, p.skin);
+    } else {
+      fill(g, 3, 3, 9, 8, p.hair);
+      fill(g, 4, 2, 7, 2, p.hair);
+      fill(g, 5, 5, 6, 6, p.skin);
+      fill(g, 5, 4, 5, 1, p.skin);
+      fill(g, 3, 3, 3, 8, p.hair);
+      fill(g, 4, 2, 2, 2, p.hairHi);
+      px(g, 8, 7, p.eye);
+      px(g, 9, 7, p.eyeHi);
+      px(g, 10, 8, p.skinSh);
+      px(g, 9, 10, p.lip);
+      fill(g, 7, 11, 3, 2, p.skin);
+    }
+
+    if (p.hat) {
+      if (face === "up") {
+        fill(g, 5, 0, 6, 4, p.hat);
+        fill(g, 5, 0, 6, 1, p.hatHi);
+        fill(g, 2, 3, 12, 2, p.hat);
+        fill(g, 1, 4, 14, 1, p.hatSh);
+      } else if (face === "down") {
+        fill(g, 5, 0, 6, 3, p.hat);
+        fill(g, 5, 0, 6, 1, p.hatHi);
+        fill(g, 5, 2, 6, 1, p.hatBand);
+        fill(g, 2, 3, 12, 2, p.hat);
+        fill(g, 1, 4, 14, 1, p.hatSh);
+      } else {
+        fill(g, 4, 0, 7, 3, p.hat);
+        fill(g, 4, 0, 7, 1, p.hatHi);
+        fill(g, 4, 2, 7, 1, p.hatBand);
+        fill(g, 2, 3, 11, 2, p.hat);
+        fill(g, 1, 4, 13, 1, p.hatSh);
+      }
+    }
+
+    return o.c;
+  }
+
+  function buildChicken(fr) {
+    var o = make(16, 16);
+    var g = o.g;
+    var y = fr ? 0 : 1;
+    var body = "#F0E0B8";
+    var bodyHi = "#F8E8C8";
+    var bodySh = "#D4C090";
+    var out = "#A86C48";
+    var comb = "#C45A38";
+    var combHi = "#E07850";
+    var beak = "#E8A030";
+    var beakSh = "#C47A20";
+    var feet = "#D49420";
+    blob(g, 7, 8 + y, 5, 4, body, bodySh, bodyHi, out);
+    blob(g, 12, 6 + y, 3, 3, body, bodySh, bodyHi, out);
+    px(g, 15, 6 + y, beak);
+    px(g, 15, 7 + y, beakSh);
+    px(g, 12, 2 + y, comb);
+    px(g, 13, 2 + y, comb);
+    px(g, 12, 1 + y, combHi);
+    px(g, 13, 5 + y, "#3A2210");
+    px(g, 2, 7 + y, bodySh);
+    px(g, 1, 8 + y, body);
+    fill(g, 5, 8 + y, 4, 2, bodySh);
+    if (fr) {
+      px(g, 5, 12, feet);
+      px(g, 6, 13, feet);
+      px(g, 10, 12, feet);
+      px(g, 11, 13, feet);
+    } else {
+      px(g, 6, 13, feet);
+      px(g, 7, 14, feet);
+      px(g, 10, 13, feet);
+      px(g, 9, 14, feet);
+    }
+    return o.c;
+  }
+
+  function buildSeed() {
+    var o = make(16, 16);
+    var g = o.g;
+    fill(g, 3, 3, 10, 11, C.woodMid);
+    fill(g, 3, 3, 10, 1, C.woodHi);
+    fill(g, 3, 3, 1, 11, C.woodHi);
+    fill(g, 12, 3, 1, 11, C.woodOut);
+    fill(g, 3, 13, 10, 1, C.woodOut);
+    fill(g, 3, 3, 10, 4, C.woodSh);
+    fill(g, 4, 3, 8, 1, C.woodHi);
+    px(g, 6, 9, C.dirtHi);
+    px(g, 8, 10, C.dirtSh);
+    px(g, 10, 9, C.dirtHi);
+    px(g, 8, 7, C.leaf);
+    px(g, 7, 6, C.grassHi);
+    px(g, 9, 6, C.grassHi);
+    return o.c;
+  }
+
+  function buildSprout() {
+    var o = make(16, 16);
+    var g = o.g;
+    fill(g, 8, 10, 1, 4, C.grassSh);
+    px(g, 8, 9, C.leaf);
+    px(g, 7, 8, C.grassHi);
+    px(g, 6, 8, C.leaf);
+    px(g, 7, 7, C.grassHi);
+    px(g, 9, 8, C.grassHi);
+    px(g, 10, 7, C.leaf);
+    px(g, 9, 7, C.grassMid);
+    return o.c;
+  }
+
+  function buildSolid() {
+    var y, x, i;
+    solid = [];
+    for (y = 0; y < ROWS; y++) {
+      solid[y] = [];
+      for (x = 0; x < COLS; x++) solid[y][x] = false;
+    }
+    function block(tx, ty) {
+      if (tx >= 0 && ty >= 0 && tx < COLS && ty < ROWS) solid[ty][tx] = true;
+    }
+    for (y = 1; y <= 4; y++) {
+      for (x = 13; x <= 17; x++) block(x, y);
+    }
+    block(2, 3);
+    block(1, 9); block(2, 9); block(1, 10); block(2, 10);
+    block(18, 4);
+    block(8, 3); block(18, 10); block(11, 11);
+    var fences = [[4, 5], [5, 5], [6, 5], [4, 6], [4, 7], [4, 8], [7, 5], [7, 6], [7, 7], [7, 8]];
+    for (i = 0; i < fences.length; i++) block(fences[i][0], fences[i][1]);
+    block(npc.tx, npc.ty);
+  }
+
+  function inBounds(tx, ty) {
+    return tx >= 0 && ty >= 0 && tx < COLS && ty < ROWS;
+  }
+
+  function walkable(tx, ty) {
+    return inBounds(tx, ty) && !solid[ty][tx];
+  }
+
+  function chickenOk(tx, ty) {
+    if (!walkable(tx, ty)) return false;
+    var ch = cell(tx, ty);
+    return ch === "g" || ch === "d";
+  }
+
+  function tileCenterX(tx) { return tx * TILE + 8; }
+  function tileFootY(ty) { return ty * TILE + 14; }
+
+  function findPath(sx, sy, ex, ey) {
+    if (!walkable(ex, ey)) return [];
+    if (sx === ex && sy === ey) return [];
+    var q = [[sx, sy]];
+    var came = {};
+    function key(x, y) { return x + "," + y; }
+    came[key(sx, sy)] = null;
+    var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    var head = 0;
+    var i, cur, nx, ny, nk, path, node, k;
+    while (head < q.length) {
+      cur = q[head++];
+      if (cur[0] === ex && cur[1] === ey) {
+        path = [];
+        k = key(ex, ey);
+        while (came[k]) {
+          node = came[k];
+          path.push({ tx: node[2], ty: node[3] });
+          k = node[0] + "," + node[1];
+        }
+        path.reverse();
+        return path;
+      }
+      for (i = 0; i < 4; i++) {
+        nx = cur[0] + dirs[i][0];
+        ny = cur[1] + dirs[i][1];
+        nk = key(nx, ny);
+        if (came[nk] !== undefined) continue;
+        if (!walkable(nx, ny)) continue;
+        came[nk] = [cur[0], cur[1], nx, ny];
+        q.push([nx, ny]);
+      }
+    }
+    return [];
+  }
+
+  function faceToward(who, tx, ty) {
+    var dx = tx - who.tx;
+    var dy = ty - who.ty;
+    if (Math.abs(dx) > Math.abs(dy)) who.face = dx > 0 ? "right" : "left";
+    else if (dy !== 0) who.face = dy > 0 ? "down" : "up";
+  }
+
+  function startWalk(who, path, speed) {
+    who.x = tileCenterX(who.tx);
+    who.y = tileFootY(who.ty);
+    who.path = path || [];
+    who.speed = speed;
+    who.stepT = 0;
+    who.anim = 0;
+    if (who.path.length) {
+      who.stepFrom = { tx: who.tx, ty: who.ty };
+      who.moving = true;
+      faceToward(who, who.path[0].tx, who.path[0].ty);
+    } else {
+      who.moving = false;
+      who.frame = 0;
+    }
+  }
+
+  function advanceWalk(who, dt) {
+    if (!who.path || !who.path.length) {
+      who.moving = false;
+      who.frame = 0;
+      return false;
+    }
+    var dest = who.path[0];
+    var speed = who.speed || 1.7;
+    who.stepT += (dt / 1000) * speed;
+    if (who.stepT >= 1) {
+      who.tx = dest.tx;
+      who.ty = dest.ty;
+      who.x = tileCenterX(who.tx);
+      who.y = tileFootY(who.ty);
+      who.path.shift();
+      who.stepT = 0;
+      if (who.path.length) {
+        who.stepFrom = { tx: who.tx, ty: who.ty };
+        faceToward(who, who.path[0].tx, who.path[0].ty);
+      } else {
+        who.moving = false;
+        who.frame = 0;
+        return true;
+      }
+    } else {
+      var fx = tileCenterX(who.stepFrom.tx);
+      var fy = tileFootY(who.stepFrom.ty);
+      who.x = fx + (tileCenterX(dest.tx) - fx) * who.stepT;
+      who.y = fy + (tileFootY(dest.ty) - fy) * who.stepT;
+      who.moving = true;
+    }
+    who.anim += dt;
+    if (who.anim > 180) {
+      who.anim = 0;
+      who.frame = who.frame ? 0 : 1;
+    }
+    return false;
+  }
+
+  function isNear(ax, ay, bx, by) {
+    return Math.abs(ax - bx) + Math.abs(ay - by) <= 1;
+  }
+
+  function nearestAdjacent(tx, ty) {
+    var dirs = [[0, 1], [0, -1], [-1, 0], [1, 0]];
+    var best = null, bestD = 999, i, nx, ny, d;
+    for (i = 0; i < 4; i++) {
+      nx = tx + dirs[i][0];
+      ny = ty + dirs[i][1];
+      if (!walkable(nx, ny)) continue;
+      d = Math.abs(nx - player.tx) + Math.abs(ny - player.ty);
+      if (d < bestD) {
+        bestD = d;
+        best = { tx: nx, ty: ny };
+      }
+    }
+    return best;
+  }
+
+  function plantAt(tx, ty) {
+    var k = tx + "," + ty;
+    if (cell(tx, ty) !== "p") return;
+    if (crops[k]) return;
+    crops[k] = "sprout";
+  }
+
+  function arrive() {
+    if (!pending) return;
+    var act = pending;
+    pending = null;
+    if (act.type === "plant") {
+      if (isNear(player.tx, player.ty, act.tx, act.ty)) {
+        plantAt(act.tx, act.ty);
+        faceToward(player, act.tx, act.ty);
+      }
+    } else if (act.type === "talk") {
+      if (isNear(player.tx, player.ty, npc.tx, npc.ty)) {
+        faceToward(player, npc.tx, npc.ty);
+        faceToward(npc, player.tx, player.ty);
+        dialogue = true;
+      }
+    }
+  }
+
+  function goTalk() {
+    highlight = { tx: npc.tx, ty: npc.ty };
+    if (isNear(player.tx, player.ty, npc.tx, npc.ty)) {
+      pending = null;
+      startWalk(player, [], 1.7);
+      faceToward(player, npc.tx, npc.ty);
+      faceToward(npc, player.tx, player.ty);
+      dialogue = true;
+      return;
+    }
+    var dest = nearestAdjacent(npc.tx, npc.ty);
+    if (!dest) return;
+    pending = { type: "talk" };
+    startWalk(player, findPath(player.tx, player.ty, dest.tx, dest.ty), 1.7);
+  }
+
+  function goPlant(tx, ty) {
+    if (isNear(player.tx, player.ty, tx, ty)) {
+      pending = null;
+      plantAt(tx, ty);
+      faceToward(player, tx, ty);
+      return;
+    }
+    var dest = walkable(tx, ty) ? { tx: tx, ty: ty } : nearestAdjacent(tx, ty);
+    if (!dest) return;
+    var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) return;
+    pending = { type: "plant", tx: tx, ty: ty };
+    startWalk(player, path, 1.7);
+  }
+
+  function goWalk(tx, ty) {
+    pending = null;
+    if (!walkable(tx, ty)) return;
+    startWalk(player, findPath(player.tx, player.ty, tx, ty), 1.7);
+  }
+
+  function updateChicken(dt) {
+    if (chicken.react > 0) chicken.react -= dt;
+    chicken.anim += dt;
+    if (chicken.anim > 280) {
+      chicken.anim = 0;
+      chicken.frame = chicken.frame ? 0 : 1;
+    }
+    if (chicken.path && chicken.path.length) {
+      advanceWalk(chicken, dt);
+      return;
+    }
+    chicken.idle -= dt;
+    if (chicken.idle > 0) return;
+    chicken.idle = 900 + Math.random() * 2200;
+    var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    var tries, d, nx, ny;
+    for (tries = 0; tries < 8; tries++) {
+      d = dirs[(Math.random() * 4) | 0];
+      nx = chicken.tx + d[0];
+      ny = chicken.ty + d[1];
+      if (chickenOk(nx, ny)) {
+        startWalk(chicken, [{ tx: nx, ty: ny }], 1.3);
+        return;
+      }
+    }
+  }
+
+  function drawShadow(g, x, y, hw) {
+    var ix = Math.round(x);
+    var iy = Math.round(y);
+    fill(g, ix - hw, iy - 2, hw * 2, 3, "rgba(30,90,18,0.40)");
+    fill(g, ix - hw + 2, iy - 3, hw * 2 - 4, 1, "rgba(30,90,18,0.22)");
+  }
+
+  function drawPlayer(g) {
+    var bob = (player.moving && player.frame) ? -1 : 0;
+    drawShadow(g, player.x, player.y, 5);
+    g.drawImage(assets.player[player.face][player.frame], Math.round(player.x) - 8, Math.round(player.y) - 28 + bob);
+  }
+
+  function drawNpc(g) {
+    var face = assets.npc[npc.face] ? npc.face : "down";
+    drawShadow(g, npc.x, npc.y, 5);
+    g.drawImage(assets.npc[face][0], Math.round(npc.x) - 8, Math.round(npc.y) - 28);
+  }
+
+  function drawChickenSpr(g) {
+    var bob = chicken.frame ? -1 : 0;
+    var hop = chicken.react > 0 ? -3 : 0;
+    var face = chicken.face === "left" ? "left" : "right";
+    drawShadow(g, chicken.x, chicken.y, 4);
+    g.drawImage(assets.chicken[face][chicken.frame], Math.round(chicken.x) - 8, Math.round(chicken.y) - 14 + bob + hop);
+  }
+
+  function drawActors(g) {
+    var list = [];
+    var i;
+    for (i = 0; i < PROPS.length; i++) {
+      list.push({ foot: propFoot(PROPS[i]), kind: "prop", p: PROPS[i] });
+    }
+    list.push({ foot: player.y, kind: "player" });
+    list.push({ foot: chicken.y, kind: "chicken" });
+    list.push({ foot: npc.y, kind: "npc" });
+    list.sort(function (a, b) { return a.foot - b.foot; });
+    for (i = 0; i < list.length; i++) {
+      if (list[i].kind === "prop") drawProp(g, list[i].p);
+      else if (list[i].kind === "player") drawPlayer(g);
+      else if (list[i].kind === "chicken") drawChickenSpr(g);
+      else drawNpc(g);
+    }
+  }
+
+  function drawDialogue(g) {
+    if (!dialogue) return;
+    var x = 16, y = 116, w = 288, h = 50;
+    woodPanel(g, x, y, w, h);
+    fill(g, x + 4, y + 4, w - 8, h - 8, C.parch);
+    woodPanel(g, x + 8, y - 6, 62, 11);
+    drawText(g, "NEIGHBOR", x + 12, y - 3, C.parch);
+    drawText(g, "HI! WELCOME TO", x + 10, y + 12, C.uiText);
+    drawText(g, "MOONDROP MOUNTAIN.", x + 10, y + 22, C.uiText);
+  }
+
+  function hitSprite(p, x, y, w, h, ox, oy) {
+    var left = x - ox;
+    var top = y - oy;
+    return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
+  }
+
+
   function buildAssets() {
     assets.grass = [buildGrass(0), buildGrass(1), buildGrass(2), buildGrass(3)];
     assets.dirt = buildDirt();
@@ -629,6 +1221,23 @@
     assets.fenceH = buildFenceH();
     assets.fenceL = buildFenceL();
     assets.fenceR = buildFenceR();
+    assets.seed = buildSeed();
+    assets.sprout = buildSprout();
+    function packPerson(kind) {
+      var right0 = buildPerson(kind, "right", 0);
+      var right1 = buildPerson(kind, "right", 1);
+      return {
+        down: [buildPerson(kind, "down", 0), buildPerson(kind, "down", 1)],
+        up: [buildPerson(kind, "up", 0), buildPerson(kind, "up", 1)],
+        right: [right0, right1],
+        left: [flipH(right0), flipH(right1)]
+      };
+    }
+    assets.player = packPerson("player");
+    assets.npc = packPerson("npc");
+    var ch0 = buildChicken(0);
+    var ch1 = buildChicken(1);
+    assets.chicken = { right: [ch0, ch1], left: [flipH(ch0), flipH(ch1)] };
   }
 
   function drawText(g, str, x, y, color) {
@@ -758,9 +1367,9 @@
   }
 
   function drawHUD(g) {
-    /* title plaque */
-    woodPanel(g, 4, 4, 86, 13);
-    drawText(g, "ORION'S GAME", 8, 7, C.parch);
+    /* title plaque — widened for MOONDROP MOUNTAIN */
+    woodPanel(g, 4, 4, 114, 13);
+    drawText(g, "MOONDROP MOUNTAIN", 8, 7, C.parch);
 
     /* day plaque */
     woodPanel(g, 206, 4, 110, 21);
@@ -792,6 +1401,9 @@
         fill(g, sx, sy, slot, 1, C.parch);
         fill(g, sx, sy, 1, slot, C.parch);
       }
+      if (i === 0) {
+        g.drawImage(assets.seed, sx + 1, sy + 1);
+      }
     }
 
     /* energy */
@@ -806,7 +1418,6 @@
   }
 
   function drawWorld(g, dt) {
-    tick += dt;
     var tx, ty, ch, dx, dy;
 
     for (ty = 0; ty < ROWS; ty++) {
@@ -815,7 +1426,10 @@
         dx = tx * TILE;
         dy = ty * TILE;
         if (ch === "d") drawDirtTile(g, tx, ty, dx, dy);
-        else if (ch === "p") g.drawImage(assets.till, dx, dy);
+        else if (ch === "p") {
+          g.drawImage(assets.till, dx, dy);
+          if (crops[tx + "," + ty]) g.drawImage(assets.sprout, dx, dy);
+        }
         else g.drawImage(assets.grass[grassIndex(tx, ty)], dx, dy);
       }
     }
@@ -847,12 +1461,9 @@
       }
     }
 
-    var sorted = PROPS.slice().sort(function (a, b) {
-      return propFoot(a) - propFoot(b);
-    });
-    for (i = 0; i < sorted.length; i++) drawProp(g, sorted[i]);
-
+    drawActors(g);
     drawHUD(g);
+    drawDialogue(g);
   }
 
   function resize() {
@@ -882,6 +1493,11 @@
     var p = pointFromEvent(e);
     if (p.x < 0 || p.y < 0 || p.x >= VIEW_W || p.y >= VIEW_H) return;
 
+    if (dialogue) {
+      dialogue = false;
+      return;
+    }
+
     var slots = 10;
     var slot = 18;
     var gap = 1;
@@ -894,6 +1510,16 @@
       return;
     }
 
+    if (hitSprite(p, npc.x, npc.y, 16, 32, 8, 28)) {
+      goTalk();
+      return;
+    }
+    if (hitSprite(p, chicken.x, chicken.y, 16, 16, 8, 14)) {
+      chicken.react = 420;
+      chicken.idle = 500;
+      return;
+    }
+
     var tx = Math.floor(p.x / TILE);
     var ty = Math.floor(p.y / TILE);
     if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return;
@@ -903,6 +1529,20 @@
       y: ty * TILE + 8,
       age: 0
     });
+    if (tx === npc.tx && ty === npc.ty) {
+      goTalk();
+      return;
+    }
+    if (tx === chicken.tx && ty === chicken.ty) {
+      chicken.react = 420;
+      chicken.idle = 500;
+      return;
+    }
+    if (selectedSlot === 0 && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
+      goPlant(tx, ty);
+      return;
+    }
+    goWalk(tx, ty);
   }
 
   function loop(ts) {
@@ -911,11 +1551,19 @@
     if (dt > 64) dt = 64;
     lastTs = ts;
     ctx.imageSmoothingEnabled = false;
+    if (!dialogue) {
+      if (player.moving || (player.path && player.path.length)) {
+        if (advanceWalk(player, dt)) arrive();
+      }
+      updateChicken(dt);
+      tick += dt;
+    }
     drawWorld(ctx, dt);
     requestAnimationFrame(loop);
   }
 
   buildAssets();
+  buildSolid();
   resize();
   window.addEventListener("resize", resize);
   if (window.visualViewport) {
