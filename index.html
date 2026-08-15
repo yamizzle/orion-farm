@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#8ec8e8">
+  <meta name="theme-color" content="#2A1A10">
   <meta name="format-detection" content="telephone=no">
   <title>Orion's Game</title>
   <style>
@@ -14,150 +14,926 @@
     html, body {
       width: 100%;
       height: 100%;
+      height: 100dvh;
       overflow: hidden;
       overscroll-behavior: none;
       -webkit-text-size-adjust: 100%;
-      touch-action: manipulation;
+      touch-action: none;
       -webkit-tap-highlight-color: transparent;
       -webkit-user-select: none;
       user-select: none;
-      cursor: pointer;
+      background: #2A1A10;
     }
     body {
       position: fixed;
       inset: 0;
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     }
-    #world {
+    #frame {
       position: absolute;
       inset: 0;
-      overflow: hidden;
-      background:
-        linear-gradient(
-          to bottom,
-          #7ec8ea 0%,
-          #b7dff2 42%,
-          #e8f4c8 58%,
-          #8bc46a 58%,
-          #6fa84e 100%
-        );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #2A1A10;
     }
-    .sun {
-      position: absolute;
-      top: 8%;
-      right: 12%;
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      background: #ffe082;
-      box-shadow: 0 0 48px 12px rgba(255, 224, 130, 0.55);
-      pointer-events: none;
-    }
-    .hill {
-      position: absolute;
-      left: -10%;
-      right: -10%;
-      bottom: 0;
-      height: 38%;
-      background: #7bb85a;
-      border-radius: 50% 50% 0 0 / 28% 28% 0 0;
-      pointer-events: none;
-    }
-    .hill.back {
-      height: 46%;
-      background: #8fc96a;
-      opacity: 0.9;
-    }
-    .title {
-      position: absolute;
-      top: max(10px, env(safe-area-inset-top, 0px));
-      left: max(12px, env(safe-area-inset-left, 0px));
-      color: rgba(255, 255, 255, 0.88);
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      text-shadow: 0 1px 2px rgba(40, 70, 40, 0.25);
-      pointer-events: none;
-    }
-    .ripple {
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      margin: -9px 0 0 -9px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.55);
-      border: 2px solid rgba(255, 255, 255, 0.7);
-      pointer-events: none;
-      animation: ripple 700ms ease-out forwards;
-    }
-    .note {
-      position: absolute;
-      transform: translate(-50%, -130%);
-      color: #fff;
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      text-shadow: 0 1px 4px rgba(40, 70, 40, 0.35);
-      pointer-events: none;
-      white-space: nowrap;
-      animation: note 1000ms ease-out forwards;
-    }
-    @keyframes ripple {
-      0% { transform: scale(0.4); opacity: 0.85; }
-      100% { transform: scale(4.2); opacity: 0; }
-    }
-    @keyframes note {
-      0% { opacity: 0; transform: translate(-50%, -90%); }
-      18% { opacity: 1; transform: translate(-50%, -130%); }
-      70% { opacity: 1; }
-      100% { opacity: 0; transform: translate(-50%, -160%); }
+    #game {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      -ms-interpolation-mode: nearest-neighbor;
+      background: #5FBF22;
     }
   </style>
 </head>
 <body>
-  <div id="world" role="application" aria-label="Orion's Game">
-    <div class="sun" aria-hidden="true"></div>
-    <div class="hill back" aria-hidden="true"></div>
-    <div class="hill" aria-hidden="true"></div>
-    <div class="title">Orion's Game</div>
+  <div id="frame">
+    <canvas id="game" width="320" height="192" role="application" aria-label="Orion's Game"></canvas>
   </div>
   <script>
-    (function () {
-      var world = document.getElementById("world");
+(function () {
+  "use strict";
 
-      function point(event) {
-        if (event.touches && event.touches[0]) {
-          return { x: event.touches[0].clientX, y: event.touches[0].clientY };
+  var VIEW_W = 320;
+  var VIEW_H = 192;
+  var TILE = 16;
+  var COLS = 20;
+  var ROWS = 12;
+
+  var C = {
+    sky: "#8EC8E8",
+    grassHi: "#8FD42A",
+    grassMid: "#5FBF22",
+    grassSh: "#2F7A14",
+    grassDp: "#1E5A12",
+    dirtHi: "#F0B428",
+    dirtMid: "#D49420",
+    dirtSh: "#A86C14",
+    till: "#B56F29",
+    tillSh: "#6D4427",
+    tillOut: "#3E2410",
+    water: "#4A96C8",
+    waterDp: "#2E6A96",
+    waterFm: "#A8D4E8",
+    stone: "#8A8A7A",
+    stoneHi: "#B0B0A0",
+    stoneSh: "#5A5A4E",
+    woodHi: "#E8B060",
+    woodMid: "#C47A38",
+    woodSh: "#7A3E18",
+    woodOut: "#3D1A0C",
+    roof: "#C45A38",
+    roofHi: "#E07850",
+    roofSh: "#8B2E1C",
+    parch: "#F3D2A3",
+    uiText: "#3A2210",
+    gold: "#8B1A1A",
+    energy: "#6BCB3C",
+    energyEmpty: "#3A4A20",
+    slot: "#8B5A28",
+    bevelDk: "#5B2B2A",
+    leaf: "#4A9A28",
+    flower: "#E8C84A",
+    blossom: "#E8A0A8",
+    door: "#5A3A22",
+    glass: "#7AB8C8",
+    letterbox: "#2A1A10"
+  };
+
+  /* 5x7 bitmasks, bit4 = left */
+  var FONT = {
+    " ": [0,0,0,0,0,0,0],
+    "A": [0x0E,0x11,0x11,0x1F,0x11,0x11,0x11],
+    "D": [0x1E,0x11,0x11,0x11,0x11,0x11,0x1E],
+    "E": [0x1F,0x10,0x10,0x1E,0x10,0x10,0x1F],
+    "G": [0x0E,0x11,0x10,0x17,0x11,0x11,0x0E],
+    "I": [0x1F,0x04,0x04,0x04,0x04,0x04,0x1F],
+    "M": [0x11,0x1B,0x15,0x15,0x11,0x11,0x11],
+    "N": [0x11,0x19,0x15,0x13,0x11,0x11,0x11],
+    "O": [0x0E,0x11,0x11,0x11,0x11,0x11,0x0E],
+    "P": [0x1E,0x11,0x11,0x1E,0x10,0x10,0x10],
+    "R": [0x1E,0x11,0x11,0x1E,0x14,0x12,0x11],
+    "S": [0x0F,0x10,0x10,0x0E,0x01,0x01,0x1E],
+    "T": [0x1F,0x04,0x04,0x04,0x04,0x04,0x04],
+    "Y": [0x11,0x11,0x0A,0x04,0x04,0x04,0x04],
+    "1": [0x04,0x0C,0x04,0x04,0x04,0x04,0x0E],
+    "'": [0x04,0x04,0x08,0x00,0x00,0x00,0x00],
+    "·": [0x00,0x00,0x00,0x04,0x00,0x00,0x00],
+    ".": [0x00,0x00,0x00,0x00,0x00,0x04,0x04]
+  };
+
+  var canvas = document.getElementById("game");
+  var ctx = canvas.getContext("2d");
+  var scale = 3;
+  var assets = {};
+  var highlight = null;
+  var ripples = [];
+  var selectedSlot = 0;
+  var tick = 0;
+  var lastTs = 0;
+
+  /* Ground: g grass, d dirt path, p tilled, w water */
+  var GROUND = [
+    "gggggggggggggggggggg",
+    "gggggggggggggggggggg",
+    "gggggggggggggggggggg",
+    "gggggggggggggggggggg",
+    "gggggggggggggggggggg",
+    "ggggggggggggddddgggg",
+    "gggggppgggggddddgggg",
+    "gggggppgggggdddggggg",
+    "gggggppggggdddgggggg",
+    "ggggggggggdddggggggg",
+    "gggggggggdddgggggggg",
+    "ggggggggddgggggggggg"
+  ];
+
+  var PROPS = [
+    { kind: "tree", tx: 2, ty: 3 },
+    { kind: "house", tx: 13, ty: 1 },
+    { kind: "well", tx: 18, ty: 4 },
+    { kind: "mailbox", tx: 16, ty: 5 },
+    { kind: "crate", tx: 12, ty: 4 },
+    { kind: "pond", tx: 1, ty: 9 },
+    { kind: "rock", tx: 8, ty: 3 },
+    { kind: "rock", tx: 18, ty: 10 },
+    { kind: "rock", tx: 11, ty: 11 },
+    { kind: "weed", tx: 4, ty: 4 },
+    { kind: "weed", tx: 10, ty: 2 },
+    { kind: "weed", tx: 12, ty: 5 },
+    { kind: "weed", tx: 19, ty: 7 },
+    { kind: "weed", tx: 9, ty: 6 },
+    { kind: "fenceH", tx: 4, ty: 5 },
+    { kind: "fenceH", tx: 5, ty: 5 },
+    { kind: "fenceH", tx: 6, ty: 5 },
+    { kind: "fenceL", tx: 4, ty: 6 },
+    { kind: "fenceL", tx: 4, ty: 7 },
+    { kind: "fenceL", tx: 4, ty: 8 },
+    { kind: "fenceR", tx: 7, ty: 5 },
+    { kind: "fenceR", tx: 7, ty: 6 },
+    { kind: "fenceR", tx: 7, ty: 7 },
+    { kind: "fenceR", tx: 7, ty: 8 }
+  ];
+
+  function make(w, h) {
+    var c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    var g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    return { c: c, g: g };
+  }
+
+  function px(g, x, y, color) {
+    g.fillStyle = color;
+    g.fillRect(x, y, 1, 1);
+  }
+
+  function fill(g, x, y, w, h, color) {
+    g.fillStyle = color;
+    g.fillRect(x, y, w, h);
+  }
+
+  function hash(x, y, s) {
+    var n = (x * 374761393 + y * 668265263 + s * 1274126177) | 0;
+    n = (n ^ (n >>> 13)) * 1274126177;
+    return ((n >>> 0) % 1000) / 1000;
+  }
+
+  function cell(tx, ty) {
+    if (ty < 0 || ty >= ROWS || tx < 0 || tx >= COLS) return "g";
+    return GROUND[ty].charAt(tx);
+  }
+
+  function buildGrass(v) {
+    var o = make(TILE, TILE);
+    var g = o.g;
+    fill(g, 0, 0, 16, 16, C.grassMid);
+    var i, x, y, r;
+    for (i = 0; i < 22; i++) {
+      r = hash(v, i, 11);
+      x = (hash(v, i, 3) * 16) | 0;
+      y = (hash(v, i, 7) * 16) | 0;
+      if (r < 0.38) px(g, x, y, C.grassHi);
+      else if (r < 0.62) px(g, x, y, C.grassSh);
+      else if (r < 0.72) px(g, x, y, C.grassDp);
+    }
+    /* short blades */
+    var blades = [
+      [2, 4], [7, 2], [12, 6], [4, 10], [10, 12], [14, 3], [1, 13], [8, 8]
+    ];
+    for (i = 0; i < blades.length; i++) {
+      if (hash(v, i, 21) < 0.55 + v * 0.08) {
+        x = (blades[i][0] + v) & 15;
+        y = blades[i][1];
+        px(g, x, y, C.grassHi);
+        px(g, x, y + 1, C.grassSh);
+      }
+    }
+    function tuft(x, y) {
+      px(g, x, y, C.grassHi);
+      px(g, x + 1, y, C.grassMid);
+      px(g, x, y + 1, C.grassSh);
+      px(g, x - 1, y + 1, C.grassSh);
+      px(g, x + 1, y + 1, C.grassDp);
+    }
+    if (v === 0) { tuft(3, 3); tuft(11, 9); }
+    if (v === 1) {
+      tuft(6, 5); tuft(12, 12);
+      px(g, 5, 6, C.flower);
+      px(g, 13, 11, C.blossom);
+    }
+    if (v === 2) { tuft(2, 10); tuft(9, 2); }
+    if (v === 3) {
+      tuft(8, 8); tuft(14, 4);
+      px(g, 9, 4, C.flower);
+    }
+    return o.c;
+  }
+
+  function buildDirt() {
+    var o = make(TILE, TILE);
+    var g = o.g;
+    fill(g, 0, 0, 16, 16, C.dirtMid);
+    var i, x, y, r;
+    for (i = 0; i < 16; i++) {
+      r = hash(9, i, 4);
+      x = (hash(9, i, 1) * 16) | 0;
+      y = (hash(9, i, 2) * 16) | 0;
+      if (r < 0.4) px(g, x, y, C.dirtHi);
+      else if (r < 0.7) px(g, x, y, C.dirtSh);
+    }
+    return o.c;
+  }
+
+  function buildTill() {
+    var o = make(TILE, TILE);
+    var g = o.g;
+    fill(g, 0, 0, 16, 16, C.till);
+    fill(g, 0, 0, 16, 1, C.tillOut);
+    fill(g, 0, 15, 16, 1, C.tillOut);
+    fill(g, 0, 0, 1, 16, C.tillOut);
+    fill(g, 15, 0, 1, 16, C.tillOut);
+    var rows = [3, 7, 11];
+    var i, x;
+    for (i = 0; i < rows.length; i++) {
+      fill(g, 2, rows[i], 12, 1, C.tillSh);
+      fill(g, 2, rows[i] + 1, 12, 1, C.tillOut);
+      for (x = 3; x < 14; x += 3) px(g, x, rows[i] - 1, C.dirtSh);
+    }
+    px(g, 4, 5, C.dirtHi);
+    px(g, 11, 9, C.dirtHi);
+    return o.c;
+  }
+
+  function buildPond() {
+    var o = make(36, 32);
+    var g = o.g;
+    var x, y, dx, dy, d;
+    /* irregular pond, not a square window */
+    for (y = 0; y < 32; y++) {
+      for (x = 0; x < 36; x++) {
+        dx = (x - 18) / 15.2;
+        dy = (y - 16) / 12.4;
+        d = dx * dx + dy * dy + 0.12 * Math.sin(x * 0.7) * Math.cos(y * 0.5);
+        if (d < 1.18) {
+          if (d > 0.92) px(g, x, y, C.dirtSh);
+          else if (d > 0.78) px(g, x, y, (x + y) % 3 ? C.dirtMid : C.grassSh);
+          else if (d > 0.55) px(g, x, y, C.water);
+          else px(g, x, y, C.waterDp);
         }
-        return { x: event.clientX, y: event.clientY };
       }
+    }
+    px(g, 12, 13, C.waterFm);
+    px(g, 13, 13, C.waterFm);
+    px(g, 21, 18, C.waterFm);
+    px(g, 16, 20, C.waterFm);
+    px(g, 24, 12, C.water);
+    /* tiny lily — original oval, not a Stardew pad */
+    fill(g, 14, 16, 4, 2, C.leaf);
+    px(g, 13, 16, C.grassDp);
+    px(g, 18, 16, C.grassDp);
+    px(g, 15, 15, C.grassHi);
+    return o.c;
+  }
 
-      function ping(event) {
-        var p = point(event);
-        var ripple = document.createElement("div");
-        ripple.className = "ripple";
-        ripple.style.left = p.x + "px";
-        ripple.style.top = p.y + "px";
-        world.appendChild(ripple);
-
-        var note = document.createElement("div");
-        note.className = "note";
-        note.textContent = "it works";
-        note.style.left = p.x + "px";
-        note.style.top = p.y + "px";
-        world.appendChild(note);
-
-        setTimeout(function () {
-          if (ripple.parentNode) ripple.parentNode.removeChild(ripple);
-          if (note.parentNode) note.parentNode.removeChild(note);
-        }, 1100);
+  function blob(g, cx, cy, rx, ry, fillC, shC, hiC, outC) {
+    var x, y, dx, dy;
+    for (y = -ry - 1; y <= ry + 1; y++) {
+      for (x = -rx - 1; x <= rx + 1; x++) {
+        dx = x / (rx + 0.2);
+        dy = y / (ry + 0.2);
+        if (dx * dx + dy * dy <= 1.05) {
+          var edge = dx * dx + dy * dy > 0.78;
+          var hi = dx < -0.15 && dy < -0.1 && !edge;
+          var sh = dx > 0.25 || dy > 0.35;
+          px(g, cx + x, cy + y, edge ? outC : hi ? hiC : sh ? shC : fillC);
+        }
       }
+    }
+  }
 
-      world.addEventListener("pointerdown", ping, { passive: true });
-      document.addEventListener("touchmove", function (event) {
-        event.preventDefault();
-      }, { passive: false });
-    })();
+  function buildTree() {
+    var o = make(48, 56);
+    var g = o.g;
+    /* shadow */
+    fill(g, 14, 50, 20, 3, "rgba(30,90,18,0.40)");
+    fill(g, 16, 49, 16, 1, "rgba(30,90,18,0.28)");
+    /* trunk */
+    fill(g, 21, 36, 6, 16, C.woodMid);
+    fill(g, 21, 36, 2, 16, C.woodHi);
+    fill(g, 25, 36, 2, 16, C.woodSh);
+    fill(g, 20, 36, 1, 16, C.woodOut);
+    fill(g, 27, 36, 1, 16, C.woodOut);
+    px(g, 23, 40, C.woodOut);
+    px(g, 24, 46, C.woodSh);
+    /* cluster canopy — four rounded lumps, not a lollipop */
+    blob(g, 24, 14, 13, 10, C.grassMid, C.grassSh, C.grassHi, C.grassDp);
+    blob(g, 13, 22, 10, 8, C.grassMid, C.grassSh, C.grassHi, C.grassDp);
+    blob(g, 35, 21, 10, 8, C.grassMid, C.grassSh, C.grassHi, C.grassDp);
+    blob(g, 24, 28, 11, 7, C.grassSh, C.grassDp, C.grassMid, C.grassDp);
+    /* a few leaf holes / highlights */
+    px(g, 18, 12, C.grassHi);
+    px(g, 19, 12, C.grassHi);
+    px(g, 30, 16, C.grassHi);
+    px(g, 10, 20, C.grassDp);
+    px(g, 38, 24, C.grassDp);
+    return o.c;
+  }
+
+  function buildHouse() {
+    var o = make(80, 64);
+    var g = o.g;
+    var x, y, half, x0, x1;
+
+    /* ground shadow */
+    fill(g, 8, 59, 66, 5, "rgba(30,90,18,0.38)");
+
+    /* chimney LEFT — stone, original placement */
+    fill(g, 14, 2, 9, 20, C.stone);
+    fill(g, 14, 2, 9, 2, C.stoneHi);
+    fill(g, 14, 2, 1, 20, C.stoneSh);
+    fill(g, 22, 2, 1, 20, C.woodOut);
+    fill(g, 15, 1, 7, 2, C.stoneSh);
+    fill(g, 16, 0, 5, 2, C.stone);
+    px(g, 17, 2, C.stoneHi);
+    px(g, 19, 8, C.stoneSh);
+    px(g, 16, 14, C.stoneSh);
+    /* chimney lip */
+    fill(g, 13, 8, 11, 2, C.stoneSh);
+
+    /* gable roof */
+    for (y = 6; y < 32; y++) {
+      half = 8 + ((y - 6) * 30 / 26);
+      x0 = Math.round(40 - half);
+      x1 = Math.round(40 + half);
+      fill(g, x0, y, x1 - x0, 1, (y % 5 === 0) ? C.roofSh : C.roof);
+      if ((y + 2) % 5 === 0) {
+        for (x = x0 + 2; x < x1 - 1; x += 4) px(g, x, y, C.roofHi);
+      }
+      px(g, x0, y, C.woodOut);
+      px(g, x1 - 1, y, C.woodOut);
+    }
+    /* ridge */
+    fill(g, 36, 5, 8, 2, C.roofSh);
+    fill(g, 38, 4, 4, 2, C.roofHi);
+    /* eaves */
+    fill(g, 4, 31, 72, 3, C.woodSh);
+    fill(g, 4, 31, 72, 1, C.woodHi);
+    fill(g, 4, 33, 72, 1, C.woodOut);
+
+    /* front wall planks */
+    fill(g, 8, 34, 64, 26, C.woodMid);
+    for (y = 36; y < 58; y += 4) {
+      fill(g, 8, y, 64, 1, C.woodSh);
+      fill(g, 8, y + 1, 64, 1, C.woodHi);
+    }
+    fill(g, 8, 34, 1, 26, C.woodOut);
+    fill(g, 71, 34, 1, 26, C.woodOut);
+
+    /* foundation sill */
+    fill(g, 7, 58, 66, 4, C.stone);
+    fill(g, 7, 58, 66, 1, C.stoneHi);
+    fill(g, 7, 61, 66, 1, C.stoneSh);
+    px(g, 12, 59, C.stoneSh);
+    px(g, 28, 60, C.stoneSh);
+    px(g, 50, 59, C.stoneHi);
+    px(g, 64, 60, C.stoneSh);
+
+    /* windows */
+    function windowAt(wx, wy) {
+      fill(g, wx - 1, wy - 1, 12, 12, C.woodOut);
+      fill(g, wx, wy, 10, 10, C.glass);
+      fill(g, wx, wy, 10, 1, C.woodHi);
+      fill(g, wx + 4, wy, 2, 10, C.woodOut);
+      fill(g, wx, wy + 4, 10, 2, C.woodOut);
+      px(g, wx + 1, wy + 1, C.parch);
+      /* flower box */
+      fill(g, wx - 1, wy + 10, 12, 3, C.woodSh);
+      fill(g, wx - 1, wy + 10, 12, 1, C.woodHi);
+      px(g, wx + 1, wy + 9, C.leaf);
+      px(g, wx + 3, wy + 9, C.blossom);
+      px(g, wx + 5, wy + 9, C.leaf);
+      px(g, wx + 7, wy + 9, C.flower);
+      px(g, wx + 8, wy + 9, C.leaf);
+    }
+    windowAt(14, 40);
+    windowAt(56, 40);
+
+    /* centered Dutch door — split leaf, diamond pane */
+    fill(g, 33, 42, 14, 20, C.woodOut);
+    fill(g, 34, 43, 12, 9, C.door);
+    fill(g, 34, 53, 12, 8, C.woodMid);
+    fill(g, 34, 52, 12, 1, C.woodOut);
+    fill(g, 34, 43, 12, 1, C.woodHi);
+    /* diamond pane */
+    px(g, 40, 45, C.glass);
+    px(g, 39, 46, C.glass); px(g, 40, 46, C.parch); px(g, 41, 46, C.glass);
+    px(g, 40, 47, C.glass);
+    /* knob */
+    px(g, 44, 55, C.woodHi);
+    px(g, 44, 48, C.woodHi);
+
+    /* two-step stoop */
+    fill(g, 32, 60, 16, 3, C.stone);
+    fill(g, 34, 62, 12, 2, C.stoneHi);
+
+    return o.c;
+  }
+
+  function buildWell() {
+    var o = make(16, 28);
+    var g = o.g;
+    fill(g, 2, 24, 12, 3, "rgba(30,90,18,0.35)");
+    /* roof */
+    fill(g, 2, 0, 12, 2, C.roofSh);
+    for (var y = 2; y < 8; y++) {
+      var inset = Math.floor((y - 2) / 2);
+      fill(g, 1 + inset, y, 14 - inset * 2, 1, (y % 2) ? C.roof : C.roofSh);
+    }
+    /* posts */
+    fill(g, 3, 8, 2, 10, C.woodMid);
+    fill(g, 11, 8, 2, 10, C.woodMid);
+    fill(g, 3, 8, 1, 10, C.woodHi);
+    fill(g, 12, 8, 1, 10, C.woodSh);
+    /* beam */
+    fill(g, 3, 8, 10, 2, C.woodSh);
+    /* bucket */
+    fill(g, 7, 11, 3, 4, C.woodMid);
+    fill(g, 7, 11, 3, 1, C.woodHi);
+    /* stone cylinder */
+    fill(g, 2, 17, 12, 8, C.stone);
+    fill(g, 3, 16, 10, 2, C.stoneHi);
+    fill(g, 4, 18, 8, 5, C.waterDp);
+    fill(g, 2, 17, 12, 1, C.woodOut);
+    px(g, 6, 20, C.water);
+    px(g, 9, 21, C.waterFm);
+    return o.c;
+  }
+
+  function buildMailbox() {
+    var o = make(14, 20);
+    var g = o.g;
+    fill(g, 3, 17, 8, 2, "rgba(30,90,18,0.35)");
+    fill(g, 6, 10, 2, 9, C.woodMid);
+    fill(g, 6, 10, 1, 9, C.woodHi);
+    /* rounded wood box, slot, teal flag */
+    fill(g, 2, 3, 10, 8, C.woodMid);
+    fill(g, 3, 2, 8, 2, C.woodHi);
+    fill(g, 2, 3, 1, 8, C.woodOut);
+    fill(g, 11, 3, 1, 8, C.woodOut);
+    fill(g, 2, 10, 10, 1, C.woodOut);
+    fill(g, 4, 6, 6, 1, C.woodOut);
+    fill(g, 4, 5, 6, 1, C.woodSh);
+    fill(g, 12, 4, 2, 4, "#3A8A6A");
+    px(g, 13, 5, "#5CBC88");
+    return o.c;
+  }
+
+  function buildCrate() {
+    var o = make(14, 14);
+    var g = o.g;
+    fill(g, 1, 11, 12, 2, "rgba(30,90,18,0.30)");
+    fill(g, 1, 3, 12, 10, C.woodMid);
+    fill(g, 1, 3, 12, 1, C.woodHi);
+    fill(g, 1, 3, 1, 10, C.woodHi);
+    fill(g, 12, 3, 1, 10, C.woodOut);
+    fill(g, 1, 12, 12, 1, C.woodOut);
+    fill(g, 1, 7, 12, 1, C.woodSh);
+    fill(g, 6, 3, 2, 10, C.woodSh);
+    px(g, 3, 5, C.woodHi);
+    px(g, 10, 9, C.woodOut);
+    return o.c;
+  }
+
+  function buildRock(v) {
+    var o = make(16, 16);
+    var g = o.g;
+    fill(g, 4, 12, 8, 2, "rgba(30,90,18,0.30)");
+    if (v === 0) {
+      blob(g, 8, 10, 6, 4, C.stone, C.stoneSh, C.stoneHi, C.stoneSh);
+      blob(g, 6, 11, 3, 2, C.stoneHi, C.stone, C.stoneHi, C.stoneSh);
+    } else {
+      blob(g, 8, 11, 5, 3, C.stone, C.stoneSh, C.stoneHi, C.stoneSh);
+      px(g, 7, 10, C.stoneHi);
+      px(g, 10, 12, C.stoneSh);
+    }
+    return o.c;
+  }
+
+  function buildWeed(v) {
+    var o = make(16, 16);
+    var g = o.g;
+    if (v === 0) {
+      px(g, 7, 13, C.grassDp);
+      px(g, 8, 12, C.grassSh);
+      px(g, 8, 11, C.grassMid);
+      px(g, 7, 10, C.grassHi);
+      px(g, 9, 10, C.grassHi);
+      px(g, 6, 11, C.grassMid);
+      px(g, 10, 11, C.grassMid);
+      px(g, 8, 8, C.grassSh);
+      px(g, 8, 7, C.flower);
+    } else {
+      px(g, 6, 13, C.grassDp);
+      px(g, 7, 12, C.grassSh);
+      px(g, 5, 11, C.grassMid);
+      px(g, 8, 11, C.grassMid);
+      px(g, 6, 10, C.grassHi);
+      px(g, 9, 10, C.grassHi);
+      px(g, 7, 9, C.leaf);
+      px(g, 4, 12, C.grassSh);
+      px(g, 10, 12, C.grassSh);
+    }
+    return o.c;
+  }
+
+  function buildFenceH() {
+    var o = make(16, 16);
+    var g = o.g;
+    /* post on left, 3/4 cap */
+    fill(g, 1, 3, 4, 3, C.woodHi);
+    fill(g, 1, 6, 3, 9, C.woodMid);
+    fill(g, 1, 6, 1, 9, C.woodHi);
+    fill(g, 3, 6, 1, 9, C.woodSh);
+    fill(g, 0, 3, 6, 1, C.woodOut);
+    fill(g, 1, 15, 3, 1, C.woodOut);
+    /* rails */
+    fill(g, 4, 7, 12, 2, C.woodMid);
+    fill(g, 4, 7, 12, 1, C.woodHi);
+    fill(g, 4, 11, 12, 2, C.woodSh);
+    fill(g, 4, 11, 12, 1, C.woodMid);
+    return o.c;
+  }
+
+  function postAt(g, px0) {
+    fill(g, px0, 3, 4, 3, C.woodHi);
+    fill(g, px0, 6, 3, 9, C.woodMid);
+    fill(g, px0, 6, 1, 9, C.woodHi);
+    fill(g, px0 + 2, 6, 1, 9, C.woodSh);
+    fill(g, px0 - 1, 3, 6, 1, C.woodOut);
+    fill(g, px0, 15, 3, 1, C.woodOut);
+  }
+
+  function buildFenceL() {
+    var o = make(16, 16);
+    var g = o.g;
+    postAt(g, 2);
+    fill(g, 5, 7, 11, 2, C.woodMid);
+    fill(g, 5, 7, 11, 1, C.woodHi);
+    fill(g, 5, 11, 11, 2, C.woodSh);
+    return o.c;
+  }
+
+  function buildFenceR() {
+    var o = make(16, 16);
+    var g = o.g;
+    postAt(g, 10);
+    fill(g, 0, 7, 10, 2, C.woodMid);
+    fill(g, 0, 7, 10, 1, C.woodHi);
+    fill(g, 0, 11, 10, 2, C.woodSh);
+    return o.c;
+  }
+
+  function buildAssets() {
+    assets.grass = [buildGrass(0), buildGrass(1), buildGrass(2), buildGrass(3)];
+    assets.dirt = buildDirt();
+    assets.till = buildTill();
+    assets.pond = buildPond();
+    assets.tree = buildTree();
+    assets.house = buildHouse();
+    assets.well = buildWell();
+    assets.mailbox = buildMailbox();
+    assets.crate = buildCrate();
+    assets.rock = [buildRock(0), buildRock(1)];
+    assets.weed = [buildWeed(0), buildWeed(1)];
+    assets.fenceH = buildFenceH();
+    assets.fenceL = buildFenceL();
+    assets.fenceR = buildFenceR();
+  }
+
+  function drawText(g, str, x, y, color) {
+    g.fillStyle = color;
+    var i, r, c, bits, ch;
+    for (i = 0; i < str.length; i++) {
+      ch = str.charAt(i);
+      bits = FONT[ch] || FONT[" "];
+      for (r = 0; r < 7; r++) {
+        for (c = 0; c < 5; c++) {
+          if (bits[r] & (0x10 >> c)) {
+            g.fillRect(x + i * 6 + c, y + r, 1, 1);
+          }
+        }
+      }
+    }
+  }
+
+  function textWidth(str) {
+    return str.length * 6 - 1;
+  }
+
+  function woodPanel(g, x, y, w, h) {
+    fill(g, x, y, w, h, C.woodMid);
+    fill(g, x, y, w, 1, C.woodHi);
+    fill(g, x, y, 1, h, C.woodHi);
+    fill(g, x, y + h - 1, w, 1, C.bevelDk);
+    fill(g, x + w - 1, y, 1, h, C.bevelDk);
+    fill(g, x + 1, y + 1, w - 2, 1, C.woodHi);
+    fill(g, x + 1, y + h - 2, w - 2, 1, C.woodSh);
+  }
+
+  function grassIndex(tx, ty) {
+    return ((tx * 3 + ty * 7) >>> 0) % 4;
+  }
+
+  function drawDirtTile(g, tx, ty, dx, dy) {
+    g.drawImage(assets.dirt, dx, dy);
+    /* jagged grass bites on edges */
+    var n = cell(tx, ty - 1) === "g";
+    var s = cell(tx, ty + 1) === "g";
+    var e = cell(tx + 1, ty) === "g";
+    var w = cell(tx - 1, ty) === "g";
+    var i, ox, col;
+    if (n) {
+      for (i = 0; i < 16; i++) {
+        ox = (hash(tx, ty, i + 40) < 0.45) ? 2 : 1;
+        col = hash(tx, i, 2) < 0.5 ? C.grassMid : C.grassHi;
+        fill(g, dx + i, dy, 1, ox, col);
+        if (hash(tx, ty, i) < 0.25) px(g, dx + i, dy + ox, C.grassSh);
+      }
+    }
+    if (s) {
+      for (i = 0; i < 16; i++) {
+        ox = (hash(tx, ty, i + 80) < 0.4) ? 2 : 1;
+        col = hash(tx, i, 5) < 0.5 ? C.grassMid : C.grassSh;
+        fill(g, dx + i, dy + 16 - ox, 1, ox, col);
+      }
+    }
+    if (w) {
+      for (i = 0; i < 16; i++) {
+        ox = (hash(tx, ty, i + 120) < 0.4) ? 2 : 1;
+        col = hash(ty, i, 3) < 0.5 ? C.grassMid : C.grassHi;
+        fill(g, dx, dy + i, ox, 1, col);
+      }
+    }
+    if (e) {
+      for (i = 0; i < 16; i++) {
+        ox = (hash(tx, ty, i + 160) < 0.4) ? 2 : 1;
+        col = hash(ty, i, 8) < 0.5 ? C.grassMid : C.grassSh;
+        fill(g, dx + 16 - ox, dy + i, ox, 1, col);
+      }
+    }
+  }
+
+
+  function propFoot(p) {
+    if (p.kind === "house") return p.ty * TILE + 64;
+    if (p.kind === "tree") return p.ty * TILE + 24;
+    if (p.kind === "well") return p.ty * TILE + 28;
+    if (p.kind === "mailbox") return p.ty * TILE + 20;
+    if (p.kind === "pond") return p.ty * TILE + 20;
+    if (p.kind === "crate") return p.ty * TILE + 14;
+    return p.ty * TILE + TILE;
+  }
+
+  function drawProp(g, p) {
+    var x = p.tx * TILE;
+    var y = p.ty * TILE;
+    if (p.kind === "house") {
+      g.drawImage(assets.house, x, y);
+    } else if (p.kind === "tree") {
+      g.drawImage(assets.tree, x - 16, y - 40);
+    } else if (p.kind === "well") {
+      g.drawImage(assets.well, x, y - 12);
+    } else if (p.kind === "mailbox") {
+      g.drawImage(assets.mailbox, x + 2, y - 4);
+    } else if (p.kind === "crate") {
+      g.drawImage(assets.crate, x + 1, y + 2);
+    } else if (p.kind === "pond") {
+      g.drawImage(assets.pond, x - 2, y);
+      if (((tick / 700) | 0) % 2) {
+        px(g, x + 18, y + 11, C.waterFm);
+        px(g, x + 10, y + 19, C.waterFm);
+      }
+    } else if (p.kind === "rock") {
+      g.drawImage(assets.rock[(p.tx + p.ty) & 1], x, y);
+    } else if (p.kind === "weed") {
+      g.drawImage(assets.weed[(p.tx + p.ty) & 1], x, y);
+    } else if (p.kind === "fenceH") {
+      g.drawImage(assets.fenceH, x, y);
+    } else if (p.kind === "fenceL") {
+      g.drawImage(assets.fenceL, x, y);
+    } else if (p.kind === "fenceR") {
+      g.drawImage(assets.fenceR, x, y);
+    }
+  }
+
+  function strokeCircle(g, cx, cy, r, color) {
+    g.fillStyle = color;
+    var a, x, y;
+    for (a = 0; a < 360; a += 10) {
+      x = Math.round(cx + Math.cos(a * Math.PI / 180) * r);
+      y = Math.round(cy + Math.sin(a * Math.PI / 180) * r);
+      g.fillRect(x, y, 1, 1);
+    }
+  }
+
+  function drawHUD(g) {
+    /* title plaque */
+    woodPanel(g, 4, 4, 86, 13);
+    drawText(g, "ORION'S GAME", 8, 7, C.parch);
+
+    /* day plaque */
+    woodPanel(g, 206, 4, 110, 21);
+    fill(g, 210, 8, 7, 7, C.flower);
+    fill(g, 212, 10, 3, 3, C.parch);
+    px(g, 209, 11, C.flower);
+    px(g, 217, 11, C.flower);
+    px(g, 213, 7, C.flower);
+    drawText(g, "DAY 1", 220, 8, C.uiText);
+    drawText(g, "SPRING · MORNING", 210, 16, C.parch);
+
+    /* hotbar */
+    var slots = 10;
+    var slot = 18;
+    var gap = 1;
+    var barW = slots * slot + (slots - 1) * gap;
+    var bx = ((VIEW_W - barW) / 2) | 0;
+    var by = VIEW_H - 22;
+    woodPanel(g, bx - 3, by - 3, barW + 6, 24);
+    var i, sx, sy, sel;
+    for (i = 0; i < slots; i++) {
+      sx = bx + i * (slot + gap);
+      sy = by;
+      sel = i === selectedSlot;
+      fill(g, sx, sy, slot, slot, sel ? C.woodHi : C.woodSh);
+      fill(g, sx + 1, sy + 1, slot - 2, slot - 2, C.slot);
+      fill(g, sx + 2, sy + 2, slot - 4, slot - 4, sel ? "#6A4420" : "#5A3818");
+      if (sel) {
+        fill(g, sx, sy, slot, 1, C.parch);
+        fill(g, sx, sy, 1, slot, C.parch);
+      }
+    }
+
+    /* energy */
+    var ex = VIEW_W - 16;
+    var ey = VIEW_H - 70;
+    woodPanel(g, ex - 2, ey - 10, 14, 56);
+    drawText(g, "E", ex + 2, ey - 8, C.parch);
+    fill(g, ex + 1, ey + 2, 8, 40, C.energyEmpty);
+    fill(g, ex + 1, ey + 2, 8, 40, C.energy);
+    fill(g, ex + 1, ey + 2, 8, 1, C.grassHi);
+    fill(g, ex + 1, ey + 2, 1, 40, C.grassHi);
+  }
+
+  function drawWorld(g, dt) {
+    tick += dt;
+    var tx, ty, ch, dx, dy;
+
+    for (ty = 0; ty < ROWS; ty++) {
+      for (tx = 0; tx < COLS; tx++) {
+        ch = cell(tx, ty);
+        dx = tx * TILE;
+        dy = ty * TILE;
+        if (ch === "d") drawDirtTile(g, tx, ty, dx, dy);
+        else if (ch === "p") g.drawImage(assets.till, dx, dy);
+        else g.drawImage(assets.grass[grassIndex(tx, ty)], dx, dy);
+      }
+    }
+
+    if (highlight) {
+      g.fillStyle = "rgba(243,210,163,0.32)";
+      g.fillRect(highlight.tx * TILE, highlight.ty * TILE, TILE, TILE);
+      g.fillStyle = "rgba(243,210,163,0.7)";
+      g.fillRect(highlight.tx * TILE, highlight.ty * TILE, TILE, 1);
+      g.fillRect(highlight.tx * TILE, highlight.ty * TILE, 1, TILE);
+      g.fillRect(highlight.tx * TILE, highlight.ty * TILE + 15, TILE, 1);
+      g.fillRect(highlight.tx * TILE + 15, highlight.ty * TILE, 1, TILE);
+    }
+
+    var i, rp, life, r, alpha;
+    for (i = ripples.length - 1; i >= 0; i--) {
+      rp = ripples[i];
+      rp.age += dt;
+      life = rp.age / 520;
+      if (life >= 1) {
+        ripples.splice(i, 1);
+        continue;
+      }
+      r = 2 + life * 16;
+      alpha = 1 - life;
+      strokeCircle(g, rp.x, rp.y, r, "rgba(243,210,163," + (alpha * 0.85).toFixed(2) + ")");
+      if (r > 5) {
+        strokeCircle(g, rp.x, rp.y, r - 3, "rgba(232,176,96," + (alpha * 0.45).toFixed(2) + ")");
+      }
+    }
+
+    var sorted = PROPS.slice().sort(function (a, b) {
+      return propFoot(a) - propFoot(b);
+    });
+    for (i = 0; i < sorted.length; i++) drawProp(g, sorted[i]);
+
+    drawHUD(g);
+  }
+
+  function resize() {
+    var vv = window.visualViewport;
+    var w = (vv && vv.width) ? vv.width : window.innerWidth;
+    var h = (vv && vv.height) ? vv.height : window.innerHeight;
+    scale = Math.floor(Math.min(w / VIEW_W, h / VIEW_H));
+    if (scale < 1) scale = 1;
+    if (scale > 6) scale = 6;
+    canvas.style.width = (VIEW_W * scale) + "px";
+    canvas.style.height = (VIEW_H * scale) + "px";
+    ctx.imageSmoothingEnabled = false;
+  }
+
+  function pointFromEvent(e) {
+    var src = e;
+    if (e.changedTouches && e.changedTouches[0]) src = e.changedTouches[0];
+    else if (e.touches && e.touches[0]) src = e.touches[0];
+    var rect = canvas.getBoundingClientRect();
+    return {
+      x: (src.clientX - rect.left) / rect.width * VIEW_W,
+      y: (src.clientY - rect.top) / rect.height * VIEW_H
+    };
+  }
+
+  function tap(e) {
+    var p = pointFromEvent(e);
+    if (p.x < 0 || p.y < 0 || p.x >= VIEW_W || p.y >= VIEW_H) return;
+
+    var slots = 10;
+    var slot = 18;
+    var gap = 1;
+    var barW = slots * slot + (slots - 1) * gap;
+    var bx = ((VIEW_W - barW) / 2) | 0;
+    var by = VIEW_H - 22;
+    if (p.y >= by - 3 && p.y <= by + 18 && p.x >= bx && p.x <= bx + barW) {
+      var idx = ((p.x - bx) / (slot + gap)) | 0;
+      if (idx >= 0 && idx < slots) selectedSlot = idx;
+      return;
+    }
+
+    var tx = Math.floor(p.x / TILE);
+    var ty = Math.floor(p.y / TILE);
+    if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return;
+    highlight = { tx: tx, ty: ty };
+    ripples.push({
+      x: tx * TILE + 8,
+      y: ty * TILE + 8,
+      age: 0
+    });
+  }
+
+  function loop(ts) {
+    if (!lastTs) lastTs = ts;
+    var dt = ts - lastTs;
+    if (dt > 64) dt = 64;
+    lastTs = ts;
+    ctx.imageSmoothingEnabled = false;
+    drawWorld(ctx, dt);
+    requestAnimationFrame(loop);
+  }
+
+  buildAssets();
+  resize();
+  window.addEventListener("resize", resize);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", resize);
+    window.visualViewport.addEventListener("scroll", resize);
+  }
+  canvas.addEventListener("pointerdown", tap, { passive: true });
+  document.addEventListener("touchmove", function (e) {
+    e.preventDefault();
+  }, { passive: false });
+  document.addEventListener("gesturestart", function (e) {
+    e.preventDefault();
+  });
+  document.addEventListener("dblclick", function (e) {
+    e.preventDefault();
+  });
+  requestAnimationFrame(loop);
+})();
   </script>
 </body>
 </html>
