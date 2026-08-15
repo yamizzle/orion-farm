@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#8ec8e8">
+  <meta name="format-detection" content="telephone=no">
+  <title>Orion's Game</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-text-size-adjust: 100%;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      cursor: pointer;
+    }
+    body {
+      position: fixed;
+      inset: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    #world {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(
+          to bottom,
+          #7ec8ea 0%,
+          #b7dff2 42%,
+          #e8f4c8 58%,
+          #8bc46a 58%,
+          #6fa84e 100%
+        );
+    }
+    .sun {
+      position: absolute;
+      top: 8%;
+      right: 12%;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #ffe082;
+      box-shadow: 0 0 48px 12px rgba(255, 224, 130, 0.55);
+      pointer-events: none;
+    }
+    .hill {
+      position: absolute;
+      left: -10%;
+      right: -10%;
+      bottom: 0;
+      height: 38%;
+      background: #7bb85a;
+      border-radius: 50% 50% 0 0 / 28% 28% 0 0;
+      pointer-events: none;
+    }
+    .hill.back {
+      height: 46%;
+      background: #8fc96a;
+      opacity: 0.9;
+    }
+    .title {
+      position: absolute;
+      top: max(10px, env(safe-area-inset-top, 0px));
+      left: max(12px, env(safe-area-inset-left, 0px));
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-shadow: 0 1px 2px rgba(40, 70, 40, 0.25);
+      pointer-events: none;
+    }
+    .ripple {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      margin: -9px 0 0 -9px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.55);
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      pointer-events: none;
+      animation: ripple 700ms ease-out forwards;
+    }
+    .note {
+      position: absolute;
+      transform: translate(-50%, -130%);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-shadow: 0 1px 4px rgba(40, 70, 40, 0.35);
+      pointer-events: none;
+      white-space: nowrap;
+      animation: note 1000ms ease-out forwards;
+    }
+    @keyframes ripple {
+      0% { transform: scale(0.4); opacity: 0.85; }
+      100% { transform: scale(4.2); opacity: 0; }
+    }
+    @keyframes note {
+      0% { opacity: 0; transform: translate(-50%, -90%); }
+      18% { opacity: 1; transform: translate(-50%, -130%); }
+      70% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -160%); }
+    }
+  </style>
+</head>
+<body>
+  <div id="world" role="application" aria-label="Orion's Game">
+    <div class="sun" aria-hidden="true"></div>
+    <div class="hill back" aria-hidden="true"></div>
+    <div class="hill" aria-hidden="true"></div>
+    <div class="title">Orion's Game</div>
+  </div>
+  <script>
+    (function () {
+      var world = document.getElementById("world");
+
+      function point(event) {
+        if (event.touches && event.touches[0]) {
+          return { x: event.touches[0].clientX, y: event.touches[0].clientY };
+        }
+        return { x: event.clientX, y: event.clientY };
+      }
+
+      function ping(event) {
+        var p = point(event);
+        var ripple = document.createElement("div");
+        ripple.className = "ripple";
+        ripple.style.left = p.x + "px";
+        ripple.style.top = p.y + "px";
+        world.appendChild(ripple);
+
+        var note = document.createElement("div");
+        note.className = "note";
+        note.textContent = "it works";
+        note.style.left = p.x + "px";
+        note.style.top = p.y + "px";
+        world.appendChild(note);
+
+        setTimeout(function () {
+          if (ripple.parentNode) ripple.parentNode.removeChild(ripple);
+          if (note.parentNode) note.parentNode.removeChild(note);
+        }, 1100);
+      }
+
+      world.addEventListener("pointerdown", ping, { passive: true });
+      document.addEventListener("touchmove", function (event) {
+        event.preventDefault();
+      }, { passive: false });
+    })();
+  </script>
+</body>
+</html>
