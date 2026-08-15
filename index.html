@@ -885,14 +885,17 @@
   function buildSprout() {
     var o = make(16, 16);
     var g = o.g;
-    fill(g, 8, 10, 1, 4, C.grassSh);
-    px(g, 8, 9, C.leaf);
-    px(g, 7, 8, C.grassHi);
-    px(g, 6, 8, C.leaf);
-    px(g, 7, 7, C.grassHi);
-    px(g, 9, 8, C.grassHi);
-    px(g, 10, 7, C.leaf);
-    px(g, 9, 7, C.grassMid);
+    fill(g, 7, 10, 2, 5, C.grassSh);
+    px(g, 7, 10, C.leaf);
+    px(g, 8, 11, C.grassMid);
+    fill(g, 3, 7, 4, 3, C.leaf);
+    fill(g, 4, 6, 3, 2, C.grassHi);
+    px(g, 3, 8, C.grassSh);
+    px(g, 6, 7, C.grassMid);
+    fill(g, 9, 5, 4, 4, C.leaf);
+    fill(g, 10, 4, 3, 2, C.grassHi);
+    px(g, 12, 7, C.grassSh);
+    px(g, 9, 6, C.grassMid);
     return o.c;
   }
 
@@ -1002,7 +1005,7 @@
       return false;
     }
     var dest = who.path[0];
-    var speed = who.speed || 1.7;
+    var speed = who.speed || 3.5;
     who.stepT += (dt / 1000) * speed;
     if (who.stepT >= 1) {
       who.tx = dest.tx;
@@ -1083,7 +1086,7 @@
     highlight = { tx: npc.tx, ty: npc.ty };
     if (isNear(player.tx, player.ty, npc.tx, npc.ty)) {
       pending = null;
-      startWalk(player, [], 1.7);
+      startWalk(player, [], 3.5);
       faceToward(player, npc.tx, npc.ty);
       faceToward(npc, player.tx, player.ty);
       dialogue = true;
@@ -1092,7 +1095,7 @@
     var dest = nearestAdjacent(npc.tx, npc.ty);
     if (!dest) return;
     pending = { type: "talk" };
-    startWalk(player, findPath(player.tx, player.ty, dest.tx, dest.ty), 1.7);
+    startWalk(player, findPath(player.tx, player.ty, dest.tx, dest.ty), 3.5);
   }
 
   function goPlant(tx, ty) {
@@ -1107,13 +1110,13 @@
     var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
     pending = { type: "plant", tx: tx, ty: ty };
-    startWalk(player, path, 1.7);
+    startWalk(player, path, 3.5);
   }
 
   function goWalk(tx, ty) {
     pending = null;
     if (!walkable(tx, ty)) return;
-    startWalk(player, findPath(player.tx, player.ty, tx, ty), 1.7);
+    startWalk(player, findPath(player.tx, player.ty, tx, ty), 3.5);
   }
 
   function updateChicken(dt) {
