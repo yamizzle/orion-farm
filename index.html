@@ -409,6 +409,8 @@
   var lilaDone = false;
   var pipDone = false;
   var pipLantern = false;
+  var reedDone = false;
+  var carTapped = false;
   var LETTERS = {
     welcome: {
       id: "welcome",
@@ -438,6 +440,7 @@
     { id: "homeGlow", name: "HOME GLOW", blurb: "BROUGHT THE SHARD HOME" },
     { id: "greenThumb", name: "GREEN THUMB", blurb: "PLANTED LILA'S FLOWERS" },
     { id: "shopGlow", name: "SHOP GLOW", blurb: "LIT PIP'S LANTERN" },
+    { id: "carFriend", name: "CAR FRIEND", blurb: "LIT THE CAR'S NIGHT LAMPS" },
     { id: "caveFoe", name: "CAVE FOE", blurb: "BEAT A MONSTER" }
   ];
   var COLLECT_ACH = { copper: "copperGlow", mushroom: "caveSnack", moonshard: "moonPiece" };
@@ -2190,6 +2193,8 @@
       }
       pipDone = !!data.pipDone;
       pipLantern = !!(data.pipLantern || data.pipDone);
+      reedDone = !!data.reedDone;
+      carTapped = !!(data.carTapped || data.reedDone);
       if (data.day >= 1) dayNumber = data.day | 0;
       if (typeof data.dayMs === "number" && data.dayMs >= 0) {
         dayMs = data.dayMs;
@@ -2355,6 +2360,8 @@
         lilaDone: !!lilaDone,
         pipDone: !!pipDone,
         pipLantern: !!pipLantern,
+        reedDone: !!reedDone,
+        carTapped: !!carTapped,
         day: dayNumber,
         dayMs: dayMs,
         phase: clockPhase(),
@@ -2881,14 +2888,10 @@
         fn(p.tx * TILE + 48, p.ty * TILE + 18, 0.42, 100 + i);
       }
     }
-    if (currentScene === "overworld" && car && lanternGlowAmt() > 0.02) {
-      hx = car.x;
-      hy = car.y - 4;
-      if (car.face === "right") hx += 10;
-      else if (car.face === "left") hx -= 10;
-      else if (car.face === "up") hy -= 8;
-      else hy += 4;
-      fn(hx, hy, 0.55, 200);
+    if (currentScene === "overworld" && car && reedDone && lanternGlowAmt() > 0.02) {
+      var lamps = carLampSpots();
+      fn(lamps[0].x + 1, lamps[0].y + 1, 0.42, 200);
+      fn(lamps[1].x + 1, lamps[1].y + 1, 0.42, 201);
     }
   }
 
@@ -3129,6 +3132,7 @@
     if (!found.moonshard) return "FIND A MOON SHARD";
     if (!lilaDone) return "PLANT FLOWERS WITH LILA";
     if (!pipDone) return "BRING COPPER TO PIP";
+    if (!reedDone) return "HELP REED'S CAR";
     return "THE TOWN STATUE IS DARK.";
   }
 
@@ -3385,6 +3389,82 @@
     openDialogue("PIP", pipLines());
   }
 
+  function nearCar() {
+    if (currentScene !== "overworld" || !car) return false;
+    return isNear(player.tx, player.ty, car.tx, car.ty);
+  }
+
+  function finishReedJob() {
+    if (reedDone) return;
+    reedDone = true;
+    carTapped = true;
+    persistSave();
+    unlockAch("carFriend");
+  }
+
+  function reedLines() {
+    if (reedDone) {
+      return ["THE CAR CAN SEE", "AT NIGHT NOW."];
+    }
+    if (carTapped || nearCar()) {
+      finishReedJob();
+      return ["THANKS. THE LAMPS", "ARE ON."];
+    }
+    return ["A LANTERN USED TO BOB", "IN THE MINE.", "SAY HI TO THE CAR", "THEN COME BACK."];
+  }
+
+  function beepCar() {
+    if (!carTapped) {
+      carTapped = true;
+      persistSave();
+    }
+    openDialogue("CAR", ["BEEP."]);
+  }
+
+  function goTapCar() {
+    var dest, path;
+    if (currentScene !== "overworld") return;
+    highlight = { tx: car.tx, ty: car.ty };
+    if (isNear(player.tx, player.ty, car.tx, car.ty)) {
+      pending = null;
+      startWalk(player, [], 3.5);
+      beepCar();
+      return;
+    }
+    dest = nearestAdjacent(car.tx, car.ty);
+    if (!dest) {
+      beepCar();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      beepCar();
+      return;
+    }
+    pending = { type: "tapCar" };
+    startWalk(player, path, 3.5);
+  }
+
+  function carSpriteHit(world) {
+    var face = car.face || "right";
+    if (face === "up" || face === "down") return hitSprite(world, car.x, car.y, 16, 20, 8, 18);
+    return hitSprite(world, car.x, car.y, 24, 16, 12, 14);
+  }
+
+  function carLampSpots() {
+    var face = car.face || "right";
+    if (face === "right") {
+      return [{ x: car.x + 10, y: car.y - 6 }, { x: car.x + 10, y: car.y - 4 }];
+    }
+    if (face === "left") {
+      return [{ x: car.x - 11, y: car.y - 6 }, { x: car.x - 11, y: car.y - 4 }];
+    }
+    if (face === "up") {
+      return [{ x: car.x - 3, y: car.y - 15 }, { x: car.x + 2, y: car.y - 15 }];
+    }
+    return [{ x: car.x - 3, y: car.y - 2 }, { x: car.x + 2, y: car.y - 2 }];
+  }
+
   function talkFolk(f) {
     var lines;
     faceToward(player, f.tx, f.ty);
@@ -3395,6 +3475,10 @@
     }
     if (f.id === "pip") {
       openDialogue(f.name, pipLines());
+      return;
+    }
+    if (f.id === "reed") {
+      openDialogue(f.name, reedLines());
       return;
     }
     lines = f.lines[(tick / 800 | 0) % f.lines.length];
@@ -4687,6 +4771,8 @@
       talkHomeLight();
     } else if (act.type === "talkFolk") {
       if (act.folk && isNear(player.tx, player.ty, act.folk.tx, act.folk.ty)) talkFolk(act.folk);
+    } else if (act.type === "tapCar") {
+      beepCar();
     } else if (act.type === "landmark") {
       if (act.prop) talkLandmark(act.prop);
     } else if (act.type === "enterShop") {
@@ -5031,14 +5117,15 @@
     if (!Assets.spr[sid]) sid = "car-right";
     drawShadow(g, car.x, car.y, 7);
     Assets.draw(g, sid, car.x, car.y, car.frame || 0);
-    if (lanternGlowAmt() > 0.12) {
-      var hx = car.x, hy = car.y - 4;
-      if (face === "right") hx += 10;
-      else if (face === "left") hx -= 10;
-      else if (face === "up") hy -= 8;
-      else hy += 4;
-      g.fillStyle = "rgba(240,192,64," + (0.35 + 0.15 * lanternGlowAmt()).toFixed(3) + ")";
-      g.fillRect(Math.round(hx - 3), Math.round(hy - 2), 6, 4);
+    if (reedDone && lanternGlowAmt() > 0.12) {
+      var spots = carLampSpots();
+      var glow = 0.55 + 0.35 * lanternGlowAmt();
+      var li, ls;
+      g.fillStyle = "rgba(240,176,64," + glow.toFixed(3) + ")";
+      for (li = 0; li < spots.length; li++) {
+        ls = spots[li];
+        g.fillRect(Math.round(ls.x), Math.round(ls.y), 2, 2);
+      }
     }
   }
 
@@ -6080,6 +6167,10 @@
           return;
         }
       }
+      if (carSpriteHit(world)) {
+        goTapCar();
+        return;
+      }
     }
     if (currentScene === "shop") {
       if (hitSprite(world, tileCenterX(8), tileFootY(4), 16, 32, 8, 28)) {
@@ -6188,6 +6279,10 @@
     }
     if (currentScene === "overworld" && folkAt(tx, ty)) {
       goTalkFolk(folkAt(tx, ty));
+      return;
+    }
+    if (currentScene === "overworld" && carOccupies(tx, ty)) {
+      goTapCar();
       return;
     }
     if (currentScene === "overworld" && hitProp && (hitProp.kind === "statue" || hitProp.kind === "fountain" || hitProp.kind === "townHouseA" || hitProp.kind === "townHouseB")) {
