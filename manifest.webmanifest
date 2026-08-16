@@ -1,0 +1,15 @@
+{
+  "name": "Moondrop Mountain",
+  "short_name": "Moondrop",
+  "display": "standalone",
+  "background_color": "#2A1A10",
+  "theme_color": "#2A1A10",
+  "start_url": "./",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

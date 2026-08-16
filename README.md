@@ -10,6 +10,8 @@ https://yamizzle.github.io/orion-farm/
 
 On a Chromebook, iPad, or iPhone: open that link in the browser (Safari or Chrome). Landscape on iPad is the intended view.
 
+On iPhone, tap the wood **FULL** plaque (top-right) so the farm fills the Safari page. Tap **EXIT**, or swipe down from the top, to go back. Add to Home Screen for a chrome-free farm.
+
 - Tap the grass or path to walk there (the little person will go around the house, water, trees, and fence).
 - The first hotbar slot is a seed packet. Tap an empty brown plot inside the fence to plant a sprout.
 - Tap the neighbor in the straw hat. They say hello, then tap again to close the box.
@@ -18,6 +20,8 @@ On a Chromebook, iPad, or iPhone: open that link in the browser (Safari or Chrom
 ## What is in here
 
 - `index.html` — the whole game (vanilla HTML/CSS/JS, one canvas, no build step, no Phaser, no accounts, no ads, no trackers)
+- `manifest.webmanifest` — Add to Home Screen / standalone name and theme
+- `apple-touch-icon.png` — Home Screen icon
 - `.nojekyll` — tells GitHub Pages to serve the files as-is
 
 Art is original 16×16 pixel tiles and 16×32 people drawn in code. It is meant to feel like the same *family* as Stardew Valley (3/4 top-down, spring greens, mustard path, wood HUD). It does not copy Stardew sprites, the farmhouse, UI chrome, or fonts.
