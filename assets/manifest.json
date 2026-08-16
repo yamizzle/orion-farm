@@ -1845,6 +1845,40 @@
       "generated": true
     },
     {
+      "id": "player-faint",
+      "file": "actors/player-faint.png",
+      "w": 24,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        12,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 67,
+      "y": 372,
+      "fw": 24,
+      "generated": true
+    },
+    {
+      "id": "faintStar",
+      "file": "ui/faintStar-{n}.png",
+      "w": 16,
+      "h": 16,
+      "frames": 3,
+      "anchor": [
+        8,
+        8
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 92,
+      "y": 372,
+      "fw": 16,
+      "generated": true
+    },
+    {
       "id": "gem",
       "file": "ui/gem.png",
       "w": 16,
@@ -1856,7 +1890,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
+      "x": 141,
       "y": 372,
       "fw": 16,
       "generated": true
@@ -1873,7 +1907,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 84,
+      "x": 158,
       "y": 372,
       "fw": 16,
       "generated": true
@@ -1890,7 +1924,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 101,
+      "x": 175,
       "y": 372,
       "fw": 16,
       "generated": true
@@ -1907,7 +1941,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 118,
+      "x": 192,
       "y": 372,
       "fw": 10,
       "generated": true
@@ -1924,7 +1958,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 129,
+      "x": 203,
       "y": 372,
       "fw": 10,
       "generated": true

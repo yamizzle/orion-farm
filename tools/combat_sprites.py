@@ -233,6 +233,96 @@ def install(ns):
             g.px(12, 13, sh)
         return g
 
+    def gen_player_faint():
+        """Kid-safe 3/4 faint: Orion napping on his side, closed eyes, tiny stars."""
+        g = Pix(24, 16)
+        hair = C.get("playerHair", "#3A5A28")
+        hair_hi = C.get("playerHairHi", "#5A8A40")
+        skin = C.get("skin", "#F0C090")
+        skin_sh = C.get("skinSh", "#C49060")
+        shirt = C.get("playerShirt", "#3A8A48")
+        shirt_hi = C.get("playerShirtHi", "#5CBC68")
+        shirt_sh = C.get("playerShirtSh", "#246434")
+        pants = C.get("playerPants", "#3A4A6A")
+        pants_sh = C.get("playerPantsSh", "#24344A")
+        shoe = C.get("playerShoe", "#3A2210")
+        out = C.get("woodOut", "#3D1A0C")
+        gold = C.get("flower", "#E8C84A")
+        gold_hi = C.get("parch", "#F3D2A3")
+        g.fill(3, 13, 18, 2, C.get("shadow", "rgba(30,90,18,0.40)"))
+        # shoes + legs
+        g.fill(18, 9, 4, 3, shoe)
+        g.fill(18, 8, 4, 1, pants_sh)
+        g.fill(14, 8, 5, 4, pants)
+        g.fill(14, 8, 5, 1, pants_sh)
+        # torso
+        g.fill(7, 7, 8, 5, shirt)
+        g.fill(7, 7, 8, 1, shirt_hi)
+        g.fill(14, 8, 1, 4, shirt_sh)
+        g.fill(6, 8, 1, 3, shirt_hi)
+        # head (left), eyes closed
+        g.fill(1, 5, 7, 6, hair)
+        g.fill(2, 4, 5, 2, hair)
+        g.fill(2, 6, 5, 4, skin)
+        g.fill(2, 9, 5, 1, skin_sh)
+        g.fill(2, 5, 5, 2, hair)
+        g.fill(3, 4, 3, 1, hair_hi)
+        g.px(3, 8, out)
+        g.px(4, 8, out)
+        g.px(6, 8, out)
+        g.px(7, 8, out)
+        g.px(5, 10, C.get("playerLip", "#C47A38"))
+        g.px(1, 7, skin)
+        # sleepy stars
+        g.px(4, 1, gold)
+        g.px(3, 2, gold)
+        g.px(5, 2, gold)
+        g.px(4, 3, gold)
+        g.px(4, 2, gold_hi)
+        g.px(8, 0, gold_hi)
+        g.px(7, 1, gold)
+        g.px(9, 1, gold)
+        return g
+
+    def gen_faint_star(frame):
+        """Chubby 16-bit sparkle star for the faint burst."""
+        g = Pix(16, 16)
+        gold = C.get("flower", "#E8C84A")
+        hi = C.get("parch", "#F3D2A3")
+        sh = C.get("honeySh", "#A86C14")
+        out = C.get("woodOut", "#3D1A0C")
+        cx, cy = 8, 8
+        if frame == 0:
+            arms = ((0, -3), (0, 3), (-3, 0), (3, 0), (-2, -2), (2, -2), (-2, 2), (2, 2))
+            g.px(cx, cy, hi)
+            g.px(cx, cy - 1, gold)
+            g.px(cx, cy + 1, sh)
+        elif frame == 1:
+            arms = ((0, -5), (0, 5), (-5, 0), (5, 0), (-3, -3), (3, -3), (-3, 3), (3, 3))
+            g.fill(cx - 1, cy - 1, 3, 3, gold)
+            g.px(cx, cy, hi)
+            g.px(cx, cy - 1, hi)
+            g.px(cx + 1, cy, sh)
+        else:
+            arms = ((0, -6), (0, 6), (-6, 0), (6, 0), (-4, -4), (4, -4), (-4, 4), (4, 4))
+            g.fill(cx - 1, cy - 1, 3, 3, gold)
+            g.px(cx, cy, hi)
+            g.px(cx - 1, cy - 1, hi)
+            g.px(cx + 1, cy + 1, sh)
+            g.px(cx, cy - 2, gold)
+            g.px(cx, cy + 2, sh)
+        for dx, dy in arms:
+            g.px(cx + dx, cy + dy, gold if abs(dx) + abs(dy) < 7 else hi)
+            if frame:
+                g.px(cx + dx // 2, cy + dy // 2, gold)
+        g.px(cx, cy - 1, hi)
+        if frame == 2:
+            g.px(1, 2, hi)
+            g.px(14, 3, gold)
+            g.px(2, 13, gold)
+            g.px(13, 12, hi)
+        return g
+
     extra_gen = {
         "heart": lambda: gen_heart(True),
         "heartEmpty": lambda: gen_heart(False),
@@ -245,6 +335,10 @@ def install(ns):
         "bat-1": lambda: gen_bat(1),
         "rockgrub-0": lambda: gen_grub(0),
         "rockgrub-1": lambda: gen_grub(1),
+        "player-faint": gen_player_faint,
+        "faintStar-0": lambda: gen_faint_star(0),
+        "faintStar-1": lambda: gen_faint_star(1),
+        "faintStar-2": lambda: gen_faint_star(2),
     }
     GENERATORS.update(extra_gen)
 
@@ -258,6 +352,8 @@ def install(ns):
         {"id": "slime", "file": "actors/slime-{n}.png", "w": 16, "h": 16, "frames": 2, "anchor": MonA, "ox": 0, "oy": 0, "generated": True},
         {"id": "bat", "file": "actors/bat-{n}.png", "w": 16, "h": 16, "frames": 2, "anchor": MonA, "ox": 0, "oy": 0, "generated": True},
         {"id": "rockgrub", "file": "actors/rockgrub-{n}.png", "w": 16, "h": 16, "frames": 2, "anchor": MonA, "ox": 0, "oy": 0, "generated": True},
+        {"id": "player-faint", "file": "actors/player-faint.png", "w": 24, "h": 16, "frames": 1, "anchor": [12, 14], "ox": 0, "oy": 0, "generated": True},
+        {"id": "faintStar", "file": "ui/faintStar-{n}.png", "w": 16, "h": 16, "frames": 3, "anchor": [8, 8], "ox": 0, "oy": 0, "generated": True},
     ]
     ns["COMBAT_SPRITES"] = extra_sprites
     return extra_sprites

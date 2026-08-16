@@ -290,6 +290,14 @@
   var HEARTS = 5;
   var HP_PER_HEART = 10;
   var SNACK_HEAL = 20;
+  var MAX_ENERGY = 100;
+  var ENERGY_HIT = 2;
+  var ENERGY_SWING = 2;
+  var ENERGY_WALK_TILES = 16;
+  var SNACK_ENERGY = 25;
+  var FAINT_OUT_MS = 520;
+  var FAINT_HOLD_MS = 1400;
+  var FAINT_IN_MS = 480;
   var BUMP_DMG = 10;
   var HIT_COUNT = 3;
   var HIT_GAP = 380;
@@ -368,6 +376,9 @@
   var hatOn = false;
   var extraPlots = 0;
   var hp = MAX_HP;
+  var energy = MAX_ENERGY;
+  var walkCharge = 0;
+  var lineNote = null;
   var swordOwned = false;
   var iFrames = 0;
   var faintFx = null;
@@ -1525,7 +1536,10 @@
       who.y = tileFootY(who.ty);
       who.path.shift();
       who.stepT = 0;
-      if (who === player) tryPickupHere();
+      if (who === player) {
+        tryPickupHere();
+        spendWalkEnergy();
+      }
       if (who.queuedWalk) {
         var q = who.queuedWalk;
         who.queuedWalk = null;
@@ -1857,8 +1871,11 @@
     cy = prop.ty * TILE + (prop.kind === "tree" ? 2 : 6);
     spawnSparks(cx, cy);
     h.left -= 1;
+    spendEnergy(ENERGY_HIT);
     if (h.left <= 0) {
       finishHarvest(prop);
+      cancelHit();
+    } else if (faintFx) {
       cancelHit();
     } else {
       h.wait = HIT_GAP;
@@ -2167,6 +2184,12 @@
       } else {
         hp = MAX_HP;
       }
+      if (typeof data.energy === "number" && data.energy >= 0) {
+        energy = data.energy | 0;
+        if (energy > MAX_ENERGY) energy = MAX_ENERGY;
+      } else {
+        energy = MAX_ENERGY;
+      }
       extraPlots = clampCount(data.extraPlots);
       if (extraPlots > 4) extraPlots = 4;
       if (data.inventory && typeof data.inventory === "object") {
@@ -2319,6 +2342,7 @@
         swordOwned: !!swordOwned,
         mineFloor: clampMineFloor(mineFloor),
         hp: hp | 0,
+        energy: energy | 0,
         extraPlots: extraPlots | 0,
         crops: crops,
         nodes: serializeNodes(),
@@ -2390,6 +2414,7 @@
     }
     placePlayer(tx, ty, face);
     pendingRestore = null;
+    if ((hp <= 0 || energy <= 0) && !faintFx) beginFaint();
   }
 
   function findBed() {
@@ -2448,7 +2473,7 @@
     var spot;
     dayNumber += 1;
     dayMs = 0;
-    hp = MAX_HP;
+    refillVitals();
     monsterCache[1] = null;
     monsterCache[2] = null;
     monsterCache[3] = null;
@@ -3566,68 +3591,219 @@
     if (hp <= 0) beginFaint();
   }
 
+  function refillVitals() {
+    hp = MAX_HP;
+    energy = MAX_ENERGY;
+  }
+
+  function spendEnergy(amt) {
+    if (faintFx || amt <= 0) return false;
+    energy -= amt | 0;
+    if (energy < 0) energy = 0;
+    persistSave();
+    if (energy <= 0) beginFaint();
+    return energy > 0;
+  }
+
+  function spendWalkEnergy() {
+    if (faintFx) return;
+    walkCharge += 1;
+    if (walkCharge >= ENERGY_WALK_TILES) {
+      walkCharge = 0;
+      spendEnergy(1);
+    }
+  }
+
+  function showLineNote(msg) {
+    lineNote = { text: msg, age: 0, life: 2400 };
+  }
+
+  function updateLineNote(dt) {
+    if (!lineNote) return;
+    lineNote.age += dt;
+    if (lineNote.age >= lineNote.life) lineNote = null;
+  }
+
+  function drawLineNote(g) {
+    var a, msg, tw, x;
+    if (!lineNote) return;
+    a = 1;
+    if (lineNote.age < 200) a = lineNote.age / 200;
+    else if (lineNote.age > lineNote.life - 320) a = (lineNote.life - lineNote.age) / 320;
+    if (a < 0) a = 0;
+    if (a > 1) a = 1;
+    msg = lineNote.text;
+    tw = textWidth(msg);
+    x = ((VIEW_W - tw - 24) / 2) | 0;
+    g.save();
+    g.globalAlpha = a;
+    woodPanel(g, x, 28, tw + 24, 18);
+    drawText(g, msg, x + 12, 34, C.parch);
+    g.restore();
+  }
+
   function beginFaint() {
+    var i, ang;
     if (faintFx) return;
     dialogue = null;
     pending = null;
     highlight = null;
+    shopOpen = false;
+    achieveOpen = false;
+    questOpen = false;
     cancelHit();
     player.path = [];
     player.queuedWalk = null;
     player.moving = false;
     player.stepT = 0;
     player.frame = 0;
-    faintFx = { age: 0, stage: "out" };
+    clearMoveKeys();
+    iFrames = 2000;
+    faintFx = { age: 0, stage: "out", bits: [] };
+    for (i = 0; i < 12; i++) {
+      ang = (i / 12) * Math.PI * 2;
+      faintFx.bits.push({
+        ang: ang,
+        dist: 8 + (i % 4) * 2,
+        spd: 0.034 + (i % 5) * 0.006,
+        age: 0,
+        life: 900 + (i % 4) * 80,
+        frame: i % 3
+      });
+    }
   }
 
-  function finishFaintWarp() {
-    applyScene("mine", 1);
-    placePlayer(16, 19, "up");
-    hp = MAX_HP;
+  function finishFaintWake() {
+    var spot, toll;
+    applyScene("house");
+    dayNumber += 1;
+    dayMs = 0;
+    refillVitals();
+    monsterCache[1] = null;
+    monsterCache[2] = null;
+    monsterCache[3] = null;
+    monsters = [];
+    toll = (gold / 10) | 0;
+    if (toll > gold) toll = gold;
+    if (toll < 0) toll = 0;
+    gold -= toll;
+    spot = sleepWakeSpot();
+    placePlayer(spot.tx, spot.ty, "up");
     iFrames = 1400;
+    updateCrops();
+    updateHarvestNodes();
     persistSave();
   }
 
   function updateFaint(dt) {
+    var i, b, ang;
     if (!faintFx) return;
     faintFx.age += dt;
+    for (i = faintFx.bits.length - 1; i >= 0; i--) {
+      b = faintFx.bits[i];
+      b.age += dt;
+      b.dist += b.spd * dt;
+      b.spd *= 0.994;
+      if (b.age >= b.life) faintFx.bits.splice(i, 1);
+    }
+    if (faintFx.stage !== "in" && faintFx.age > 200 && faintFx.bits.length < 14) {
+      if (((faintFx.age / 90) | 0) !== (((faintFx.age - dt) / 90) | 0)) {
+        ang = (faintFx.age * 0.017) % (Math.PI * 2);
+        faintFx.bits.push({
+          ang: ang,
+          dist: 10 + (faintFx.age % 8),
+          spd: 0.03,
+          age: 0,
+          life: 700,
+          frame: ((faintFx.age / 70) | 0) % 3
+        });
+      }
+    }
     if (faintFx.stage === "out") {
-      if (faintFx.age >= 420) {
+      if (faintFx.age >= FAINT_OUT_MS) {
         faintFx.stage = "hold";
         faintFx.age = 0;
-        finishFaintWarp();
+        finishFaintWake();
       }
     } else if (faintFx.stage === "hold") {
-      if (faintFx.age >= 700) {
+      if (faintFx.age >= FAINT_HOLD_MS) {
         faintFx.stage = "in";
         faintFx.age = 0;
+        showLineNote("THE MOUNTAIN SENT YOU HOME.");
       }
-    } else if (faintFx.age >= 480) {
+    } else if (faintFx.age >= FAINT_IN_MS) {
       faintFx = null;
     }
   }
 
   function drawFaint(g) {
-    var a, msg, tw, x, fade;
+    var a, fade, msg, tw, x, y, w, h, cx, cy, i, b, bx, by, fr, lb, ring, rayA, rayL, ra, t, x0, y0, x1, y1, steps;
     if (!faintFx) return;
-    if (faintFx.stage === "out") a = faintFx.age / 420;
+    if (faintFx.stage === "out") a = faintFx.age / FAINT_OUT_MS;
     else if (faintFx.stage === "hold") a = 1;
-    else a = 1 - faintFx.age / 480;
+    else a = 1 - faintFx.age / FAINT_IN_MS;
     if (a < 0) a = 0;
     if (a > 1) a = 1;
-    g.fillStyle = "rgba(24,14,40," + a.toFixed(3) + ")";
+    lb = Math.round(14 * a);
+    g.fillStyle = "rgba(18,10,28," + (a * 0.88).toFixed(3) + ")";
     g.fillRect(0, 0, VIEW_W, VIEW_H);
-    if (a > 0.45) {
-      fade = faintFx.stage === "hold" ? 1 : (faintFx.stage === "out" ? (a - 0.45) / 0.55 : a);
+    g.fillStyle = "rgba(20,12,10," + a.toFixed(3) + ")";
+    g.fillRect(0, 0, VIEW_W, lb);
+    g.fillRect(0, VIEW_H - lb, VIEW_W, lb);
+    cx = (VIEW_W / 2) | 0;
+    cy = 78;
+    if (a > 0.2 && faintFx.stage !== "in") {
+      ring = 8 + a * 36;
+      strokeCircle(g, cx, cy, ring, "rgba(232,200,74," + (0.45 * a).toFixed(2) + ")");
+      if (ring > 12) strokeCircle(g, cx, cy - 1, ring - 8, "rgba(243,210,163," + (0.28 * a).toFixed(2) + ")");
+      rayA = 0.5 * a;
+      rayL = 10 + a * 28;
+      g.fillStyle = "rgba(240,208,96," + rayA.toFixed(2) + ")";
+      for (i = 0; i < 8; i++) {
+        ra = (i / 8) * Math.PI * 2 + faintFx.age * 0.0014;
+        x0 = Math.round(cx + Math.cos(ra) * 8);
+        y0 = Math.round(cy + Math.sin(ra) * 8);
+        x1 = Math.round(cx + Math.cos(ra) * rayL);
+        y1 = Math.round(cy + Math.sin(ra) * rayL);
+        steps = 7;
+        for (t = 0; t <= steps; t++) {
+          g.fillRect(
+            Math.round(x0 + (x1 - x0) * t / steps),
+            Math.round(y0 + (y1 - y0) * t / steps),
+            1,
+            1
+          );
+        }
+      }
+      for (i = 0; i < faintFx.bits.length; i++) {
+        b = faintFx.bits[i];
+        bx = Math.round(cx + Math.cos(b.ang) * b.dist);
+        by = Math.round(cy + Math.sin(b.ang) * b.dist * 0.72);
+        fr = b.age > b.life * 0.55 ? 0 : b.frame;
+        g.save();
+        g.globalAlpha = a * (1 - b.age / b.life);
+        if (Assets.spr.faintStar) Assets.draw(g, "faintStar", bx, by, fr);
+        else Assets.draw(g, "sparkle", bx - 8, by - 8, fr);
+        g.restore();
+      }
+    }
+    if (a > 0.35 && faintFx.stage !== "in") {
+      fade = faintFx.stage === "hold" ? 1 : (a - 0.35) / 0.65;
       if (fade < 0) fade = 0;
       if (fade > 1) fade = 1;
-      msg = "YOU FEEL WOOZY...";
+      msg = "YOU DIED...";
       tw = textWidth(msg);
-      x = ((VIEW_W - tw - 24) / 2) | 0;
+      w = tw + 36;
+      h = 36;
+      x = ((VIEW_W - w) / 2) | 0;
+      y = 62;
       g.save();
       g.globalAlpha = fade;
-      woodPanel(g, x, 84, tw + 24, 22);
-      drawText(g, msg, x + 12, 91, C.parch);
+      woodPanel(g, x, y, w, h);
+      fill(g, x + 4, y + 4, w - 8, h - 8, C.parch);
+      woodPanel(g, x + 10, y - 6, 50, 11);
+      drawText(g, "ZZZ...", x + 14, y - 3, C.parch);
+      drawText(g, msg, x + ((w - tw) / 2) | 0, y + 14, C.uiText);
       g.restore();
     }
   }
@@ -3644,6 +3820,7 @@
     player.swing = 220;
     mon.shake = 200;
     spawnSparks(mon.x, mon.y - 4);
+    spendEnergy(ENERGY_SWING);
     mon.hp -= 1;
     h.left -= 1;
     if (mon.hp <= 0 || h.left <= 0) {
@@ -3720,6 +3897,8 @@
     if (mon && mon.hp > 0) {
       player.hitting = { mon: mon, left: mon.hp, wait: 0 };
       doFightHit();
+    } else {
+      spendEnergy(ENERGY_SWING);
     }
     return true;
   }
@@ -3764,9 +3943,11 @@
     if ((inventory.snack || 0) < 1) return false;
     inventory.snack -= 1;
     hp += SNACK_HEAL;
+    energy += SNACK_ENERGY;
     if (hp > MAX_HP) hp = MAX_HP;
+    if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
-    openDialogue("ORION", hp >= MAX_HP ? ["YUM! A HONEY BUN.", "ALL BETTER!"] : ["YUM! A HONEY BUN.", "THAT HELPED."]);
+    openDialogue("ORION", (hp >= MAX_HP && energy >= MAX_ENERGY) ? ["YUM! A HONEY BUN.", "ALL BETTER!"] : ["YUM! A HONEY BUN.", "THAT HELPED."]);
     return true;
   }
 
@@ -4403,8 +4584,16 @@
   }
 
   function drawPlayer(g) {
-    var bob = (player.moving && player.frame) ? -1 : 0;
-    var sx = 0, sy = 0, amp;
+    var bob, sx, sy, amp;
+    if (faintFx && faintFx.stage === "out") {
+      drawShadow(g, player.x, player.y, 6);
+      if (Assets.spr["player-faint"]) Assets.draw(g, "player-faint", player.x, player.y);
+      else Assets.draw(g, "player-" + (player.face || "down"), player.x, player.y, 0);
+      return;
+    }
+    bob = (player.moving && player.frame) ? -1 : 0;
+    sx = 0;
+    sy = 0;
     if (player.swing > 0) {
       amp = Math.round(Math.sin((1 - player.swing / 220) * Math.PI) * 3);
       if (player.face === "left") sx = -amp;
@@ -5090,12 +5279,18 @@
 
     var ex = VIEW_W - 16;
     var ey = VIEW_H - 70;
+    var eh = 40;
+    var filled = Math.round(eh * energy / MAX_ENERGY);
+    if (energy > 0 && filled < 1) filled = 1;
+    if (energy <= 0) filled = 0;
     woodPanel(g, ex - 2, ey - 10, 14, 56);
     drawText(g, "E", ex + 2, ey - 8, C.parch);
-    fill(g, ex + 1, ey + 2, 8, 40, C.energyEmpty);
-    fill(g, ex + 1, ey + 2, 8, 40, C.energy);
-    fill(g, ex + 1, ey + 2, 8, 1, C.grassHi);
-    fill(g, ex + 1, ey + 2, 1, 40, C.grassHi);
+    fill(g, ex + 1, ey + 2, 8, eh, C.energyEmpty);
+    if (filled > 0) {
+      fill(g, ex + 1, ey + 2 + (eh - filled), 8, filled, energy <= 15 ? "#C8B03C" : C.energy);
+      fill(g, ex + 1, ey + 2 + (eh - filled), 8, 1, C.grassHi);
+      fill(g, ex + 1, ey + 2 + (eh - filled), 1, filled, C.grassHi);
+    }
   }
 
   function drawWorld(g, dt) {
@@ -5190,6 +5385,7 @@
     drawShop(g);
     drawSleep(g);
     drawFaint(g);
+    drawLineNote(g);
   }
 
   function readInset(name) {
@@ -5643,6 +5839,7 @@
     ctx.imageSmoothingEnabled = false;
     updateSleep(dt);
     updateFaint(dt);
+    updateLineNote(dt);
     if (!uiPaused()) {
       if (player.hitting) {
         updateHit(dt);
