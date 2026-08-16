@@ -189,6 +189,61 @@
   var fillMode = false;
   var swipeStartY = null;
   var assets = {};
+
+  function loadImage(src) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { reject(new Error("image " + src)); };
+      img.src = src;
+    });
+  }
+
+  var Assets = {
+    img: null,
+    spr: {},
+    ready: false,
+    load: function () {
+      return fetch("assets/manifest.json").then(function (r) {
+        if (!r.ok) throw new Error("manifest " + r.status);
+        return r.json();
+      }).then(function (meta) {
+        var map = {};
+        var i, s, k;
+        for (i = 0; i < meta.sprites.length; i++) {
+          s = meta.sprites[i];
+          map[s.id] = s;
+        }
+        Assets.spr = map;
+        if (meta.palette) {
+          for (k in meta.palette) {
+            if (Object.prototype.hasOwnProperty.call(meta.palette, k)) C[k] = meta.palette[k];
+          }
+        }
+        return loadImage("assets/" + (meta.atlas || "atlas.png"));
+      }).then(function (img) {
+        Assets.img = img;
+        Assets.ready = true;
+      });
+    },
+    draw: function (ctx, id, x, y, frame) {
+      var s = Assets.spr[id];
+      if (!s || !Assets.img) return;
+      var fr = frame || 0;
+      var fw = s.fw || s.w;
+      var ox = s.ox || 0;
+      var oy = s.oy || 0;
+      var ax = (s.anchor && s.anchor[0]) || 0;
+      var ay = (s.anchor && s.anchor[1]) || 0;
+      ctx.drawImage(
+        Assets.img,
+        s.x + fr * fw, s.y, fw, s.h,
+        Math.round(x + ox - ax), Math.round(y + oy - ay),
+        fw, s.h
+      );
+    }
+  };
+
   var highlight = null;
   var ripples = [];
   var selectedSlot = 0;
@@ -274,15 +329,6 @@
     { kind: "fenceR", tx: 7, ty: 8 }
   ];
 
-  function make(w, h) {
-    var c = document.createElement("canvas");
-    c.width = w;
-    c.height = h;
-    var g = c.getContext("2d");
-    g.imageSmoothingEnabled = false;
-    return { c: c, g: g };
-  }
-
   function px(g, x, y, color) {
     g.fillStyle = color;
     g.fillRect(x, y, 1, 1);
@@ -302,650 +348,6 @@
   function cell(tx, ty) {
     if (ty < 0 || ty >= ROWS || tx < 0 || tx >= COLS) return "g";
     return GROUND[ty].charAt(tx);
-  }
-
-  function buildGrass(v) {
-    var o = make(TILE, TILE);
-    var g = o.g;
-    fill(g, 0, 0, 16, 16, C.grassMid);
-    var i, x, y, r;
-    for (i = 0; i < 22; i++) {
-      r = hash(v, i, 11);
-      x = (hash(v, i, 3) * 16) | 0;
-      y = (hash(v, i, 7) * 16) | 0;
-      if (r < 0.38) px(g, x, y, C.grassHi);
-      else if (r < 0.62) px(g, x, y, C.grassSh);
-      else if (r < 0.72) px(g, x, y, C.grassDp);
-    }
-    /* short blades */
-    var blades = [
-      [2, 4], [7, 2], [12, 6], [4, 10], [10, 12], [14, 3], [1, 13], [8, 8]
-    ];
-    for (i = 0; i < blades.length; i++) {
-      if (hash(v, i, 21) < 0.55 + v * 0.08) {
-        x = (blades[i][0] + v) & 15;
-        y = blades[i][1];
-        px(g, x, y, C.grassHi);
-        px(g, x, y + 1, C.grassSh);
-      }
-    }
-    function tuft(x, y) {
-      px(g, x, y, C.grassHi);
-      px(g, x + 1, y, C.grassMid);
-      px(g, x, y + 1, C.grassSh);
-      px(g, x - 1, y + 1, C.grassSh);
-      px(g, x + 1, y + 1, C.grassDp);
-    }
-    if (v === 0) { tuft(3, 3); tuft(11, 9); }
-    if (v === 1) {
-      tuft(6, 5); tuft(12, 12);
-      px(g, 5, 6, C.flower);
-      px(g, 13, 11, C.blossom);
-    }
-    if (v === 2) { tuft(2, 10); tuft(9, 2); }
-    if (v === 3) {
-      tuft(8, 8); tuft(14, 4);
-      px(g, 9, 4, C.flower);
-    }
-    return o.c;
-  }
-
-  function buildDirt() {
-    var o = make(TILE, TILE);
-    var g = o.g;
-    fill(g, 0, 0, 16, 16, C.dirtMid);
-    var i, x, y, r;
-    for (i = 0; i < 16; i++) {
-      r = hash(9, i, 4);
-      x = (hash(9, i, 1) * 16) | 0;
-      y = (hash(9, i, 2) * 16) | 0;
-      if (r < 0.4) px(g, x, y, C.dirtHi);
-      else if (r < 0.7) px(g, x, y, C.dirtSh);
-    }
-    return o.c;
-  }
-
-  function buildTill() {
-    var o = make(TILE, TILE);
-    var g = o.g;
-    fill(g, 0, 0, 16, 16, C.till);
-    fill(g, 0, 0, 16, 1, C.tillOut);
-    fill(g, 0, 15, 16, 1, C.tillOut);
-    fill(g, 0, 0, 1, 16, C.tillOut);
-    fill(g, 15, 0, 1, 16, C.tillOut);
-    var rows = [3, 7, 11];
-    var i, x;
-    for (i = 0; i < rows.length; i++) {
-      fill(g, 2, rows[i], 12, 1, C.tillSh);
-      fill(g, 2, rows[i] + 1, 12, 1, C.tillOut);
-      for (x = 3; x < 14; x += 3) px(g, x, rows[i] - 1, C.dirtSh);
-    }
-    px(g, 4, 5, C.dirtHi);
-    px(g, 11, 9, C.dirtHi);
-    return o.c;
-  }
-
-  function buildPond() {
-    var o = make(36, 32);
-    var g = o.g;
-    var x, y, dx, dy, d;
-    /* irregular pond, not a square window */
-    for (y = 0; y < 32; y++) {
-      for (x = 0; x < 36; x++) {
-        dx = (x - 18) / 15.2;
-        dy = (y - 16) / 12.4;
-        d = dx * dx + dy * dy + 0.12 * Math.sin(x * 0.7) * Math.cos(y * 0.5);
-        if (d < 1.18) {
-          if (d > 0.92) px(g, x, y, C.dirtSh);
-          else if (d > 0.78) px(g, x, y, (x + y) % 3 ? C.dirtMid : C.grassSh);
-          else if (d > 0.55) px(g, x, y, C.water);
-          else px(g, x, y, C.waterDp);
-        }
-      }
-    }
-    px(g, 12, 13, C.waterFm);
-    px(g, 13, 13, C.waterFm);
-    px(g, 21, 18, C.waterFm);
-    px(g, 16, 20, C.waterFm);
-    px(g, 24, 12, C.water);
-    /* tiny lily — original oval, not a Stardew pad */
-    fill(g, 14, 16, 4, 2, C.leaf);
-    px(g, 13, 16, C.grassDp);
-    px(g, 18, 16, C.grassDp);
-    px(g, 15, 15, C.grassHi);
-    return o.c;
-  }
-
-  function blob(g, cx, cy, rx, ry, fillC, shC, hiC, outC) {
-    var x, y, dx, dy;
-    for (y = -ry - 1; y <= ry + 1; y++) {
-      for (x = -rx - 1; x <= rx + 1; x++) {
-        dx = x / (rx + 0.2);
-        dy = y / (ry + 0.2);
-        if (dx * dx + dy * dy <= 1.05) {
-          var edge = dx * dx + dy * dy > 0.78;
-          var hi = dx < -0.15 && dy < -0.1 && !edge;
-          var sh = dx > 0.25 || dy > 0.35;
-          px(g, cx + x, cy + y, edge ? outC : hi ? hiC : sh ? shC : fillC);
-        }
-      }
-    }
-  }
-
-  function buildTree() {
-    var o = make(48, 56);
-    var g = o.g;
-    /* shadow */
-    fill(g, 14, 50, 20, 3, "rgba(30,90,18,0.40)");
-    fill(g, 16, 49, 16, 1, "rgba(30,90,18,0.28)");
-    /* trunk */
-    fill(g, 21, 36, 6, 16, C.woodMid);
-    fill(g, 21, 36, 2, 16, C.woodHi);
-    fill(g, 25, 36, 2, 16, C.woodSh);
-    fill(g, 20, 36, 1, 16, C.woodOut);
-    fill(g, 27, 36, 1, 16, C.woodOut);
-    px(g, 23, 40, C.woodOut);
-    px(g, 24, 46, C.woodSh);
-    /* cluster canopy — four rounded lumps, not a lollipop */
-    blob(g, 24, 14, 13, 10, C.grassMid, C.grassSh, C.grassHi, C.grassDp);
-    blob(g, 13, 22, 10, 8, C.grassMid, C.grassSh, C.grassHi, C.grassDp);
-    blob(g, 35, 21, 10, 8, C.grassMid, C.grassSh, C.grassHi, C.grassDp);
-    blob(g, 24, 28, 11, 7, C.grassSh, C.grassDp, C.grassMid, C.grassDp);
-    /* a few leaf holes / highlights */
-    px(g, 18, 12, C.grassHi);
-    px(g, 19, 12, C.grassHi);
-    px(g, 30, 16, C.grassHi);
-    px(g, 10, 20, C.grassDp);
-    px(g, 38, 24, C.grassDp);
-    return o.c;
-  }
-
-  function buildHouse() {
-    var o = make(80, 64);
-    var g = o.g;
-    var x, y, half, x0, x1;
-
-    /* ground shadow */
-    fill(g, 8, 59, 66, 5, "rgba(30,90,18,0.38)");
-
-    /* chimney LEFT — stone, original placement */
-    fill(g, 14, 2, 9, 20, C.stone);
-    fill(g, 14, 2, 9, 2, C.stoneHi);
-    fill(g, 14, 2, 1, 20, C.stoneSh);
-    fill(g, 22, 2, 1, 20, C.woodOut);
-    fill(g, 15, 1, 7, 2, C.stoneSh);
-    fill(g, 16, 0, 5, 2, C.stone);
-    px(g, 17, 2, C.stoneHi);
-    px(g, 19, 8, C.stoneSh);
-    px(g, 16, 14, C.stoneSh);
-    /* chimney lip */
-    fill(g, 13, 8, 11, 2, C.stoneSh);
-
-    /* gable roof */
-    for (y = 6; y < 32; y++) {
-      half = 8 + ((y - 6) * 30 / 26);
-      x0 = Math.round(40 - half);
-      x1 = Math.round(40 + half);
-      fill(g, x0, y, x1 - x0, 1, (y % 5 === 0) ? C.roofSh : C.roof);
-      if ((y + 2) % 5 === 0) {
-        for (x = x0 + 2; x < x1 - 1; x += 4) px(g, x, y, C.roofHi);
-      }
-      px(g, x0, y, C.woodOut);
-      px(g, x1 - 1, y, C.woodOut);
-    }
-    /* ridge */
-    fill(g, 36, 5, 8, 2, C.roofSh);
-    fill(g, 38, 4, 4, 2, C.roofHi);
-    /* eaves */
-    fill(g, 4, 31, 72, 3, C.woodSh);
-    fill(g, 4, 31, 72, 1, C.woodHi);
-    fill(g, 4, 33, 72, 1, C.woodOut);
-
-    /* front wall planks */
-    fill(g, 8, 34, 64, 26, C.woodMid);
-    for (y = 36; y < 58; y += 4) {
-      fill(g, 8, y, 64, 1, C.woodSh);
-      fill(g, 8, y + 1, 64, 1, C.woodHi);
-    }
-    fill(g, 8, 34, 1, 26, C.woodOut);
-    fill(g, 71, 34, 1, 26, C.woodOut);
-
-    /* foundation sill */
-    fill(g, 7, 58, 66, 4, C.stone);
-    fill(g, 7, 58, 66, 1, C.stoneHi);
-    fill(g, 7, 61, 66, 1, C.stoneSh);
-    px(g, 12, 59, C.stoneSh);
-    px(g, 28, 60, C.stoneSh);
-    px(g, 50, 59, C.stoneHi);
-    px(g, 64, 60, C.stoneSh);
-
-    /* windows */
-    function windowAt(wx, wy) {
-      fill(g, wx - 1, wy - 1, 12, 12, C.woodOut);
-      fill(g, wx, wy, 10, 10, C.glass);
-      fill(g, wx, wy, 10, 1, C.woodHi);
-      fill(g, wx + 4, wy, 2, 10, C.woodOut);
-      fill(g, wx, wy + 4, 10, 2, C.woodOut);
-      px(g, wx + 1, wy + 1, C.parch);
-      /* flower box */
-      fill(g, wx - 1, wy + 10, 12, 3, C.woodSh);
-      fill(g, wx - 1, wy + 10, 12, 1, C.woodHi);
-      px(g, wx + 1, wy + 9, C.leaf);
-      px(g, wx + 3, wy + 9, C.blossom);
-      px(g, wx + 5, wy + 9, C.leaf);
-      px(g, wx + 7, wy + 9, C.flower);
-      px(g, wx + 8, wy + 9, C.leaf);
-    }
-    windowAt(14, 40);
-    windowAt(56, 40);
-
-    /* centered Dutch door — split leaf, diamond pane */
-    fill(g, 33, 42, 14, 20, C.woodOut);
-    fill(g, 34, 43, 12, 9, C.door);
-    fill(g, 34, 53, 12, 8, C.woodMid);
-    fill(g, 34, 52, 12, 1, C.woodOut);
-    fill(g, 34, 43, 12, 1, C.woodHi);
-    /* diamond pane */
-    px(g, 40, 45, C.glass);
-    px(g, 39, 46, C.glass); px(g, 40, 46, C.parch); px(g, 41, 46, C.glass);
-    px(g, 40, 47, C.glass);
-    /* knob */
-    px(g, 44, 55, C.woodHi);
-    px(g, 44, 48, C.woodHi);
-
-    /* two-step stoop */
-    fill(g, 32, 60, 16, 3, C.stone);
-    fill(g, 34, 62, 12, 2, C.stoneHi);
-
-    return o.c;
-  }
-
-  function buildWell() {
-    var o = make(16, 28);
-    var g = o.g;
-    fill(g, 2, 24, 12, 3, "rgba(30,90,18,0.35)");
-    /* roof */
-    fill(g, 2, 0, 12, 2, C.roofSh);
-    for (var y = 2; y < 8; y++) {
-      var inset = Math.floor((y - 2) / 2);
-      fill(g, 1 + inset, y, 14 - inset * 2, 1, (y % 2) ? C.roof : C.roofSh);
-    }
-    /* posts */
-    fill(g, 3, 8, 2, 10, C.woodMid);
-    fill(g, 11, 8, 2, 10, C.woodMid);
-    fill(g, 3, 8, 1, 10, C.woodHi);
-    fill(g, 12, 8, 1, 10, C.woodSh);
-    /* beam */
-    fill(g, 3, 8, 10, 2, C.woodSh);
-    /* bucket */
-    fill(g, 7, 11, 3, 4, C.woodMid);
-    fill(g, 7, 11, 3, 1, C.woodHi);
-    /* stone cylinder */
-    fill(g, 2, 17, 12, 8, C.stone);
-    fill(g, 3, 16, 10, 2, C.stoneHi);
-    fill(g, 4, 18, 8, 5, C.waterDp);
-    fill(g, 2, 17, 12, 1, C.woodOut);
-    px(g, 6, 20, C.water);
-    px(g, 9, 21, C.waterFm);
-    return o.c;
-  }
-
-  function buildMailbox() {
-    var o = make(14, 20);
-    var g = o.g;
-    fill(g, 3, 17, 8, 2, "rgba(30,90,18,0.35)");
-    fill(g, 6, 10, 2, 9, C.woodMid);
-    fill(g, 6, 10, 1, 9, C.woodHi);
-    /* rounded wood box, slot, teal flag */
-    fill(g, 2, 3, 10, 8, C.woodMid);
-    fill(g, 3, 2, 8, 2, C.woodHi);
-    fill(g, 2, 3, 1, 8, C.woodOut);
-    fill(g, 11, 3, 1, 8, C.woodOut);
-    fill(g, 2, 10, 10, 1, C.woodOut);
-    fill(g, 4, 6, 6, 1, C.woodOut);
-    fill(g, 4, 5, 6, 1, C.woodSh);
-    fill(g, 12, 4, 2, 4, "#3A8A6A");
-    px(g, 13, 5, "#5CBC88");
-    return o.c;
-  }
-
-  function buildCrate() {
-    var o = make(14, 14);
-    var g = o.g;
-    fill(g, 1, 11, 12, 2, "rgba(30,90,18,0.30)");
-    fill(g, 1, 3, 12, 10, C.woodMid);
-    fill(g, 1, 3, 12, 1, C.woodHi);
-    fill(g, 1, 3, 1, 10, C.woodHi);
-    fill(g, 12, 3, 1, 10, C.woodOut);
-    fill(g, 1, 12, 12, 1, C.woodOut);
-    fill(g, 1, 7, 12, 1, C.woodSh);
-    fill(g, 6, 3, 2, 10, C.woodSh);
-    px(g, 3, 5, C.woodHi);
-    px(g, 10, 9, C.woodOut);
-    return o.c;
-  }
-
-  function buildRock(v) {
-    var o = make(16, 16);
-    var g = o.g;
-    fill(g, 4, 12, 8, 2, "rgba(30,90,18,0.30)");
-    if (v === 0) {
-      blob(g, 8, 10, 6, 4, C.stone, C.stoneSh, C.stoneHi, C.stoneSh);
-      blob(g, 6, 11, 3, 2, C.stoneHi, C.stone, C.stoneHi, C.stoneSh);
-    } else {
-      blob(g, 8, 11, 5, 3, C.stone, C.stoneSh, C.stoneHi, C.stoneSh);
-      px(g, 7, 10, C.stoneHi);
-      px(g, 10, 12, C.stoneSh);
-    }
-    return o.c;
-  }
-
-  function buildWeed(v) {
-    var o = make(16, 16);
-    var g = o.g;
-    if (v === 0) {
-      px(g, 7, 13, C.grassDp);
-      px(g, 8, 12, C.grassSh);
-      px(g, 8, 11, C.grassMid);
-      px(g, 7, 10, C.grassHi);
-      px(g, 9, 10, C.grassHi);
-      px(g, 6, 11, C.grassMid);
-      px(g, 10, 11, C.grassMid);
-      px(g, 8, 8, C.grassSh);
-      px(g, 8, 7, C.flower);
-    } else {
-      px(g, 6, 13, C.grassDp);
-      px(g, 7, 12, C.grassSh);
-      px(g, 5, 11, C.grassMid);
-      px(g, 8, 11, C.grassMid);
-      px(g, 6, 10, C.grassHi);
-      px(g, 9, 10, C.grassHi);
-      px(g, 7, 9, C.leaf);
-      px(g, 4, 12, C.grassSh);
-      px(g, 10, 12, C.grassSh);
-    }
-    return o.c;
-  }
-
-  function buildFenceH() {
-    var o = make(16, 16);
-    var g = o.g;
-    /* post on left, 3/4 cap */
-    fill(g, 1, 3, 4, 3, C.woodHi);
-    fill(g, 1, 6, 3, 9, C.woodMid);
-    fill(g, 1, 6, 1, 9, C.woodHi);
-    fill(g, 3, 6, 1, 9, C.woodSh);
-    fill(g, 0, 3, 6, 1, C.woodOut);
-    fill(g, 1, 15, 3, 1, C.woodOut);
-    /* rails */
-    fill(g, 4, 7, 12, 2, C.woodMid);
-    fill(g, 4, 7, 12, 1, C.woodHi);
-    fill(g, 4, 11, 12, 2, C.woodSh);
-    fill(g, 4, 11, 12, 1, C.woodMid);
-    return o.c;
-  }
-
-  function postAt(g, px0) {
-    fill(g, px0, 3, 4, 3, C.woodHi);
-    fill(g, px0, 6, 3, 9, C.woodMid);
-    fill(g, px0, 6, 1, 9, C.woodHi);
-    fill(g, px0 + 2, 6, 1, 9, C.woodSh);
-    fill(g, px0 - 1, 3, 6, 1, C.woodOut);
-    fill(g, px0, 15, 3, 1, C.woodOut);
-  }
-
-  function buildFenceL() {
-    var o = make(16, 16);
-    var g = o.g;
-    postAt(g, 2);
-    fill(g, 5, 7, 11, 2, C.woodMid);
-    fill(g, 5, 7, 11, 1, C.woodHi);
-    fill(g, 5, 11, 11, 2, C.woodSh);
-    return o.c;
-  }
-
-  function buildFenceR() {
-    var o = make(16, 16);
-    var g = o.g;
-    postAt(g, 10);
-    fill(g, 0, 7, 10, 2, C.woodMid);
-    fill(g, 0, 7, 10, 1, C.woodHi);
-    fill(g, 0, 11, 10, 2, C.woodSh);
-    return o.c;
-  }
-
-  function flipH(src) {
-    var o = make(src.width, src.height);
-    o.g.translate(src.width, 0);
-    o.g.scale(-1, 1);
-    o.g.drawImage(src, 0, 0);
-    return o.c;
-  }
-
-  function personColors(kind) {
-    if (kind === "npc") {
-      return {
-        hair: "#C4A070",
-        hairHi: "#E0C488",
-        skin: "#F0C090",
-        skinSh: "#D4A06A",
-        eye: "#3A4A62",
-        eyeHi: "#8AB0C8",
-        lip: "#C47A38",
-        shirt: "#8B4A6A",
-        shirtHi: "#B86A8A",
-        shirtSh: "#5A2A44",
-        pants: "#5A4A38",
-        pantsSh: "#3A2E24",
-        shoe: "#3D1A0C",
-        out: "#3D1A0C",
-        hat: "#E8C84A",
-        hatHi: "#F0D878",
-        hatSh: "#A86C14",
-        hatBand: "#C45A38",
-        apron: "#F3D2A3"
-      };
-    }
-    return {
-      hair: "#6B3A22",
-      hairHi: "#8B5A38",
-      skin: "#F0C090",
-      skinSh: "#D4A06A",
-      eye: "#2A4A38",
-      eyeHi: "#5CBC88",
-      lip: "#C47A38",
-      shirt: "#3D8C9C",
-      shirtHi: "#6CB8C4",
-      shirtSh: "#246070",
-      pants: "#4A5A28",
-      pantsSh: "#2E3A18",
-      shoe: "#5A2E18",
-      out: "#3D1A0C"
-    };
-  }
-
-  function buildPerson(kind, face, frame) {
-    var o = make(16, 32);
-    var g = o.g;
-    var p = personColors(kind);
-    var fr = frame ? 1 : 0;
-
-    if (face === "down" || face === "up") {
-      fill(g, 4, 22 + (fr ? 1 : 0), 3, 5, p.pants);
-      fill(g, 4, 27 + (fr ? 1 : 0), 3, 2, p.shoe);
-      fill(g, 9, 22 + (fr ? 0 : 0) - (fr ? 1 : 0), 3, 5, face === "up" ? p.pantsSh : p.pants);
-      fill(g, 9, 27 - (fr ? 1 : 0), 3, 2, p.shoe);
-    } else {
-      fill(g, 6, 22 + (fr ? 1 : 0), 3, 5, p.pantsSh);
-      fill(g, 6, 27 + (fr ? 1 : 0), 3, 2, p.shoe);
-      fill(g, 8, 22 - (fr ? 1 : 0), 3, 5, p.pants);
-      fill(g, 8, 27 - (fr ? 1 : 0), 3, 2, p.shoe);
-    }
-
-    if (face === "down") {
-      fill(g, 4, 13, 8, 9, p.shirt);
-      fill(g, 4, 13, 8, 1, p.shirtHi);
-      fill(g, 4, 13, 1, 9, p.shirtHi);
-      fill(g, 11, 13, 1, 9, p.shirtSh);
-      fill(g, 2, 14, 2, 6, p.shirt);
-      fill(g, 12, 14, 2, 6, p.shirt);
-      fill(g, 2, 19, 2, 2, p.skin);
-      fill(g, 12, 19, 2, 2, p.skin);
-      if (p.apron) fill(g, 5, 16, 6, 6, p.apron);
-    } else if (face === "up") {
-      fill(g, 4, 13, 8, 9, p.shirtSh);
-      fill(g, 4, 13, 8, 1, p.shirt);
-      fill(g, 2, 14, 2, 6, p.shirtSh);
-      fill(g, 12, 14, 2, 6, p.shirtSh);
-      fill(g, 2, 19, 2, 2, p.skin);
-      fill(g, 12, 19, 2, 2, p.skin);
-    } else {
-      fill(g, 5, 13, 6, 9, p.shirt);
-      fill(g, 5, 13, 6, 1, p.shirtHi);
-      fill(g, 10, 13, 1, 9, p.shirtSh);
-      fill(g, 10, 14 + fr, 2, 6, p.shirt);
-      fill(g, 10, 20 + fr, 2, 2, p.skin);
-      if (p.apron) fill(g, 6, 16, 4, 6, p.apron);
-    }
-
-    if (face === "down") {
-      fill(g, 3, 3, 10, 8, p.hair);
-      fill(g, 4, 2, 8, 2, p.hair);
-      fill(g, 4, 5, 8, 6, p.skin);
-      fill(g, 5, 4, 6, 1, p.skin);
-      fill(g, 4, 10, 8, 1, p.skinSh);
-      fill(g, 4, 3, 8, 2, p.hair);
-      fill(g, 4, 3, 2, 3, p.hair);
-      fill(g, 10, 3, 2, 3, p.hair);
-      fill(g, 5, 2, 6, 1, p.hairHi);
-      px(g, 5, 7, p.eye);
-      px(g, 6, 7, p.eyeHi);
-      px(g, 9, 7, p.eye);
-      px(g, 10, 7, p.eyeHi);
-      px(g, 7, 9, p.skinSh);
-      px(g, 8, 10, p.lip);
-      px(g, 3, 7, p.skin);
-      px(g, 12, 7, p.skin);
-      fill(g, 6, 11, 4, 2, p.skin);
-      px(g, 3, 2, p.out);
-      px(g, 12, 2, p.out);
-    } else if (face === "up") {
-      fill(g, 3, 3, 10, 8, p.hair);
-      fill(g, 4, 2, 8, 2, p.hairHi);
-      fill(g, 3, 4, 10, 7, p.hair);
-      fill(g, 6, 11, 4, 2, p.hair);
-      px(g, 3, 7, p.skin);
-      px(g, 12, 7, p.skin);
-    } else {
-      fill(g, 3, 3, 9, 8, p.hair);
-      fill(g, 4, 2, 7, 2, p.hair);
-      fill(g, 5, 5, 6, 6, p.skin);
-      fill(g, 5, 4, 5, 1, p.skin);
-      fill(g, 3, 3, 3, 8, p.hair);
-      fill(g, 4, 2, 2, 2, p.hairHi);
-      px(g, 8, 7, p.eye);
-      px(g, 9, 7, p.eyeHi);
-      px(g, 10, 8, p.skinSh);
-      px(g, 9, 10, p.lip);
-      fill(g, 7, 11, 3, 2, p.skin);
-    }
-
-    if (p.hat) {
-      if (face === "up") {
-        fill(g, 5, 0, 6, 4, p.hat);
-        fill(g, 5, 0, 6, 1, p.hatHi);
-        fill(g, 2, 3, 12, 2, p.hat);
-        fill(g, 1, 4, 14, 1, p.hatSh);
-      } else if (face === "down") {
-        fill(g, 5, 0, 6, 3, p.hat);
-        fill(g, 5, 0, 6, 1, p.hatHi);
-        fill(g, 5, 2, 6, 1, p.hatBand);
-        fill(g, 2, 3, 12, 2, p.hat);
-        fill(g, 1, 4, 14, 1, p.hatSh);
-      } else {
-        fill(g, 4, 0, 7, 3, p.hat);
-        fill(g, 4, 0, 7, 1, p.hatHi);
-        fill(g, 4, 2, 7, 1, p.hatBand);
-        fill(g, 2, 3, 11, 2, p.hat);
-        fill(g, 1, 4, 13, 1, p.hatSh);
-      }
-    }
-
-    return o.c;
-  }
-
-  function buildChicken(fr) {
-    var o = make(16, 16);
-    var g = o.g;
-    var y = fr ? 0 : 1;
-    var body = "#F0E0B8";
-    var bodyHi = "#F8E8C8";
-    var bodySh = "#D4C090";
-    var out = "#A86C48";
-    var comb = "#C45A38";
-    var combHi = "#E07850";
-    var beak = "#E8A030";
-    var beakSh = "#C47A20";
-    var feet = "#D49420";
-    blob(g, 7, 8 + y, 5, 4, body, bodySh, bodyHi, out);
-    blob(g, 12, 6 + y, 3, 3, body, bodySh, bodyHi, out);
-    px(g, 15, 6 + y, beak);
-    px(g, 15, 7 + y, beakSh);
-    px(g, 12, 2 + y, comb);
-    px(g, 13, 2 + y, comb);
-    px(g, 12, 1 + y, combHi);
-    px(g, 13, 5 + y, "#3A2210");
-    px(g, 2, 7 + y, bodySh);
-    px(g, 1, 8 + y, body);
-    fill(g, 5, 8 + y, 4, 2, bodySh);
-    if (fr) {
-      px(g, 5, 12, feet);
-      px(g, 6, 13, feet);
-      px(g, 10, 12, feet);
-      px(g, 11, 13, feet);
-    } else {
-      px(g, 6, 13, feet);
-      px(g, 7, 14, feet);
-      px(g, 10, 13, feet);
-      px(g, 9, 14, feet);
-    }
-    return o.c;
-  }
-
-  function buildSeed() {
-    var o = make(16, 16);
-    var g = o.g;
-    fill(g, 3, 3, 10, 11, C.woodMid);
-    fill(g, 3, 3, 10, 1, C.woodHi);
-    fill(g, 3, 3, 1, 11, C.woodHi);
-    fill(g, 12, 3, 1, 11, C.woodOut);
-    fill(g, 3, 13, 10, 1, C.woodOut);
-    fill(g, 3, 3, 10, 4, C.woodSh);
-    fill(g, 4, 3, 8, 1, C.woodHi);
-    px(g, 6, 9, C.dirtHi);
-    px(g, 8, 10, C.dirtSh);
-    px(g, 10, 9, C.dirtHi);
-    px(g, 8, 7, C.leaf);
-    px(g, 7, 6, C.grassHi);
-    px(g, 9, 6, C.grassHi);
-    return o.c;
-  }
-
-  function buildSprout() {
-    var o = make(16, 16);
-    var g = o.g;
-    fill(g, 7, 10, 2, 5, C.grassSh);
-    px(g, 7, 10, C.leaf);
-    px(g, 8, 11, C.grassMid);
-    fill(g, 3, 7, 4, 3, C.leaf);
-    fill(g, 4, 6, 3, 2, C.grassHi);
-    px(g, 3, 8, C.grassSh);
-    px(g, 6, 7, C.grassMid);
-    fill(g, 9, 5, 4, 4, C.leaf);
-    fill(g, 10, 4, 3, 2, C.grassHi);
-    px(g, 12, 7, C.grassSh);
-    px(g, 9, 6, C.grassMid);
-    return o.c;
   }
 
   function buildSolid() {
@@ -1205,13 +607,14 @@
   function drawPlayer(g) {
     var bob = (player.moving && player.frame) ? -1 : 0;
     drawShadow(g, player.x, player.y, 5);
-    g.drawImage(assets.player[player.face][player.frame], Math.round(player.x) - 8, Math.round(player.y) - 28 + bob);
+    Assets.draw(g, "player-" + player.face, player.x, player.y + bob, player.frame);
   }
 
   function drawNpc(g) {
-    var face = assets.npc[npc.face] ? npc.face : "down";
+    var face = npc.face || "down";
+    if (!Assets.spr["npc-" + face]) face = "down";
     drawShadow(g, npc.x, npc.y, 5);
-    g.drawImage(assets.npc[face][0], Math.round(npc.x) - 8, Math.round(npc.y) - 28);
+    Assets.draw(g, "npc-" + face, npc.x, npc.y, 0);
   }
 
   function drawChickenSpr(g) {
@@ -1219,7 +622,7 @@
     var hop = chicken.react > 0 ? -3 : 0;
     var face = chicken.face === "left" ? "left" : "right";
     drawShadow(g, chicken.x, chicken.y, 4);
-    g.drawImage(assets.chicken[face][chicken.frame], Math.round(chicken.x) - 8, Math.round(chicken.y) - 14 + bob + hop);
+    Assets.draw(g, "chicken-" + face, chicken.x, chicken.y + bob + hop, chicken.frame);
   }
 
   function drawActors(g) {
@@ -1258,40 +661,6 @@
   }
 
 
-  function buildAssets() {
-    assets.grass = [buildGrass(0), buildGrass(1), buildGrass(2), buildGrass(3)];
-    assets.dirt = buildDirt();
-    assets.till = buildTill();
-    assets.pond = buildPond();
-    assets.tree = buildTree();
-    assets.house = buildHouse();
-    assets.well = buildWell();
-    assets.mailbox = buildMailbox();
-    assets.crate = buildCrate();
-    assets.rock = [buildRock(0), buildRock(1)];
-    assets.weed = [buildWeed(0), buildWeed(1)];
-    assets.fenceH = buildFenceH();
-    assets.fenceL = buildFenceL();
-    assets.fenceR = buildFenceR();
-    assets.seed = buildSeed();
-    assets.sprout = buildSprout();
-    function packPerson(kind) {
-      var right0 = buildPerson(kind, "right", 0);
-      var right1 = buildPerson(kind, "right", 1);
-      return {
-        down: [buildPerson(kind, "down", 0), buildPerson(kind, "down", 1)],
-        up: [buildPerson(kind, "up", 0), buildPerson(kind, "up", 1)],
-        right: [right0, right1],
-        left: [flipH(right0), flipH(right1)]
-      };
-    }
-    assets.player = packPerson("player");
-    assets.npc = packPerson("npc");
-    var ch0 = buildChicken(0);
-    var ch1 = buildChicken(1);
-    assets.chicken = { right: [ch0, ch1], left: [flipH(ch0), flipH(ch1)] };
-  }
-
   function drawText(g, str, x, y, color) {
     g.fillStyle = color;
     var i, r, c, bits, ch;
@@ -1327,7 +696,7 @@
   }
 
   function drawDirtTile(g, tx, ty, dx, dy) {
-    g.drawImage(assets.dirt, dx, dy);
+    Assets.draw(g, "dirt", dx, dy);
     /* jagged grass bites on edges */
     var n = cell(tx, ty - 1) === "g";
     var s = cell(tx, ty + 1) === "g";
@@ -1380,31 +749,31 @@
     var x = p.tx * TILE;
     var y = p.ty * TILE;
     if (p.kind === "house") {
-      g.drawImage(assets.house, x, y);
+      Assets.draw(g, "house", x, y);
     } else if (p.kind === "tree") {
-      g.drawImage(assets.tree, x - 16, y - 40);
+      Assets.draw(g, "tree", x, y);
     } else if (p.kind === "well") {
-      g.drawImage(assets.well, x, y - 12);
+      Assets.draw(g, "well", x, y);
     } else if (p.kind === "mailbox") {
-      g.drawImage(assets.mailbox, x + 2, y - 4);
+      Assets.draw(g, "mailbox", x, y);
     } else if (p.kind === "crate") {
-      g.drawImage(assets.crate, x + 1, y + 2);
+      Assets.draw(g, "crate", x, y);
     } else if (p.kind === "pond") {
-      g.drawImage(assets.pond, x - 2, y);
+      Assets.draw(g, "pond", x, y);
       if (((tick / 700) | 0) % 2) {
         px(g, x + 18, y + 11, C.waterFm);
         px(g, x + 10, y + 19, C.waterFm);
       }
     } else if (p.kind === "rock") {
-      g.drawImage(assets.rock[(p.tx + p.ty) & 1], x, y);
+      Assets.draw(g, "rock" + ((p.tx + p.ty) & 1), x, y);
     } else if (p.kind === "weed") {
-      g.drawImage(assets.weed[(p.tx + p.ty) & 1], x, y);
+      Assets.draw(g, "weed" + ((p.tx + p.ty) & 1), x, y);
     } else if (p.kind === "fenceH") {
-      g.drawImage(assets.fenceH, x, y);
+      Assets.draw(g, "fenceH", x, y);
     } else if (p.kind === "fenceL") {
-      g.drawImage(assets.fenceL, x, y);
+      Assets.draw(g, "fenceL", x, y);
     } else if (p.kind === "fenceR") {
-      g.drawImage(assets.fenceR, x, y);
+      Assets.draw(g, "fenceR", x, y);
     }
   }
 
@@ -1454,7 +823,7 @@
         fill(g, sx, sy, 1, slot, C.parch);
       }
       if (i === 0) {
-        g.drawImage(assets.seed, sx + 1, sy + 1);
+        Assets.draw(g, "seed", sx + 1, sy + 1);
       }
     }
 
@@ -1479,10 +848,10 @@
         dy = ty * TILE;
         if (ch === "d") drawDirtTile(g, tx, ty, dx, dy);
         else if (ch === "p") {
-          g.drawImage(assets.till, dx, dy);
-          if (crops[tx + "," + ty]) g.drawImage(assets.sprout, dx, dy);
+          Assets.draw(g, "till", dx, dy);
+          if (crops[tx + "," + ty]) Assets.draw(g, "sprout", dx, dy);
         }
-        else g.drawImage(assets.grass[grassIndex(tx, ty)], dx, dy);
+        else Assets.draw(g, "grass" + grassIndex(tx, ty), dx, dy);
       }
     }
 
@@ -1768,7 +1137,22 @@
     requestAnimationFrame(loop);
   }
 
-  buildAssets();
+  function paintLoading() {
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = C.grassMid;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    woodPanel(ctx, 86, 86, 148, 20);
+    drawText(ctx, "LOADING FARM", 96, 92, C.parch);
+  }
+
+  function paintMissing() {
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = C.letterbox;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    drawText(ctx, "ART MISSING", 8, 8, C.parch);
+  }
+
+  paintLoading();
   buildSolid();
   paintFsFace();
   if (isStandalone()) enterFill();
@@ -1818,7 +1202,11 @@
   document.addEventListener("dblclick", function (e) {
     e.preventDefault();
   });
-  requestAnimationFrame(loop);
+  Assets.load().then(function () {
+    requestAnimationFrame(loop);
+  }).catch(function () {
+    paintMissing();
+  });
 })();
   </script>
 </body>

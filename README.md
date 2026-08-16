@@ -2,6 +2,8 @@
 
 A tiny farm game for Orion. You look down at a spring farm: walk around, plant a seed, talk to a neighbor, and watch a chicken wander.
 
+Art is **original 16-bit 3/4** (2.5D): you see the top of the ground and the front of walls, roofs, crates, and people. It is meant to feel like the same *family* as Stardew Valley. It does **not** copy or trace Stardew sprites, the farmhouse, UI, or characters.
+
 ## Open it
 
 Public URL (GitHub Pages):
@@ -17,15 +19,45 @@ On iPhone, tap the wood **FULL** plaque (top-right) so the farm fills the Safari
 - Tap the neighbor in the straw hat. They say hello, then tap again to close the box.
 - A chicken wanders on the grass. Tap it and it hops.
 
-## What is in here
+## Where the art lives
 
-- `index.html` — the whole game (vanilla HTML/CSS/JS, one canvas, no build step, no Phaser, no accounts, no ads, no trackers)
-- `manifest.webmanifest` — Add to Home Screen / standalone name and theme
-- `apple-touch-icon.png` — Home Screen icon
-- `.nojekyll` — tells GitHub Pages to serve the files as-is
+```
+assets/
+  palette.json      named hex colors (grassMid, woodMid, …)
+  manifest.json     every sprite: id, file, size, frames, anchor, atlas rect
+  atlas.png         packed sheet the game loads
+  atlas.json        same frame rects (handy for tools)
+  tiles/            16×16 ground (grass, dirt, till, water)
+  props/            house, tree, well, mailbox, crate, pond, rocks, weeds, fences
+  actors/           player, neighbor, chicken (one PNG per facing/frame)
+  ui/               seed packet, sprout
+tools/
+  export-assets.py  paints built-in PNGs and rebuilds the atlas
+```
 
-Art is original 16×16 pixel tiles and 16×32 people drawn in code. It is meant to feel like the same *family* as Stardew Valley (3/4 top-down, spring greens, mustard path, wood HUD). It does not copy Stardew sprites, the farmhouse, UI chrome, or fonts.
+The game loads `assets/manifest.json` + `assets/atlas.png`, then draws with `Assets.draw(ctx, id, x, y, frame)`. It does not paint world pixels in the game loop.
+
+## How to add a new graphic
+
+1. Drop a PNG in the matching folder (example: `assets/ui/tomato.png`, 16×16).
+2. Add one object to the `sprites` list in `assets/manifest.json`:
+
+```json
+{ "id": "tomato", "file": "ui/tomato.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0] }
+```
+
+3. Rebuild the atlas (keeps your PNG; only fills in missing built-ins):
+
+```bash
+python3 tools/export-assets.py
+```
+
+Use `--regen` only if you want the script to overwrite the built-in PNGs from its pixel painter.
+
+Then draw it in the game with `Assets.draw(ctx, "tomato", x, y)`.
+
+To replace one existing sprite (a different tree, for example): overwrite that PNG and rerun the export. No hand-packing.
 
 ## How to update later
 
-Edit `index.html` in this repo and push to `main`. The same Pages URL will show the new version after deploy (usually under a minute).
+Edit files in this repo and push to `main`. The same Pages URL will show the new version after deploy (usually under a minute).

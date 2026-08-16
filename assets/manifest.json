@@ -1,0 +1,631 @@
+{
+  "atlas": "atlas.png",
+  "palette": {
+    "sky": "#8EC8E8",
+    "grassHi": "#8FD42A",
+    "grassMid": "#5FBF22",
+    "grassSh": "#2F7A14",
+    "grassDp": "#1E5A12",
+    "dirtHi": "#F0B428",
+    "dirtMid": "#D49420",
+    "dirtSh": "#A86C14",
+    "till": "#B56F29",
+    "tillSh": "#6D4427",
+    "tillOut": "#3E2410",
+    "water": "#4A96C8",
+    "waterDp": "#2E6A96",
+    "waterFm": "#A8D4E8",
+    "stone": "#8A8A7A",
+    "stoneHi": "#B0B0A0",
+    "stoneSh": "#5A5A4E",
+    "woodHi": "#E8B060",
+    "woodMid": "#C47A38",
+    "woodSh": "#7A3E18",
+    "woodOut": "#3D1A0C",
+    "roof": "#C45A38",
+    "roofHi": "#E07850",
+    "roofSh": "#8B2E1C",
+    "parch": "#F3D2A3",
+    "uiText": "#3A2210",
+    "gold": "#8B1A1A",
+    "energy": "#6BCB3C",
+    "energyEmpty": "#3A4A20",
+    "slot": "#8B5A28",
+    "bevelDk": "#5B2B2A",
+    "leaf": "#4A9A28",
+    "flower": "#E8C84A",
+    "blossom": "#E8A0A8",
+    "door": "#5A3A22",
+    "glass": "#7AB8C8",
+    "letterbox": "#2A1A10",
+    "skin": "#F0C090",
+    "skinSh": "#D4A06A",
+    "shadow": "rgba(30,90,18,0.40)",
+    "shadowSoft": "rgba(30,90,18,0.28)",
+    "playerHair": "#6B3A22",
+    "playerHairHi": "#8B5A38",
+    "playerEye": "#2A4A38",
+    "playerEyeHi": "#5CBC88",
+    "playerLip": "#C47A38",
+    "playerShirt": "#3D8C9C",
+    "playerShirtHi": "#6CB8C4",
+    "playerShirtSh": "#246070",
+    "playerPants": "#4A5A28",
+    "playerPantsSh": "#2E3A18",
+    "playerShoe": "#5A2E18",
+    "npcHair": "#C4A070",
+    "npcHairHi": "#E0C488",
+    "npcEye": "#3A4A62",
+    "npcEyeHi": "#8AB0C8",
+    "npcLip": "#C47A38",
+    "npcShirt": "#8B4A6A",
+    "npcShirtHi": "#B86A8A",
+    "npcShirtSh": "#5A2A44",
+    "npcPants": "#5A4A38",
+    "npcPantsSh": "#3A2E24",
+    "npcShoe": "#3D1A0C",
+    "npcHat": "#E8C84A",
+    "npcHatHi": "#F0D878",
+    "npcHatSh": "#A86C14",
+    "npcHatBand": "#C45A38",
+    "npcApron": "#F3D2A3",
+    "chick": "#F0E0B8",
+    "chickHi": "#F8E8C8",
+    "chickSh": "#D4C090",
+    "chickOut": "#A86C48",
+    "chickComb": "#C45A38",
+    "chickCombHi": "#E07850",
+    "chickBeak": "#E8A030",
+    "chickBeakSh": "#C47A20",
+    "chickFeet": "#D49420",
+    "chickEye": "#3A2210",
+    "flag": "#3A8A6A",
+    "flagHi": "#5CBC88"
+  },
+  "sprites": [
+    {
+      "id": "house",
+      "file": "props/house.png",
+      "w": 80,
+      "h": 80,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 1,
+      "y": 1,
+      "fw": 80,
+      "generated": true
+    },
+    {
+      "id": "tree",
+      "file": "props/tree.png",
+      "w": 48,
+      "h": 64,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": -16,
+      "oy": -48,
+      "x": 82,
+      "y": 1,
+      "fw": 48,
+      "generated": true
+    },
+    {
+      "id": "well",
+      "file": "props/well.png",
+      "w": 16,
+      "h": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 131,
+      "y": 1,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "pond",
+      "file": "props/pond.png",
+      "w": 36,
+      "h": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": -2,
+      "oy": 0,
+      "x": 148,
+      "y": 1,
+      "fw": 36,
+      "generated": true
+    },
+    {
+      "id": "player-down",
+      "file": "actors/player-down-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 185,
+      "y": 1,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "player-up",
+      "file": "actors/player-up-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 218,
+      "y": 1,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "player-right",
+      "file": "actors/player-right-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 1,
+      "y": 82,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "player-left",
+      "file": "actors/player-left-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 34,
+      "y": 82,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "npc-down",
+      "file": "actors/npc-down-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 67,
+      "y": 82,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "npc-up",
+      "file": "actors/npc-up-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 100,
+      "y": 82,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "npc-right",
+      "file": "actors/npc-right-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 133,
+      "y": 82,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "npc-left",
+      "file": "actors/npc-left-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 166,
+      "y": 82,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "mailbox",
+      "file": "props/mailbox.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 199,
+      "y": 82,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "grass0",
+      "file": "tiles/grass0.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 216,
+      "y": 82,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "grass1",
+      "file": "tiles/grass1.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 233,
+      "y": 82,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "grass2",
+      "file": "tiles/grass2.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 1,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "grass3",
+      "file": "tiles/grass3.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 18,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "dirt",
+      "file": "tiles/dirt.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 35,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "till",
+      "file": "tiles/till.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 52,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "water",
+      "file": "tiles/water.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 69,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "crate",
+      "file": "props/crate.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 86,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "rock0",
+      "file": "props/rock0.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 103,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "rock1",
+      "file": "props/rock1.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 120,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "weed0",
+      "file": "props/weed0.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 137,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "weed1",
+      "file": "props/weed1.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 154,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "fenceH",
+      "file": "props/fenceH.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 171,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "fenceL",
+      "file": "props/fenceL.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 188,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "fenceR",
+      "file": "props/fenceR.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 205,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "seed",
+      "file": "ui/seed.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 222,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "sprout",
+      "file": "ui/sprout.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 239,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "chicken-right",
+      "file": "actors/chicken-right-{n}.png",
+      "w": 16,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        8,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 1,
+      "y": 132,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "chicken-left",
+      "file": "actors/chicken-left-{n}.png",
+      "w": 16,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        8,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 34,
+      "y": 132,
+      "fw": 16,
+      "generated": true
+    }
+  ]
+}
