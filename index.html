@@ -297,7 +297,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, house: null, shop: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null };
   var tick = 0;
   var lastTs = 0;
   var dialogue = null;
@@ -350,7 +350,7 @@
     { at: 0.96, r: 22, g: 12, b: 72, a: 0.82 },
     { at: 1.00, r: 255, g: 214, b: 170, a: 0.20 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -372,6 +372,10 @@
   var iFrames = 0;
   var faintFx = null;
   var monsters = [];
+  var monsterCache = { 1: null, 2: null, 3: null };
+  var mineFloor = 1;
+  var MINE3_COLS = 22;
+  var MINE3_ROWS = 16;
   var kbHeld = [];
   var kbDrive = false;
   var builds = [];
@@ -520,6 +524,33 @@
     return scene + ":" + tx + "," + ty;
   }
 
+  function harvestSceneName() {
+    if (currentScene !== "mine") return currentScene;
+    if (mineFloor === 2) return "mine2";
+    if (mineFloor === 3) return "mine3";
+    return "mine";
+  }
+
+  function liveHarvestScene() {
+    if (currentScene === "mine") return harvestSceneName();
+    return currentScene;
+  }
+
+  function sceneCacheKey(name, floor) {
+    if (name === "mine") {
+      floor = floor || mineFloor;
+      if (floor === 2) return "mine2";
+      if (floor === 3) return "mine3";
+    }
+    return name;
+  }
+
+  function clampMineFloor(n) {
+    n = n | 0;
+    if (n === 2 || n === 3) return n;
+    return 1;
+  }
+
   function markTile(map, tx, ty) {
     map[tx + "," + ty] = true;
   }
@@ -637,6 +668,10 @@
     markTile(taken, portalOut.tx + 1, portalOut.ty);
     markTile(taken, portalOut.tx - 1, portalOut.ty - 1);
     markTile(taken, portalOut.tx, portalOut.ty - 2);
+    markTile(taken, 16, 4);
+    markTile(taken, 16, 5);
+    markTile(taken, 15, 4);
+    markTile(taken, 17, 4);
     markTile(taken, 4, 5);
     markTile(taken, 27, 5);
     markTile(taken, 4, 15);
@@ -844,6 +879,7 @@
   function buildMineProps() {
     var list = [
       { kind: "ladder", tx: 16, ty: 20 },
+      { kind: "hole", tx: 16, ty: 4 },
       { kind: "note", tx: 14, ty: 19 },
       { kind: "lantern", tx: 8, ty: 3 },
       { kind: "lantern", tx: 23, ty: 3 },
@@ -864,6 +900,114 @@
     if (!found.mushroom) list.push({ kind: "mushroom", tx: 27, ty: 3 });
     if (!found.moonshard) list.push({ kind: "moonshard", tx: 27, ty: 17 });
     return list.concat(scatterMineExtras(GROUND, list));
+  }
+
+  function carveMine(g, x0, y0, x1, y1) {
+    var x, y, cols, rows;
+    rows = g.length;
+    cols = g[0].length;
+    for (y = y0; y <= y1; y++) {
+      for (x = x0; x <= x1; x++) {
+        if (x > 0 && y > 0 && x < cols - 1 && y < rows - 1) g[y][x] = "s";
+      }
+    }
+  }
+
+  function blankMine(cols, rows) {
+    var g = [];
+    var y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) row[x] = "#";
+      g[y] = row;
+    }
+    return g;
+  }
+
+  function scatterDeepRocks(ground, base, chance, seed) {
+    var taken = {};
+    var extras = [];
+    var i, x, y, rows, cols;
+    rows = ground.length;
+    cols = ground[0].length;
+    for (i = 0; i < base.length; i++) markPropTiles(taken, base[i]);
+    for (y = 1; y < rows - 1; y++) {
+      for (x = 1; x < cols - 1; x++) {
+        if (ground[y][x] !== "s" || tileMarked(taken, x, y)) continue;
+        if (nearKind(taken, "rock", x, y, 1)) continue;
+        if (hash(x, y, seed) < chance) {
+          extras.push({ kind: "rock", tx: x, ty: y });
+          markTile(taken, x, y);
+          markKind(taken, "rock", x, y);
+        }
+      }
+    }
+    return extras;
+  }
+
+  function buildMine2Ground() {
+    var g = blankMine(MINE_COLS, MINE_ROWS);
+    carveMine(g, 3, 6, 10, 14);
+    carveMine(g, 10, 8, 22, 11);
+    carveMine(g, 20, 3, 27, 8);
+    carveMine(g, 18, 11, 27, 18);
+    carveMine(g, 3, 16, 9, 20);
+    carveMine(g, 6, 14, 8, 16);
+    g[8][12] = "#";
+    g[9][12] = "#";
+    g[10][19] = "#";
+    g[11][19] = "#";
+    g[15][21] = "#";
+    g[6][24] = "#";
+    return g;
+  }
+
+  function buildMine2Props() {
+    var list = [
+      { kind: "ladder", tx: 5, ty: 8 },
+      { kind: "hole", tx: 24, ty: 16 },
+      { kind: "lantern", tx: 7, ty: 7 },
+      { kind: "lantern", tx: 24, ty: 5 },
+      { kind: "lantern", tx: 22, ty: 17 },
+      { kind: "rock", tx: 8, ty: 13 },
+      { kind: "rock", tx: 13, ty: 9 },
+      { kind: "rock", tx: 19, ty: 6 },
+      { kind: "rock", tx: 21, ty: 13 },
+      { kind: "rock", tx: 26, ty: 15 },
+      { kind: "rock", tx: 4, ty: 18 }
+    ];
+    if (!found.gem) list.push({ kind: "gem", tx: 25, ty: 4 });
+    return list.concat(scatterDeepRocks(GROUND, list, 0.028, 67));
+  }
+
+  function buildMine3Ground() {
+    var g = blankMine(MINE3_COLS, MINE3_ROWS);
+    carveMine(g, 3, 2, 18, 13);
+    g[5][8] = "#";
+    g[5][9] = "#";
+    g[6][8] = "#";
+    g[5][13] = "#";
+    g[5][14] = "#";
+    g[6][14] = "#";
+    g[10][6] = "#";
+    g[10][15] = "#";
+    return g;
+  }
+
+  function buildMine3Props() {
+    var list = [
+      { kind: "ladder", tx: 11, ty: 13 },
+      { kind: "lantern", tx: 11, ty: 7 },
+      { kind: "rock", tx: 5, ty: 6 },
+      { kind: "rock", tx: 16, ty: 6 },
+      { kind: "rock", tx: 6, ty: 11 },
+      { kind: "rock", tx: 15, ty: 11 }
+    ];
+    if (!found.mooncrystal) {
+      list.push({ kind: "chest", tx: 11, ty: 3 });
+      list.push({ kind: "mooncrystal", tx: 12, ty: 3 });
+    }
+    return list.concat(scatterDeepRocks(GROUND, list, 0.02, 91));
   }
 
 
@@ -937,16 +1081,16 @@
 
   function saveScene() {
     if (!GROUND || !GROUND.length) return;
-    sceneCache[currentScene] = { cols: COLS, rows: ROWS, ground: GROUND, props: PROPS };
+    sceneCache[sceneCacheKey(currentScene)] = { cols: COLS, rows: ROWS, ground: GROUND, props: PROPS };
   }
 
   function sceneProps(scene) {
-    if (scene === currentScene) return PROPS;
+    if (scene === liveHarvestScene()) return PROPS;
     return sceneCache[scene] ? sceneCache[scene].props : null;
   }
 
   function sceneGround(scene) {
-    if (scene === currentScene) return GROUND;
+    if (scene === liveHarvestScene()) return GROUND;
     return sceneCache[scene] ? sceneCache[scene].ground : null;
   }
 
@@ -1041,16 +1185,19 @@
       }
       delete harvestNodes[key];
       changed = true;
-      if (rec.scene === currentScene) buildSolid();
+      if (rec.scene === liveHarvestScene()) buildSolid();
     }
     if (changed) persistSave();
   }
 
-  function applyScene(name) {
-    var fresh;
+  function applyScene(name, floor) {
+    var fresh, key, cached;
+    if (currentScene === "mine") monsterCache[mineFloor] = monsters;
     saveScene();
+    if (name === "mine") mineFloor = floor ? clampMineFloor(floor) : clampMineFloor(mineFloor);
     currentScene = name;
-    var cached = sceneCache[name];
+    key = sceneCacheKey(name);
+    cached = sceneCache[key];
     fresh = !cached;
     if (cached) {
       COLS = cached.cols;
@@ -1058,10 +1205,22 @@
       GROUND = cached.ground;
       PROPS = cached.props;
     } else if (name === "mine") {
-      COLS = MINE_COLS;
-      ROWS = MINE_ROWS;
-      GROUND = buildMineGround();
-      PROPS = buildMineProps();
+      if (mineFloor === 2) {
+        COLS = MINE_COLS;
+        ROWS = MINE_ROWS;
+        GROUND = buildMine2Ground();
+        PROPS = buildMine2Props();
+      } else if (mineFloor === 3) {
+        COLS = MINE3_COLS;
+        ROWS = MINE3_ROWS;
+        GROUND = buildMine3Ground();
+        PROPS = buildMine3Props();
+      } else {
+        COLS = MINE_COLS;
+        ROWS = MINE_ROWS;
+        GROUND = buildMineGround();
+        PROPS = buildMineProps();
+      }
     } else if (name === "house") {
       COLS = HOUSE_COLS;
       ROWS = HOUSE_ROWS;
@@ -1082,8 +1241,13 @@
       applyExtraPlots(GROUND);
       applyBuildsTo(GROUND, PROPS);
     }
-    if (fresh && name !== "house") applyHarvestState(name, PROPS);
-    if (fresh && name === "mine") spawnMineMonsters();
+    if (fresh && name !== "house") applyHarvestState(name === "mine" ? harvestSceneName() : name, PROPS);
+    if (name === "mine") {
+      if (monsterCache[mineFloor]) monsters = monsterCache[mineFloor];
+      else spawnMineMonsters();
+    } else {
+      monsters = [];
+    }
     buildSolid();
   }
 
@@ -1655,6 +1819,8 @@
     else if (kind === "gold") gold = (gold | 0) + amount;
     else if (kind === "copper" || kind === "mushroom" || kind === "moonshard") {
       inventory[kind] = (inventory[kind] || 0) + amount;
+    } else if (kind === "gem" || kind === "mooncrystal") {
+      gold = (gold | 0) + amount;
     }
     persistSave();
   }
@@ -1712,8 +1878,8 @@
   }
 
   function rememberHarvest(prop, kind, state) {
-    harvestNodes[nodeKey(currentScene, prop.tx, prop.ty)] = {
-      scene: currentScene,
+    harvestNodes[nodeKey(liveHarvestScene(), prop.tx, prop.ty)] = {
+      scene: liveHarvestScene(),
       kind: kind,
       state: state,
       tx: prop.tx,
@@ -1854,7 +2020,45 @@
   }
 
   function isMineExit(tx, ty) {
-    return currentScene === "mine" && tx === portalOut.tx && ty === portalOut.ty;
+    return currentScene === "mine" && mineFloor === 1 && tx === portalOut.tx && ty === portalOut.ty;
+  }
+
+  function mineDownSpot() {
+    if (currentScene !== "mine") return null;
+    if (mineFloor === 1) return { tx: 16, ty: 4 };
+    if (mineFloor === 2) return { tx: 24, ty: 16 };
+    return null;
+  }
+
+  function mineUpSpot() {
+    if (currentScene !== "mine") return null;
+    if (mineFloor === 2) return { tx: 5, ty: 8 };
+    if (mineFloor === 3) return { tx: 11, ty: 13 };
+    return null;
+  }
+
+  function isMineDown(tx, ty) {
+    var d = mineDownSpot();
+    return !!(d && tx === d.tx && ty === d.ty);
+  }
+
+  function isMineUp(tx, ty) {
+    var d = mineUpSpot();
+    return !!(d && tx === d.tx && ty === d.ty);
+  }
+
+  function holeHit(tx, ty, world) {
+    var i, p, b;
+    if (currentScene !== "mine") return false;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind !== "hole" && !(p.kind === "ladder" && mineFloor > 1)) continue;
+      if (tx === p.tx && (ty === p.ty || ty === p.ty - 1)) return p;
+      if (!world) continue;
+      b = propBounds(p);
+      if (world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h) return p;
+    }
+    return null;
   }
 
   function isHouseExit(tx, ty) {
@@ -1925,6 +2129,8 @@
         found.copper = !!data.found.copper;
         found.mushroom = !!data.found.mushroom;
         found.moonshard = !!data.found.moonshard;
+        found.gem = !!data.found.gem;
+        found.mooncrystal = !!data.found.mooncrystal;
       }
       if (data.unlocked && typeof data.unlocked === "object") unlocked = data.unlocked;
       introSeen = !!data.introSeen;
@@ -1954,6 +2160,7 @@
       hatOwned = !!(data.hatOwned || data.hatOn);
       hatOn = !!data.hatOn;
       swordOwned = !!data.swordOwned;
+      mineFloor = clampMineFloor(data.mineFloor);
       if (typeof data.hp === "number" && data.hp >= 0) {
         hp = data.hp | 0;
         if (hp > MAX_HP) hp = MAX_HP;
@@ -2002,7 +2209,7 @@
           nState = nv.state === "gone" || nv.state === "stump" ? nv.state : "";
           if (!nState) continue;
           harvestNodes[nk] = {
-            scene: nv.scene === "mine" ? "mine" : "overworld",
+            scene: (nv.scene === "mine" || nv.scene === "mine2" || nv.scene === "mine3") ? nv.scene : "overworld",
             kind: nv.kind === "rock" ? "rock" : "tree",
             state: nState,
             tx: nv.tx | 0,
@@ -2058,9 +2265,11 @@
         };
       }
     }
-    addLive(currentScene, PROPS);
-    if (sceneCache.overworld && currentScene !== "overworld") addLive("overworld", sceneCache.overworld.props);
-    if (sceneCache.mine && currentScene !== "mine") addLive("mine", sceneCache.mine.props);
+    addLive(liveHarvestScene(), PROPS);
+    if (sceneCache.overworld && liveHarvestScene() !== "overworld") addLive("overworld", sceneCache.overworld.props);
+    if (sceneCache.mine && liveHarvestScene() !== "mine") addLive("mine", sceneCache.mine.props);
+    if (sceneCache.mine2 && liveHarvestScene() !== "mine2") addLive("mine2", sceneCache.mine2.props);
+    if (sceneCache.mine3 && liveHarvestScene() !== "mine3") addLive("mine3", sceneCache.mine3.props);
     for (key in harvestNodes) {
       if (!Object.prototype.hasOwnProperty.call(harvestNodes, key)) continue;
       rec = harvestNodes[key];
@@ -2108,6 +2317,7 @@
         hatOwned: !!hatOwned,
         hatOn: !!hatOn,
         swordOwned: !!swordOwned,
+        mineFloor: clampMineFloor(mineFloor),
         hp: hp | 0,
         extraPlots: extraPlots | 0,
         crops: crops,
@@ -2171,7 +2381,11 @@
     if (!inBounds(tx, ty) || !walkable(tx, ty)) {
       if (scene === "house") { tx = 10; ty = 9; face = "up"; }
       else if (scene === "shop") { tx = 8; ty = 7; face = "up"; }
-      else if (scene === "mine") { tx = 16; ty = 19; face = "up"; }
+      else if (scene === "mine") {
+        if (mineFloor === 2) { tx = 5; ty = 10; face = "down"; }
+        else if (mineFloor === 3) { tx = 11; ty = 11; face = "up"; }
+        else { tx = 16; ty = 19; face = "up"; }
+      }
       else { tx = 16; ty = 30; face = "down"; }
     }
     placePlayer(tx, ty, face);
@@ -2235,7 +2449,11 @@
     dayNumber += 1;
     dayMs = 0;
     hp = MAX_HP;
-    spawnMineMonsters();
+    monsterCache[1] = null;
+    monsterCache[2] = null;
+    monsterCache[3] = null;
+    if (currentScene === "mine") spawnMineMonsters();
+    else monsters = [];
     spot = sleepWakeSpot();
     placePlayer(spot.tx, spot.ty, "up");
     updateCrops();
@@ -2423,7 +2641,7 @@
 
   function clockHudLine() {
     var phase = clockPhaseName();
-    if (currentScene === "mine") return phase + " · MINE";
+    if (currentScene === "mine") return phase + " · MINE " + clampMineFloor(mineFloor);
     if (currentScene === "house") return phase + " · HOME";
     if (currentScene === "shop") return phase + " · SHOP";
     return "SPRING · " + phase;
@@ -2479,6 +2697,8 @@
       return { r: 255, g: 236, b: 210, a: 0.04 };
     }
     if (currentScene === "mine") {
+      if (mineFloor === 3) return { r: 72, g: 62, b: 88, a: 0.44 };
+      if (mineFloor === 2) return { r: 118, g: 104, b: 116, a: 0.34 };
       return { r: 168, g: 152, b: 138, a: 0.22 };
     }
     return tint;
@@ -3169,10 +3389,12 @@
 
   function makeMon(kind, tx, ty) {
     var spec = {
-      slime: { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1 },
-      bat: { sprite: "bat", maxHp: 3, dmg: BUMP_DMG, gold: 2 },
-      grub: { sprite: "rockgrub", maxHp: 3, dmg: BUMP_DMG, gold: 1 }
-    }[kind] || { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1 };
+      slime: { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1, scale: 1 },
+      bat: { sprite: "bat", maxHp: 3, dmg: BUMP_DMG, gold: 2, scale: 1 },
+      grub: { sprite: "rockgrub", maxHp: 3, dmg: BUMP_DMG, gold: 1, scale: 1 },
+      toughslime: { sprite: "slime", maxHp: 4, dmg: BUMP_DMG, gold: 3, scale: 1.2 },
+      bigslime: { sprite: "slime", maxHp: 5, dmg: BUMP_DMG, gold: 5, scale: 1.5 }
+    }[kind] || { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1, scale: 1 };
     return {
       kind: kind,
       sprite: spec.sprite,
@@ -3192,23 +3414,58 @@
       maxHp: spec.maxHp,
       dmg: spec.dmg,
       gold: spec.gold,
+      scale: spec.scale || 1,
       shake: 0
     };
   }
 
   function spawnMineMonsters() {
-    monsters = [
-      makeMon("slime", 8, 11),
-      makeMon("slime", 3, 16),
-      makeMon("bat", 22, 6),
-      makeMon("bat", 28, 11),
-      makeMon("grub", 12, 16),
-      makeMon("grub", 21, 18)
-    ];
+    if (mineFloor === 2) {
+      monsters = [
+        makeMon("slime", 8, 12),
+        makeMon("toughslime", 16, 10),
+        makeMon("bat", 23, 5),
+        makeMon("bat", 22, 15),
+        makeMon("grub", 7, 18),
+        makeMon("grub", 25, 12)
+      ];
+    } else if (mineFloor === 3) {
+      monsters = [
+        makeMon("bat", 5, 4),
+        makeMon("bat", 16, 4),
+        makeMon("bat", 4, 9),
+        makeMon("grub", 17, 9),
+        makeMon("grub", 7, 7),
+        makeMon("grub", 14, 7),
+        makeMon("bigslime", 11, 8)
+      ];
+    } else {
+      monsters = [
+        makeMon("slime", 8, 11),
+        makeMon("slime", 3, 16),
+        makeMon("bat", 22, 6),
+        makeMon("bat", 28, 11),
+        makeMon("grub", 12, 16),
+        makeMon("grub", 21, 18)
+      ];
+    }
+    monsterCache[mineFloor] = monsters;
   }
 
   function mineKeepClear(tx, ty) {
+    if (mineFloor === 2) {
+      if (tx === 5 && (ty === 8 || ty === 9 || ty === 10)) return true;
+      if (tx === 24 && (ty === 14 || ty === 15 || ty === 16)) return true;
+      if (tx === 25 && ty === 4) return true;
+      return false;
+    }
+    if (mineFloor === 3) {
+      if (tx === 11 && (ty === 11 || ty === 12 || ty === 13)) return true;
+      if ((tx === 11 || tx === 12) && ty === 3) return true;
+      return false;
+    }
     if (tx === 16 && (ty === 19 || ty === 20)) return true;
+    if (tx === 16 && (ty === 4 || ty === 5)) return true;
     if (tx === 14 && ty === 19) return true;
     if ((tx === 4 && (ty === 5 || ty === 15)) || (tx === 27 && (ty === 5 || ty === 15))) return true;
     return false;
@@ -3292,7 +3549,7 @@
     for (i = 0; i < monsters.length; i++) {
       m = monsters[i];
       if (m.hp <= 0) continue;
-      if (Math.abs(m.x - player.x) < 10 && Math.abs(m.y - player.y) < 10) {
+      if (Math.abs(m.x - player.x) < (m.scale > 1.2 ? 14 : 10) && Math.abs(m.y - player.y) < (m.scale > 1.2 ? 14 : 10)) {
         hurtPlayer(m.dmg);
         monsterYield(m);
         return;
@@ -3324,7 +3581,7 @@
   }
 
   function finishFaintWarp() {
-    if (currentScene !== "mine") applyScene("mine");
+    applyScene("mine", 1);
     placePlayer(16, 19, "up");
     hp = MAX_HP;
     iFrames = 1400;
@@ -3646,7 +3903,8 @@
   }
 
   function isCollectible(p) {
-    return p && (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard");
+    return p && (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
+      p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal");
   }
 
   function findNote() {
@@ -3658,9 +3916,39 @@
     return null;
   }
 
+  function takeDeepFind(prop) {
+    var i, j, other;
+    i = PROPS.indexOf(prop);
+    if (i >= 0) PROPS.splice(i, 1);
+    if (prop.kind === "gem") {
+      found.gem = true;
+      spawnPickup("gem", prop.tx, prop.ty, 8);
+      spawnPickup("copper", prop.tx, prop.ty, 1);
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      persistSave();
+      openDialogue("ORION", ["A SHINY GEM!", "IT TWINKLES LIKE", "NIM'S LANTERN."]);
+      return;
+    }
+    found.mooncrystal = true;
+    for (j = PROPS.length - 1; j >= 0; j--) {
+      other = PROPS[j];
+      if (other.kind === "chest" || other.kind === "mooncrystal") PROPS.splice(j, 1);
+    }
+    spawnPickup("mooncrystal", prop.tx, prop.ty, 15);
+    spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+    persistSave();
+    openDialogue("ORION", ["THE MOUNTAIN HEART.", "NIM LEFT THIS GLOW", "FOR ME TO FIND."]);
+  }
+
   function pickupCollectible(prop) {
     var i;
-    if (!isCollectible(prop) || found[prop.kind]) return;
+    if (!isCollectible(prop)) return;
+    if (prop.kind === "gem" || prop.kind === "chest" || prop.kind === "mooncrystal") {
+      if ((prop.kind === "gem" && found.gem) || ((prop.kind === "chest" || prop.kind === "mooncrystal") && found.mooncrystal)) return;
+      takeDeepFind(prop);
+      return;
+    }
+    if (found[prop.kind]) return;
     i = PROPS.indexOf(prop);
     if (i >= 0) PROPS.splice(i, 1);
     found[prop.kind] = true;
@@ -3693,7 +3981,10 @@
   }
 
   function goCollect(prop) {
-    if (!isCollectible(prop) || found[prop.kind]) return;
+    if (!isCollectible(prop)) return;
+    if (prop.kind === "gem" && found.gem) return;
+    if ((prop.kind === "chest" || prop.kind === "mooncrystal") && found.mooncrystal) return;
+    if (prop.kind !== "gem" && prop.kind !== "chest" && prop.kind !== "mooncrystal" && found[prop.kind]) return;
     highlight = { tx: prop.tx, ty: prop.ty };
     if (player.tx === prop.tx && player.ty === prop.ty) {
       pending = null;
@@ -3735,8 +4026,25 @@
     startWalk(player, path, 3.5);
   }
 
+  function enterMineFloor(floor, via) {
+    var spot;
+    floor = clampMineFloor(floor);
+    applyScene("mine", floor);
+    if (via === "down") {
+      if (floor === 2) spot = { tx: 5, ty: 10, face: "down" };
+      else if (floor === 3) spot = { tx: 11, ty: 11, face: "up" };
+      else spot = { tx: 16, ty: 19, face: "up" };
+    } else {
+      if (floor === 1) spot = { tx: 16, ty: 5, face: "down" };
+      else if (floor === 2) spot = { tx: 24, ty: 14, face: "up" };
+      else spot = { tx: 11, ty: 11, face: "up" };
+    }
+    placePlayer(spot.tx, spot.ty, spot.face);
+    persistSave();
+  }
+
   function enterMine() {
-    applyScene("mine");
+    applyScene("mine", 1);
     placePlayer(16, 19, "up");
     unlockAch("caveDoor");
     if (!introSeen) {
@@ -3784,6 +4092,16 @@
       enterHouse();
       return;
     }
+    if (isMineDown(player.tx, player.ty)) {
+      pending = null;
+      enterMineFloor(mineFloor + 1, "down");
+      return;
+    }
+    if (isMineUp(player.tx, player.ty)) {
+      pending = null;
+      enterMineFloor(mineFloor - 1, "up");
+      return;
+    }
     if (isMineExit(player.tx, player.ty)) {
       pending = null;
       exitMine();
@@ -3827,6 +4145,10 @@
       }
     } else if (act.type === "enter") {
       enterMine();
+    } else if (act.type === "mineDown") {
+      enterMineFloor(mineFloor + 1, "down");
+    } else if (act.type === "mineUp") {
+      enterMineFloor(mineFloor - 1, "up");
     } else if (act.type === "exit") {
       exitMine();
     } else if (act.type === "enterHouse") {
@@ -3930,6 +4252,20 @@
     var path = findPath(player.tx, player.ty, portalOut.tx, portalOut.ty);
     if (!path.length) return;
     pending = { type: "exit" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goMineShaft(down) {
+    var d = down ? mineDownSpot() : mineUpSpot();
+    if (!d) return;
+    highlight = { tx: d.tx, ty: d.ty };
+    if (player.tx === d.tx && player.ty === d.ty) {
+      enterMineFloor(mineFloor + (down ? 1 : -1), down ? "down" : "up");
+      return;
+    }
+    var path = findPath(player.tx, player.ty, d.tx, d.ty);
+    if (!path.length) return;
+    pending = { type: down ? "mineDown" : "mineUp" };
     startWalk(player, path, 3.5);
   }
 
@@ -4159,9 +4495,10 @@
     if (p.kind === "crate" || p.kind === "stump") return p.ty * TILE + 14;
     if (p.kind === "cave") return p.ty * TILE + 32;
     if (p.kind === "lantern") return p.ty * TILE + 20;
-    if (p.kind === "ladder") return p.ty * TILE + 20;
+    if (p.kind === "ladder" || p.kind === "hole") return p.ty * TILE + 20;
     if (p.kind === "swordPedestal") return p.ty * TILE + 20;
-    if (p.kind === "note" || p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard") {
+    if (p.kind === "note" || p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
+        p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal") {
       return p.ty * TILE + 14;
     }
     return p.ty * TILE + TILE;
@@ -4185,7 +4522,7 @@
     if (p.kind === "cave") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 48 };
     if (p.kind === "pond") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 36, h: 32 };
     if (p.kind === "well") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
-    if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "ladder" || p.kind === "swordPedestal") {
+    if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "ladder" || p.kind === "hole" || p.kind === "swordPedestal") {
       return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     }
     return { x: p.tx * TILE, y: p.ty * TILE, w: 16, h: 16 };
@@ -4260,14 +4597,17 @@
       Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
     } else if (p.kind === "ladder") {
       Assets.draw(g, "ladder", x, y);
+    } else if (p.kind === "hole") {
+      Assets.draw(g, "hole", x, y);
     } else if (p.kind === "swordPedestal") {
       Assets.draw(g, "swordPedestal", x, y);
     } else if (p.kind === "note") {
       Assets.draw(g, "note", x, y);
-    } else if (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard") {
+    } else if (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
+               p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal") {
       var bob = Math.round(Math.sin(tick / 280) * 1);
-      if (p.kind === "moonshard") {
-        g.fillStyle = "rgba(232,240,255,0.22)";
+      if (p.kind === "moonshard" || p.kind === "mooncrystal" || p.kind === "gem") {
+        g.fillStyle = p.kind === "gem" ? "rgba(92,188,154,0.20)" : "rgba(232,240,255,0.22)";
         g.fillRect(x - 2, y - 2 + bob, 20, 20);
       }
       Assets.draw(g, p.kind, x, y + bob);
@@ -4331,13 +4671,23 @@
   }
 
   function drawMonster(g, m) {
-    var bob, sx;
+    var bob, sx, sc;
     if (!m || m.hp <= 0) return;
     bob = m.frame ? -1 : 0;
     sx = 0;
     if (m.shake > 0) sx = ((tick / 40) | 0) % 2 ? 1 : -1;
-    drawShadow(g, m.x + sx, m.y, 4);
-    Assets.draw(g, m.sprite, m.x + sx, m.y + bob, m.frame);
+    sc = m.scale || 1;
+    drawShadow(g, m.x + sx, m.y, sc > 1.2 ? 6 : 4);
+    if (sc !== 1) {
+      g.save();
+      g.imageSmoothingEnabled = false;
+      g.translate(Math.round(m.x + sx), Math.round(m.y + bob));
+      g.scale(sc, sc);
+      Assets.draw(g, m.sprite, 0, 0, m.frame);
+      g.restore();
+    } else {
+      Assets.draw(g, m.sprite, m.x + sx, m.y + bob, m.frame);
+    }
   }
 
   function drawPickups(g) {
@@ -4660,7 +5010,7 @@
       Assets.draw(g, (hp > hi * HP_PER_HEART) ? "heart" : "heartEmpty", 49 + hi * 12, 7);
     }
 
-    woodPanel(g, 206, 4, 110, 21);
+    woodPanel(g, 206, 4, 114, 21);
     fill(g, 210, 8, 7, 7, C.flower);
     fill(g, 212, 10, 3, 3, C.parch);
     px(g, 209, 11, C.flower);
@@ -5166,6 +5516,15 @@
       goEnterShop();
       return;
     }
+    var hitHole = holeHit(tx, ty, world);
+    if (isMineDown(tx, ty) || (hitHole && hitHole.kind === "hole")) {
+      goMineShaft(true);
+      return;
+    }
+    if (isMineUp(tx, ty) || (hitHole && hitHole.kind === "ladder" && mineFloor > 1)) {
+      goMineShaft(false);
+      return;
+    }
     if (isMineExit(tx, ty)) {
       goExit();
       return;
@@ -5182,7 +5541,7 @@
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];

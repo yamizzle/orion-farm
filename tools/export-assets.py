@@ -30,6 +30,7 @@ PREVIEW_PATH = ASSETS / "preview.png"
 
 from town_sprites import install as install_town_sprites
 from combat_sprites import install as install_combat_sprites
+from mine_sprites import install as install_mine_sprites
 
 
 def parse_color(c):
@@ -2203,7 +2204,8 @@ def main():
     builtins = builtin_sprites()
     install_town_sprites(globals())
     install_combat_sprites(globals())
-    builtins = builtins + globals().get("TOWN_SPRITES", []) + globals().get("COMBAT_SPRITES", [])
+    install_mine_sprites(globals())
+    builtins = builtins + globals().get("TOWN_SPRITES", []) + globals().get("COMBAT_SPRITES", []) + globals().get("MINE_SPRITES", [])
     sprites = merge_manifest(builtins)
     print("generating sprites (--regen=%s)" % args.regen)
     ensure_pngs(sprites, args.regen)

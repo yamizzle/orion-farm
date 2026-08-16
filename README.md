@@ -22,8 +22,10 @@ On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Saf
 - Wood is the second hotbar slot (2 wood = one fence). Stone is the third (1 stone = one path). Tap the slot, then tap empty grass or dirt to build. Fences block walking; paths do not.
 - Tap the neighbor in the straw hat. They have a small job for you. If you have a carrot, they buy it for 10G and say thanks. Gold shows on the clock plaque. Tap again to close the box.
 - A chicken wanders the farm grass. Tap it and it hops.
-- Follow the dirt path north to the timbered cave in the rocky hill. Walk onto the mouth to go inside; tap the ladder to come back out.
+- Follow the dirt path north to the timbered cave in the rocky hill. Walk onto the mouth to go inside; tap the south ladder to come back out.
 - Inside, Nim left a wall note and three treasures in different rooms: a copper nugget, a cave mushroom, and a moon shard. Walk onto them to pick them up.
+- A wood-framed hole with a down arrow sits at the north end of floor 1. Walk onto it (or tap it) the same way as the cave mouth to drop to floor 2, then again to floor 3. Each deeper floor has a ladder back up. The HUD clock says MINE 1, MINE 2, or MINE 3.
+- Floor 2 is a darker winding cave: six foes (one slightly tougher slime), rocks to smash, and a teal gem that gives a copper nugget and a little gold. Floor 3 is a small deep chamber with more bats and grubs, a bigger five-hit slime, and Nim's moon crystal in a chest.
 - A wood star on the HUD opens your stars. The first time you earn one, a big star card pops in the middle of the farm. Tap OK to keep going.
 - A wood book next to the star is your job list. Tap it for one line, like BRING A MUSHROOM TO THE NEIGHBOR.
 - Jobs: bring the neighbor a cave mushroom, leave wood at Nim's note after you read the mine letter, then take a moon shard inside the house.
@@ -36,7 +38,7 @@ On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Saf
 - Five red hearts sit on the HUD (50 HP). They are not the green energy bar. Old saves start full. Sleeping refills them.
 - Just inside the mine, a stone pedestal holds a cave sword. Walk up and tap it. Equip the sword on the last hotbar slot, then tap a monster (or tap the tile in front of you) to swing. Slimes take two hits; bats and rock-grubs take three. Touch-first; WASD still only walks.
 - Cute slimes, bats, and rock-grubs wander the mine rooms only. They bump Orion for one heart, then he flashes for a moment. They do not chase across the whole cave, and they stay off the ladder and room doors. Defeat one for a little gold (sometimes a stone). First foe unlocks the CAVE FOE star.
-- If hearts hit zero, a short "You feel woozy..." fade warps Orion back to the mine entrance and refills health. That is a stub; the real faint/bed loop comes later.
+- If hearts hit zero, a short "You feel woozy..." fade warps Orion back to floor 1 by the exit ladder and refills health. That is a stub; the real faint/bed loop comes later.
 
 
 ## Where the art lives
@@ -49,14 +51,15 @@ assets/
   atlas.png         packed sheet the game loads
   atlas.json        same frame rects (handy for tools)
   tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall, wood floor, interior wall, cobble, meadow)
-  props/            house, tree, stump, well, mailbox, mailbox-up, crate, pond, rocks, weeds, fences, cave, lantern, lantern-off, ladder, note, bed, table, rug, window, doormat, door, shop, town houses, fountain, statue, counter, sword pedestal
+  props/            house, tree, stump, well, mailbox, mailbox-up, crate, pond, rocks, weeds, fences, cave, lantern, lantern-off, ladder, hole, chest, note, bed, table, rug, window, doormat, door, shop, town houses, fountain, statue, counter, sword pedestal
   actors/           player, neighbor, chicken, town folk, car, slime, bat, rock-grub (one PNG per facing/frame)
-  ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, star, star badge, sparkle, letter, flower, honey bun, straw hat, heart, empty heart, sword, gold coin
+  ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, gem, moon crystal, star, star badge, sparkle, letter, flower, honey bun, straw hat, heart, empty heart, sword, gold coin
 tools/
   process-generated.py  chroma-key, crop, and scale generated-src into game sizes
   export-assets.py      pack those PNGs into atlas.png (do not use --regen)
   town_sprites.py       paint town houses, folk, car, shop goods
   combat_sprites.py     paint hearts, sword, pedestal, gold coin, mine foes
+  mine_sprites.py       paint the down-hole, gem, chest, and moon crystal
 ```
 
 The game loads `assets/manifest.json` + `assets/atlas.png`, then draws with `Assets.draw(ctx, id, x, y, frame)`. It does not paint world pixels in the game loop.
