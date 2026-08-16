@@ -285,6 +285,12 @@
   var SLOT_FLOWER = 7;
   var SLOT_SNACK = 8;
   var SLOT_HAT = 9;
+  var SLOT_SWORD = 10;
+  var MAX_HP = 50;
+  var HEARTS = 5;
+  var HP_PER_HEART = 10;
+  var SNACK_HEAL = 20;
+  var BUMP_DMG = 10;
   var HIT_COUNT = 3;
   var HIT_GAP = 380;
   var WOOD_PER_TREE = 2;
@@ -361,6 +367,11 @@
   var hatOwned = false;
   var hatOn = false;
   var extraPlots = 0;
+  var hp = MAX_HP;
+  var swordOwned = false;
+  var iFrames = 0;
+  var faintFx = null;
+  var monsters = [];
   var kbHeld = [];
   var kbDrive = false;
   var builds = [];
@@ -399,7 +410,8 @@
     { id: "moonlightPocket", name: "MOONLIGHT POCKET", blurb: "FOUND ALL THREE" },
     { id: "kindHeart", name: "KIND HEART", blurb: "GAVE A MUSHROOM" },
     { id: "caveHelper", name: "CAVE HELPER", blurb: "LEFT WOOD FOR NIM" },
-    { id: "homeGlow", name: "HOME GLOW", blurb: "BROUGHT THE SHARD HOME" }
+    { id: "homeGlow", name: "HOME GLOW", blurb: "BROUGHT THE SHARD HOME" },
+    { id: "caveFoe", name: "CAVE FOE", blurb: "BEAT A MONSTER" }
   ];
   var COLLECT_ACH = { copper: "copperGlow", mushroom: "caveSnack", moonshard: "moonPiece" };
   var NOTE_OPEN = ["I LEFT MOON SHARDS", "IN THESE CAVES.", "BRING THEM HOME."];
@@ -847,6 +859,7 @@
       { kind: "rock", tx: 24, ty: 19 },
       { kind: "rock", tx: 4, ty: 17 }
     ];
+    if (!swordOwned) list.push({ kind: "swordPedestal", tx: 18, ty: 18 });
     if (!found.copper) list.push({ kind: "copper", tx: 4, ty: 3 });
     if (!found.mushroom) list.push({ kind: "mushroom", tx: 27, ty: 3 });
     if (!found.moonshard) list.push({ kind: "moonshard", tx: 27, ty: 17 });
@@ -1070,6 +1083,7 @@
       applyBuildsTo(GROUND, PROPS);
     }
     if (fresh && name !== "house") applyHarvestState(name, PROPS);
+    if (fresh && name === "mine") spawnMineMonsters();
     buildSolid();
   }
 
@@ -1141,7 +1155,7 @@
       } else if (
         p.kind === "tree" || p.kind === "well" || p.kind === "rock" ||
         p.kind === "lantern" || p.kind === "fenceH" || p.kind === "fenceL" ||
-        p.kind === "fenceR"
+        p.kind === "fenceR" || p.kind === "swordPedestal"
       ) {
         block(p.tx, p.ty);
       }
@@ -1638,6 +1652,7 @@
     else if (kind === "veggie") inventory.veggie = (inventory.veggie || 0) + amount;
     else if (kind === "flower") inventory.flower = (inventory.flower || 0) + amount;
     else if (kind === "snack") inventory.snack = (inventory.snack || 0) + amount;
+    else if (kind === "gold") gold = (gold | 0) + amount;
     else if (kind === "copper" || kind === "mushroom" || kind === "moonshard") {
       inventory[kind] = (inventory[kind] || 0) + amount;
     }
@@ -1660,6 +1675,10 @@
   function doHit() {
     var h = player.hitting;
     var prop, cx, cy;
+    if (h && h.mon) {
+      doFightHit();
+      return;
+    }
     if (!h || !isHarvestable(h.prop)) {
       cancelHit();
       return;
@@ -1724,6 +1743,20 @@
   function updateHit(dt) {
     if (player.swing > 0) player.swing -= dt;
     if (!player.hitting) return;
+    if (player.hitting.mon) {
+      if (player.hitting.mon.hp <= 0) {
+        cancelHit();
+        return;
+      }
+      if (!isNear(player.tx, player.ty, player.hitting.mon.tx, player.hitting.mon.ty) &&
+          !(player.tx === player.hitting.mon.tx && player.ty === player.hitting.mon.ty)) {
+        cancelHit();
+        return;
+      }
+      player.hitting.wait -= dt;
+      if (player.hitting.wait <= 0) doFightHit();
+      return;
+    }
     if (!isHarvestable(player.hitting.prop)) {
       cancelHit();
       return;
@@ -1920,6 +1953,13 @@
       if (typeof data.gold === "number" && data.gold >= 0) gold = data.gold | 0;
       hatOwned = !!(data.hatOwned || data.hatOn);
       hatOn = !!data.hatOn;
+      swordOwned = !!data.swordOwned;
+      if (typeof data.hp === "number" && data.hp >= 0) {
+        hp = data.hp | 0;
+        if (hp > MAX_HP) hp = MAX_HP;
+      } else {
+        hp = MAX_HP;
+      }
       extraPlots = clampCount(data.extraPlots);
       if (extraPlots > 4) extraPlots = 4;
       if (data.inventory && typeof data.inventory === "object") {
@@ -2067,6 +2107,8 @@
         },
         hatOwned: !!hatOwned,
         hatOn: !!hatOn,
+        swordOwned: !!swordOwned,
+        hp: hp | 0,
         extraPlots: extraPlots | 0,
         crops: crops,
         nodes: serializeNodes(),
@@ -2192,6 +2234,8 @@
     var spot;
     dayNumber += 1;
     dayMs = 0;
+    hp = MAX_HP;
+    spawnMineMonsters();
     spot = sleepWakeSpot();
     placePlayer(spot.tx, spot.ty, "up");
     updateCrops();
@@ -2386,7 +2430,7 @@
   }
 
   function uiPaused() {
-    return !!(dialogue || achieveOpen || questOpen || sleepFx || wipeAsk || toast || shopOpen);
+    return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || toast || shopOpen);
   }
 
   function timePaused() {
@@ -3005,7 +3049,7 @@
       shopMsg = "A PRETTY FLOWER.";
     } else if (item.id === "snack") {
       inventory.snack = (inventory.snack || 0) + 1;
-      shopMsg = "A WARM HONEY BUN.";
+      shopMsg = "HEALS TWO HEARTS.";
     } else if (item.id === "hat") {
       hatOwned = true;
       hatOn = true;
@@ -3109,11 +3153,363 @@
     return true;
   }
 
+
+  function swordEquipped() {
+    return !!(swordOwned && selectedSlot === SLOT_SWORD);
+  }
+
+  function facingTile() {
+    var dx = 0, dy = 0;
+    if (player.face === "left") dx = -1;
+    else if (player.face === "right") dx = 1;
+    else if (player.face === "up") dy = -1;
+    else dy = 1;
+    return { tx: player.tx + dx, ty: player.ty + dy };
+  }
+
+  function makeMon(kind, tx, ty) {
+    var spec = {
+      slime: { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1 },
+      bat: { sprite: "bat", maxHp: 3, dmg: BUMP_DMG, gold: 2 },
+      grub: { sprite: "rockgrub", maxHp: 3, dmg: BUMP_DMG, gold: 1 }
+    }[kind] || { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1 };
+    return {
+      kind: kind,
+      sprite: spec.sprite,
+      tx: tx, ty: ty,
+      homeTx: tx, homeTy: ty,
+      x: tileCenterX(tx),
+      y: tileFootY(ty),
+      face: "down",
+      frame: 0,
+      path: [],
+      stepFrom: null,
+      stepT: 0,
+      queuedWalk: null,
+      idle: 400 + Math.random() * 900,
+      anim: 0,
+      hp: spec.maxHp,
+      maxHp: spec.maxHp,
+      dmg: spec.dmg,
+      gold: spec.gold,
+      shake: 0
+    };
+  }
+
+  function spawnMineMonsters() {
+    monsters = [
+      makeMon("slime", 8, 11),
+      makeMon("slime", 3, 16),
+      makeMon("bat", 22, 6),
+      makeMon("bat", 28, 11),
+      makeMon("grub", 12, 16),
+      makeMon("grub", 21, 18)
+    ];
+  }
+
+  function mineKeepClear(tx, ty) {
+    if (tx === 16 && (ty === 19 || ty === 20)) return true;
+    if (tx === 14 && ty === 19) return true;
+    if ((tx === 4 && (ty === 5 || ty === 15)) || (tx === 27 && (ty === 5 || ty === 15))) return true;
+    return false;
+  }
+
+  function monsterOk(m, tx, ty) {
+    if (!inBounds(tx, ty) || solid[ty][tx]) return false;
+    if (cell(tx, ty) !== "s") return false;
+    if (mineKeepClear(tx, ty)) return false;
+    if (Math.abs(tx - m.homeTx) + Math.abs(ty - m.homeTy) > 4) return false;
+    return true;
+  }
+
+  function monsterAt(tx, ty) {
+    var i, m;
+    for (i = 0; i < monsters.length; i++) {
+      m = monsters[i];
+      if (m.hp > 0 && m.tx === tx && m.ty === ty) return m;
+    }
+    return null;
+  }
+
+  function monsterYield(m) {
+    var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    var i, j, tmp, d, nx, ny;
+    for (i = 3; i > 0; i--) {
+      j = (Math.random() * (i + 1)) | 0;
+      tmp = dirs[i];
+      dirs[i] = dirs[j];
+      dirs[j] = tmp;
+    }
+    for (i = 0; i < 4; i++) {
+      d = dirs[i];
+      nx = m.tx + d[0];
+      ny = m.ty + d[1];
+      if (monsterOk(m, nx, ny) && !playerOccupies(nx, ny)) {
+        startWalk(m, [{ tx: nx, ty: ny }], 1.4);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function updateMonsters(dt) {
+    var i, m, dest;
+    if (currentScene !== "mine" || faintFx) return;
+    for (i = 0; i < monsters.length; i++) {
+      m = monsters[i];
+      if (m.hp <= 0) continue;
+      if (m.shake > 0) m.shake -= dt;
+      m.anim += dt;
+      if (m.anim > 220) {
+        m.anim = 0;
+        m.frame = m.frame ? 0 : 1;
+      }
+      dest = m.path && m.path.length ? m.path[0] : null;
+      if (dest && mineKeepClear(dest.tx, dest.ty)) {
+        m.path = [];
+        m.stepFrom = null;
+        m.stepT = 0;
+        m.x = tileCenterX(m.tx);
+        m.y = tileFootY(m.ty);
+        dest = null;
+      }
+      if (dest) {
+        advanceWalk(m, dt);
+      } else {
+        m.idle -= dt;
+        if (m.idle <= 0) {
+          m.idle = 700 + Math.random() * 1600;
+          monsterYield(m);
+        }
+      }
+    }
+    checkMonsterBumps();
+  }
+
+  function checkMonsterBumps() {
+    var i, m;
+    if (currentScene !== "mine" || faintFx || iFrames > 0) return;
+    for (i = 0; i < monsters.length; i++) {
+      m = monsters[i];
+      if (m.hp <= 0) continue;
+      if (Math.abs(m.x - player.x) < 10 && Math.abs(m.y - player.y) < 10) {
+        hurtPlayer(m.dmg);
+        monsterYield(m);
+        return;
+      }
+    }
+  }
+
+  function hurtPlayer(amt) {
+    if (iFrames > 0 || faintFx) return;
+    hp -= amt | 0;
+    if (hp < 0) hp = 0;
+    iFrames = 800;
+    persistSave();
+    if (hp <= 0) beginFaint();
+  }
+
+  function beginFaint() {
+    if (faintFx) return;
+    dialogue = null;
+    pending = null;
+    highlight = null;
+    cancelHit();
+    player.path = [];
+    player.queuedWalk = null;
+    player.moving = false;
+    player.stepT = 0;
+    player.frame = 0;
+    faintFx = { age: 0, stage: "out" };
+  }
+
+  function finishFaintWarp() {
+    if (currentScene !== "mine") applyScene("mine");
+    placePlayer(16, 19, "up");
+    hp = MAX_HP;
+    iFrames = 1400;
+    persistSave();
+  }
+
+  function updateFaint(dt) {
+    if (!faintFx) return;
+    faintFx.age += dt;
+    if (faintFx.stage === "out") {
+      if (faintFx.age >= 420) {
+        faintFx.stage = "hold";
+        faintFx.age = 0;
+        finishFaintWarp();
+      }
+    } else if (faintFx.stage === "hold") {
+      if (faintFx.age >= 700) {
+        faintFx.stage = "in";
+        faintFx.age = 0;
+      }
+    } else if (faintFx.age >= 480) {
+      faintFx = null;
+    }
+  }
+
+  function drawFaint(g) {
+    var a, msg, tw, x, fade;
+    if (!faintFx) return;
+    if (faintFx.stage === "out") a = faintFx.age / 420;
+    else if (faintFx.stage === "hold") a = 1;
+    else a = 1 - faintFx.age / 480;
+    if (a < 0) a = 0;
+    if (a > 1) a = 1;
+    g.fillStyle = "rgba(24,14,40," + a.toFixed(3) + ")";
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    if (a > 0.45) {
+      fade = faintFx.stage === "hold" ? 1 : (faintFx.stage === "out" ? (a - 0.45) / 0.55 : a);
+      if (fade < 0) fade = 0;
+      if (fade > 1) fade = 1;
+      msg = "YOU FEEL WOOZY...";
+      tw = textWidth(msg);
+      x = ((VIEW_W - tw - 24) / 2) | 0;
+      g.save();
+      g.globalAlpha = fade;
+      woodPanel(g, x, 84, tw + 24, 22);
+      drawText(g, msg, x + 12, 91, C.parch);
+      g.restore();
+    }
+  }
+
+  function doFightHit() {
+    var h = player.hitting;
+    var mon;
+    if (!h || !h.mon || h.mon.hp <= 0) {
+      cancelHit();
+      return;
+    }
+    mon = h.mon;
+    faceToward(player, mon.tx, mon.ty);
+    player.swing = 220;
+    mon.shake = 200;
+    spawnSparks(mon.x, mon.y - 4);
+    mon.hp -= 1;
+    h.left -= 1;
+    if (mon.hp <= 0 || h.left <= 0) {
+      defeatMonster(mon);
+      cancelHit();
+    } else {
+      h.wait = HIT_GAP;
+    }
+  }
+
+  function defeatMonster(mon) {
+    var i;
+    mon.hp = 0;
+    spawnSparks(mon.x, mon.y - 2);
+    spawnPickup("gold", mon.tx, mon.ty, mon.gold + ((Math.random() * 2) | 0));
+    if (mon.kind === "grub" && Math.random() < 0.5) spawnPickup("stone", mon.tx, mon.ty, 1);
+    i = monsters.indexOf(mon);
+    if (i >= 0) monsters.splice(i, 1);
+    unlockAch("caveFoe");
+    persistSave();
+  }
+
+  function beginFight(mon) {
+    if (!mon || mon.hp <= 0 || !swordEquipped()) return;
+    player.path = [];
+    player.queuedWalk = null;
+    player.moving = false;
+    player.stepT = 0;
+    player.frame = 0;
+    faceToward(player, mon.tx, mon.ty);
+    player.hitting = { mon: mon, left: mon.hp, wait: 0 };
+    doFightHit();
+  }
+
+  function goFight(mon) {
+    var dest, path;
+    if (!mon || mon.hp <= 0) return;
+    highlight = { tx: mon.tx, ty: mon.ty };
+    if (!swordEquipped()) {
+      dest = nearestAdjacent(mon.tx, mon.ty) || { tx: mon.tx, ty: mon.ty };
+      if (walkable(dest.tx, dest.ty)) startWalk(player, findPath(player.tx, player.ty, dest.tx, dest.ty), 3.5);
+      return;
+    }
+    if (isNear(player.tx, player.ty, mon.tx, mon.ty) || (player.tx === mon.tx && player.ty === mon.ty)) {
+      pending = null;
+      beginFight(mon);
+      return;
+    }
+    dest = nearestAdjacent(mon.tx, mon.ty);
+    if (!dest) {
+      beginFight(mon);
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      beginFight(mon);
+      return;
+    }
+    pending = { type: "fight", mon: mon };
+    startWalk(player, path, 3.5);
+  }
+
+  function swingAtFacing() {
+    var t, mon;
+    if (!swordEquipped()) return false;
+    t = facingTile();
+    mon = monsterAt(t.tx, t.ty);
+    player.path = [];
+    player.queuedWalk = null;
+    player.moving = false;
+    player.stepT = 0;
+    player.frame = 0;
+    player.swing = 220;
+    if (mon && mon.hp > 0) {
+      player.hitting = { mon: mon, left: mon.hp, wait: 0 };
+      doFightHit();
+    }
+    return true;
+  }
+
+  function takeSword(prop) {
+    var i;
+    if (swordOwned) return;
+    swordOwned = true;
+    selectedSlot = SLOT_SWORD;
+    if (prop) {
+      i = PROPS.indexOf(prop);
+      if (i >= 0) PROPS.splice(i, 1);
+    }
+    persistSave();
+    openDialogue("ORION", ["A CAVE SWORD!", "TAP A FOE TO SWING."]);
+  }
+
+  function goTakeSword(prop) {
+    var dest, path;
+    if (!prop || prop.kind !== "swordPedestal" || swordOwned) return;
+    highlight = { tx: prop.tx, ty: prop.ty };
+    if (isNear(player.tx, player.ty, prop.tx, prop.ty) || (player.tx === prop.tx && player.ty === prop.ty)) {
+      pending = null;
+      takeSword(prop);
+      return;
+    }
+    dest = nearestAdjacent(prop.tx, prop.ty);
+    if (!dest) {
+      takeSword(prop);
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      takeSword(prop);
+      return;
+    }
+    pending = { type: "sword", prop: prop };
+    startWalk(player, path, 3.5);
+  }
+
   function eatSnack() {
     if ((inventory.snack || 0) < 1) return false;
     inventory.snack -= 1;
+    hp += SNACK_HEAL;
+    if (hp > MAX_HP) hp = MAX_HP;
     persistSave();
-    openDialogue("ORION", ["YUM! A HONEY BUN."]);
+    openDialogue("ORION", hp >= MAX_HP ? ["YUM! A HONEY BUN.", "ALL BETTER!"] : ["YUM! A HONEY BUN.", "THAT HELPED."]);
     return true;
   }
 
@@ -3468,6 +3864,12 @@
         tryPlantFlower(act.tx, act.ty);
         faceToward(player, act.tx, act.ty);
       }
+    } else if (act.type === "fight") {
+      if (act.mon && act.mon.hp > 0 && (isNear(player.tx, player.ty, act.mon.tx, act.mon.ty) || (player.tx === act.mon.tx && player.ty === act.mon.ty))) {
+        beginFight(act.mon);
+      }
+    } else if (act.type === "sword") {
+      if (act.prop && act.prop.kind === "swordPedestal") takeSword(act.prop);
     }
   }
 
@@ -3676,10 +4078,25 @@
       bob -= 1;
     }
     drawShadow(g, player.x, player.y, 5);
-    Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
-    if (hatOn) {
-      Assets.draw(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 30 + bob + sy));
+    if (!(iFrames > 0 && ((tick / 80) | 0) % 2 === 0)) {
+      Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
+      if (hatOn) {
+        Assets.draw(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 30 + bob + sy));
+      }
     }
+    if (player.swing > 0 && swordOwned && (swordEquipped() || (player.hitting && player.hitting.mon))) {
+      drawSwordBlade(g, sx, sy, bob);
+    }
+  }
+
+  function drawSwordBlade(g, sx, sy, bob) {
+    var t = 1 - player.swing / 220;
+    var ox = 0, oy = -12;
+    if (player.face === "left") { ox = -10 - Math.round(t * 4); oy = -10; }
+    else if (player.face === "right") { ox = 2 + Math.round(t * 4); oy = -10; }
+    else if (player.face === "up") { ox = 2; oy = -22 - Math.round(t * 3); }
+    else { ox = -2; oy = -4 + Math.round(t * 4); }
+    Assets.draw(g, "sword", Math.round(player.x - 8 + sx + ox), Math.round(player.y + bob + sy + oy));
   }
 
   function drawNpc(g) {
@@ -3743,6 +4160,7 @@
     if (p.kind === "cave") return p.ty * TILE + 32;
     if (p.kind === "lantern") return p.ty * TILE + 20;
     if (p.kind === "ladder") return p.ty * TILE + 20;
+    if (p.kind === "swordPedestal") return p.ty * TILE + 20;
     if (p.kind === "note" || p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard") {
       return p.ty * TILE + 14;
     }
@@ -3767,7 +4185,7 @@
     if (p.kind === "cave") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 48 };
     if (p.kind === "pond") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 36, h: 32 };
     if (p.kind === "well") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
-    if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "ladder") {
+    if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "ladder" || p.kind === "swordPedestal") {
       return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     }
     return { x: p.tx * TILE, y: p.ty * TILE, w: 16, h: 16 };
@@ -3842,6 +4260,8 @@
       Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
     } else if (p.kind === "ladder") {
       Assets.draw(g, "ladder", x, y);
+    } else if (p.kind === "swordPedestal") {
+      Assets.draw(g, "swordPedestal", x, y);
     } else if (p.kind === "note") {
       Assets.draw(g, "note", x, y);
     } else if (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard") {
@@ -3879,6 +4299,11 @@
       if (onScreen(b)) list.push({ foot: propFoot(p), kind: "prop", p: p });
     }
     list.push({ foot: player.y, kind: "player" });
+    if (currentScene === "mine") {
+      for (i = 0; i < monsters.length; i++) {
+        if (monsters[i].hp > 0) list.push({ foot: monsters[i].y, kind: "mon", m: monsters[i] });
+      }
+    }
     if (currentScene === "overworld") {
       list.push({ foot: chicken.y, kind: "chicken" });
       list.push({ foot: npc.y, kind: "npc" });
@@ -3897,11 +4322,22 @@
       else if (list[i].kind === "chicken") drawChickenSpr(g);
       else if (list[i].kind === "car") drawCarSpr(g);
       else if (list[i].kind === "folk") drawFolk(g, list[i].f);
+      else if (list[i].kind === "mon") drawMonster(g, list[i].m);
       else if (list[i].kind === "shopPip") {
         drawShadow(g, tileCenterX(8), tileFootY(4), 5);
         Assets.draw(g, "pip-down", tileCenterX(8), tileFootY(4), 0);
       } else drawNpc(g);
     }
+  }
+
+  function drawMonster(g, m) {
+    var bob, sx;
+    if (!m || m.hp <= 0) return;
+    bob = m.frame ? -1 : 0;
+    sx = 0;
+    if (m.shake > 0) sx = ((tick / 40) | 0) % 2 ? 1 : -1;
+    drawShadow(g, m.x + sx, m.y, 4);
+    Assets.draw(g, m.sprite, m.x + sx, m.y + bob, m.frame);
   }
 
   function drawPickups(g) {
@@ -3910,6 +4346,7 @@
       pk = pickups[i];
       if (pk.kind === "wood") id = "wood";
       else if (pk.kind === "stone") id = "stoneItem";
+      else if (pk.kind === "gold") id = "goldCoin";
       else id = pk.kind;
       Assets.draw(g, id, Math.round(pk.x - 8), Math.round(pk.y - 8));
     }
@@ -4217,6 +4654,12 @@
       px(g, 38, 4, C.flower);
     }
 
+    woodPanel(g, 46, 3, 66, 18);
+    var hi;
+    for (hi = 0; hi < HEARTS; hi++) {
+      Assets.draw(g, (hp > hi * HP_PER_HEART) ? "heart" : "heartEmpty", 49 + hi * 12, 7);
+    }
+
     woodPanel(g, 206, 4, 110, 21);
     fill(g, 210, 8, 7, 7, C.flower);
     fill(g, 212, 10, 3, 3, C.parch);
@@ -4228,7 +4671,7 @@
     drawText(g, gLabel, 310 - textWidth(gLabel), 8, C.flower);
     drawText(g, clockHudLine(), 210, 16, C.parch);
 
-    var slots = 10;
+    var slots = 11;
     var slot = 18;
     var gap = 1;
     var barW = slots * slot + (slots - 1) * gap;
@@ -4281,6 +4724,9 @@
       } else if (i === SLOT_HAT && hatOwned) {
         Assets.draw(g, "strawHat", sx + 1, sy + 1);
         count = hatOn ? 1 : 0;
+      } else if (i === SLOT_SWORD && swordOwned) {
+        Assets.draw(g, "sword", sx + 1, sy + 1);
+        count = 1;
       } else {
         count = -1;
       }
@@ -4393,6 +4839,7 @@
     drawWipeAsk(g);
     drawShop(g);
     drawSleep(g);
+    drawFaint(g);
   }
 
   function readInset(name) {
@@ -4575,7 +5022,7 @@
   }
 
   function tapHud(p) {
-    var slots = 10;
+    var slots = 11;
     var slot = 18;
     var gap = 1;
     var barW = slots * slot + (slots - 1) * gap;
@@ -4593,6 +5040,7 @@
       }
       return true;
     }
+    if (p.x >= 46 && p.x <= 112 && p.y >= 3 && p.y <= 21) return true;
     if (p.x >= 4 && p.x <= 22 && p.y >= 3 && p.y <= 21) {
       achieveOpen = !achieveOpen;
       questOpen = false;
@@ -4624,7 +5072,7 @@
       tapWipeAsk(p);
       return;
     }
-    if (sleepFx) return;
+    if (sleepFx || faintFx) return;
     if (achieveOpen) {
       achieveOpen = false;
       return;
@@ -4672,6 +5120,17 @@
       if (hitSprite(world, tileCenterX(8), tileFootY(4), 16, 32, 8, 28)) {
         openShop();
         return;
+      }
+    }
+    if (currentScene === "mine") {
+      var mi, monHit;
+      for (mi = 0; mi < monsters.length; mi++) {
+        monHit = monsters[mi];
+        if (monHit.hp <= 0) continue;
+        if (hitSprite(world, monHit.x, monHit.y, 16, 16, 8, 14)) {
+          goFight(monHit);
+          return;
+        }
       }
     }
 
@@ -4723,7 +5182,7 @@
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -4765,6 +5224,17 @@
       goCollect(hitProp);
       return;
     }
+    if (hitProp && hitProp.kind === "swordPedestal") {
+      goTakeSword(hitProp);
+      return;
+    }
+    if (currentScene === "mine") {
+      var tapMon = monsterAt(tx, ty);
+      if (tapMon && tapMon.hp > 0) {
+        goFight(tapMon);
+        return;
+      }
+    }
     if (harvest) {
       goHarvest(harvest);
       return;
@@ -4799,6 +5269,10 @@
       slotShake = 180;
       return;
     }
+    if (swordEquipped() && currentScene === "mine" && (isNear(player.tx, player.ty, tx, ty) || (player.tx === tx && player.ty === ty))) {
+      swingAtFacing();
+      return;
+    }
     goWalk(tx, ty);
   }
 
@@ -4809,6 +5283,7 @@
     lastTs = ts;
     ctx.imageSmoothingEnabled = false;
     updateSleep(dt);
+    updateFaint(dt);
     if (!uiPaused()) {
       if (player.hitting) {
         updateHit(dt);
@@ -4824,6 +5299,8 @@
       updateChicken(dt);
       updateTownFolk(dt);
       updateCar(dt);
+      updateMonsters(dt);
+      if (iFrames > 0) iFrames -= dt;
       updatePickups(dt);
       updateFx(dt);
       tick += dt;

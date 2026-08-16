@@ -135,7 +135,30 @@
     "reedHairHi": "#C48A38",
     "honey": "#E8A030",
     "honeyHi": "#F0C060",
-    "honeySh": "#A86C14"
+    "honeySh": "#A86C14",
+    "heart": "#E04848",
+    "heartHi": "#F87878",
+    "heartSh": "#8A2028",
+    "heartOut": "#4A1014",
+    "heartEmpty": "#5A3038",
+    "heartEmptyHi": "#7A4850",
+    "steel": "#C8D0D8",
+    "steelHi": "#E8F0F4",
+    "steelSh": "#6A7888",
+    "goldCoin": "#F0C040",
+    "goldCoinHi": "#F8E878",
+    "goldCoinSh": "#C47A18",
+    "slime": "#6BCB3C",
+    "slimeHi": "#A8E86A",
+    "slimeSh": "#2F7A14",
+    "slimeOut": "#1E5A12",
+    "bat": "#6A5A88",
+    "batHi": "#8A7AA8",
+    "batSh": "#3A2A58",
+    "batWing": "#4A3A70",
+    "grub": "#C4A878",
+    "grubHi": "#E0C898",
+    "grubSh": "#8A6A40"
   },
   "sprites": [
     {
@@ -853,6 +876,23 @@
       "generated": true
     },
     {
+      "id": "swordPedestal",
+      "file": "props/swordPedestal.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 117,
+      "y": 279,
+      "fw": 16,
+      "generated": true
+    },
+    {
       "id": "car-up",
       "file": "actors/car-up-{n}.png",
       "w": 16,
@@ -864,7 +904,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 117,
+      "x": 134,
       "y": 279,
       "fw": 16,
       "generated": true
@@ -881,7 +921,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 150,
+      "x": 167,
       "y": 279,
       "fw": 16,
       "generated": true
@@ -898,7 +938,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 183,
+      "x": 200,
       "y": 279,
       "fw": 16,
       "generated": true
@@ -915,7 +955,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 200,
+      "x": 217,
       "y": 279,
       "fw": 16,
       "generated": true
@@ -932,7 +972,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 217,
+      "x": 234,
       "y": 279,
       "fw": 16,
       "generated": true
@@ -949,8 +989,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 234,
-      "y": 279,
+      "x": 1,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -966,7 +1006,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
+      "x": 18,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -983,7 +1023,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 18,
+      "x": 35,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1000,7 +1040,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 35,
+      "x": 52,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1017,7 +1057,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 52,
+      "x": 69,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1034,7 +1074,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 69,
+      "x": 86,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1051,7 +1091,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 86,
+      "x": 103,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1068,7 +1108,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 103,
+      "x": 120,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1085,7 +1125,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 120,
+      "x": 137,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1102,7 +1142,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 137,
+      "x": 154,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1119,7 +1159,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 154,
+      "x": 171,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1136,7 +1176,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 171,
+      "x": 188,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1153,7 +1193,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 188,
+      "x": 205,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1170,7 +1210,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 205,
+      "x": 222,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1187,7 +1227,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 222,
+      "x": 239,
       "y": 304,
       "fw": 16,
       "generated": true
@@ -1204,8 +1244,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 239,
-      "y": 304,
+      "x": 1,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -1221,7 +1261,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
+      "x": 18,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1238,7 +1278,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 18,
+      "x": 35,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1255,7 +1295,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 35,
+      "x": 52,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1272,7 +1312,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 52,
+      "x": 69,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1289,7 +1329,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 69,
+      "x": 86,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1306,7 +1346,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 86,
+      "x": 103,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1323,7 +1363,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 103,
+      "x": 120,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1340,7 +1380,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 136,
+      "x": 153,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1357,7 +1397,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 169,
+      "x": 186,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1374,7 +1414,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 186,
+      "x": 203,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1391,7 +1431,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 203,
+      "x": 220,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1408,7 +1448,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 220,
+      "x": 237,
       "y": 321,
       "fw": 16,
       "generated": true
@@ -1425,8 +1465,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 237,
-      "y": 321,
+      "x": 1,
+      "y": 338,
       "fw": 16,
       "generated": true
     },
@@ -1442,7 +1482,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
+      "x": 18,
       "y": 338,
       "fw": 16,
       "generated": true
@@ -1459,7 +1499,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 18,
+      "x": 35,
       "y": 338,
       "fw": 16,
       "generated": true
@@ -1476,7 +1516,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 35,
+      "x": 52,
       "y": 338,
       "fw": 16,
       "generated": true
@@ -1493,7 +1533,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 52,
+      "x": 69,
       "y": 338,
       "fw": 16,
       "generated": true
@@ -1510,7 +1550,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 69,
+      "x": 86,
       "y": 338,
       "fw": 16,
       "generated": true
@@ -1527,7 +1567,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 118,
+      "x": 135,
       "y": 338,
       "fw": 16,
       "generated": true
@@ -1544,7 +1584,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 135,
+      "x": 152,
       "y": 338,
       "fw": 16,
       "generated": true
@@ -1561,7 +1601,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 152,
+      "x": 169,
       "y": 338,
       "fw": 16,
       "generated": true
@@ -1578,7 +1618,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 169,
+      "x": 186,
       "y": 338,
       "fw": 16,
       "generated": true
@@ -1595,7 +1635,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 186,
+      "x": 203,
       "y": 338,
       "fw": 16,
       "generated": true
@@ -1612,8 +1652,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 203,
-      "y": 338,
+      "x": 1,
+      "y": 355,
       "fw": 24,
       "generated": true
     },
@@ -1629,7 +1669,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
+      "x": 50,
       "y": 355,
       "fw": 24,
       "generated": true
@@ -1646,7 +1686,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 50,
+      "x": 99,
       "y": 355,
       "fw": 16,
       "generated": true
@@ -1663,7 +1703,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
+      "x": 116,
       "y": 355,
       "fw": 16,
       "generated": true
@@ -1680,7 +1720,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 84,
+      "x": 133,
       "y": 355,
       "fw": 16,
       "generated": true
@@ -1697,9 +1737,128 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 101,
+      "x": 150,
       "y": 355,
       "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "sword",
+      "file": "ui/sword.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 167,
+      "y": 355,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "goldCoin",
+      "file": "ui/goldCoin.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 184,
+      "y": 355,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "slime",
+      "file": "actors/slime-{n}.png",
+      "w": 16,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        8,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 201,
+      "y": 355,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "bat",
+      "file": "actors/bat-{n}.png",
+      "w": 16,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        8,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 1,
+      "y": 372,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "rockgrub",
+      "file": "actors/rockgrub-{n}.png",
+      "w": 16,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        8,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 34,
+      "y": 372,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "heart",
+      "file": "ui/heart.png",
+      "w": 10,
+      "h": 9,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 67,
+      "y": 372,
+      "fw": 10,
+      "generated": true
+    },
+    {
+      "id": "heartEmpty",
+      "file": "ui/heartEmpty.png",
+      "w": 10,
+      "h": 9,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 78,
+      "y": 372,
+      "fw": 10,
       "generated": true
     }
   ]

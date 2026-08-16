@@ -32,7 +32,11 @@ On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Saf
 - The job book has a small **Start over** button. It asks "Really start over?" Tap Yes to wipe the save and reload a fresh farm; tap No to keep playing.
 - Follow the dirt path east from the farm (south of the house) to a small town: cobble streets, a green with a fountain and moon-kid statue, three houses, and Pip's shop. Town houses answer a knock; the shop door opens an interior you can buy from.
 - Town folk: **Pip** keeps the shop, **Lila** waters the green, **Reed** watches the red car. Tap them to talk. The car loops the cobble and waits if you stand in the road.
-- In the shop, spend gold: seed tin 5G (extra garden plots), flower 8G, honey bun 6G, straw hat 25G, fence kit 12G, path kit 8G. Sell a carrot for 10G. Flowers plant on grass or meadow; tap a honey bun to eat it; tap the hat to put it on or take it off.
+- In the shop, spend gold: seed tin 5G (extra garden plots), flower 8G, honey bun 6G, straw hat 25G, fence kit 12G, path kit 8G. Sell a carrot for 10G. Flowers plant on grass or meadow; tap a honey bun to eat it (heals two hearts); tap the hat to put it on or take it off.
+- Five red hearts sit on the HUD (50 HP). They are not the green energy bar. Old saves start full. Sleeping refills them.
+- Just inside the mine, a stone pedestal holds a cave sword. Walk up and tap it. Equip the sword on the last hotbar slot, then tap a monster (or tap the tile in front of you) to swing. Slimes take two hits; bats and rock-grubs take three. Touch-first; WASD still only walks.
+- Cute slimes, bats, and rock-grubs wander the mine rooms only. They bump Orion for one heart, then he flashes for a moment. They do not chase across the whole cave, and they stay off the ladder and room doors. Defeat one for a little gold (sometimes a stone). First foe unlocks the CAVE FOE star.
+- If hearts hit zero, a short "You feel woozy..." fade warps Orion back to the mine entrance and refills health. That is a stub; the real faint/bed loop comes later.
 
 
 ## Where the art lives
@@ -45,13 +49,14 @@ assets/
   atlas.png         packed sheet the game loads
   atlas.json        same frame rects (handy for tools)
   tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall, wood floor, interior wall, cobble, meadow)
-  props/            house, tree, stump, well, mailbox, mailbox-up, crate, pond, rocks, weeds, fences, cave, lantern, lantern-off, ladder, note, bed, table, rug, window, doormat, door, shop, town houses, fountain, statue, counter
-  actors/           player, neighbor, chicken, town folk, car (one PNG per facing/frame)
-  ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, star, star badge, sparkle, letter, flower, honey bun, straw hat
+  props/            house, tree, stump, well, mailbox, mailbox-up, crate, pond, rocks, weeds, fences, cave, lantern, lantern-off, ladder, note, bed, table, rug, window, doormat, door, shop, town houses, fountain, statue, counter, sword pedestal
+  actors/           player, neighbor, chicken, town folk, car, slime, bat, rock-grub (one PNG per facing/frame)
+  ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, star, star badge, sparkle, letter, flower, honey bun, straw hat, heart, empty heart, sword, gold coin
 tools/
   process-generated.py  chroma-key, crop, and scale generated-src into game sizes
   export-assets.py      pack those PNGs into atlas.png (do not use --regen)
   town_sprites.py       paint town houses, folk, car, shop goods
+  combat_sprites.py     paint hearts, sword, pedestal, gold coin, mine foes
 ```
 
 The game loads `assets/manifest.json` + `assets/atlas.png`, then draws with `Assets.draw(ctx, id, x, y, frame)`. It does not paint world pixels in the game loop.
