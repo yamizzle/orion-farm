@@ -570,6 +570,68 @@ def gen_mailbox():
     return g
 
 
+def gen_mailbox_up():
+    """Same 3/4 mailbox with a raised teal flag so unread mail is obvious."""
+    g = Pix(16, 32)
+    # body is the regular mailbox, shifted down 8px for flag headroom
+    g.fill(4, 29, 8, 2, C["shadow"])
+    g.fill(7, 20, 3, 2, C["woodHi"])
+    g.fill(7, 22, 3, 8, C["woodMid"])
+    g.fill(7, 22, 1, 8, C["woodHi"])
+    g.fill(9, 22, 1, 8, C["woodSh"])
+    g.fill(3, 11, 10, 3, C["woodHi"])
+    g.fill(2, 13, 11, 1, C["woodMid"])
+    g.fill(2, 14, 11, 6, C["woodMid"])
+    g.fill(2, 14, 1, 6, C["woodOut"])
+    g.fill(12, 14, 1, 6, C["woodOut"])
+    g.fill(2, 19, 11, 1, C["woodOut"])
+    g.fill(13, 12, 2, 7, C["woodSh"])
+    g.fill(4, 16, 6, 1, C["woodOut"])
+    g.fill(4, 15, 6, 1, C["woodSh"])
+    # pole up from the lid
+    g.fill(13, 2, 1, 10, C["woodMid"])
+    g.fill(14, 2, 1, 10, C["woodOut"])
+    g.px(13, 1, C["woodHi"])
+    g.px(14, 1, C["woodMid"])
+    # chunky pennant, original teal (not a copy of anyone's red flag)
+    g.fill(5, 1, 8, 2, C["flagHi"])
+    g.fill(4, 3, 9, 3, C["flag"])
+    g.fill(5, 6, 8, 1, C["flag"])
+    g.fill(7, 7, 6, 1, C["flag"])
+    g.px(6, 2, C["parch"])
+    g.px(8, 4, C["flagHi"])
+    g.px(10, 4, C["flagHi"])
+    return g
+
+
+def gen_letter():
+    """Sealed parchment envelope that bobs above unread mail."""
+    g = Pix(16, 16)
+    g.fill(3, 13, 10, 2, C["shadow"])
+    # 3/4 envelope: lid plane + front
+    g.fill(3, 3, 10, 1, C["woodOut"])
+    g.fill(2, 4, 12, 1, C["woodHi"])
+    g.fill(1, 5, 14, 1, C["parch"])
+    g.fill(1, 6, 14, 6, C["parch"])
+    g.fill(1, 6, 1, 6, C["woodHi"])
+    g.fill(14, 6, 1, 6, C["woodOut"])
+    g.fill(1, 12, 14, 1, C["woodOut"])
+    # flap V
+    g.px(2, 6, C["woodSh"])
+    g.px(3, 7, C["woodSh"])
+    g.px(4, 8, C["woodMid"])
+    g.px(5, 9, C["woodMid"])
+    g.px(13, 6, C["woodSh"])
+    g.px(12, 7, C["woodSh"])
+    g.px(11, 8, C["woodMid"])
+    g.px(10, 9, C["woodMid"])
+    g.fill(6, 9, 4, 1, C["woodMid"])
+    # wax seal
+    g.fill(7, 8, 2, 2, C["roof"])
+    g.px(7, 8, C["roofHi"])
+    return g
+
+
 def gen_crate():
     """Lid (top plane) + front face + right side."""
     g = Pix(16, 16)
@@ -1529,6 +1591,8 @@ GENERATORS = {
     "house": gen_house,
     "well": gen_well,
     "mailbox": gen_mailbox,
+    "mailboxUp": gen_mailbox_up,
+    "letter": gen_letter,
     "crate": gen_crate,
     "rock0": lambda: gen_rock(0),
     "rock1": lambda: gen_rock(1),
@@ -1601,6 +1665,8 @@ def builtin_sprites():
         {"id": "tree", "file": "props/tree.png", "w": 48, "h": 64, "frames": 1, "anchor": [0, 0], "ox": -16, "oy": -48, "generated": True},
         {"id": "well", "file": "props/well.png", "w": 16, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
         {"id": "mailbox", "file": "props/mailbox.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
+        {"id": "mailboxUp", "file": "props/mailbox-up.png", "w": 16, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
+        {"id": "letter", "file": "ui/letter.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "crate", "file": "props/crate.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "pond", "file": "props/pond.png", "w": 36, "h": 32, "frames": 1, "anchor": [0, 0], "ox": -2, "oy": 0, "generated": True},
         {"id": "rock0", "file": "props/rock0.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},

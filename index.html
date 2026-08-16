@@ -311,6 +311,19 @@
   var toast = null;
   var toastQueue = [];
   var achieveOpen = false;
+  var mailRead = { welcome: false, mine: false };
+  var LETTERS = {
+    welcome: {
+      id: "welcome",
+      title: "NEIGHBOR",
+      lines: ["HI ORION! WELCOME", "TO THE MOUNTAIN.", "COME SAY HI!"]
+    },
+    mine: {
+      id: "mine",
+      title: "NIM",
+      lines: ["I SAW YOU GO IN", "THE MINE. BRING A", "MOON SHARD HOME."]
+    }
+  };
   var ACH = [
     { id: "caveDoor", name: "CAVE DOOR", blurb: "FIRST STEP IN" },
     { id: "stoneTap", name: "STONE TAP", blurb: "SMASHED A ROCK" },
@@ -1151,6 +1164,10 @@
       if (data.unlocked) unlocked = data.unlocked;
       introSeen = !!data.introSeen;
       outroSeen = !!data.outroSeen;
+      if (data.mailRead) {
+        mailRead.welcome = !!data.mailRead.welcome;
+        mailRead.mine = !!data.mailRead.mine;
+      }
       if (found.copper) inventory.copper = 1;
       if (found.mushroom) inventory.mushroom = 1;
       if (found.moonshard) inventory.moonshard = 1;
@@ -1163,13 +1180,84 @@
         found: found,
         unlocked: unlocked,
         introSeen: introSeen,
-        outroSeen: outroSeen
+        outroSeen: outroSeen,
+        mailRead: mailRead
       }));
     } catch (err) {}
   }
 
   function openDialogue(title, lines) {
     dialogue = { title: title, lines: lines };
+  }
+
+  function mineMailReady() {
+    return introSeen || found.moonshard;
+  }
+
+  function hasUnreadMail() {
+    if (!mailRead.welcome) return true;
+    return mineMailReady() && !mailRead.mine;
+  }
+
+  function letterToShow() {
+    if (!mailRead.welcome) return LETTERS.welcome;
+    if (mineMailReady() && !mailRead.mine) return LETTERS.mine;
+    if (mineMailReady()) return LETTERS.mine;
+    return LETTERS.welcome;
+  }
+
+  function findMailbox() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "mailbox") return p;
+    }
+    return null;
+  }
+
+  function mailboxHit(tx, ty, world) {
+    var box, b;
+    if (currentScene !== "overworld") return false;
+    box = findMailbox();
+    if (!box) return false;
+    if (tx === box.tx && ty === box.ty) return true;
+    if (!world) return false;
+    b = propBounds(box);
+    if (hasUnreadMail()) {
+      b = { x: b.x, y: b.y - 16, w: b.w, h: b.h + 16 };
+    }
+    return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
+  }
+
+  function openMail() {
+    var letter = letterToShow();
+    mailRead[letter.id] = true;
+    persistSave();
+    openDialogue(letter.title, letter.lines);
+  }
+
+  function goMail() {
+    var box, dest, path;
+    if (currentScene !== "overworld") return;
+    box = findMailbox();
+    highlight = box ? { tx: box.tx, ty: box.ty } : null;
+    if (!box || isNear(player.tx, player.ty, box.tx, box.ty) || (player.tx === box.tx && player.ty === box.ty)) {
+      pending = null;
+      openMail();
+      return;
+    }
+    dest = walkable(box.tx, box.ty) ? { tx: box.tx, ty: box.ty } : nearestAdjacent(box.tx, box.ty);
+    if (!dest) {
+      openMail();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      openMail();
+      return;
+    }
+    pending = { type: "mail" };
+    startWalk(player, path, 3.5);
   }
 
   function allFound() {
@@ -1358,6 +1446,8 @@
       }
     } else if (act.type === "note") {
       openDialogue("NIM'S NOTE", noteLines());
+    } else if (act.type === "mail") {
+      openMail();
     } else if (act.type === "collect") {
       if (isCollectible(act.prop) && (player.tx === act.prop.tx && player.ty === act.prop.ty || isNear(player.tx, player.ty, act.prop.tx, act.prop.ty))) {
         pickupCollectible(act.prop);
@@ -1661,7 +1751,12 @@
     } else if (p.kind === "well") {
       Assets.draw(g, "well", x, y);
     } else if (p.kind === "mailbox") {
-      Assets.draw(g, "mailbox", x, y);
+      if (hasUnreadMail()) {
+        Assets.draw(g, "mailboxUp", x, y);
+        Assets.draw(g, "letter", x, y - 22 + Math.round(Math.sin(tick / 240) * 1));
+      } else {
+        Assets.draw(g, "mailbox", x, y);
+      }
     } else if (p.kind === "crate") {
       Assets.draw(g, "crate", x, y);
     } else if (p.kind === "pond") {
@@ -2308,6 +2403,10 @@
       goEnter();
       return;
     }
+    if (mailboxHit(tx, ty, world)) {
+      goMail();
+      return;
+    }
     if (houseDoorHit(tx, ty, world)) {
       goEnterHouse();
       return;
@@ -2324,7 +2423,7 @@
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -2339,6 +2438,10 @@
     }
     if (hitProp && hitProp.kind === "note") {
       goReadNote();
+      return;
+    }
+    if (hitProp && hitProp.kind === "mailbox") {
+      goMail();
       return;
     }
     if (hitProp && isCollectible(hitProp)) {
