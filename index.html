@@ -405,8 +405,8 @@
   var LETTERS = {
     welcome: {
       id: "welcome",
-      title: "NEIGHBOR",
-      lines: ["HI ORION! WELCOME", "TO THE MOUNTAIN.", "COME SAY HI!"]
+      title: "JUNIE",
+      lines: ["I'M JUNIE. WELCOME", "TO THE MOUNTAIN.", "COME SAY HI!"]
     },
     mine: {
       id: "mine",
@@ -2976,8 +2976,8 @@
   }
 
   function questHint() {
-    if (!quest.flowerAsked) return "SAY HI TO THE NEIGHBOR";
-    if (!quest.flowerDone) return "BRING A MUSHROOM TO THE NEIGHBOR";
+    if (!quest.flowerAsked) return "SAY HI TO JUNIE";
+    if (!quest.flowerDone) return "BRING A MUSHROOM TO JUNIE";
     if (mineMailReady() && !mailRead.mine) return "READ THE NEW LETTER";
     if (!quest.errandDone && mailRead.mine) return "LEAVE WOOD AT NIM'S NOTE";
     if (quest.errandDone && !mailRead.thanks) return "READ THE NEW LETTER";
@@ -3032,7 +3032,7 @@
       if (hasVeggieToSell()) return sellVeggieLines();
       quest.flowerAsked = true;
       persistSave();
-      return ["HI! CAN YOU FIND", "A CAVE MUSHROOM", "FOR MY GARDEN?"];
+      return ["I'M JUNIE. CAN YOU", "FIND A CAVE MUSHROOM", "FOR MY GARDEN?"];
     }
     if (!quest.flowerDone) {
       if (hasMushroomToGive()) {
@@ -3061,7 +3061,7 @@
   function talkNeighbor() {
     faceToward(player, npc.tx, npc.ty);
     faceToward(npc, player.tx, player.ty);
-    openDialogue("NEIGHBOR", neighborLines());
+    openDialogue("JUNIE", neighborLines());
   }
 
   function folkAt(tx, ty) {

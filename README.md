@@ -1,6 +1,6 @@
 # Moondrop Mountain
 
-A tiny farm game for Orion. You look down at a spring farm on Moondrop Mountain: walk the fields, plant a seed, talk to a neighbor, watch a chicken wander, step inside the farmhouse, follow the dirt path north to a mine, or walk east into a small town.
+A tiny farm game for Orion. You look down at a spring farm on Moondrop Mountain: walk the fields, plant a seed, talk to Junie, watch a chicken wander, step inside the farmhouse, follow the dirt path north to a mine, or walk east into a small town.
 
 Art is **original 16-bit 3/4** (2.5D): you see the top of the ground and the front of walls, roofs, crates, and people. It is meant to feel like the same *family* as Stardew Valley. It does **not** copy or trace Stardew sprites, the farmhouse, UI, or characters.
 
@@ -20,15 +20,15 @@ On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Saf
 - The first hotbar slot is a seed packet. Tap an empty brown plot inside the fence to plant a sprout. It grows over a day: sprout, then a young plant, then a ready carrot next morning. Tap a ready crop to pick it.
 - Tap a tree or a rock (outside or in the mine). Walk up, face it, and hit it three times. Trees leave a stump and give **wood**; rocks give **stone**. A chopped stump grows back into a tree after about a day, and a smashed rock comes back too — unless you built a fence or path on that tile, or you are standing there.
 - Wood is the second hotbar slot (2 wood = one fence). Stone is the third (1 stone = one path). Tap the slot, then tap empty grass or dirt to build. Fences block walking; paths do not.
-- Tap the neighbor in the straw hat. They have a small job for you. If you have a carrot, they buy it for 10G and say thanks. Gold shows on the clock plaque. Tap again to close the box.
+- Tap Junie in the straw hat. She has a small job for you. If you have a carrot, she buys it for 10G and says thanks. Gold shows on the clock plaque. Tap again to close the box.
 - A chicken wanders the farm grass. Tap it and it hops.
 - Follow the dirt path north to the timbered cave in the rocky hill. Walk onto the mouth to go inside; tap the south ladder to come back out.
 - Inside, Nim left a wall note and three treasures in different rooms: a copper nugget, a cave mushroom, and a moon shard. Walk onto them to pick them up.
 - A wood-framed hole with a down arrow sits at the north end of floor 1. Walk onto it (or tap it) the same way as the cave mouth to drop to floor 2, then again to floor 3. Each deeper floor has a ladder back up. The HUD clock says MINE 1, MINE 2, or MINE 3.
 - Floor 2 is a darker winding cave: six foes (one slightly tougher slime), rocks to smash, and a teal gem that gives a copper nugget and a little gold. Floor 3 is a small deep chamber with more bats and grubs, a bigger five-hit slime, and Nim's moon crystal in a chest.
 - A wood star on the HUD opens your stars. The first time you earn one, a big star card pops in the middle of the farm. Tap OK to keep going.
-- A wood book next to the star is your job list. Tap it for one line, like BRING A MUSHROOM TO THE NEIGHBOR.
-- Jobs: bring the neighbor a cave mushroom, leave wood at Nim's note after you read the mine letter, then take a moon shard inside the house.
+- A wood book next to the star is your job list. Tap it for one line, like BRING A MUSHROOM TO JUNIE.
+- Jobs: bring Junie a cave mushroom, leave wood at Nim's note after you read the mine letter, then take a moon shard inside the house.
 - The wood clock on the right counts real days. Morning turns to afternoon, evening (warm dusk), then night (a deep blue-purple grade over the farm, with path lanterns and house windows lighting the road; the house stays lamplit). Lanterns stay dark through evening dusk and only come on when night starts. A full day is about two and a half minutes. Time pauses while you read a letter, open stars, watch a new star unlock, sleep, faint, and when the tab is hidden.
 - Inside the house, tap the bed to sleep. The room fades, then you wake next to the bed on the next morning with full hearts and energy. Crops and chopped trees keep growing while you rest. The farm remembers your day, bag, gold, plants, and where you stood if you close the page.
 - The job book has a small **Start over** button. It asks "Really start over?" Tap Yes to wipe the save and reload a fresh farm; tap No to keep playing.
@@ -52,7 +52,7 @@ assets/
   atlas.json        same frame rects (handy for tools)
   tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall, wood floor, interior wall, cobble, meadow)
   props/            house, tree, stump, well, mailbox, mailbox-up, crate, pond, rocks, weeds, fences, cave, lantern, lantern-off, ladder, hole, chest, note, bed, table, rug, window, doormat, door, shop, town houses, fountain, statue, counter, sword pedestal
-  actors/           player (Orion), neighbor (Junie art), Nim (atlas only — not placed yet), chicken, town folk, car, slime, bat, rock-grub, faint pose
+  actors/           player (Orion), Junie, Nim (atlas only — not placed yet), chicken, town folk, car, slime, bat, rock-grub, faint pose
   ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, gem, moon crystal, star, star badge, sparkle, letter, flower, honey bun, straw hat, heart, empty heart, sword, gold coin, faint star, slash
 tools/
   process-generated.py  chroma-key, crop, and scale generated-src into game sizes
