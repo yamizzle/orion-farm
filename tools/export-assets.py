@@ -772,6 +772,84 @@ def gen_sprout():
     return g
 
 
+def gen_crop_young():
+    """Taller leafy plant: more leaves than the sprout, no veggie yet."""
+    g = Pix(16, 16)
+    g.fill(7, 7, 2, 8, C["grassSh"])
+    g.px(7, 7, C["leaf"])
+    g.px(8, 8, C["grassMid"])
+    # left leaf
+    g.fill(1, 6, 5, 3, C["leaf"])
+    g.fill(2, 5, 4, 2, C["grassHi"])
+    g.px(1, 7, C["grassSh"])
+    g.px(5, 6, C["grassMid"])
+    # right leaf
+    g.fill(9, 4, 5, 4, C["leaf"])
+    g.fill(10, 3, 4, 2, C["grassHi"])
+    g.px(13, 6, C["grassSh"])
+    g.px(9, 5, C["grassMid"])
+    # top leaf
+    g.fill(5, 2, 4, 3, C["leaf"])
+    g.fill(6, 1, 3, 2, C["grassHi"])
+    g.px(5, 3, C["grassSh"])
+    return g
+
+
+def gen_crop_ready():
+    """3/4 ready carrot: leafy crown, stem, orange shoulder in the soil."""
+    g = Pix(16, 16)
+    # leafy crown, top plane then front
+    g.fill(5, 0, 6, 2, C["grassHi"])
+    g.fill(4, 2, 8, 3, C["leaf"])
+    g.fill(5, 1, 6, 2, C["grassMid"])
+    g.px(4, 3, C["grassSh"])
+    g.px(11, 3, C["grassSh"])
+    g.px(3, 2, C["leaf"])
+    g.px(2, 3, C["grassHi"])
+    g.px(12, 2, C["leaf"])
+    g.px(13, 3, C["grassHi"])
+    g.px(7, 2, C["grassHi"])
+    # stem into the carrot
+    g.fill(7, 5, 2, 3, C["grassSh"])
+    g.px(7, 5, C["leaf"])
+    g.px(8, 6, C["grassMid"])
+    # carrot shoulder (top + front), sitting in soil
+    g.fill(5, 8, 6, 2, C["copperHi"])
+    g.fill(4, 10, 8, 4, C["copperMid"])
+    g.fill(4, 10, 2, 4, C["dirtHi"])
+    g.fill(10, 10, 2, 4, C["copperSh"])
+    g.fill(5, 13, 6, 1, C["copperSh"])
+    g.px(6, 9, C["copperHi"])
+    g.px(8, 11, C["dirtHi"])
+    g.px(3, 14, C["dirtSh"])
+    g.px(4, 14, C["till"])
+    g.px(11, 14, C["till"])
+    g.px(12, 14, C["dirtSh"])
+    return g
+
+
+def gen_veggie():
+    """Harvested carrot: greens + tapered 3/4 orange root."""
+    g = Pix(16, 16)
+    g.fill(6, 1, 2, 4, C["leaf"])
+    g.px(5, 2, C["grassHi"])
+    g.px(8, 2, C["grassHi"])
+    g.px(4, 3, C["leaf"])
+    g.px(9, 3, C["leaf"])
+    g.px(6, 1, C["grassHi"])
+    g.px(7, 2, C["grassMid"])
+    g.fill(5, 5, 6, 2, C["copperHi"])
+    g.fill(4, 7, 8, 3, C["copperMid"])
+    g.fill(5, 10, 6, 2, C["copperMid"])
+    g.fill(6, 12, 4, 2, C["copperSh"])
+    g.fill(7, 14, 2, 1, C["copperSh"])
+    g.fill(4, 7, 1, 3, C["dirtHi"])
+    g.fill(11, 7, 1, 3, C["copperSh"])
+    g.px(6, 6, C["copperHi"])
+    g.px(8, 8, C["dirtHi"])
+    return g
+
+
 
 def gen_stump():
     """Cut trunk: top rings + front face + little roots."""
@@ -1603,6 +1681,9 @@ GENERATORS = {
     "fenceR": gen_fence_r,
     "seed": gen_seed,
     "sprout": gen_sprout,
+    "cropYoung": gen_crop_young,
+    "cropReady": gen_crop_ready,
+    "veggie": gen_veggie,
     "stump": gen_stump,
     "wood": gen_wood,
     "stoneItem": gen_stone_item,
@@ -1678,6 +1759,9 @@ def builtin_sprites():
         {"id": "fenceR", "file": "props/fenceR.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "seed", "file": "ui/seed.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "sprout", "file": "ui/sprout.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "cropYoung", "file": "ui/cropYoung.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "cropReady", "file": "ui/cropReady.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "veggie", "file": "ui/veggie.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "stump", "file": "props/stump.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "wood", "file": "ui/wood.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "stoneItem", "file": "ui/stone.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},

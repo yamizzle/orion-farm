@@ -17,10 +17,10 @@ On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Saf
 - Tap the grass or path to walk there. The camera follows so you stay in the middle until you reach the edge of the mountain.
 - Tap the farmhouse door or the stoop in front of it to go inside. Walk onto the doormat (or tap the inside door) to come back out, just south of the house.
 - The mailbox by the house raises a teal flag and a letter when mail is waiting. Tap it (walk up if you need to) to read a wood-and-parchment letter. After you read it the flag goes down; tap again to re-read. A second letter arrives after the first mine visit. A third letter arrives after you leave wood at Nim's note.
-- The first hotbar slot is a seed packet. Tap an empty brown plot inside the fence to plant a sprout.
+- The first hotbar slot is a seed packet. Tap an empty brown plot inside the fence to plant a sprout. It grows over a day: sprout, then a young plant, then a ready carrot next morning. Tap a ready crop to pick it.
 - Tap a tree or a rock (outside or in the mine). Walk up, face it, and hit it three times. Trees leave a stump and give **wood**; rocks give **stone**.
 - Wood is the second hotbar slot (2 wood = one fence). Stone is the third (1 stone = one path). Tap the slot, then tap empty grass or dirt to build. Fences block walking; paths do not.
-- Tap the neighbor in the straw hat. They have a small job for you. Tap again to close the box.
+- Tap the neighbor in the straw hat. They have a small job for you. If you have a carrot, they buy it for 10G and say thanks. Gold shows on the clock plaque. Tap again to close the box.
 - A chicken wanders the farm grass. Tap it and it hops.
 - Follow the dirt path north to the timbered cave in the rocky hill. Walk onto the mouth to go inside; tap the ladder to come back out.
 - Inside, Nim left a wall note and three treasures in different rooms: a copper nugget, a cave mushroom, and a moon shard. Walk onto them to pick them up.
@@ -42,7 +42,7 @@ assets/
   tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall, wood floor, interior wall)
   props/            house, tree, stump, well, mailbox, mailbox-up, crate, pond, rocks, weeds, fences, cave, lantern, ladder, note, bed, table, rug, window, doormat, door
   actors/           player, neighbor, chicken (one PNG per facing/frame)
-  ui/               seed packet, sprout, wood, stone, copper, mushroom, moon shard, star, letter
+  ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, star, letter
 tools/
   process-generated.py  chroma-key, crop, and scale generated-src into game sizes
   export-assets.py      pack those PNGs into atlas.png (do not use --regen)

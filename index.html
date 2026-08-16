@@ -267,7 +267,7 @@
   var sparks = [];
   var pickups = [];
   var selectedSlot = 0;
-  var inventory = { wood: 0, stone: 0, copper: 0, mushroom: 0, moonshard: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, mushroom: 0, moonshard: 0, veggie: 0 };
   var slotShake = 0;
   var SLOT_SEED = 0;
   var SLOT_WOOD = 1;
@@ -275,6 +275,7 @@
   var SLOT_COPPER = 3;
   var SLOT_MUSH = 4;
   var SLOT_MOON = 5;
+  var SLOT_VEGGIE = 6;
   var HIT_COUNT = 3;
   var HIT_GAP = 380;
   var WOOD_PER_TREE = 2;
@@ -309,6 +310,10 @@
   var PHASE_MS = DAY_MS / PHASES.length;
   var dayNumber = 1;
   var dayMs = 0;
+  var gold = 0;
+  var CROP_PRICE = 10;
+  var CROP_YOUNG_MS = PHASE_MS * 2;
+  var CROP_READY_MS = DAY_MS;
   var SKY_TINTS = [
     { at: 0.00, r: 255, g: 214, b: 170, a: 0.20 },
     { at: 0.18, r: 255, g: 236, b: 210, a: 0.10 },
@@ -933,11 +938,67 @@
     return best;
   }
 
+  function worldTime() {
+    return (dayNumber - 1) * DAY_MS + dayMs;
+  }
+
+  function cropStage(c) {
+    if (!c) return "";
+    if (typeof c === "string") return c;
+    return c.stage || "sprout";
+  }
+
+  function cropIsReady(c) {
+    return cropStage(c) === "ready";
+  }
+
+  function cropSprite(c) {
+    var st = cropStage(c);
+    if (st === "ready") return "cropReady";
+    if (st === "young") return "cropYoung";
+    return "sprout";
+  }
+
+  function updateCrops() {
+    var t = worldTime();
+    var k, c, age, next, changed;
+    changed = false;
+    for (k in crops) {
+      if (!Object.prototype.hasOwnProperty.call(crops, k)) continue;
+      c = crops[k];
+      if (!c) continue;
+      if (typeof c === "string") {
+        crops[k] = { stage: c, plantTime: t };
+        c = crops[k];
+        changed = true;
+      }
+      age = t - (c.plantTime || 0);
+      if (age < 0) age = 0;
+      next = "sprout";
+      if (age >= CROP_READY_MS) next = "ready";
+      else if (age >= CROP_YOUNG_MS) next = "young";
+      if (c.stage !== next) {
+        c.stage = next;
+        changed = true;
+      }
+    }
+    if (changed) persistSave();
+  }
+
   function plantAt(tx, ty) {
     var k = tx + "," + ty;
     if (cell(tx, ty) !== "p") return;
     if (crops[k]) return;
-    crops[k] = "sprout";
+    crops[k] = { stage: "sprout", plantTime: worldTime() };
+    persistSave();
+  }
+
+  function harvestCropAt(tx, ty) {
+    var k = tx + "," + ty;
+    if (!cropIsReady(crops[k])) return;
+    delete crops[k];
+    spawnPickup("veggie", tx, ty, 1);
+    persistSave();
   }
 
   function isFenceKind(kind) {
@@ -1053,7 +1114,10 @@
   function addItem(kind, amount) {
     if (kind === "wood") inventory.wood += amount;
     else if (kind === "stone") inventory.stone += amount;
-    else if (kind === "copper" || kind === "mushroom" || kind === "moonshard") {
+    else if (kind === "veggie") {
+      inventory.veggie = (inventory.veggie || 0) + amount;
+      persistSave();
+    } else if (kind === "copper" || kind === "mushroom" || kind === "moonshard") {
       inventory[kind] = (inventory[kind] || 0) + amount;
     }
   }
@@ -1296,11 +1360,32 @@
         dayMs -= DAY_MS;
         dayNumber += 1;
       }
+      if (typeof data.gold === "number" && data.gold > 0) gold = data.gold | 0;
+      if (typeof data.veggie === "number" && data.veggie > 0) inventory.veggie = data.veggie | 0;
+      if (data.crops && typeof data.crops === "object") {
+        var ck, cv, stage, plantTime;
+        crops = {};
+        for (ck in data.crops) {
+          if (!Object.prototype.hasOwnProperty.call(data.crops, ck)) continue;
+          cv = data.crops[ck];
+          if (typeof cv === "string") {
+            crops[ck] = { stage: cv, plantTime: worldTime() };
+          } else if (cv && typeof cv === "object") {
+            stage = cv.stage === "ready" || cv.stage === "young" ? cv.stage : "sprout";
+            plantTime = typeof cv.plantTime === "number" ? cv.plantTime : worldTime();
+            crops[ck] = { stage: stage, plantTime: plantTime };
+          }
+        }
+      }
+      updateCrops();
     } catch (err) {}
   }
 
   function persistSave() {
+    if (persistSave.busy) return;
+    persistSave.busy = true;
     try {
+      flushPickups();
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         found: found,
         unlocked: unlocked,
@@ -1310,9 +1395,13 @@
         quest: quest,
         day: dayNumber,
         dayMs: dayMs,
-        phase: clockPhase()
+        phase: clockPhase(),
+        gold: gold,
+        veggie: inventory.veggie || 0,
+        crops: crops
       }));
     } catch (err) {}
+    persistSave.busy = false;
   }
 
   function clockPhase() {
@@ -1347,6 +1436,7 @@
       dayNumber += 1;
     }
     if (clockPhase() !== before || dayNumber !== beforeDay) persistSave();
+    updateCrops();
   }
 
   function sampleTint(keys, t) {
@@ -1513,12 +1603,30 @@
     unlockAch("kindHeart");
   }
 
+  function hasVeggieToSell() {
+    return (inventory.veggie || 0) > 0;
+  }
+
+  function sellVeggie() {
+    if (!hasVeggieToSell()) return false;
+    inventory.veggie -= 1;
+    gold += CROP_PRICE;
+    persistSave();
+    return true;
+  }
+
+  function sellVeggieLines() {
+    sellVeggie();
+    return ["YUM! HERE IS " + CROP_PRICE + "G.", "THANK YOU!"];
+  }
+
   function neighborLines() {
     if (!quest.flowerAsked) {
       if (hasMushroomToGive()) {
         giveMushroom();
         return ["OH! YOU FOUND A", "CAVE MUSHROOM.", "THANK YOU!"];
       }
+      if (hasVeggieToSell()) return sellVeggieLines();
       quest.flowerAsked = true;
       persistSave();
       return ["HI! CAN YOU FIND", "A CAVE MUSHROOM", "FOR MY GARDEN?"];
@@ -1528,8 +1636,10 @@
         giveMushroom();
         return ["OH! A CAVE FLOWER.", "THANK YOU, ORION!"];
       }
+      if (hasVeggieToSell()) return sellVeggieLines();
       return ["A CAVE MUSHROOM", "GROWS IN THE MINE.", "BRING ME ONE?"];
     }
+    if (hasVeggieToSell()) return sellVeggieLines();
     if (mineMailReady() && !mailRead.mine) {
       return ["THANKS AGAIN!", "CHECK YOUR MAIL."];
     }
@@ -1773,6 +1883,11 @@
       if (isHarvestable(act.prop) && isNear(player.tx, player.ty, act.prop.tx, act.prop.ty)) {
         beginHit(act.prop);
       }
+    } else if (act.type === "pickCrop") {
+      if (isNear(player.tx, player.ty, act.tx, act.ty) || (player.tx === act.tx && player.ty === act.ty)) {
+        harvestCropAt(act.tx, act.ty);
+        faceToward(player, act.tx, act.ty);
+      }
     } else if (act.type === "build") {
       if (isNear(player.tx, player.ty, act.tx, act.ty) || (player.tx === act.tx && player.ty === act.ty)) {
         faceToward(player, act.tx, act.ty);
@@ -1862,6 +1977,22 @@
     var path = findPath(player.tx, player.ty, houseOut.tx, houseOut.ty);
     if (!path.length) return;
     pending = { type: "exitHouse" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goPickCrop(tx, ty) {
+    highlight = { tx: tx, ty: ty };
+    if (isNear(player.tx, player.ty, tx, ty) || (player.tx === tx && player.ty === ty)) {
+      pending = null;
+      harvestCropAt(tx, ty);
+      faceToward(player, tx, ty);
+      return;
+    }
+    var dest = walkable(tx, ty) ? { tx: tx, ty: ty } : nearestAdjacent(tx, ty);
+    if (!dest) return;
+    var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) return;
+    pending = { type: "pickCrop", tx: tx, ty: ty };
     startWalk(player, path, 3.5);
   }
 
@@ -2346,6 +2477,8 @@
     px(g, 217, 11, C.flower);
     px(g, 213, 7, C.flower);
     drawText(g, "DAY " + dayNumber, 220, 8, C.uiText);
+    var gLabel = (gold | 0) + "G";
+    drawText(g, gLabel, 310 - textWidth(gLabel), 8, C.flower);
     drawText(g, clockHudLine(), 210, 16, C.parch);
 
     var slots = 10;
@@ -2389,6 +2522,9 @@
       } else if (i === SLOT_MOON) {
         Assets.draw(g, "moonshard", sx + 1, sy + 1);
         count = inventory.moonshard;
+      } else if (i === SLOT_VEGGIE) {
+        Assets.draw(g, "veggie", sx + 1, sy + 1);
+        count = inventory.veggie;
       } else {
         count = -1;
       }
@@ -2431,7 +2567,11 @@
         if (ch === "d") drawDirtTile(g, tx, ty, dx, dy);
         else if (ch === "p") {
           Assets.draw(g, "till", dx, dy);
-          if (crops[tx + "," + ty]) Assets.draw(g, "sprout", dx, dy);
+          var crop = crops[tx + "," + ty];
+          if (crop) {
+            var bob = cropIsReady(crop) ? Math.round(Math.sin(tick / 280) * 1) : 0;
+            Assets.draw(g, cropSprite(crop), dx, dy + bob);
+          }
         } else if (ch === "s") {
           Assets.draw(g, "stone" + ((tx + ty) & 1), dx, dy);
         } else if (ch === "h") {
@@ -2805,6 +2945,10 @@
     }
     if (harvest) {
       goHarvest(harvest);
+      return;
+    }
+    if (cell(tx, ty) === "p" && cropIsReady(crops[tx + "," + ty])) {
+      goPickCrop(tx, ty);
       return;
     }
     if (selectedSlot === SLOT_SEED && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
