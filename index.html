@@ -2963,23 +2963,34 @@
     g.restore();
   }
 
-  function fillBlend(g, mode, alpha, r, gv, b) {
+  function fillBlend(g, mode, alpha, r, gv, b, w, h) {
     if (alpha < 0.01) return;
     g.save();
     g.globalCompositeOperation = mode;
     g.globalAlpha = alpha;
     g.fillStyle = "rgb(" + (r | 0) + "," + (gv | 0) + "," + (b | 0) + ")";
-    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    g.fillRect(0, 0, w || VIEW_W, h || VIEW_H);
     g.restore();
   }
 
-  function drawOutdoorGrade(g) {
+  function applyOutdoorGrade(g, w, h) {
     var gr = currentGrade();
-    fillBlend(g, "saturation", gr.sat, 128, 128, 128);
-    fillBlend(g, "hue", gr.hueA, gr.hueR, gr.hueG, gr.hueB);
-    fillBlend(g, "color", gr.colorA, gr.colorR, gr.colorG, gr.colorB);
-    fillBlend(g, "overlay", gr.ovA, gr.ovR, gr.ovG, gr.ovB);
-    fillBlend(g, "multiply", gr.mulA, gr.mulR, gr.mulG, gr.mulB);
+    w = w || VIEW_W;
+    h = h || VIEW_H;
+    fillBlend(g, "saturation", gr.sat, 128, 128, 128, w, h);
+    fillBlend(g, "hue", gr.hueA, gr.hueR, gr.hueG, gr.hueB, w, h);
+    fillBlend(g, "color", gr.colorA, gr.colorR, gr.colorG, gr.colorB, w, h);
+    fillBlend(g, "overlay", gr.ovA, gr.ovR, gr.ovG, gr.ovB, w, h);
+    fillBlend(g, "multiply", gr.mulA, gr.mulR, gr.mulG, gr.mulB, w, h);
+  }
+
+  function outdoorGradeActive() {
+    var gr = currentGrade();
+    return gr.sat >= 0.01 || gr.hueA >= 0.01 || gr.colorA >= 0.01 || gr.ovA >= 0.01 || gr.mulA >= 0.01;
+  }
+
+  function drawOutdoorGrade(g) {
+    applyOutdoorGrade(g, VIEW_W, VIEW_H);
   }
 
   function drawHouseHomeGlow(g) {
@@ -5432,28 +5443,74 @@
     list.sort(function (a, b) { return a.foot - b.foot; });
   }
 
-  function drawPropActors(g) {
-    var list = collectPropActors();
-    var i;
-    sortActors(list);
-    for (i = 0; i < list.length; i++) paintActor(g, list[i]);
+  var propScratch = null;
+  var propMask = null;
+
+  function ensurePropScratch(w, h) {
+    var size = 160;
+    if (w > size) size = w;
+    if (h > size) size = h;
+    if (!propScratch || propScratch.width < size || propScratch.height < size) {
+      propScratch = document.createElement("canvas");
+      propScratch.width = size;
+      propScratch.height = size;
+      propMask = document.createElement("canvas");
+      propMask.width = size;
+      propMask.height = size;
+    }
+    return propScratch;
   }
 
-  function drawCreatureActors(g) {
-    var list = collectCreatureActors();
-    var i;
-    sortActors(list);
-    for (i = 0; i < list.length; i++) {
-      if (currentScene === "overworld") drawWashedActor(g, list[i]);
-      else paintActor(g, list[i]);
+  function drawGradedProp(g, item) {
+    var p = item.p;
+    var b, pad, bx, by, bw, bh, sc, sg, mk, mg;
+    if (!outdoorGradeActive()) {
+      paintActor(g, item);
+      return;
     }
+    b = propBounds(p);
+    pad = 24;
+    bx = b.x - pad;
+    by = b.y - pad;
+    bw = b.w + pad * 2;
+    bh = b.h + pad * 2;
+    sc = ensurePropScratch(bw, bh);
+    sg = sc.getContext("2d");
+    mk = propMask;
+    mg = mk.getContext("2d");
+    sg.imageSmoothingEnabled = false;
+    mg.imageSmoothingEnabled = false;
+    sg.globalCompositeOperation = "source-over";
+    sg.globalAlpha = 1;
+    sg.clearRect(0, 0, sc.width, sc.height);
+    mg.globalCompositeOperation = "source-over";
+    mg.globalAlpha = 1;
+    mg.clearRect(0, 0, mk.width, mk.height);
+    sg.save();
+    sg.translate(-bx, -by);
+    drawProp(sg, p);
+    sg.restore();
+    mg.drawImage(sc, 0, 0);
+    applyOutdoorGrade(sg, bw, bh);
+    sg.globalCompositeOperation = "destination-in";
+    sg.drawImage(mk, 0, 0);
+    sg.globalCompositeOperation = "source-over";
+    g.drawImage(sc, 0, 0, bw, bh, bx, by, bw, bh);
   }
 
   function drawActors(g) {
     var list = collectPropActors().concat(collectCreatureActors());
-    var i;
+    var i, item;
     sortActors(list);
-    for (i = 0; i < list.length; i++) paintActor(g, list[i]);
+    for (i = 0; i < list.length; i++) {
+      item = list[i];
+      if (currentScene === "overworld") {
+        if (item.kind === "prop") drawGradedProp(g, item);
+        else drawWashedActor(g, item);
+      } else {
+        paintActor(g, item);
+      }
+    }
   }
 
   function drawMonster(g, m) {
@@ -5996,12 +6053,11 @@
     }
 
     if (currentScene === "overworld") {
-      drawPropActors(g);
       g.restore();
       drawDayTint(g);
       g.save();
       g.translate(-camX, -camY);
-      drawCreatureActors(g);
+      drawActors(g);
       drawPickups(g);
       drawSparks(g);
       g.restore();
