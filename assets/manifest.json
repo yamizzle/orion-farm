@@ -98,7 +98,44 @@
     "moonHi": "#F8F0C8",
     "moonMid": "#C8D8F0",
     "moonSh": "#6A88C0",
-    "moonGlow": "#E8F0FF"
+    "moonGlow": "#E8F0FF",
+    "cobbleHi": "#C8BCA4",
+    "cobbleMid": "#A89880",
+    "cobbleSh": "#6E6254",
+    "cobbleMoss": "#4A7A28",
+    "meadowBloom": "#E878A0",
+    "roofTeal": "#3A8A7A",
+    "roofTealHi": "#5CBC9A",
+    "roofTealSh": "#1E5A4A",
+    "roofBlue": "#4A6A9C",
+    "roofBlueHi": "#6A8ABC",
+    "roofBlueSh": "#2A3A6A",
+    "plaster": "#E8D4B0",
+    "plasterHi": "#F4E8C8",
+    "plasterSh": "#C4A878",
+    "carRed": "#C44A38",
+    "carRedHi": "#E07058",
+    "carRedSh": "#8A2818",
+    "carYellow": "#F0C040",
+    "carDark": "#3A2A22",
+    "pipShirt": "#2E8A6A",
+    "pipShirtHi": "#4CBC88",
+    "pipShirtSh": "#1A5A44",
+    "pipHair": "#5A2E18",
+    "pipHairHi": "#8A4A28",
+    "lilaShirt": "#D46A8A",
+    "lilaShirtHi": "#F090B0",
+    "lilaShirtSh": "#8A3858",
+    "lilaHair": "#3A2218",
+    "lilaHairHi": "#6A3A28",
+    "reedShirt": "#D07028",
+    "reedShirtHi": "#F0A048",
+    "reedShirtSh": "#8A4010",
+    "reedHair": "#8B5A22",
+    "reedHairHi": "#C48A38",
+    "honey": "#E8A030",
+    "honeyHi": "#F0C060",
+    "honeySh": "#A86C14"
   },
   "sprites": [
     {
@@ -136,6 +173,57 @@
       "generated": true
     },
     {
+      "id": "shopHouse",
+      "file": "props/shopHouse.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 131,
+      "y": 1,
+      "fw": 64,
+      "generated": true
+    },
+    {
+      "id": "townHouseA",
+      "file": "props/townHouseA.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 1,
+      "y": 82,
+      "fw": 64,
+      "generated": true
+    },
+    {
+      "id": "townHouseB",
+      "file": "props/townHouseB.png",
+      "w": 64,
+      "h": 64,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 66,
+      "y": 82,
+      "fw": 64,
+      "generated": true
+    },
+    {
       "id": "cave",
       "file": "props/cave.png",
       "w": 64,
@@ -148,7 +236,7 @@
       "ox": 0,
       "oy": -16,
       "x": 131,
-      "y": 1,
+      "y": 82,
       "fw": 64,
       "generated": true
     },
@@ -165,7 +253,7 @@
       "ox": 0,
       "oy": -16,
       "x": 196,
-      "y": 1,
+      "y": 82,
       "fw": 16,
       "generated": true
     },
@@ -182,7 +270,7 @@
       "ox": 0,
       "oy": -16,
       "x": 213,
-      "y": 1,
+      "y": 82,
       "fw": 16,
       "generated": true
     },
@@ -199,7 +287,7 @@
       "ox": -2,
       "oy": 0,
       "x": 1,
-      "y": 82,
+      "y": 147,
       "fw": 36,
       "generated": true
     },
@@ -216,7 +304,7 @@
       "ox": 0,
       "oy": 0,
       "x": 38,
-      "y": 82,
+      "y": 147,
       "fw": 16,
       "generated": true
     },
@@ -233,7 +321,7 @@
       "ox": 0,
       "oy": 0,
       "x": 71,
-      "y": 82,
+      "y": 147,
       "fw": 16,
       "generated": true
     },
@@ -250,7 +338,7 @@
       "ox": 0,
       "oy": 0,
       "x": 104,
-      "y": 82,
+      "y": 147,
       "fw": 16,
       "generated": true
     },
@@ -267,7 +355,7 @@
       "ox": 0,
       "oy": 0,
       "x": 137,
-      "y": 82,
+      "y": 147,
       "fw": 16,
       "generated": true
     },
@@ -284,7 +372,7 @@
       "ox": 0,
       "oy": 0,
       "x": 170,
-      "y": 82,
+      "y": 147,
       "fw": 16,
       "generated": true
     },
@@ -301,7 +389,7 @@
       "ox": 0,
       "oy": 0,
       "x": 203,
-      "y": 82,
+      "y": 147,
       "fw": 16,
       "generated": true
     },
@@ -318,7 +406,7 @@
       "ox": 0,
       "oy": 0,
       "x": 1,
-      "y": 115,
+      "y": 180,
       "fw": 16,
       "generated": true
     },
@@ -335,7 +423,7 @@
       "ox": 0,
       "oy": 0,
       "x": 34,
-      "y": 115,
+      "y": 180,
       "fw": 16,
       "generated": true
     },
@@ -352,7 +440,7 @@
       "ox": 0,
       "oy": 0,
       "x": 67,
-      "y": 115,
+      "y": 180,
       "fw": 32,
       "generated": true
     },
@@ -369,7 +457,7 @@
       "ox": 0,
       "oy": 0,
       "x": 100,
-      "y": 115,
+      "y": 180,
       "fw": 32,
       "generated": true
     },
@@ -386,8 +474,246 @@
       "ox": 0,
       "oy": 0,
       "x": 133,
-      "y": 115,
+      "y": 180,
       "fw": 48,
+      "generated": true
+    },
+    {
+      "id": "fountain",
+      "file": "props/fountain-{n}.png",
+      "w": 32,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 182,
+      "y": 180,
+      "fw": 32,
+      "generated": true
+    },
+    {
+      "id": "statue",
+      "file": "props/statue.png",
+      "w": 16,
+      "h": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 1,
+      "y": 213,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "pip-down",
+      "file": "actors/pip-down-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 18,
+      "y": 213,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "pip-up",
+      "file": "actors/pip-up-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 51,
+      "y": 213,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "pip-right",
+      "file": "actors/pip-right-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 84,
+      "y": 213,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "pip-left",
+      "file": "actors/pip-left-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 117,
+      "y": 213,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "lila-down",
+      "file": "actors/lila-down-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 150,
+      "y": 213,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "lila-up",
+      "file": "actors/lila-up-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 183,
+      "y": 213,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "lila-right",
+      "file": "actors/lila-right-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 216,
+      "y": 213,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "lila-left",
+      "file": "actors/lila-left-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 1,
+      "y": 246,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "reed-down",
+      "file": "actors/reed-down-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 34,
+      "y": 246,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "reed-up",
+      "file": "actors/reed-up-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 67,
+      "y": 246,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "reed-right",
+      "file": "actors/reed-right-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 100,
+      "y": 246,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "reed-left",
+      "file": "actors/reed-left-{n}.png",
+      "w": 16,
+      "h": 32,
+      "frames": 2,
+      "anchor": [
+        8,
+        28
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 133,
+      "y": 246,
+      "fw": 16,
       "generated": true
     },
     {
@@ -402,8 +728,8 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 182,
-      "y": 115,
+      "x": 166,
+      "y": 246,
       "fw": 16,
       "generated": true
     },
@@ -419,8 +745,8 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 199,
-      "y": 115,
+      "x": 183,
+      "y": 246,
       "fw": 16,
       "generated": true
     },
@@ -436,8 +762,8 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 216,
-      "y": 115,
+      "x": 200,
+      "y": 246,
       "fw": 16,
       "generated": true
     },
@@ -453,8 +779,8 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 233,
-      "y": 115,
+      "x": 217,
+      "y": 246,
       "fw": 16,
       "generated": true
     },
@@ -471,7 +797,7 @@
       "ox": 0,
       "oy": -8,
       "x": 1,
-      "y": 148,
+      "y": 279,
       "fw": 32,
       "generated": true
     },
@@ -488,7 +814,7 @@
       "ox": 0,
       "oy": 0,
       "x": 34,
-      "y": 148,
+      "y": 279,
       "fw": 16,
       "generated": true
     },
@@ -505,7 +831,58 @@
       "ox": 0,
       "oy": -8,
       "x": 51,
-      "y": 148,
+      "y": 279,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "counter",
+      "file": "props/counter.png",
+      "w": 48,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 68,
+      "y": 279,
+      "fw": 48,
+      "generated": true
+    },
+    {
+      "id": "car-up",
+      "file": "actors/car-up-{n}.png",
+      "w": 16,
+      "h": 20,
+      "frames": 2,
+      "anchor": [
+        8,
+        18
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 117,
+      "y": 279,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "car-down",
+      "file": "actors/car-down-{n}.png",
+      "w": 16,
+      "h": 20,
+      "frames": 2,
+      "anchor": [
+        8,
+        18
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 150,
+      "y": 279,
       "fw": 16,
       "generated": true
     },
@@ -521,8 +898,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 68,
-      "y": 148,
+      "x": 183,
+      "y": 279,
       "fw": 16,
       "generated": true
     },
@@ -538,8 +915,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 85,
-      "y": 148,
+      "x": 200,
+      "y": 279,
       "fw": 16,
       "generated": true
     },
@@ -555,8 +932,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 102,
-      "y": 148,
+      "x": 217,
+      "y": 279,
       "fw": 16,
       "generated": true
     },
@@ -572,8 +949,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 119,
-      "y": 148,
+      "x": 234,
+      "y": 279,
       "fw": 16,
       "generated": true
     },
@@ -589,8 +966,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 136,
-      "y": 148,
+      "x": 1,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -606,8 +983,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 153,
-      "y": 148,
+      "x": 18,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -623,8 +1000,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 170,
-      "y": 148,
+      "x": 35,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -640,8 +1017,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 187,
-      "y": 148,
+      "x": 52,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -657,8 +1034,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 204,
-      "y": 148,
+      "x": 69,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -674,8 +1051,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 221,
-      "y": 148,
+      "x": 86,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -691,8 +1068,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 238,
-      "y": 148,
+      "x": 103,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -708,8 +1085,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 173,
+      "x": 120,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -725,8 +1102,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 18,
-      "y": 173,
+      "x": 137,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -742,8 +1119,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 35,
-      "y": 173,
+      "x": 154,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -759,8 +1136,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 52,
-      "y": 173,
+      "x": 171,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -776,8 +1153,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 69,
-      "y": 173,
+      "x": 188,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -793,8 +1170,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 86,
-      "y": 173,
+      "x": 205,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -810,8 +1187,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 103,
-      "y": 173,
+      "x": 222,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -827,8 +1204,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 120,
-      "y": 173,
+      "x": 239,
+      "y": 304,
       "fw": 16,
       "generated": true
     },
@@ -844,8 +1221,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 137,
-      "y": 173,
+      "x": 1,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -861,8 +1238,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 154,
-      "y": 173,
+      "x": 18,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -878,8 +1255,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 171,
-      "y": 173,
+      "x": 35,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -895,8 +1272,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 188,
-      "y": 173,
+      "x": 52,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -912,8 +1289,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 205,
-      "y": 173,
+      "x": 69,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -929,8 +1306,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 222,
-      "y": 173,
+      "x": 86,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -946,8 +1323,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 190,
+      "x": 103,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -963,8 +1340,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 190,
+      "x": 136,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -980,8 +1357,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 190,
+      "x": 169,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -997,8 +1374,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 84,
-      "y": 190,
+      "x": 186,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -1014,8 +1391,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 101,
-      "y": 190,
+      "x": 203,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -1031,8 +1408,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 118,
-      "y": 190,
+      "x": 220,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -1048,8 +1425,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 135,
-      "y": 190,
+      "x": 237,
+      "y": 321,
       "fw": 16,
       "generated": true
     },
@@ -1065,8 +1442,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 152,
-      "y": 190,
+      "x": 1,
+      "y": 338,
       "fw": 16,
       "generated": true
     },
@@ -1082,8 +1459,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 169,
-      "y": 190,
+      "x": 18,
+      "y": 338,
       "fw": 16,
       "generated": true
     },
@@ -1099,8 +1476,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 186,
-      "y": 190,
+      "x": 35,
+      "y": 338,
       "fw": 16,
       "generated": true
     },
@@ -1116,8 +1493,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 203,
-      "y": 190,
+      "x": 52,
+      "y": 338,
       "fw": 16,
       "generated": true
     },
@@ -1133,8 +1510,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 207,
+      "x": 69,
+      "y": 338,
       "fw": 16,
       "generated": true
     },
@@ -1150,8 +1527,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 50,
-      "y": 207,
+      "x": 118,
+      "y": 338,
       "fw": 16,
       "generated": true
     },
@@ -1167,8 +1544,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 207,
+      "x": 135,
+      "y": 338,
       "fw": 16,
       "generated": true
     },
@@ -1184,8 +1561,144 @@
       ],
       "ox": 0,
       "oy": 0,
+      "x": 152,
+      "y": 338,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "cobble",
+      "file": "tiles/cobble.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 169,
+      "y": 338,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "meadow",
+      "file": "tiles/meadow.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 186,
+      "y": 338,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "car-right",
+      "file": "actors/car-right-{n}.png",
+      "w": 24,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        12,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 203,
+      "y": 338,
+      "fw": 24,
+      "generated": true
+    },
+    {
+      "id": "car-left",
+      "file": "actors/car-left-{n}.png",
+      "w": 24,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        12,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 1,
+      "y": 355,
+      "fw": 24,
+      "generated": true
+    },
+    {
+      "id": "shopSign",
+      "file": "props/shopSign.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 50,
+      "y": 355,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "strawHat",
+      "file": "ui/strawHat.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 67,
+      "y": 355,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "honeybun",
+      "file": "ui/honeybun.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
       "x": 84,
-      "y": 207,
+      "y": 355,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "townFlower",
+      "file": "ui/townFlower.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 101,
+      "y": 355,
       "fw": 16,
       "generated": true
     }

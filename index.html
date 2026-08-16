@@ -100,8 +100,8 @@
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
-  var OVER_COLS = 48;
-  var OVER_ROWS = 36;
+  var OVER_COLS = 64;
+  var OVER_ROWS = 40;
   var COLS = OVER_COLS;
   var ROWS = OVER_ROWS;
 
@@ -273,7 +273,7 @@
   var sparks = [];
   var pickups = [];
   var selectedSlot = 0;
-  var inventory = { wood: 0, stone: 0, copper: 0, mushroom: 0, moonshard: 0, veggie: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0 };
   var slotShake = 0;
   var SLOT_SEED = 0;
   var SLOT_WOOD = 1;
@@ -282,13 +282,16 @@
   var SLOT_MUSH = 4;
   var SLOT_MOON = 5;
   var SLOT_VEGGIE = 6;
+  var SLOT_FLOWER = 7;
+  var SLOT_SNACK = 8;
+  var SLOT_HAT = 9;
   var HIT_COUNT = 3;
   var HIT_GAP = 380;
   var WOOD_PER_TREE = 2;
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, house: null };
+  var sceneCache = { overworld: null, mine: null, house: null, shop: null };
   var tick = 0;
   var lastTs = 0;
   var dialogue = null;
@@ -308,8 +311,12 @@
   var MINE_ROWS = 24;
   var HOUSE_COLS = 20;
   var HOUSE_ROWS = 12;
+  var SHOP_COLS = 16;
+  var SHOP_ROWS = 10;
   var houseIn = { tx: 17, ty: 29 };
   var houseOut = { tx: 10, ty: 10 };
+  var shopIn = { tx: 44, ty: 26 };
+  var shopOut = { tx: 8, ty: 8 };
   var SAVE_KEY = "moondrop-mountain-v1";
   var SAVE_VER = 2;
   var DAY_MS = 150000;
@@ -347,6 +354,13 @@
   var questOpen = false;
   var sleepFx = null;
   var wipeAsk = false;
+  var shopOpen = false;
+  var shopSel = 0;
+  var shopMsg = "";
+  var shopMsgT = 0;
+  var hatOwned = false;
+  var hatOn = false;
+  var extraPlots = 0;
   var kbHeld = [];
   var kbDrive = false;
   var builds = [];
@@ -427,6 +441,62 @@
     face: "right",
     frame: 0
   };
+  function makeFolk(id, name, sprite, tx, ty, x0, y0, x1, y1, lines) {
+    return {
+      id: id, name: name, sprite: sprite,
+      tx: tx, ty: ty,
+      x: tx * 16 + 8, y: ty * 16 + 14,
+      face: "down", frame: 0,
+      path: [], stepFrom: null, stepT: 0, queuedWalk: null,
+      idle: 600 + Math.random() * 800, anim: 0,
+      patio: { x0: x0, y0: y0, x1: x1, y1: y1 },
+      lines: lines
+    };
+  }
+  var townFolk = [
+    makeFolk("pip", "PIP", "pip", 44, 27, 43, 26, 46, 27, [
+      ["THE SHOP IS OPEN!", "COME IN AND LOOK."],
+      ["SEEDS, BUNS, A HAT.", "SPEND A LITTLE GOLD."]
+    ]),
+    makeFolk("lila", "LILA", "lila", 48, 31, 45, 30, 53, 32, [
+      ["I WATER THE GREEN.", "THE FLOWERS LIKE YOU."],
+      ["SMELL THE MEADOW!", "SPRING IS SOFT HERE."]
+    ]),
+    makeFolk("reed", "REED", "reed", 55, 32, 54, 31, 56, 34, [
+      ["THE RED CAR GOES", "ROUND AND ROUND!"],
+      ["IT STOPS IF YOU", "STAND IN THE ROAD."]
+    ])
+  ];
+  var CAR_LOOP = [];
+  (function buildCarLoop() {
+    var x, y;
+    for (x = 41; x <= 57; x++) CAR_LOOP.push({ tx: x, ty: 26 });
+    for (y = 27; y <= 34; y++) CAR_LOOP.push({ tx: 57, ty: y });
+    for (x = 56; x >= 41; x--) CAR_LOOP.push({ tx: x, ty: 34 });
+    for (y = 33; y >= 27; y--) CAR_LOOP.push({ tx: 41, ty: y });
+  })();
+  var car = {
+    tx: 41, ty: 26,
+    x: 41 * 16 + 8,
+    y: 26 * 16 + 14,
+    face: "right",
+    frame: 0,
+    path: [],
+    stepFrom: null,
+    stepT: 0,
+    queuedWalk: null,
+    anim: 0,
+    loopI: 0,
+    wait: 0
+  };
+  var SHOP_ITEMS = [
+    { id: "seeds", name: "SEED TIN", price: 5, icon: "seed" },
+    { id: "flower", name: "FLOWER", price: 8, icon: "townFlower" },
+    { id: "snack", name: "HONEY BUN", price: 6, icon: "honeybun" },
+    { id: "hat", name: "STRAW HAT", price: 25, icon: "strawHat" },
+    { id: "fence", name: "FENCE KIT", price: 12, icon: "wood" },
+    { id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" }
+  ];
 
   function hash(x, y, s) {
     var n = (x * 374761393 + y * 668265263 + s * 1274126177) | 0;
@@ -467,12 +537,18 @@
     if (p.kind === "house") {
       x1 = p.tx + 4;
       y1 = p.ty + 3;
-    } else if (p.kind === "pond") {
+    } else if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
+      x1 = p.tx + 3;
+      y1 = p.ty + 2;
+    } else if (p.kind === "pond" || p.kind === "fountain") {
       x1 = p.tx + 1;
       y1 = p.ty + 1;
     } else if (p.kind === "cave") {
       x1 = p.tx + 3;
       y1 = p.ty + 1;
+    } else if (p.kind === "counter") {
+      x1 = p.tx + 2;
+      y1 = p.ty;
     }
     for (y = p.ty; y <= y1; y++) {
       for (x = p.tx; x <= x1; x++) markTile(map, x, y);
@@ -501,6 +577,8 @@
       }
     }
     reserveRect(taken, FARM.x0, FARM.y0, FARM.x1, FARM.y1);
+    reserveRect(taken, 16, 31, 63, 39);
+    reserveRect(taken, 38, 20, 63, 38);
     reserveRect(taken, portalIn.tx, portalIn.ty, portalIn.tx, portalIn.ty + 1);
     reserveRect(taken, houseIn.tx, houseIn.ty, houseIn.tx, houseIn.ty + 1);
     markTile(taken, npc.tx, npc.ty);
@@ -611,6 +689,21 @@
         if (g[y][x] === "g" && hash(x, y, 3) < 0.62) set(x, y, "h");
       }
     }
+    /* dirt path east from the farm to town */
+    for (x = 16; x <= 39; x++) {
+      set(x, 32, "d");
+      set(x, 33, "d");
+    }
+    /* cobble loop around the town green */
+    function cobble(x0, y0, x1, y1) { rect(x0, y0, x1, y1, "c"); }
+    cobble(40, 26, 58, 27);
+    cobble(40, 34, 58, 35);
+    cobble(40, 26, 41, 35);
+    cobble(57, 26, 58, 35);
+    /* town green */
+    rect(43, 29, 55, 32, "m");
+    /* a little meadow south of town */
+    rect(44, 36, 54, 38, "m");
     return g;
   }
 
@@ -648,9 +741,7 @@
       { kind: "tree", tx: 18, ty: 20 },
       { kind: "tree", tx: 30, ty: 20 },
       { kind: "tree", tx: 40, ty: 14 },
-      { kind: "tree", tx: 42, ty: 28 },
-      { kind: "tree", tx: 44, ty: 24 },
-      { kind: "tree", tx: 26, ty: 32 },
+      { kind: "tree", tx: 30, ty: 26 },
       { kind: "tree", tx: 33, ty: 30 },
       { kind: "rock", tx: 33, ty: 4 },
       { kind: "rock", tx: 40, ty: 3 },
@@ -670,7 +761,7 @@
       { kind: "weed", tx: 35, ty: 16 },
       { kind: "weed", tx: 14, ty: 10 },
       { kind: "weed", tx: 27, ty: 28 },
-      { kind: "weed", tx: 40, ty: 32 },
+      { kind: "weed", tx: 8, ty: 34 },
       { kind: "weed", tx: 8, ty: 22 },
       { kind: "weed", tx: 44, ty: 10 },
       { kind: "lantern", tx: 13, ty: 31 },
@@ -682,7 +773,22 @@
       { kind: "lantern", tx: 18, ty: 8 },
       { kind: "lantern", tx: 26, ty: 11 },
       { kind: "lantern", tx: 32, ty: 8 },
-      { kind: "lantern", tx: 36, ty: 8 }
+      { kind: "lantern", tx: 36, ty: 8 },
+      { kind: "shopHouse", tx: 42, ty: 22 },
+      { kind: "townHouseA", tx: 50, ty: 22 },
+      { kind: "townHouseB", tx: 58, ty: 28 },
+      { kind: "fountain", tx: 46, ty: 29 },
+      { kind: "statue", tx: 51, ty: 29 },
+      { kind: "shopSign", tx: 44, ty: 25 },
+      { kind: "lantern", tx: 20, ty: 31 },
+      { kind: "lantern", tx: 26, ty: 31 },
+      { kind: "lantern", tx: 32, ty: 31 },
+      { kind: "lantern", tx: 38, ty: 31 },
+      { kind: "lantern", tx: 40, ty: 28 },
+      { kind: "lantern", tx: 48, ty: 27 },
+      { kind: "lantern", tx: 56, ty: 27 },
+      { kind: "lantern", tx: 58, ty: 32 },
+      { kind: "lantern", tx: 48, ty: 35 }
     ];
     return list.concat(scatterOverworldExtras(GROUND, list));
   }
@@ -773,6 +879,47 @@
       { kind: "doormat", tx: 10, ty: 10 },
       { kind: "inndoor", tx: 10, ty: 11 }
     ];
+  }
+
+  function buildShopGround() {
+    var cols = SHOP_COLS, rows = SHOP_ROWS;
+    var g = [];
+    var y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) {
+        row[x] = (x === 0 || y === 0 || x === cols - 1 || y === rows - 1) ? "#" : "f";
+      }
+      g[y] = row;
+    }
+    return g;
+  }
+
+  function buildShopProps() {
+    return [
+      { kind: "counter", tx: 6, ty: 4 },
+      { kind: "window", tx: 4, ty: 0 },
+      { kind: "window", tx: 11, ty: 0 },
+      { kind: "crate", tx: 2, ty: 2 },
+      { kind: "crate", tx: 13, ty: 2 },
+      { kind: "shopSign", tx: 7, ty: 2 },
+      { kind: "doormat", tx: 8, ty: 8 },
+      { kind: "inndoor", tx: 8, ty: 9 }
+    ];
+  }
+
+  function applyExtraPlots(ground) {
+    var spots, i, s;
+    if (!ground) return;
+    spots = [
+      { tx: 7, ty: 33 }, { tx: 8, ty: 33 }, { tx: 10, ty: 30 }, { tx: 10, ty: 31 }
+    ];
+    for (i = 0; i < extraPlots && i < spots.length; i++) {
+      s = spots[i];
+      if (s.ty >= 0 && s.ty < ground.length && ground[s.ty] && s.tx >= 0 && s.tx < ground[s.ty].length) {
+        ground[s.ty][s.tx] = "p";
+      }
+    }
   }
 
   function saveScene() {
@@ -907,13 +1054,21 @@
       ROWS = HOUSE_ROWS;
       GROUND = buildHouseGround();
       PROPS = buildHouseProps();
+    } else if (name === "shop") {
+      COLS = SHOP_COLS;
+      ROWS = SHOP_ROWS;
+      GROUND = buildShopGround();
+      PROPS = buildShopProps();
     } else {
       COLS = OVER_COLS;
       ROWS = OVER_ROWS;
       GROUND = buildOverworldGround();
       PROPS = buildOverworldProps();
     }
-    if (fresh && name === "overworld") applyBuildsTo(GROUND, PROPS);
+    if (fresh && name === "overworld") {
+      applyExtraPlots(GROUND);
+      applyBuildsTo(GROUND, PROPS);
+    }
     if (fresh && name !== "house") applyHarvestState(name, PROPS);
     buildSolid();
   }
@@ -938,7 +1093,7 @@
   }
 
   function isSoft(ch) {
-    return ch === "g" || ch === "h";
+    return ch === "g" || ch === "h" || ch === "m";
   }
 
   function buildSolid() {
@@ -959,6 +1114,17 @@
         for (y = 0; y < 4; y++) {
           for (x = 0; x < 5; x++) block(p.tx + x, p.ty + y);
         }
+      } else if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
+        for (y = 0; y < 3; y++) {
+          for (x = 0; x < 4; x++) block(p.tx + x, p.ty + y);
+        }
+      } else if (p.kind === "fountain") {
+        block(p.tx, p.ty); block(p.tx + 1, p.ty);
+        block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
+      } else if (p.kind === "statue") {
+        block(p.tx, p.ty);
+      } else if (p.kind === "counter") {
+        block(p.tx, p.ty); block(p.tx + 1, p.ty); block(p.tx + 2, p.ty);
       } else if (p.kind === "bed") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
@@ -987,8 +1153,28 @@
     return tx >= 0 && ty >= 0 && tx < COLS && ty < ROWS;
   }
 
+  function carOccupies(tx, ty) {
+    if (currentScene !== "overworld" || !car) return false;
+    if (tx === car.tx && ty === car.ty) return true;
+    if (car.path && car.path.length && car.path[0].tx === tx && car.path[0].ty === ty) return true;
+    return false;
+  }
+
+  function folkOccupies(tx, ty) {
+    var i, f;
+    if (currentScene !== "overworld") return false;
+    for (i = 0; i < townFolk.length; i++) {
+      f = townFolk[i];
+      if (f.tx === tx && f.ty === ty) return true;
+      if (f.path && f.path.length && f.path[0].tx === tx && f.path[0].ty === ty) return true;
+    }
+    return false;
+  }
+
   function walkable(tx, ty) {
-    return inBounds(tx, ty) && !solid[ty][tx];
+    if (!inBounds(tx, ty) || solid[ty][tx]) return false;
+    if (carOccupies(tx, ty)) return false;
+    return true;
   }
 
   function playerOccupies(tx, ty) {
@@ -1341,6 +1527,11 @@
   function propOccupies(p, tx, ty) {
     if (!p) return false;
     if (p.kind === "house") return tx >= p.tx && tx < p.tx + 5 && ty >= p.ty && ty < p.ty + 4;
+    if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
+      return tx >= p.tx && tx < p.tx + 4 && ty >= p.ty && ty < p.ty + 3;
+    }
+    if (p.kind === "fountain") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
+    if (p.kind === "counter") return tx >= p.tx && tx < p.tx + 3 && ty === p.ty;
     if (p.kind === "bed") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "table") return tx >= p.tx && tx < p.tx + 2 && ty === p.ty;
     if (p.kind === "rug") return tx >= p.tx && tx < p.tx + 3 && ty >= p.ty && ty < p.ty + 2;
@@ -1402,11 +1593,12 @@
     if (currentScene !== "overworld") return false;
     if (!inBounds(tx, ty)) return false;
     ch = cell(tx, ty);
-    if (ch !== "g" && ch !== "d" && ch !== "h") return false;
+    if (ch !== "g" && ch !== "d" && ch !== "h" && ch !== "m") return false;
     if (!walkable(tx, ty)) return false;
     if (propAt(tx, ty)) return false;
     if (tx === npc.tx && ty === npc.ty) return false;
     if (tx === chicken.tx && ty === chicken.ty) return false;
+    if (carOccupies(tx, ty)) return false;
     if (isEntrance(tx, ty)) return false;
     return true;
   }
@@ -1444,6 +1636,8 @@
     if (kind === "wood") inventory.wood += amount;
     else if (kind === "stone") inventory.stone += amount;
     else if (kind === "veggie") inventory.veggie = (inventory.veggie || 0) + amount;
+    else if (kind === "flower") inventory.flower = (inventory.flower || 0) + amount;
+    else if (kind === "snack") inventory.snack = (inventory.snack || 0) + amount;
     else if (kind === "copper" || kind === "mushroom" || kind === "moonshard") {
       inventory[kind] = (inventory[kind] || 0) + amount;
     }
@@ -1623,7 +1817,7 @@
   }
 
   function isEntrance(tx, ty) {
-    return isMineEntrance(tx, ty) || isHouseEntrance(tx, ty);
+    return isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || isShopEntrance(tx, ty);
   }
 
   function isMineExit(tx, ty) {
@@ -1635,7 +1829,7 @@
   }
 
   function isExit(tx, ty) {
-    return isMineExit(tx, ty) || isHouseExit(tx, ty);
+    return isMineExit(tx, ty) || isHouseExit(tx, ty) || isShopExit(tx, ty);
   }
 
   function houseDoorHit(tx, ty, world) {
@@ -1724,6 +1918,10 @@
         dayNumber += 1;
       }
       if (typeof data.gold === "number" && data.gold >= 0) gold = data.gold | 0;
+      hatOwned = !!(data.hatOwned || data.hatOn);
+      hatOn = !!data.hatOn;
+      extraPlots = clampCount(data.extraPlots);
+      if (extraPlots > 4) extraPlots = 4;
       if (data.inventory && typeof data.inventory === "object") {
         inventory.wood = clampCount(data.inventory.wood);
         inventory.stone = clampCount(data.inventory.stone);
@@ -1731,6 +1929,8 @@
         inventory.mushroom = clampCount(data.inventory.mushroom);
         inventory.moonshard = clampCount(data.inventory.moonshard);
         inventory.veggie = clampCount(data.inventory.veggie);
+        inventory.flower = clampCount(data.inventory.flower);
+        inventory.snack = clampCount(data.inventory.snack);
       } else {
         if (typeof data.veggie === "number" && data.veggie > 0) inventory.veggie = clampCount(data.veggie);
         if (found.copper) inventory.copper = 1;
@@ -1779,14 +1979,14 @@
           item = src[bi];
           if (!item || typeof item !== "object") continue;
           bk = item.kind;
-          if (bk !== "path" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR") continue;
+          if (bk !== "path" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR" && bk !== "townFlower") continue;
           builds.push({ kind: bk, tx: item.tx | 0, ty: item.ty | 0 });
         }
       }
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "overworld" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down"
@@ -1861,8 +2061,13 @@
           copper: inventory.copper | 0,
           mushroom: inventory.mushroom | 0,
           moonshard: inventory.moonshard | 0,
-          veggie: inventory.veggie | 0
+          veggie: inventory.veggie | 0,
+          flower: inventory.flower | 0,
+          snack: inventory.snack | 0
         },
+        hatOwned: !!hatOwned,
+        hatOn: !!hatOn,
+        extraPlots: extraPlots | 0,
         crops: crops,
         nodes: serializeNodes(),
         scene: currentScene,
@@ -1882,9 +2087,18 @@
       if (b.ty < 0 || b.ty >= ground.length || !ground[b.ty]) continue;
       if (b.tx < 0 || b.tx >= ground[b.ty].length) continue;
       if (b.kind === "path") {
-        if (ground[b.ty][b.tx] === "g" || ground[b.ty][b.tx] === "d" || ground[b.ty][b.tx] === "h" || ground[b.ty][b.tx] === "k") {
+        if (ground[b.ty][b.tx] === "g" || ground[b.ty][b.tx] === "d" || ground[b.ty][b.tx] === "h" || ground[b.ty][b.tx] === "k" || ground[b.ty][b.tx] === "m") {
           ground[b.ty][b.tx] = "k";
         }
+      } else if (b.kind === "townFlower") {
+        exists = false;
+        for (j = 0; j < props.length; j++) {
+          if (props[j].tx === b.tx && props[j].ty === b.ty && props[j].kind === "townFlower") {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) props.push({ kind: "townFlower", tx: b.tx, ty: b.ty });
       } else if (b.kind === "fenceH" || b.kind === "fenceL" || b.kind === "fenceR") {
         exists = false;
         for (j = 0; j < props.length; j++) {
@@ -1906,8 +2120,15 @@
     tx = pendingRestore.tx;
     ty = pendingRestore.ty;
     face = pendingRestore.face || "down";
+    if (scene === "overworld") {
+      if (tx < 0) tx = 0;
+      if (ty < 0) ty = 0;
+      if (tx >= OVER_COLS) tx = OVER_COLS - 1;
+      if (ty >= OVER_ROWS) ty = OVER_ROWS - 1;
+    }
     if (!inBounds(tx, ty) || !walkable(tx, ty)) {
       if (scene === "house") { tx = 10; ty = 9; face = "up"; }
+      else if (scene === "shop") { tx = 8; ty = 7; face = "up"; }
       else if (scene === "mine") { tx = 16; ty = 19; face = "up"; }
       else { tx = 16; ty = 30; face = "down"; }
     }
@@ -2160,11 +2381,12 @@
     var phase = clockPhaseName();
     if (currentScene === "mine") return phase + " · MINE";
     if (currentScene === "house") return phase + " · HOME";
+    if (currentScene === "shop") return phase + " · SHOP";
     return "SPRING · " + phase;
   }
 
   function uiPaused() {
-    return !!(dialogue || achieveOpen || questOpen || sleepFx || wipeAsk || toast);
+    return !!(dialogue || achieveOpen || questOpen || sleepFx || wipeAsk || toast || shopOpen);
   }
 
   function timePaused() {
@@ -2207,7 +2429,7 @@
   function currentTint() {
     var t = dayMs / DAY_MS;
     var tint = sampleTint(SKY_TINTS, t);
-    if (currentScene === "house") {
+    if (currentScene === "house" || currentScene === "shop") {
       if (t >= 0.72) return { r: 255, g: 200, b: 130, a: 0.24 };
       if (t >= 0.56) return { r: 255, g: 196, b: 140, a: 0.16 };
       return { r: 255, g: 236, b: 210, a: 0.04 };
@@ -2241,7 +2463,7 @@
   }
 
   function forEachNightLight(fn) {
-    var i, p;
+    var i, p, hx, hy;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
       if (p.kind === "lantern") {
@@ -2250,7 +2472,20 @@
         fn(p.tx * TILE + 40, p.ty * TILE + 68, 0.88, 80 + i);
         fn(p.tx * TILE + 60, p.ty * TILE + 36, 0.55, 90 + i);
         fn(p.tx * TILE + 40, p.ty * TILE + 8, 0.40, 100 + i);
+      } else if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
+        fn(p.tx * TILE + 32, p.ty * TILE + 52, 0.72, 80 + i);
+        fn(p.tx * TILE + 16, p.ty * TILE + 18, 0.48, 90 + i);
+        fn(p.tx * TILE + 48, p.ty * TILE + 18, 0.42, 100 + i);
       }
+    }
+    if (currentScene === "overworld" && car && lanternGlowAmt() > 0.02) {
+      hx = car.x;
+      hy = car.y - 4;
+      if (car.face === "right") hx += 10;
+      else if (car.face === "left") hx -= 10;
+      else if (car.face === "up") hy -= 8;
+      else hy += 4;
+      fn(hx, hy, 0.55, 200);
     }
   }
 
@@ -2509,6 +2744,415 @@
     openDialogue("NEIGHBOR", neighborLines());
   }
 
+  function folkAt(tx, ty) {
+    var i, f;
+    if (currentScene !== "overworld") return null;
+    for (i = 0; i < townFolk.length; i++) {
+      f = townFolk[i];
+      if (f.tx === tx && f.ty === ty) return f;
+    }
+    return null;
+  }
+
+  function folkOk(f, tx, ty) {
+    var p;
+    if (currentScene !== "overworld") return false;
+    if (!walkable(tx, ty) && !(tx === f.tx && ty === f.ty)) return false;
+    if (tx < f.patio.x0 || tx > f.patio.x1 || ty < f.patio.y0 || ty > f.patio.y1) return false;
+    if (playerOccupies(tx, ty)) return false;
+    if (carOccupies(tx, ty)) return false;
+    for (p = 0; p < townFolk.length; p++) {
+      if (townFolk[p] !== f && townFolk[p].tx === tx && townFolk[p].ty === ty) return false;
+    }
+    return true;
+  }
+
+  function folkYield(f) {
+    var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    var i, j, tmp, d, nx, ny;
+    for (i = 3; i > 0; i--) {
+      j = (Math.random() * (i + 1)) | 0;
+      tmp = dirs[i]; dirs[i] = dirs[j]; dirs[j] = tmp;
+    }
+    for (i = 0; i < 4; i++) {
+      d = dirs[i];
+      nx = f.tx + d[0];
+      ny = f.ty + d[1];
+      if (folkOk(f, nx, ny)) {
+        startWalk(f, [{ tx: nx, ty: ny }], 1.4);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function folkStop(f) {
+    f.path = [];
+    f.queuedWalk = null;
+    f.stepFrom = null;
+    f.stepT = 0;
+    f.frame = 0;
+    f.x = tileCenterX(f.tx);
+    f.y = tileFootY(f.ty);
+  }
+
+  function updateTownFolk(dt) {
+    var i, f, dest;
+    if (currentScene !== "overworld") return;
+    for (i = 0; i < townFolk.length; i++) {
+      f = townFolk[i];
+      f.anim += dt;
+      if (f.anim > 220) {
+        f.anim = 0;
+        f.frame = f.frame ? 0 : 1;
+      }
+      dest = f.path && f.path.length ? f.path[0] : null;
+      if (dest && playerOccupies(dest.tx, dest.ty)) {
+        folkStop(f);
+        if (!folkYield(f)) f.idle = 400;
+        continue;
+      }
+      if (dest) {
+        advanceWalk(f, dt);
+        continue;
+      }
+      if (playerOccupies(f.tx, f.ty)) {
+        if (!folkYield(f)) f.idle = 200;
+        continue;
+      }
+      f.idle -= dt;
+      if (f.idle > 0) continue;
+      f.idle = 900 + Math.random() * 2200;
+      folkYield(f);
+    }
+  }
+
+  function talkFolk(f) {
+    var lines;
+    faceToward(player, f.tx, f.ty);
+    faceToward(f, player.tx, player.ty);
+    lines = f.lines[(tick / 800 | 0) % f.lines.length];
+    if (f.id === "pip") {
+      openDialogue(f.name, lines);
+      return;
+    }
+    openDialogue(f.name, lines);
+  }
+
+  function goTalkFolk(f) {
+    var dest, path;
+    highlight = { tx: f.tx, ty: f.ty };
+    if (isNear(player.tx, player.ty, f.tx, f.ty)) {
+      pending = null;
+      startWalk(player, [], 3.5);
+      talkFolk(f);
+      return;
+    }
+    dest = nearestAdjacent(f.tx, f.ty);
+    if (!dest) return;
+    pending = { type: "talkFolk", folk: f };
+    startWalk(player, findPath(player.tx, player.ty, dest.tx, dest.ty), 3.5);
+  }
+
+  function landmarkAt(tx, ty) {
+    var p = propAt(tx, ty);
+    if (!p) return null;
+    if (p.kind === "statue" || p.kind === "fountain") return p;
+    if (p.kind === "townHouseA" || p.kind === "townHouseB") return p;
+    return null;
+  }
+
+  function talkLandmark(p) {
+    if (p.kind === "statue") {
+      openDialogue("STATUE", ["A MOON KID HOLDS", "UP THE NIGHT."]);
+    } else if (p.kind === "fountain") {
+      openDialogue("FOUNTAIN", ["COOL WATER SPLASHES.", "MAKE A WISH!"]);
+    } else {
+      openDialogue("HOUSE", ["KNOCK KNOCK...", "SOMEONE IS HOME."]);
+    }
+  }
+
+  function goLandmark(p) {
+    var dest, path, tx, ty;
+    tx = p.tx;
+    ty = p.ty;
+    if (p.kind === "fountain") { tx = p.tx; ty = p.ty + 1; }
+    if (p.kind === "townHouseA" || p.kind === "townHouseB") {
+      tx = p.tx + 2;
+      ty = p.ty + 3;
+    }
+    highlight = { tx: tx, ty: ty };
+    if (isNear(player.tx, player.ty, p.tx, p.ty) || isNear(player.tx, player.ty, tx, ty) ||
+        (p.kind === "fountain" && isNear(player.tx, player.ty, p.tx + 1, p.ty))) {
+      pending = null;
+      talkLandmark(p);
+      return;
+    }
+    dest = walkable(tx, ty) ? { tx: tx, ty: ty } : nearestAdjacent(tx, ty);
+    if (!dest) {
+      talkLandmark(p);
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkLandmark(p);
+      return;
+    }
+    pending = { type: "landmark", prop: p };
+    startWalk(player, path, 3.5);
+  }
+
+  function isShopEntrance(tx, ty) {
+    return currentScene === "overworld" && tx === shopIn.tx && ty === shopIn.ty;
+  }
+
+  function isShopExit(tx, ty) {
+    return currentScene === "shop" && tx === shopOut.tx && ty === shopOut.ty;
+  }
+
+  function shopDoorHit(tx, ty, world) {
+    var hx, hy;
+    if (currentScene !== "overworld") return false;
+    if (tx === shopIn.tx && (ty === shopIn.ty || ty === shopIn.ty - 1)) return true;
+    if ((tx === shopIn.tx - 1 || tx === shopIn.tx + 1) && ty === shopIn.ty) return true;
+    if (!world) return false;
+    hx = 42 * TILE;
+    hy = 22 * TILE - 16;
+    return world.x >= hx + 24 && world.x < hx + 40 && world.y >= hy + 40 && world.y < hy + 64;
+  }
+
+  function enterShop() {
+    applyScene("shop");
+    placePlayer(8, 7, "up");
+    persistSave();
+  }
+
+  function exitShop() {
+    applyScene("overworld");
+    placePlayer(44, 27, "down");
+    persistSave();
+  }
+
+  function goEnterShop() {
+    highlight = { tx: shopIn.tx, ty: shopIn.ty };
+    if (player.tx === shopIn.tx && player.ty === shopIn.ty) {
+      enterShop();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, shopIn.tx, shopIn.ty);
+    if (!path.length) return;
+    pending = { type: "enterShop" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitShop() {
+    highlight = { tx: shopOut.tx, ty: shopOut.ty };
+    if (player.tx === shopOut.tx && player.ty === shopOut.ty) {
+      exitShop();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, shopOut.tx, shopOut.ty);
+    if (!path.length) return;
+    pending = { type: "exitShop" };
+    startWalk(player, path, 3.5);
+  }
+
+  function openShop() {
+    shopOpen = true;
+    shopSel = 0;
+    shopMsg = "";
+    shopMsgT = 0;
+  }
+
+  function closeShop() {
+    shopOpen = false;
+    shopMsg = "";
+  }
+
+  function shopLayout() {
+    var w = 280, h = 158;
+    var x = ((VIEW_W - w) / 2) | 0;
+    var y = 14;
+    return { x: x, y: y, w: w, h: h, listY: y + 22, rowH: 16, buyX: x + 16, buyY: y + 132, buyW: 44, sellX: x + 70, sellW: 88, byeX: x + 220, byeW: 40, btnH: 14 };
+  }
+
+  function buyShopItem(item) {
+    if (item.id === "hat" && hatOwned) {
+      hatOn = !hatOn;
+      persistSave();
+      shopMsg = hatOn ? "YOU PUT IT ON." : "HAT IN THE BAG.";
+      shopMsgT = 1200;
+      return;
+    }
+    if (item.id === "seeds" && extraPlots >= 4) {
+      shopMsg = "GARDEN IS FULL.";
+      shopMsgT = 1200;
+      return;
+    }
+    if (gold < item.price) {
+      shopMsg = "NOT ENOUGH GOLD";
+      shopMsgT = 1400;
+      return;
+    }
+    gold -= item.price;
+    if (item.id === "seeds") {
+      extraPlots += 1;
+      if (sceneCache.overworld && sceneCache.overworld.ground) applyExtraPlots(sceneCache.overworld.ground);
+      if (currentScene === "overworld") applyExtraPlots(GROUND);
+      shopMsg = "MORE GARDEN PLOTS!";
+    } else if (item.id === "flower") {
+      inventory.flower = (inventory.flower || 0) + 1;
+      shopMsg = "A PRETTY FLOWER.";
+    } else if (item.id === "snack") {
+      inventory.snack = (inventory.snack || 0) + 1;
+      shopMsg = "A WARM HONEY BUN.";
+    } else if (item.id === "hat") {
+      hatOwned = true;
+      hatOn = true;
+      shopMsg = "A FINE STRAW HAT.";
+    } else if (item.id === "fence") {
+      inventory.wood += 4;
+      shopMsg = "PLUS 4 WOOD.";
+    } else if (item.id === "path") {
+      inventory.stone += 3;
+      shopMsg = "PLUS 3 STONE.";
+    }
+    shopMsgT = 1400;
+    persistSave();
+  }
+
+  function shopSellCrop() {
+    if (!hasVeggieToSell()) {
+      shopMsg = "NO CARROT TO SELL.";
+      shopMsgT = 1200;
+      return;
+    }
+    sellVeggie();
+    shopMsg = "SOLD FOR " + CROP_PRICE + "G.";
+    shopMsgT = 1400;
+  }
+
+  function tapShop(p) {
+    var L = shopLayout();
+    var i, rowY;
+    if (hitPad(p.x, p.y, L.byeX, L.buyY, L.byeW, L.btnH, 6)) {
+      closeShop();
+      return true;
+    }
+    if (hitPad(p.x, p.y, L.buyX, L.buyY, L.buyW, L.btnH, 6)) {
+      buyShopItem(SHOP_ITEMS[shopSel]);
+      return true;
+    }
+    if (hitPad(p.x, p.y, L.sellX, L.buyY, L.sellW, L.btnH, 6)) {
+      shopSellCrop();
+      return true;
+    }
+    for (i = 0; i < SHOP_ITEMS.length; i++) {
+      rowY = L.listY + i * L.rowH;
+      if (p.x >= L.x + 8 && p.x <= L.x + L.w - 8 && p.y >= rowY && p.y < rowY + L.rowH) {
+        shopSel = i;
+        return true;
+      }
+    }
+    if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h) return true;
+    closeShop();
+    return true;
+  }
+
+  function drawShop(g) {
+    var L, i, item, rowY, price, label, goldLine;
+    if (!shopOpen) return;
+    g.fillStyle = "rgba(20,12,8,0.40)";
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    L = shopLayout();
+    woodPanel(g, L.x, L.y, L.w, L.h);
+    fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
+    woodPanel(g, L.x + 8, L.y - 6, 78, 11);
+    drawText(g, "PIP'S SHOP", L.x + 12, L.y - 3, C.parch);
+    goldLine = (gold | 0) + "G";
+    drawText(g, goldLine, L.x + L.w - textWidth(goldLine) - 10, L.y + 8, C.gold);
+    for (i = 0; i < SHOP_ITEMS.length; i++) {
+      item = SHOP_ITEMS[i];
+      rowY = L.listY + i * L.rowH;
+      if (i === shopSel) fill(g, L.x + 8, rowY, L.w - 16, L.rowH - 1, "#E8C888");
+      Assets.draw(g, item.icon, L.x + 10, rowY - 1);
+      label = item.name;
+      if (item.id === "hat" && hatOwned) label = hatOn ? "HAT  ON" : "HAT  OFF";
+      if (item.id === "seeds" && extraPlots >= 4) label = "GARDEN FULL";
+      drawText(g, label, L.x + 30, rowY + 4, C.uiText);
+      price = (item.id === "hat" && hatOwned) ? "0G" : (item.price + "G");
+      drawText(g, price, L.x + L.w - textWidth(price) - 12, rowY + 4, C.woodSh);
+    }
+    woodPanel(g, L.buyX, L.buyY, L.buyW, L.btnH);
+    drawText(g, "BUY", L.buyX + ((L.buyW - textWidth("BUY")) / 2) | 0, L.buyY + 3, C.parch);
+    woodPanel(g, L.sellX, L.buyY, L.sellW, L.btnH);
+    drawText(g, "SELL 10G", L.sellX + ((L.sellW - textWidth("SELL 10G")) / 2) | 0, L.buyY + 3, C.parch);
+    woodPanel(g, L.byeX, L.buyY, L.byeW, L.btnH);
+    drawText(g, "BYE", L.byeX + ((L.byeW - textWidth("BYE")) / 2) | 0, L.buyY + 3, C.parch);
+    if (shopMsg && shopMsgT > 0) {
+      drawText(g, shopMsg, L.x + 12, L.y + L.h - 20, C.gold);
+    }
+  }
+
+  function tryPlantFlower(tx, ty) {
+    var ch;
+    if (currentScene !== "overworld") return false;
+    if ((inventory.flower || 0) < 1) return false;
+    ch = cell(tx, ty);
+    if (ch !== "g" && ch !== "m") return false;
+    if (propAt(tx, ty)) return false;
+    if (!walkable(tx, ty) && !(player.tx === tx && player.ty === ty)) return false;
+    inventory.flower -= 1;
+    PROPS.push({ kind: "townFlower", tx: tx, ty: ty });
+    builds.push({ kind: "townFlower", tx: tx, ty: ty });
+    persistSave();
+    return true;
+  }
+
+  function eatSnack() {
+    if ((inventory.snack || 0) < 1) return false;
+    inventory.snack -= 1;
+    persistSave();
+    openDialogue("ORION", ["YUM! A HONEY BUN."]);
+    return true;
+  }
+
+  function updateCar(dt) {
+    var next, dest, ni;
+    if (currentScene !== "overworld") return;
+    car.anim += dt;
+    if (car.anim > 160) {
+      car.anim = 0;
+      car.frame = car.frame ? 0 : 1;
+    }
+    if (car.wait > 0) {
+      car.wait -= dt;
+      return;
+    }
+    dest = car.path && car.path.length ? car.path[0] : null;
+    if (dest && (playerOccupies(dest.tx, dest.ty) || folkOccupies(dest.tx, dest.ty))) {
+      car.path = [];
+      car.stepFrom = null;
+      car.stepT = 0;
+      car.x = tileCenterX(car.tx);
+      car.y = tileFootY(car.ty);
+      car.wait = 280;
+      return;
+    }
+    if (dest) {
+      advanceWalk(car, dt);
+      return;
+    }
+    ni = (car.loopI + 1) % CAR_LOOP.length;
+    next = CAR_LOOP[ni];
+    if (playerOccupies(next.tx, next.ty) || folkOccupies(next.tx, next.ty)) {
+      car.wait = 200;
+      return;
+    }
+    car.loopI = ni;
+    applyWalk(car, [{ tx: next.tx, ty: next.ty }], 1.7);
+  }
+
   function tryLeaveWood() {
     if (!(quest.flowerDone && mailRead.mine && !quest.errandDone)) return false;
     if (inventory.wood < 1) return false;
@@ -2754,6 +3398,16 @@
       exitHouse();
       return;
     }
+    if (isShopEntrance(player.tx, player.ty)) {
+      pending = null;
+      enterShop();
+      return;
+    }
+    if (isShopExit(player.tx, player.ty)) {
+      pending = null;
+      exitShop();
+      return;
+    }
     tryPickupHere();
     if (!pending) return;
     var act = pending;
@@ -2799,6 +3453,21 @@
       }
     } else if (act.type === "sleep") {
       beginSleep();
+    } else if (act.type === "talkFolk") {
+      if (act.folk && isNear(player.tx, player.ty, act.folk.tx, act.folk.ty)) talkFolk(act.folk);
+    } else if (act.type === "landmark") {
+      if (act.prop) talkLandmark(act.prop);
+    } else if (act.type === "enterShop") {
+      enterShop();
+    } else if (act.type === "exitShop") {
+      exitShop();
+    } else if (act.type === "shop") {
+      openShop();
+    } else if (act.type === "plantFlower") {
+      if (isNear(player.tx, player.ty, act.tx, act.ty) || (player.tx === act.tx && player.ty === act.ty)) {
+        tryPlantFlower(act.tx, act.ty);
+        faceToward(player, act.tx, act.ty);
+      }
     }
   }
 
@@ -3008,6 +3677,9 @@
     }
     drawShadow(g, player.x, player.y, 5);
     Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
+    if (hatOn) {
+      Assets.draw(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 30 + bob + sy));
+    }
   }
 
   function drawNpc(g) {
@@ -3025,8 +3697,39 @@
     Assets.draw(g, "chicken-" + face, chicken.x, chicken.y + bob + hop, chicken.frame);
   }
 
+  function drawFolk(g, f) {
+    var face = f.face || "down";
+    var sid = f.sprite + "-" + face;
+    if (!Assets.spr[sid]) sid = f.sprite + "-down";
+    drawShadow(g, f.x, f.y, 5);
+    Assets.draw(g, sid, f.x, f.y, f.frame || 0);
+  }
+
+  function drawCarSpr(g) {
+    var face = car.face || "right";
+    var sid = "car-" + face;
+    if (!Assets.spr[sid]) sid = "car-right";
+    drawShadow(g, car.x, car.y, 7);
+    Assets.draw(g, sid, car.x, car.y, car.frame || 0);
+    if (lanternGlowAmt() > 0.12) {
+      var hx = car.x, hy = car.y - 4;
+      if (face === "right") hx += 10;
+      else if (face === "left") hx -= 10;
+      else if (face === "up") hy -= 8;
+      else hy += 4;
+      g.fillStyle = "rgba(240,192,64," + (0.35 + 0.15 * lanternGlowAmt()).toFixed(3) + ")";
+      g.fillRect(Math.round(hx - 3), Math.round(hy - 2), 6, 4);
+    }
+  }
+
   function propFoot(p) {
     if (p.kind === "house") return p.ty * TILE + 64;
+    if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") return p.ty * TILE + 48;
+    if (p.kind === "fountain") return p.ty * TILE + 28;
+    if (p.kind === "statue") return p.ty * TILE + 28;
+    if (p.kind === "counter") return p.ty * TILE + 20;
+    if (p.kind === "shopSign") return p.ty * TILE + 8;
+    if (p.kind === "townFlower") return p.ty * TILE + 12;
     if (p.kind === "bed") return p.ty * TILE + 30;
     if (p.kind === "table") return p.ty * TILE + 20;
     if (p.kind === "rug" || p.kind === "doormat") return p.ty * TILE + 4;
@@ -3048,6 +3751,12 @@
 
   function propBounds(p) {
     if (p.kind === "house") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 80, h: 80 };
+    if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
+      return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 64 };
+    }
+    if (p.kind === "fountain") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
+    if (p.kind === "statue") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
+    if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
     if (p.kind === "bed") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
     if (p.kind === "table") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 32, h: 24 };
     if (p.kind === "rug") return { x: p.tx * TILE, y: p.ty * TILE, w: 48, h: 32 };
@@ -3142,6 +3851,22 @@
         g.fillRect(x - 2, y - 2 + bob, 20, 20);
       }
       Assets.draw(g, p.kind, x, y + bob);
+    } else if (p.kind === "shopHouse") {
+      Assets.draw(g, "shopHouse", x, y);
+    } else if (p.kind === "townHouseA") {
+      Assets.draw(g, "townHouseA", x, y);
+    } else if (p.kind === "townHouseB") {
+      Assets.draw(g, "townHouseB", x, y);
+    } else if (p.kind === "fountain") {
+      Assets.draw(g, "fountain", x, y, ((tick / 400) | 0) % 2);
+    } else if (p.kind === "statue") {
+      Assets.draw(g, "statue", x, y);
+    } else if (p.kind === "shopSign") {
+      Assets.draw(g, "shopSign", x, y);
+    } else if (p.kind === "counter") {
+      Assets.draw(g, "counter", x, y);
+    } else if (p.kind === "townFlower") {
+      Assets.draw(g, "townFlower", x, y);
     }
   }
 
@@ -3157,13 +3882,25 @@
     if (currentScene === "overworld") {
       list.push({ foot: chicken.y, kind: "chicken" });
       list.push({ foot: npc.y, kind: "npc" });
+      list.push({ foot: car.y, kind: "car" });
+      for (i = 0; i < townFolk.length; i++) {
+        list.push({ foot: townFolk[i].y, kind: "folk", f: townFolk[i] });
+      }
+    }
+    if (currentScene === "shop") {
+      list.push({ foot: tileFootY(4), kind: "shopPip" });
     }
     list.sort(function (a, b) { return a.foot - b.foot; });
     for (i = 0; i < list.length; i++) {
       if (list[i].kind === "prop") drawProp(g, list[i].p);
       else if (list[i].kind === "player") drawPlayer(g);
       else if (list[i].kind === "chicken") drawChickenSpr(g);
-      else drawNpc(g);
+      else if (list[i].kind === "car") drawCarSpr(g);
+      else if (list[i].kind === "folk") drawFolk(g, list[i].f);
+      else if (list[i].kind === "shopPip") {
+        drawShadow(g, tileCenterX(8), tileFootY(4), 5);
+        Assets.draw(g, "pip-down", tileCenterX(8), tileFootY(4), 0);
+      } else drawNpc(g);
     }
   }
 
@@ -3535,6 +4272,15 @@
       } else if (i === SLOT_VEGGIE) {
         Assets.draw(g, "veggie", sx + 1, sy + 1);
         count = inventory.veggie;
+      } else if (i === SLOT_FLOWER) {
+        Assets.draw(g, "townFlower", sx + 1, sy + 1);
+        count = inventory.flower;
+      } else if (i === SLOT_SNACK) {
+        Assets.draw(g, "honeybun", sx + 1, sy + 1);
+        count = inventory.snack;
+      } else if (i === SLOT_HAT && hatOwned) {
+        Assets.draw(g, "strawHat", sx + 1, sy + 1);
+        count = hatOn ? 1 : 0;
       } else {
         count = -1;
       }
@@ -3558,7 +4304,7 @@
 
   function drawWorld(g, dt) {
     updateCamera();
-    g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : currentScene === "house" ? (C.woodSh || "#7A3E18") : C.grassMid;
+    g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : C.grassMid;
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -3588,6 +4334,10 @@
           Assets.draw(g, "hill", dx, dy);
         } else if (ch === "k") {
           Assets.draw(g, "path", dx, dy);
+        } else if (ch === "c") {
+          Assets.draw(g, "cobble", dx, dy);
+        } else if (ch === "m") {
+          Assets.draw(g, "meadow", dx, dy);
         } else if (ch === "f") {
           Assets.draw(g, "woodfloor", dx, dy);
         } else if (ch === "#") {
@@ -3641,6 +4391,7 @@
     drawQuestPlaque(g);
     drawToast(g);
     drawWipeAsk(g);
+    drawShop(g);
     drawSleep(g);
   }
 
@@ -3832,7 +4583,14 @@
     var by = VIEW_H - 22;
     if (p.y >= by - 3 && p.y <= by + 18 && p.x >= bx && p.x <= bx + barW) {
       var idx = ((p.x - bx) / (slot + gap)) | 0;
-      if (idx >= 0 && idx < slots) selectedSlot = idx;
+      if (idx >= 0 && idx < slots) {
+        selectedSlot = idx;
+        if (idx === SLOT_SNACK && (inventory.snack || 0) > 0) eatSnack();
+        if (idx === SLOT_HAT && hatOwned) {
+          hatOn = !hatOn;
+          persistSave();
+        }
+      }
       return true;
     }
     if (p.x >= 4 && p.x <= 22 && p.y >= 3 && p.y <= 21) {
@@ -3875,6 +4633,10 @@
       if (!tapJournal(p)) questOpen = false;
       return;
     }
+    if (shopOpen) {
+      tapShop(p);
+      return;
+    }
 
     if (tapHud(p)) return;
 
@@ -3895,6 +4657,20 @@
       if (hitSprite(world, chicken.x, chicken.y, 16, 16, 8, 14)) {
         chicken.react = 420;
         chicken.idle = 500;
+        return;
+      }
+      var fi, f;
+      for (fi = 0; fi < townFolk.length; fi++) {
+        f = townFolk[fi];
+        if (hitSprite(world, f.x, f.y, 16, 32, 8, 28)) {
+          goTalkFolk(f);
+          return;
+        }
+      }
+    }
+    if (currentScene === "shop") {
+      if (hitSprite(world, tileCenterX(8), tileFootY(4), 16, 32, 8, 28)) {
+        openShop();
         return;
       }
     }
@@ -3927,12 +4703,20 @@
       goEnterHouse();
       return;
     }
+    if (shopDoorHit(tx, ty, world) || isShopEntrance(tx, ty)) {
+      goEnterShop();
+      return;
+    }
     if (isMineExit(tx, ty)) {
       goExit();
       return;
     }
     if (isHouseExit(tx, ty) || (currentScene === "house" && tx === houseOut.tx && ty === houseOut.ty + 1)) {
       goExitHouse();
+      return;
+    }
+    if (isShopExit(tx, ty) || (currentScene === "shop" && tx === shopOut.tx && ty === shopOut.ty + 1)) {
+      goExitShop();
       return;
     }
     var hitProp = propAt(tx, ty);
@@ -3953,7 +4737,20 @@
       return;
     }
     if (hitProp && (hitProp.kind === "doormat" || hitProp.kind === "inndoor")) {
-      goExitHouse();
+      if (currentScene === "shop") goExitShop();
+      else goExitHouse();
+      return;
+    }
+    if (currentScene === "shop" && hitProp && (hitProp.kind === "counter" || hitProp.kind === "shopSign")) {
+      openShop();
+      return;
+    }
+    if (currentScene === "overworld" && folkAt(tx, ty)) {
+      goTalkFolk(folkAt(tx, ty));
+      return;
+    }
+    if (currentScene === "overworld" && hitProp && (hitProp.kind === "statue" || hitProp.kind === "fountain" || hitProp.kind === "townHouseA" || hitProp.kind === "townHouseB")) {
+      goLandmark(hitProp);
       return;
     }
     if (hitProp && hitProp.kind === "note") {
@@ -3978,6 +4775,19 @@
     }
     if (selectedSlot === SLOT_SEED && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
       goPlant(tx, ty);
+      return;
+    }
+    if (selectedSlot === SLOT_FLOWER && (inventory.flower || 0) > 0 && (cell(tx, ty) === "g" || cell(tx, ty) === "m")) {
+      highlight = { tx: tx, ty: ty };
+      if (isNear(player.tx, player.ty, tx, ty) || (player.tx === tx && player.ty === ty)) {
+        tryPlantFlower(tx, ty);
+        return;
+      }
+      var fdest = walkable(tx, ty) ? { tx: tx, ty: ty } : nearestAdjacent(tx, ty);
+      if (fdest) {
+        pending = { type: "plantFlower", tx: tx, ty: ty };
+        startWalk(player, findPath(player.tx, player.ty, fdest.tx, fdest.ty), 3.5);
+      }
       return;
     }
     if ((selectedSlot === SLOT_WOOD || selectedSlot === SLOT_STONE) && canBuildOn(tx, ty)) {
@@ -4012,10 +4822,13 @@
         tryKeyboardStep();
       }
       updateChicken(dt);
+      updateTownFolk(dt);
+      updateCar(dt);
       updatePickups(dt);
       updateFx(dt);
       tick += dt;
     }
+    if (shopMsgT > 0) shopMsgT -= dt;
     updateClock(dt);
     updateToasts(dt);
     drawWorld(ctx, dt);

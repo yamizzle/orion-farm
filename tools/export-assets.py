@@ -28,6 +28,8 @@ ATLAS_PNG = ASSETS / "atlas.png"
 ATLAS_JSON = ASSETS / "atlas.json"
 PREVIEW_PATH = ASSETS / "preview.png"
 
+from town_sprites import install as install_town_sprites
+
 
 def parse_color(c):
     if c is None:
@@ -2198,6 +2200,8 @@ def main():
     args = ap.parse_args()
     load_palette()
     builtins = builtin_sprites()
+    install_town_sprites(globals())
+    builtins = builtins + globals().get("TOWN_SPRITES", [])
     sprites = merge_manifest(builtins)
     print("generating sprites (--regen=%s)" % args.regen)
     ensure_pngs(sprites, args.regen)

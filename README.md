@@ -1,6 +1,6 @@
 # Moondrop Mountain
 
-A tiny farm game for Orion. You look down at a spring farm on Moondrop Mountain: walk the fields, plant a seed, talk to a neighbor, watch a chicken wander, step inside the farmhouse, and follow the dirt path north to a mine in the rocky hill.
+A tiny farm game for Orion. You look down at a spring farm on Moondrop Mountain: walk the fields, plant a seed, talk to a neighbor, watch a chicken wander, step inside the farmhouse, follow the dirt path north to a mine, or walk east into a small town.
 
 Art is **original 16-bit 3/4** (2.5D): you see the top of the ground and the front of walls, roofs, crates, and people. It is meant to feel like the same *family* as Stardew Valley. It does **not** copy or trace Stardew sprites, the farmhouse, UI, or characters.
 
@@ -30,6 +30,9 @@ On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Saf
 - The wood clock on the right counts real days. Morning turns to afternoon, evening (warm dusk), then night (a deep blue-purple grade over the farm, with path lanterns and house windows lighting the road; the house stays lamplit). Lanterns stay dark through evening dusk and only come on when night starts. A full day is about two and a half minutes. Time pauses while you read a letter, open stars, watch a new star unlock, and when the tab is hidden.
 - Inside the house, tap the bed to sleep. The room fades, then you wake next to the bed on the next morning. Crops and chopped trees keep growing while you rest. The farm remembers your day, bag, gold, plants, and where you stood if you close the page.
 - The job book has a small **Start over** button. It asks "Really start over?" Tap Yes to wipe the save and reload a fresh farm; tap No to keep playing.
+- Follow the dirt path east from the farm (south of the house) to a small town: cobble streets, a green with a fountain and moon-kid statue, three houses, and Pip's shop. Town houses answer a knock; the shop door opens an interior you can buy from.
+- Town folk: **Pip** keeps the shop, **Lila** waters the green, **Reed** watches the red car. Tap them to talk. The car loops the cobble and waits if you stand in the road.
+- In the shop, spend gold: seed tin 5G (extra garden plots), flower 8G, honey bun 6G, straw hat 25G, fence kit 12G, path kit 8G. Sell a carrot for 10G. Flowers plant on grass or meadow; tap a honey bun to eat it; tap the hat to put it on or take it off.
 
 
 ## Where the art lives
@@ -41,13 +44,14 @@ assets/
   manifest.json     every sprite: id, file, size, frames, anchor, atlas rect
   atlas.png         packed sheet the game loads
   atlas.json        same frame rects (handy for tools)
-  tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall, wood floor, interior wall)
-  props/            house, tree, stump, well, mailbox, mailbox-up, crate, pond, rocks, weeds, fences, cave, lantern, lantern-off, ladder, note, bed, table, rug, window, doormat, door
-  actors/           player, neighbor, chicken (one PNG per facing/frame)
-  ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, star, star badge, sparkle, letter
+  tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall, wood floor, interior wall, cobble, meadow)
+  props/            house, tree, stump, well, mailbox, mailbox-up, crate, pond, rocks, weeds, fences, cave, lantern, lantern-off, ladder, note, bed, table, rug, window, doormat, door, shop, town houses, fountain, statue, counter
+  actors/           player, neighbor, chicken, town folk, car (one PNG per facing/frame)
+  ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, star, star badge, sparkle, letter, flower, honey bun, straw hat
 tools/
   process-generated.py  chroma-key, crop, and scale generated-src into game sizes
   export-assets.py      pack those PNGs into atlas.png (do not use --regen)
+  town_sprites.py       paint town houses, folk, car, shop goods
 ```
 
 The game loads `assets/manifest.json` + `assets/atlas.png`, then draws with `Assets.draw(ctx, id, x, y, frame)`. It does not paint world pixels in the game loop.
