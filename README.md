@@ -14,7 +14,7 @@ On a Chromebook, iPad, or iPhone: open that link in the browser (Safari or Chrom
 
 On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Safari page. Tap **X**, or swipe down from the top, to go back. Add to Home Screen for a chrome-free farm.
 
-- Tap the grass or path to walk there. The camera follows so you stay in the middle until you reach the edge of the mountain.
+- Tap the grass or path to walk there. On a keyboard, hold W A S D or the arrow keys to walk. The camera follows so you stay in the middle until you reach the edge of the mountain.
 - Tap the farmhouse door or the stoop in front of it to go inside. Walk onto the doormat (or tap the inside door) to come back out, just south of the house.
 - The mailbox by the house raises a teal flag and a letter when mail is waiting. Tap it (walk up if you need to) to read a wood-and-parchment letter. After you read it the flag goes down; tap again to re-read. A second letter arrives after the first mine visit. A third letter arrives after you leave wood at Nim's note.
 - The first hotbar slot is a seed packet. Tap an empty brown plot inside the fence to plant a sprout. It grows over a day: sprout, then a young plant, then a ready carrot next morning. Tap a ready crop to pick it.

@@ -347,6 +347,8 @@
   var questOpen = false;
   var sleepFx = null;
   var wipeAsk = false;
+  var kbHeld = [];
+  var kbDrive = false;
   var builds = [];
   var pendingRestore = null;
   var loadingSave = false;
@@ -1186,6 +1188,63 @@
       who.frame = who.frame ? 0 : 1;
     }
     return false;
+  }
+
+  function moveKey(e) {
+    var c = e.code;
+    if (c === "KeyW" || c === "ArrowUp") return { id: c, dx: 0, dy: -1, face: "up" };
+    if (c === "KeyS" || c === "ArrowDown") return { id: c, dx: 0, dy: 1, face: "down" };
+    if (c === "KeyA" || c === "ArrowLeft") return { id: c, dx: -1, dy: 0, face: "left" };
+    if (c === "KeyD" || c === "ArrowRight") return { id: c, dx: 1, dy: 0, face: "right" };
+    var k = e.key;
+    if (k === "w" || k === "W") return { id: "KeyW", dx: 0, dy: -1, face: "up" };
+    if (k === "s" || k === "S") return { id: "KeyS", dx: 0, dy: 1, face: "down" };
+    if (k === "a" || k === "A") return { id: "KeyA", dx: -1, dy: 0, face: "left" };
+    if (k === "d" || k === "D") return { id: "KeyD", dx: 1, dy: 0, face: "right" };
+    return null;
+  }
+
+  function kbDir() {
+    if (!kbHeld.length) return null;
+    return kbHeld[kbHeld.length - 1];
+  }
+
+  function dropMoveKey(id) {
+    var i, next = [];
+    for (i = 0; i < kbHeld.length; i++) {
+      if (kbHeld[i].id !== id) next.push(kbHeld[i]);
+    }
+    kbHeld = next;
+  }
+
+  function clearMoveKeys() {
+    kbHeld = [];
+  }
+
+  function takeKeyboard() {
+    kbDrive = true;
+    pending = null;
+    player.queuedWalk = null;
+    cancelHit();
+    if (player.path && player.path.length > 1) player.path = [player.path[0]];
+    if (uiPaused()) return;
+    tryKeyboardStep();
+  }
+
+  function tryKeyboardStep() {
+    var dir, nx, ny;
+    if (uiPaused() || player.hitting) return;
+    if (midStep(player) || (player.path && player.path.length)) return;
+    dir = kbDir();
+    if (!dir) return;
+    kbDrive = true;
+    pending = null;
+    player.queuedWalk = null;
+    nx = player.tx + dir.dx;
+    ny = player.ty + dir.dy;
+    player.face = dir.face;
+    if (!walkable(nx, ny)) return;
+    applyWalk(player, [{ tx: nx, ty: ny }], 3.5);
   }
 
   function isNear(ax, ay, bx, by) {
@@ -2104,8 +2163,12 @@
     return "SPRING · " + phase;
   }
 
+  function uiPaused() {
+    return !!(dialogue || achieveOpen || questOpen || sleepFx || wipeAsk || toast);
+  }
+
   function timePaused() {
-    return !!(dialogue || achieveOpen || questOpen || document.hidden || sleepFx || wipeAsk || toast);
+    return !!(uiPaused() || document.hidden);
   }
 
   function updateClock(dt) {
@@ -3809,6 +3872,7 @@
 
     if (tapHud(p)) return;
 
+    kbDrive = false;
     var world = { x: p.x + camX, y: p.y + camY };
     var tx = Math.floor(world.x / TILE);
     var ty = Math.floor(world.y / TILE);
@@ -3929,13 +3993,17 @@
     lastTs = ts;
     ctx.imageSmoothingEnabled = false;
     updateSleep(dt);
-    if (!dialogue && !achieveOpen && !questOpen && !sleepFx && !wipeAsk && !toast) {
+    if (!uiPaused()) {
       if (player.hitting) {
         updateHit(dt);
       } else if (player.moving || (player.path && player.path.length)) {
-        if (advanceWalk(player, dt)) arrive();
-      } else if (player.swing > 0) {
-        player.swing -= dt;
+        if (advanceWalk(player, dt)) {
+          arrive();
+          tryKeyboardStep();
+        }
+      } else {
+        if (player.swing > 0) player.swing -= dt;
+        tryKeyboardStep();
       }
       updateChicken(dt);
       updatePickups(dt);
@@ -3992,11 +4060,27 @@
     });
   }
   document.addEventListener("keydown", function (e) {
+    var mk = moveKey(e);
+    if (mk) {
+      e.preventDefault();
+      if (e.repeat) return;
+      dropMoveKey(mk.id);
+      kbHeld.push(mk);
+      takeKeyboard();
+      return;
+    }
     if ((e.key === "Escape" || e.key === "Esc") && fillMode) {
       e.preventDefault();
       leaveFill();
     }
   });
+  document.addEventListener("keyup", function (e) {
+    var mk = moveKey(e);
+    if (!mk) return;
+    e.preventDefault();
+    dropMoveKey(mk.id);
+  });
+  window.addEventListener("blur", clearMoveKeys);
   document.addEventListener("touchstart", function (e) {
     if (!fillMode || !e.touches || !e.touches[0]) return;
     swipeStartY = e.touches[0].clientY < 56 ? e.touches[0].clientY : null;
@@ -4008,7 +4092,10 @@
     if (dy > 70) leaveFill();
   }, { passive: true });
   document.addEventListener("visibilitychange", function () {
-    if (document.hidden) persistSave();
+    if (document.hidden) {
+      persistSave();
+      clearMoveKeys();
+    }
   });
   window.addEventListener("pagehide", persistSave);
   canvas.addEventListener("pointerdown", tap, { passive: true });
