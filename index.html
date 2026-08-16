@@ -208,12 +208,18 @@
   var swipeStartY = null;
   var assets = {};
 
+  function bustUrl(url) {
+    var m = /(?:\?|&)v=([^&]*)/.exec(location.search || "");
+    if (!m) return url;
+    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + encodeURIComponent(m[1]);
+  }
+
   function loadImage(src) {
     return new Promise(function (resolve, reject) {
       var img = new Image();
       img.onload = function () { resolve(img); };
       img.onerror = function () { reject(new Error("image " + src)); };
-      img.src = src;
+      img.src = bustUrl(src);
     });
   }
 
@@ -222,7 +228,7 @@
     spr: {},
     ready: false,
     load: function () {
-      return fetch("assets/manifest.json").then(function (r) {
+      return fetch(bustUrl("assets/manifest.json")).then(function (r) {
         if (!r.ok) throw new Error("manifest " + r.status);
         return r.json();
       }).then(function (meta) {
@@ -305,6 +311,7 @@
   var houseIn = { tx: 17, ty: 29 };
   var houseOut = { tx: 10, ty: 10 };
   var SAVE_KEY = "moondrop-mountain-v1";
+  var SAVE_VER = 2;
   var DAY_MS = 150000;
   var PHASES = ["MORNING", "AFTERNOON", "EVENING", "NIGHT"];
   var PHASE_MS = DAY_MS / PHASES.length;
@@ -335,6 +342,11 @@
   var toastQueue = [];
   var achieveOpen = false;
   var questOpen = false;
+  var sleepFx = null;
+  var wipeAsk = false;
+  var builds = [];
+  var pendingRestore = null;
+  var loadingSave = false;
   var mailRead = { welcome: false, mine: false, thanks: false };
   var quest = {
     flowerAsked: false,
@@ -886,6 +898,7 @@
       GROUND = buildOverworldGround();
       PROPS = buildOverworldProps();
     }
+    if (fresh && name === "overworld") applyBuildsTo(GROUND, PROPS);
     if (fresh && name !== "house") applyHarvestState(name, PROPS);
     buildSolid();
   }
@@ -1358,12 +1371,11 @@
   function addItem(kind, amount) {
     if (kind === "wood") inventory.wood += amount;
     else if (kind === "stone") inventory.stone += amount;
-    else if (kind === "veggie") {
-      inventory.veggie = (inventory.veggie || 0) + amount;
-      persistSave();
-    } else if (kind === "copper" || kind === "mushroom" || kind === "moonshard") {
+    else if (kind === "veggie") inventory.veggie = (inventory.veggie || 0) + amount;
+    else if (kind === "copper" || kind === "mushroom" || kind === "moonshard") {
       inventory[kind] = (inventory[kind] || 0) + amount;
     }
+    persistSave();
   }
 
   function flushPickups() {
@@ -1508,12 +1520,16 @@
     }
     if (placingFence) {
       inventory.wood -= FENCE_COST;
-      PROPS.push({ kind: fenceKindFor(tx, ty), tx: tx, ty: ty });
+      var fk = fenceKindFor(tx, ty);
+      PROPS.push({ kind: fk, tx: tx, ty: ty });
+      builds.push({ kind: fk, tx: tx, ty: ty });
       buildSolid();
     } else {
       inventory.stone -= PATH_COST;
       setCell(tx, ty, "k");
+      builds.push({ kind: "path", tx: tx, ty: ty });
     }
+    persistSave();
     return true;
   }
 
@@ -1581,17 +1597,37 @@
     updateCamera();
   }
 
+  function clampCount(n) {
+    n = n | 0;
+    if (n < 0) return 0;
+    if (n > 999) return 999;
+    return n;
+  }
+
+  function readFace(v) {
+    if (v === "up" || v === "left" || v === "right" || v === "down") return v;
+    return "down";
+  }
+
   function loadSave() {
+    loadingSave = true;
     try {
       var raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return;
+      if (!raw) {
+        loadingSave = false;
+        return;
+      }
       var data = JSON.parse(raw);
+      if (!data || typeof data !== "object") {
+        loadingSave = false;
+        return;
+      }
       if (data.found) {
         found.copper = !!data.found.copper;
         found.mushroom = !!data.found.mushroom;
         found.moonshard = !!data.found.moonshard;
       }
-      if (data.unlocked) unlocked = data.unlocked;
+      if (data.unlocked && typeof data.unlocked === "object") unlocked = data.unlocked;
       introSeen = !!data.introSeen;
       outroSeen = !!data.outroSeen;
       if (data.mailRead) {
@@ -1605,9 +1641,6 @@
         quest.errandDone = !!data.quest.errandDone;
         quest.homeDone = !!data.quest.homeDone;
       }
-      if (found.copper) inventory.copper = 1;
-      if (found.mushroom && !quest.flowerDone) inventory.mushroom = 1;
-      if (found.moonshard) inventory.moonshard = 1;
       if (data.day >= 1) dayNumber = data.day | 0;
       if (typeof data.dayMs === "number" && data.dayMs >= 0) {
         dayMs = data.dayMs;
@@ -1618,8 +1651,20 @@
         dayMs -= DAY_MS;
         dayNumber += 1;
       }
-      if (typeof data.gold === "number" && data.gold > 0) gold = data.gold | 0;
-      if (typeof data.veggie === "number" && data.veggie > 0) inventory.veggie = data.veggie | 0;
+      if (typeof data.gold === "number" && data.gold >= 0) gold = data.gold | 0;
+      if (data.inventory && typeof data.inventory === "object") {
+        inventory.wood = clampCount(data.inventory.wood);
+        inventory.stone = clampCount(data.inventory.stone);
+        inventory.copper = clampCount(data.inventory.copper);
+        inventory.mushroom = clampCount(data.inventory.mushroom);
+        inventory.moonshard = clampCount(data.inventory.moonshard);
+        inventory.veggie = clampCount(data.inventory.veggie);
+      } else {
+        if (typeof data.veggie === "number" && data.veggie > 0) inventory.veggie = clampCount(data.veggie);
+        if (found.copper) inventory.copper = 1;
+        if (found.mushroom && !quest.flowerDone) inventory.mushroom = 1;
+        if (found.moonshard) inventory.moonshard = 1;
+      }
       if (data.crops && typeof data.crops === "object") {
         var ck, cv, stage, plantTime;
         crops = {};
@@ -1654,8 +1699,30 @@
           };
         }
       }
+      builds = [];
+      if (data.builds && typeof data.builds === "object") {
+        var src = Array.isArray(data.builds) ? data.builds : [];
+        var bi, item, bk;
+        for (bi = 0; bi < src.length; bi++) {
+          item = src[bi];
+          if (!item || typeof item !== "object") continue;
+          bk = item.kind;
+          if (bk !== "path" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR") continue;
+          builds.push({ kind: bk, tx: item.tx | 0, ty: item.ty | 0 });
+        }
+      }
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "overworld" ||
+          (data.player && typeof data.player === "object")) {
+        pendingRestore = {
+          scene: (data.scene === "mine" || data.scene === "house") ? data.scene : "overworld",
+          tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
+          ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
+          face: data.player ? readFace(data.player.face) : "down"
+        };
+      }
       updateCrops();
     } catch (err) {}
+    loadingSave = false;
   }
 
   function serializeNodes() {
@@ -1699,11 +1766,12 @@
   }
 
   function persistSave() {
-    if (persistSave.busy) return;
+    if (loadingSave || persistSave.busy) return;
     persistSave.busy = true;
     try {
       flushPickups();
       localStorage.setItem(SAVE_KEY, JSON.stringify({
+        v: SAVE_VER,
         found: found,
         unlocked: unlocked,
         introSeen: introSeen,
@@ -1715,11 +1783,294 @@
         phase: clockPhase(),
         gold: gold,
         veggie: inventory.veggie || 0,
+        inventory: {
+          wood: inventory.wood | 0,
+          stone: inventory.stone | 0,
+          copper: inventory.copper | 0,
+          mushroom: inventory.mushroom | 0,
+          moonshard: inventory.moonshard | 0,
+          veggie: inventory.veggie | 0
+        },
         crops: crops,
-        nodes: serializeNodes()
+        nodes: serializeNodes(),
+        scene: currentScene,
+        player: { tx: player.tx | 0, ty: player.ty | 0, face: player.face || "down" },
+        builds: builds
       }));
     } catch (err) {}
     persistSave.busy = false;
+  }
+
+  function applyBuildsTo(ground, props) {
+    var i, b, j, exists;
+    if (!builds || !builds.length || !ground || !props) return;
+    for (i = 0; i < builds.length; i++) {
+      b = builds[i];
+      if (!b) continue;
+      if (b.ty < 0 || b.ty >= ground.length || !ground[b.ty]) continue;
+      if (b.tx < 0 || b.tx >= ground[b.ty].length) continue;
+      if (b.kind === "path") {
+        if (ground[b.ty][b.tx] === "g" || ground[b.ty][b.tx] === "d" || ground[b.ty][b.tx] === "h" || ground[b.ty][b.tx] === "k") {
+          ground[b.ty][b.tx] = "k";
+        }
+      } else if (b.kind === "fenceH" || b.kind === "fenceL" || b.kind === "fenceR") {
+        exists = false;
+        for (j = 0; j < props.length; j++) {
+          if (props[j].tx === b.tx && props[j].ty === b.ty && isFenceKind(props[j].kind)) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) props.push({ kind: b.kind, tx: b.tx, ty: b.ty });
+      }
+    }
+  }
+
+  function applyRestore() {
+    var scene, tx, ty, face;
+    if (!pendingRestore) return;
+    scene = pendingRestore.scene || "overworld";
+    if (scene !== currentScene) applyScene(scene);
+    tx = pendingRestore.tx;
+    ty = pendingRestore.ty;
+    face = pendingRestore.face || "down";
+    if (!inBounds(tx, ty) || !walkable(tx, ty)) {
+      if (scene === "house") { tx = 10; ty = 9; face = "up"; }
+      else if (scene === "mine") { tx = 16; ty = 19; face = "up"; }
+      else { tx = 16; ty = 30; face = "down"; }
+    }
+    placePlayer(tx, ty, face);
+    pendingRestore = null;
+  }
+
+  function findBed() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "bed") return p;
+    }
+    return null;
+  }
+
+  function nearBed() {
+    var bed = findBed();
+    var x, y;
+    if (!bed) return false;
+    for (y = 0; y < 2; y++) {
+      for (x = 0; x < 2; x++) {
+        if (isNear(player.tx, player.ty, bed.tx + x, bed.ty + y)) return true;
+        if (player.tx === bed.tx + x && player.ty === bed.ty + y) return true;
+      }
+    }
+    return false;
+  }
+
+  function bedHit(tx, ty, world) {
+    var bed, b;
+    if (currentScene !== "house") return false;
+    bed = findBed();
+    if (!bed) return false;
+    if (propOccupies(bed, tx, ty)) return true;
+    if (!world) return false;
+    b = propBounds(bed);
+    return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
+  }
+
+  function sleepWakeSpot() {
+    var bed = findBed();
+    var spots, i, s;
+    if (!bed) return { tx: 4, ty: 3 };
+    spots = [
+      { tx: bed.tx, ty: bed.ty + 2 },
+      { tx: bed.tx + 1, ty: bed.ty + 2 },
+      { tx: bed.tx + 2, ty: bed.ty + 1 },
+      { tx: bed.tx + 2, ty: bed.ty },
+      { tx: bed.tx - 1, ty: bed.ty + 1 },
+      { tx: bed.tx - 1, ty: bed.ty }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      s = spots[i];
+      if (inBounds(s.tx, s.ty) && walkable(s.tx, s.ty)) return s;
+    }
+    return nearestAdjacent(bed.tx, bed.ty + 1) || { tx: 4, ty: 3 };
+  }
+
+  function finishSleepAdvance() {
+    var spot;
+    dayNumber += 1;
+    dayMs = 0;
+    spot = sleepWakeSpot();
+    placePlayer(spot.tx, spot.ty, "up");
+    updateCrops();
+    updateHarvestNodes();
+    persistSave();
+  }
+
+  function beginSleep() {
+    if (sleepFx || currentScene !== "house") return;
+    dialogue = null;
+    pending = null;
+    highlight = null;
+    cancelHit();
+    player.path = [];
+    player.queuedWalk = null;
+    player.moving = false;
+    player.stepT = 0;
+    player.frame = 0;
+    sleepFx = { age: 0, stage: "out" };
+  }
+
+  function goSleep() {
+    var bed, dest, path, x, y, best, d, cand;
+    if (currentScene !== "house" || sleepFx) return;
+    bed = findBed();
+    highlight = bed ? { tx: bed.tx, ty: bed.ty } : null;
+    if (!bed || nearBed()) {
+      pending = null;
+      beginSleep();
+      return;
+    }
+    best = null;
+    d = 999;
+    for (y = 0; y < 2; y++) {
+      for (x = 0; x < 2; x++) {
+        cand = nearestAdjacent(bed.tx + x, bed.ty + y);
+        if (!cand) continue;
+        if (Math.abs(cand.tx - player.tx) + Math.abs(cand.ty - player.ty) < d) {
+          d = Math.abs(cand.tx - player.tx) + Math.abs(cand.ty - player.ty);
+          best = cand;
+        }
+      }
+    }
+    dest = best;
+    if (!dest) {
+      beginSleep();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      beginSleep();
+      return;
+    }
+    pending = { type: "sleep" };
+    startWalk(player, path, 3.5);
+  }
+
+  function updateSleep(dt) {
+    if (!sleepFx) return;
+    sleepFx.age += dt;
+    if (sleepFx.stage === "out") {
+      if (sleepFx.age >= 420) {
+        sleepFx.stage = "hold";
+        sleepFx.age = 0;
+        finishSleepAdvance();
+      }
+    } else if (sleepFx.stage === "hold") {
+      if (sleepFx.age >= 700) {
+        sleepFx.stage = "in";
+        sleepFx.age = 0;
+      }
+    } else if (sleepFx.age >= 480) {
+      sleepFx = null;
+    }
+  }
+
+  function drawSleep(g) {
+    var a, msg, tw, x, fade;
+    if (!sleepFx) return;
+    if (sleepFx.stage === "out") a = sleepFx.age / 420;
+    else if (sleepFx.stage === "hold") a = 1;
+    else a = 1 - sleepFx.age / 480;
+    if (a < 0) a = 0;
+    if (a > 1) a = 1;
+    g.fillStyle = "rgba(18,10,8," + a.toFixed(3) + ")";
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    if (a > 0.45) {
+      fade = sleepFx.stage === "hold" ? 1 : (sleepFx.stage === "out" ? (a - 0.45) / 0.55 : a);
+      if (fade < 0) fade = 0;
+      if (fade > 1) fade = 1;
+      msg = "YOU SLEEP...";
+      tw = textWidth(msg);
+      x = ((VIEW_W - tw - 24) / 2) | 0;
+      g.save();
+      g.globalAlpha = fade;
+      woodPanel(g, x, 84, tw + 24, 22);
+      drawText(g, msg, x + 12, 91, C.parch);
+      g.restore();
+    }
+  }
+
+  function journalLayout() {
+    var line = questHint();
+    var w = textWidth(line) + 20;
+    if (w < 196) w = 196;
+    if (w > 300) w = 300;
+    var x = ((VIEW_W - w) / 2) | 0;
+    var y = 28;
+    var h = 52;
+    var btnW = 88;
+    var btnH = 14;
+    var btnX = x + ((w - btnW) / 2) | 0;
+    var btnY = y + 32;
+    return { x: x, y: y, w: w, h: h, line: line, btnX: btnX, btnY: btnY, btnW: btnW, btnH: btnH };
+  }
+
+  function wipeLayout() {
+    var w = 208, h = 62;
+    var x = ((VIEW_W - w) / 2) | 0;
+    var y = 60;
+    var yesW = 44, noW = 36, bh = 16;
+    var yesX = x + 28;
+    var noX = x + w - 28 - noW;
+    var by = y + 36;
+    return { x: x, y: y, w: w, h: h, yesX: yesX, noX: noX, by: by, yesW: yesW, noW: noW, bh: bh };
+  }
+
+  function hitPad(px, py, x, y, w, h, pad) {
+    return px >= x - pad && px < x + w + pad && py >= y - pad && py < y + h + pad;
+  }
+
+  function wipeAndReload() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (err) {}
+    var path = location.pathname || "/";
+    location.href = path + "?v=" + Date.now();
+  }
+
+  function tapWipeAsk(p) {
+    var L = wipeLayout();
+    if (hitPad(p.x, p.y, L.yesX, L.by, L.yesW, L.bh, 6)) {
+      wipeAndReload();
+      return;
+    }
+    if (hitPad(p.x, p.y, L.noX, L.by, L.noW, L.bh, 6)) {
+      wipeAsk = false;
+    }
+  }
+
+  function tapJournal(p) {
+    var L = journalLayout();
+    if (hitPad(p.x, p.y, L.btnX, L.btnY, L.btnW, L.btnH, 6)) {
+      wipeAsk = true;
+      return true;
+    }
+    return false;
+  }
+
+  function drawWipeAsk(g) {
+    var L, yes, no;
+    if (!wipeAsk) return;
+    g.fillStyle = "rgba(20,12,8,0.45)";
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    L = wipeLayout();
+    woodPanel(g, L.x, L.y, L.w, L.h);
+    fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
+    drawText(g, "REALLY START OVER?", L.x + 16, L.y + 12, C.uiText);
+    woodPanel(g, L.yesX, L.by, L.yesW, L.bh);
+    woodPanel(g, L.noX, L.by, L.noW, L.bh);
+    yes = "YES";
+    no = "NO";
+    drawText(g, yes, L.yesX + ((L.yesW - textWidth(yes)) / 2) | 0, L.by + 4, C.parch);
+    drawText(g, no, L.noX + ((L.noW - textWidth(no)) / 2) | 0, L.by + 4, C.parch);
   }
 
   function clockPhase() {
@@ -1741,7 +2092,7 @@
   }
 
   function timePaused() {
-    return !!(dialogue || achieveOpen || questOpen || document.hidden);
+    return !!(dialogue || achieveOpen || questOpen || document.hidden || sleepFx || wipeAsk);
   }
 
   function updateClock(dt) {
@@ -2124,12 +2475,15 @@
       introSeen = true;
       persistSave();
       openDialogue("NIM'S NOTE", NOTE_OPEN);
+    } else {
+      persistSave();
     }
   }
 
   function exitMine() {
     applyScene("overworld");
     placePlayer(37, 7, "down");
+    persistSave();
   }
 
   function enterHouse() {
@@ -2140,12 +2494,15 @@
       persistSave();
       unlockAch("homeGlow");
       openDialogue("ORION", ["THE SHARD GLOWS.", "I AM HOME."]);
+    } else {
+      persistSave();
     }
   }
 
   function exitHouse() {
     applyScene("overworld");
     placePlayer(17, 30, "down");
+    persistSave();
   }
 
   function arrive() {
@@ -2212,6 +2569,8 @@
         faceToward(player, act.tx, act.ty);
         tryBuild(act.tx, act.ty);
       }
+    } else if (act.type === "sleep") {
+      beginSleep();
     }
   }
 
@@ -2675,18 +3034,17 @@
   }
 
   function drawQuestPlaque(g) {
+    var L, label;
     if (!questOpen) return;
-    var line = questHint();
-    var w = textWidth(line) + 20;
-    if (w < 168) w = 168;
-    if (w > 300) w = 300;
-    var x = ((VIEW_W - w) / 2) | 0;
-    var y = 28;
-    woodPanel(g, x, y, w, 28);
-    fill(g, x + 3, y + 3, w - 6, 22, C.parch);
-    woodPanel(g, x + 8, y - 6, 38, 11);
-    drawText(g, "JOB", x + 14, y - 3, C.parch);
-    drawText(g, line, x + 10, y + 11, C.uiText);
+    L = journalLayout();
+    woodPanel(g, L.x, L.y, L.w, L.h);
+    fill(g, L.x + 3, L.y + 3, L.w - 6, L.h - 6, C.parch);
+    woodPanel(g, L.x + 8, L.y - 6, 38, 11);
+    drawText(g, "JOB", L.x + 14, L.y - 3, C.parch);
+    drawText(g, L.line, L.x + 10, L.y + 11, C.uiText);
+    woodPanel(g, L.btnX, L.btnY, L.btnW, L.btnH);
+    label = "START OVER";
+    drawText(g, label, L.btnX + ((L.btnW - textWidth(label)) / 2) | 0, L.btnY + 3, C.parch);
   }
 
   function hitSprite(p, x, y, w, h, ox, oy) {
@@ -2947,6 +3305,8 @@
     drawDialogue(g);
     drawAchieveList(g);
     drawQuestPlaque(g);
+    drawWipeAsk(g);
+    drawSleep(g);
   }
 
   function readInset(name) {
@@ -3163,12 +3523,17 @@
       dialogue = null;
       return;
     }
+    if (wipeAsk) {
+      tapWipeAsk(p);
+      return;
+    }
+    if (sleepFx) return;
     if (achieveOpen) {
       achieveOpen = false;
       return;
     }
     if (questOpen) {
-      questOpen = false;
+      if (!tapJournal(p)) questOpen = false;
       return;
     }
 
@@ -3243,6 +3608,10 @@
         }
       }
     }
+    if (currentScene === "house" && (bedHit(tx, ty, world) || (hitProp && hitProp.kind === "bed"))) {
+      goSleep();
+      return;
+    }
     if (hitProp && (hitProp.kind === "doormat" || hitProp.kind === "inndoor")) {
       goExitHouse();
       return;
@@ -3289,7 +3658,8 @@
     if (dt > 64) dt = 64;
     lastTs = ts;
     ctx.imageSmoothingEnabled = false;
-    if (!dialogue && !achieveOpen && !questOpen) {
+    updateSleep(dt);
+    if (!dialogue && !achieveOpen && !questOpen && !sleepFx && !wipeAsk) {
       if (player.hitting) {
         updateHit(dt);
       } else if (player.moving || (player.path && player.path.length)) {
@@ -3326,6 +3696,8 @@
   paintLoading();
   loadSave();
   applyScene("overworld");
+  applyRestore();
+  persistSave();
   updateCamera();
   paintFsFace();
   if (isStandalone()) enterFill();

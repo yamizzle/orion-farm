@@ -28,6 +28,8 @@ On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Saf
 - A wood book next to the star is your job list. Tap it for one line, like BRING A MUSHROOM TO THE NEIGHBOR.
 - Jobs: bring the neighbor a cave mushroom, leave wood at Nim's note after you read the mine letter, then take a moon shard inside the house.
 - The wood clock on the right counts real days. Morning turns to afternoon, evening, then night (a cool blue over the farm; the house stays lamplit). A full day is about two and a half minutes. Time pauses while you read a letter or open stars, and when the tab is hidden.
+- Inside the house, tap the bed to sleep. The room fades, then you wake next to the bed on the next morning. Crops and chopped trees keep growing while you rest. The farm remembers your day, bag, gold, plants, and where you stood if you close the page.
+- The job book has a small **Start over** button. It asks "Really start over?" Tap Yes to wipe the save and reload a fresh farm; tap No to keep playing.
 
 
 ## Where the art lives
