@@ -18,7 +18,7 @@ On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Saf
 - Tap the farmhouse door or the stoop in front of it to go inside. Walk onto the doormat (or tap the inside door) to come back out, just south of the house.
 - The mailbox by the house raises a teal flag and a letter when mail is waiting. Tap it (walk up if you need to) to read a wood-and-parchment letter. After you read it the flag goes down; tap again to re-read. A second letter arrives after the first mine visit. A third letter arrives after you leave wood at Nim's note.
 - The first hotbar slot is a seed packet. Tap an empty brown plot inside the fence to plant a sprout. It grows over a day: sprout, then a young plant, then a ready carrot next morning. Tap a ready crop to pick it.
-- Tap a tree or a rock (outside or in the mine). Walk up, face it, and hit it three times. Trees leave a stump and give **wood**; rocks give **stone**.
+- Tap a tree or a rock (outside or in the mine). Walk up, face it, and hit it three times. Trees leave a stump and give **wood**; rocks give **stone**. A chopped stump grows back into a tree after about a day, and a smashed rock comes back too — unless you built a fence or path on that tile, or you are standing there.
 - Wood is the second hotbar slot (2 wood = one fence). Stone is the third (1 stone = one path). Tap the slot, then tap empty grass or dirt to build. Fences block walking; paths do not.
 - Tap the neighbor in the straw hat. They have a small job for you. If you have a carrot, they buy it for 10G and say thanks. Gold shows on the clock plaque. Tap again to close the box.
 - A chicken wanders the farm grass. Tap it and it hops.
