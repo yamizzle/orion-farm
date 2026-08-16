@@ -344,19 +344,19 @@
   var CROP_READY_MS = DAY_MS;
   var NODE_RESPAWN_MS = DAY_MS;
   var harvestNodes = {};
-  var SKY_TINTS = [
-    { at: 0.00, r: 255, g: 214, b: 170, a: 0.20 },
-    { at: 0.18, r: 255, g: 236, b: 210, a: 0.10 },
-    { at: 0.28, r: 255, g: 255, b: 255, a: 0.00 },
-    { at: 0.48, r: 255, g: 255, b: 255, a: 0.00 },
-    { at: 0.52, r: 255, g: 186, b: 88, a: 0.26 },
-    { at: 0.62, r: 232, g: 118, b: 64, a: 0.36 },
-    { at: 0.70, r: 150, g: 72, b: 96, a: 0.42 },
-    { at: 0.748, r: 88, g: 44, b: 86, a: 0.50 },
-    { at: 0.75, r: 24, g: 14, b: 80, a: 0.84 },
-    { at: 0.86, r: 18, g: 10, b: 68, a: 0.88 },
-    { at: 0.96, r: 22, g: 12, b: 72, a: 0.82 },
-    { at: 1.00, r: 255, g: 214, b: 170, a: 0.20 }
+  var GRADE_KEYS = [
+    { at: 0.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 },
+    { at: 0.18, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 236, colorB: 210, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.10, mulR: 255, mulG: 236, mulB: 210 },
+    { at: 0.28, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 255, colorB: 255, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.00, mulR: 255, mulG: 255, mulB: 255 },
+    { at: 0.48, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 255, colorB: 255, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.00, mulR: 255, mulG: 255, mulB: 255 },
+    { at: 0.50, sat: 0.06, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.38, colorR: 240, colorG: 148, colorB: 64, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.16, mulR: 232, mulG: 140, mulB: 64 },
+    { at: 0.58, sat: 0.08, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.50, colorR: 232, colorG: 118, colorB: 52, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.24, mulR: 204, mulG: 96, mulB: 48 },
+    { at: 0.66, sat: 0.14, hueA: 0.00, hueR: 80, hueG: 56, hueB: 140, colorA: 0.56, colorR: 186, colorG: 78, colorB: 108, ovA: 0.06, ovR: 80, ovG: 32, ovB: 72, mulA: 0.32, mulR: 120, mulG: 52, mulB: 88 },
+    { at: 0.748, sat: 0.20, hueA: 0.12, hueR: 100, hueG: 56, hueB: 150, colorA: 0.62, colorR: 132, colorG: 60, colorB: 138, ovA: 0.10, ovR: 48, ovG: 24, ovB: 80, mulA: 0.40, mulR: 76, mulG: 36, mulB: 96 },
+    { at: 0.75, sat: 0.22, hueA: 1.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.20, colorR: 52, colorG: 84, colorB: 168, ovA: 0.16, ovR: 16, ovG: 12, ovB: 48, mulA: 0.50, mulR: 26, mulG: 20, mulB: 64 },
+    { at: 0.86, sat: 0.24, hueA: 1.00, hueR: 42, hueG: 72, hueB: 180, colorA: 0.22, colorR: 48, colorG: 80, colorB: 164, ovA: 0.18, ovR: 14, ovG: 10, ovB: 44, mulA: 0.52, mulR: 24, mulG: 18, mulB: 60 },
+    { at: 0.96, sat: 0.20, hueA: 0.90, hueR: 50, hueG: 80, hueB: 176, colorA: 0.18, colorR: 56, colorG: 88, colorB: 160, ovA: 0.12, ovR: 18, ovG: 14, ovB: 52, mulA: 0.46, mulR: 28, mulG: 22, mulB: 68 },
+    { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
   var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false };
   var introSeen = false;
@@ -2694,28 +2694,32 @@
     updateHarvestNodes();
   }
 
-  function sampleTint(keys, t) {
-    var i, lo, hi, u;
+  function sampleKeys(keys, t) {
+    var i, lo, hi, u, k, out;
     if (t <= keys[0].at) return keys[0];
     for (i = 1; i < keys.length; i++) {
       if (t <= keys[i].at) {
         lo = keys[i - 1];
         hi = keys[i];
         u = (t - lo.at) / (hi.at - lo.at);
-        return {
-          r: lo.r + (hi.r - lo.r) * u,
-          g: lo.g + (hi.g - lo.g) * u,
-          b: lo.b + (hi.b - lo.b) * u,
-          a: lo.a + (hi.a - lo.a) * u
-        };
+        out = { at: t };
+        for (k in lo) {
+          if (Object.prototype.hasOwnProperty.call(lo, k) && k !== "at") {
+            out[k] = lo[k] + (hi[k] - lo[k]) * u;
+          }
+        }
+        return out;
       }
     }
     return keys[keys.length - 1];
   }
 
+  function currentGrade() {
+    return sampleKeys(GRADE_KEYS, dayMs / DAY_MS);
+  }
+
   function currentTint() {
     var t = dayMs / DAY_MS;
-    var tint = sampleTint(SKY_TINTS, t);
     if (currentScene === "house" || currentScene === "shop") {
       if (t >= 0.72) return { r: 255, g: 200, b: 130, a: 0.24 };
       if (t >= 0.56) return { r: 255, g: 196, b: 140, a: 0.16 };
@@ -2726,7 +2730,7 @@
       if (mineFloor === 2) return { r: 118, g: 104, b: 116, a: 0.34 };
       return { r: 168, g: 152, b: 138, a: 0.22 };
     }
-    return tint;
+    return null;
   }
 
   function lanternGlowAmt() {
@@ -2735,14 +2739,6 @@
     var t = dayMs / DAY_MS;
     if (t < 0.75) return 0;
     if (t < 0.768) return 0.22 + 0.78 * (t - 0.75) / 0.018;
-    if (t < 0.97) return 1;
-    return Math.max(0, (1 - t) / 0.03);
-  }
-
-  function nightWashAmt() {
-    if (currentScene !== "overworld") return 0;
-    var t = dayMs / DAY_MS;
-    if (t < 0.75) return 0;
     if (t < 0.97) return 1;
     return Math.max(0, (1 - t) / 0.03);
   }
@@ -2778,27 +2774,47 @@
     }
   }
 
-  function drawLanternWells(g, amt) {
-    var sx, sy, flicker, rad, grd;
-    if (currentScene !== "overworld" || amt < 0.02) return;
+  function paintLightDisks(g, amt, mode, radMul, stops) {
+    var sx, sy, flicker, rad, grd, i, s;
     g.save();
-    g.globalCompositeOperation = "screen";
+    g.globalCompositeOperation = mode;
     forEachNightLight(function (wx, wy, scale, i) {
       sx = wx - camX;
       sy = wy - camY;
-      if (sx < -72 || sy < -72 || sx > VIEW_W + 72 || sy > VIEW_H + 72) return;
+      if (sx < -80 || sy < -80 || sx > VIEW_W + 80 || sy > VIEW_H + 80) return;
       flicker = 0.88 + Math.sin(tick / 140 + i * 1.7) * 0.12;
-      rad = 50 * amt * flicker * scale;
-      grd = g.createRadialGradient(sx, sy, 2, sx, sy, rad);
-      grd.addColorStop(0, "rgba(96,58,36," + (0.70 * amt * flicker).toFixed(3) + ")");
-      grd.addColorStop(0.42, "rgba(70,40,32," + (0.38 * amt * flicker).toFixed(3) + ")");
-      grd.addColorStop(1, "rgba(28,16,24,0)");
+      rad = radMul * amt * flicker * scale;
+      grd = g.createRadialGradient(sx, sy, 1.5, sx, sy, rad);
+      var si;
+      for (si = 0; si < stops.length; si++) {
+        s = stops[si];
+        grd.addColorStop(s[0], "rgba(" + s[1] + "," + s[2] + "," + s[3] + "," + (s[4] * amt * flicker).toFixed(3) + ")");
+      }
       g.fillStyle = grd;
       g.beginPath();
       g.arc(sx, sy, rad, 0, Math.PI * 2);
       g.fill();
     });
     g.restore();
+  }
+
+  function drawLanternWells(g, amt) {
+    if (currentScene !== "overworld" || amt < 0.02) return;
+    paintLightDisks(g, amt, "color", 56, [
+      [0, 236, 168, 72, 0.78],
+      [0.42, 220, 140, 60, 0.40],
+      [1, 180, 96, 48, 0]
+    ]);
+    paintLightDisks(g, amt, "soft-light", 52, [
+      [0, 255, 186, 88, 0.62],
+      [0.48, 210, 130, 56, 0.28],
+      [1, 80, 40, 24, 0]
+    ]);
+    paintLightDisks(g, amt, "screen", 50, [
+      [0, 120, 72, 36, 0.66],
+      [0.42, 80, 46, 30, 0.34],
+      [1, 28, 16, 24, 0]
+    ]);
   }
 
   function drawLanternLights(g) {
@@ -2827,26 +2843,36 @@
     g.restore();
   }
 
+  function fillBlend(g, mode, alpha, r, gv, b) {
+    if (alpha < 0.01) return;
+    g.save();
+    g.globalCompositeOperation = mode;
+    g.globalAlpha = alpha;
+    g.fillStyle = "rgb(" + (r | 0) + "," + (gv | 0) + "," + (b | 0) + ")";
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    g.restore();
+  }
+
+  function drawOutdoorGrade(g) {
+    var gr = currentGrade();
+    fillBlend(g, "saturation", gr.sat, 128, 128, 128);
+    fillBlend(g, "hue", gr.hueA, gr.hueR, gr.hueG, gr.hueB);
+    fillBlend(g, "color", gr.colorA, gr.colorR, gr.colorG, gr.colorB);
+    fillBlend(g, "overlay", gr.ovA, gr.ovR, gr.ovG, gr.ovB);
+    fillBlend(g, "multiply", gr.mulA, gr.mulR, gr.mulG, gr.mulB);
+  }
+
   function drawDayTint(g) {
-    var tint = currentTint();
-    var amt = lanternGlowAmt();
-    var wash = nightWashAmt();
-    if (tint && tint.a >= 0.01) {
-      g.save();
-      g.globalCompositeOperation = "multiply";
-      g.globalAlpha = tint.a;
-      g.fillStyle = "rgb(" + (tint.r | 0) + "," + (tint.g | 0) + "," + (tint.b | 0) + ")";
-      g.fillRect(0, 0, VIEW_W, VIEW_H);
-      g.restore();
+    var tint, amt;
+    if (currentScene === "house" || currentScene === "shop" || currentScene === "mine") {
+      tint = currentTint();
+      if (tint && tint.a >= 0.01) {
+        fillBlend(g, "multiply", tint.a, tint.r, tint.g, tint.b);
+      }
+      return;
     }
-    if (wash > 0.01) {
-      g.save();
-      g.globalCompositeOperation = "source-over";
-      g.globalAlpha = 0.46 * wash;
-      g.fillStyle = "rgb(18,8,56)";
-      g.fillRect(0, 0, VIEW_W, VIEW_H);
-      g.restore();
-    }
+    drawOutdoorGrade(g);
+    amt = lanternGlowAmt();
     if (amt > 0.02) {
       drawLanternWells(g, amt);
       drawLanternLights(g);
