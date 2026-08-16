@@ -1241,6 +1241,25 @@ def gen_lantern():
     return g
 
 
+def gen_lantern_off():
+    """Unlit path post: same silhouette, dark glass instead of a flame."""
+    g = Pix(16, 24)
+    g.fill(5, 22, 6, 2, C["shadow"])
+    g.fill(7, 12, 2, 10, C["woodMid"])
+    g.fill(7, 12, 1, 10, C["woodHi"])
+    g.fill(8, 12, 1, 10, C["woodSh"])
+    g.fill(3, 2, 10, 2, C["woodSh"])
+    g.fill(4, 1, 8, 1, C["woodMid"])
+    g.fill(5, 0, 6, 1, C["woodHi"])
+    g.fill(4, 4, 8, 8, C["woodOut"])
+    g.fill(5, 5, 6, 6, C["woodSh"])
+    g.fill(6, 6, 4, 4, C["stoneSh"])
+    g.px(7, 7, C["stone"])
+    g.fill(4, 4, 8, 1, C["woodHi"])
+    g.fill(4, 11, 8, 1, C["woodSh"])
+    return g
+
+
 def gen_ladder():
     """Hole in the stone floor with a wooden ladder down."""
     g = Pix(16, 24)
@@ -1830,6 +1849,7 @@ GENERATORS = {
     "wall": gen_wall,
     "cave": gen_cave,
     "lantern": gen_lantern,
+    "lanternOff": gen_lantern_off,
     "ladder": gen_ladder,
     "copper": gen_copper,
     "mushroom": gen_mushroom,
@@ -1902,6 +1922,7 @@ def builtin_sprites():
         {"id": "wall", "file": "tiles/wall.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "cave", "file": "props/cave.png", "w": 64, "h": 48, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
         {"id": "lantern", "file": "props/lantern.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
+        {"id": "lanternOff", "file": "props/lantern-off.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
         {"id": "ladder", "file": "props/ladder.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
         {"id": "copper", "file": "ui/copper.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "mushroom", "file": "ui/mushroom.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},

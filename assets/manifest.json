@@ -425,6 +425,23 @@
       "generated": true
     },
     {
+      "id": "lanternOff",
+      "file": "props/lantern-off.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 216,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
       "id": "ladder",
       "file": "props/ladder.png",
       "w": 16,
@@ -436,7 +453,7 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 216,
+      "x": 233,
       "y": 115,
       "fw": 16,
       "generated": true
