@@ -5293,7 +5293,58 @@
     }
   }
 
-  function drawActors(g) {
+  var washScratch = null;
+
+  function lanternPopAt(wx, wy) {
+    var amt = lanternGlowAmt();
+    var best = 0;
+    if (amt < 0.02) return 0;
+    forEachNightLight(function (lx, ly, scale) {
+      var rad = 46 * amt * scale;
+      var dx, dy, t;
+      if (rad < 1) return;
+      dx = wx - lx;
+      dy = wy - ly;
+      t = 1 - Math.sqrt(dx * dx + dy * dy) / rad;
+      if (t > best) best = t;
+    });
+    if (best < 0) best = 0;
+    if (best > 1) best = 1;
+    return best;
+  }
+
+  function creatureNightWash(wx, wy) {
+    var t = dayMs / DAY_MS;
+    var amt = lanternGlowAmt();
+    var gr, pop, a;
+    if (currentScene !== "overworld") return null;
+    gr = currentGrade();
+    if (amt >= 0.02) {
+      pop = lanternPopAt(wx, wy);
+      a = (0.22 + 0.13 * amt) * (1 - pop);
+      if (a < 0.01) return null;
+      return { r: gr.mulR, g: gr.mulG, b: gr.mulB, a: a };
+    }
+    if (t >= 0.50 && t < 0.75) {
+      a = gr.mulA * 0.4;
+      if (a > 0.10) a = 0.10;
+      if (a < 0.01) return null;
+      return { r: gr.mulR, g: gr.mulG, b: gr.mulB, a: a };
+    }
+    return null;
+  }
+
+  function actorWorldPos(item) {
+    if (item.kind === "player") return { x: player.x, y: player.y };
+    if (item.kind === "chicken") return { x: chicken.x, y: chicken.y };
+    if (item.kind === "npc") return { x: npc.x, y: npc.y };
+    if (item.kind === "car") return { x: car.x, y: car.y };
+    if (item.kind === "folk" && item.f) return { x: item.f.x, y: item.f.y };
+    if (item.kind === "mon" && item.m) return { x: item.m.x, y: item.m.y };
+    return { x: 0, y: 0 };
+  }
+
+  function collectPropActors() {
     var list = [];
     var i, p, b;
     for (i = 0; i < PROPS.length; i++) {
@@ -5301,6 +5352,12 @@
       b = propBounds(p);
       if (onScreen(b)) list.push({ foot: propFoot(p), kind: "prop", p: p });
     }
+    return list;
+  }
+
+  function collectCreatureActors() {
+    var list = [];
+    var i;
     list.push({ foot: player.y, kind: "player" });
     if (currentScene === "mine") {
       for (i = 0; i < monsters.length; i++) {
@@ -5318,19 +5375,91 @@
     if (currentScene === "shop") {
       list.push({ foot: tileFootY(4), kind: "shopPip" });
     }
-    list.sort(function (a, b) { return a.foot - b.foot; });
-    for (i = 0; i < list.length; i++) {
-      if (list[i].kind === "prop") drawProp(g, list[i].p);
-      else if (list[i].kind === "player") drawPlayer(g);
-      else if (list[i].kind === "chicken") drawChickenSpr(g);
-      else if (list[i].kind === "car") drawCarSpr(g);
-      else if (list[i].kind === "folk") drawFolk(g, list[i].f);
-      else if (list[i].kind === "mon") drawMonster(g, list[i].m);
-      else if (list[i].kind === "shopPip") {
-        drawShadow(g, tileCenterX(8), tileFootY(4), 5);
-        Assets.draw(g, "pip-down", tileCenterX(8), tileFootY(4), 0);
-      } else drawNpc(g);
+    return list;
+  }
+
+  function paintActor(g, item) {
+    if (item.kind === "prop") drawProp(g, item.p);
+    else if (item.kind === "player") drawPlayer(g);
+    else if (item.kind === "chicken") drawChickenSpr(g);
+    else if (item.kind === "car") drawCarSpr(g);
+    else if (item.kind === "folk") drawFolk(g, item.f);
+    else if (item.kind === "mon") drawMonster(g, item.m);
+    else if (item.kind === "shopPip") {
+      drawShadow(g, tileCenterX(8), tileFootY(4), 5);
+      Assets.draw(g, "pip-down", tileCenterX(8), tileFootY(4), 0);
+    } else drawNpc(g);
+  }
+
+  function drawWashedActor(g, item) {
+    var pos = actorWorldPos(item);
+    var wash = creatureNightWash(pos.x, pos.y);
+    var sc, sg, ox, oy, ix, iy, img, px, i, inv, mr, mgv, mb;
+    if (!wash) {
+      paintActor(g, item);
+      return;
     }
+    if (!washScratch) {
+      washScratch = document.createElement("canvas");
+      washScratch.width = 96;
+      washScratch.height = 96;
+    }
+    sc = washScratch;
+    sg = sc.getContext("2d");
+    ox = 48;
+    oy = 68;
+    ix = Math.round(pos.x);
+    iy = Math.round(pos.y);
+    sg.globalCompositeOperation = "source-over";
+    sg.globalAlpha = 1;
+    sg.imageSmoothingEnabled = false;
+    sg.clearRect(0, 0, sc.width, sc.height);
+    sg.save();
+    sg.translate(ox - ix, oy - iy);
+    paintActor(sg, item);
+    sg.restore();
+    img = sg.getImageData(0, 0, sc.width, sc.height);
+    px = img.data;
+    inv = 1 - wash.a;
+    mr = wash.r / 255;
+    mgv = wash.g / 255;
+    mb = wash.b / 255;
+    for (i = 0; i < px.length; i += 4) {
+      if (!px[i + 3]) continue;
+      px[i] = (px[i] * inv + px[i] * mr * wash.a + 0.5) | 0;
+      px[i + 1] = (px[i + 1] * inv + px[i + 1] * mgv * wash.a + 0.5) | 0;
+      px[i + 2] = (px[i + 2] * inv + px[i + 2] * mb * wash.a + 0.5) | 0;
+    }
+    sg.putImageData(img, 0, 0);
+    g.drawImage(sc, ix - ox, iy - oy);
+  }
+
+  function sortActors(list) {
+    list.sort(function (a, b) { return a.foot - b.foot; });
+  }
+
+  function drawPropActors(g) {
+    var list = collectPropActors();
+    var i;
+    sortActors(list);
+    for (i = 0; i < list.length; i++) paintActor(g, list[i]);
+  }
+
+  function drawCreatureActors(g) {
+    var list = collectCreatureActors();
+    var i;
+    sortActors(list);
+    for (i = 0; i < list.length; i++) {
+      if (currentScene === "overworld") drawWashedActor(g, list[i]);
+      else paintActor(g, list[i]);
+    }
+  }
+
+  function drawActors(g) {
+    var list = collectPropActors().concat(collectCreatureActors());
+    var i;
+    sortActors(list);
+    for (i = 0; i < list.length; i++) paintActor(g, list[i]);
   }
 
   function drawMonster(g, m) {
@@ -5872,11 +6001,23 @@
       }
     }
 
-    drawActors(g);
-    drawPickups(g);
-    drawSparks(g);
-    g.restore();
-    drawDayTint(g);
+    if (currentScene === "overworld") {
+      drawPropActors(g);
+      g.restore();
+      drawDayTint(g);
+      g.save();
+      g.translate(-camX, -camY);
+      drawCreatureActors(g);
+      drawPickups(g);
+      drawSparks(g);
+      g.restore();
+    } else {
+      drawActors(g);
+      drawPickups(g);
+      drawSparks(g);
+      g.restore();
+      drawDayTint(g);
+    }
     drawHUD(g);
     drawDialogue(g);
     drawAchieveList(g);
