@@ -2778,15 +2778,13 @@
   }
 
   function drawHUD(g) {
-    woodPanel(g, 4, 4, 114, 13);
-    drawText(g, "MOONDROP MOUNTAIN", 8, 7, C.parch);
-    woodPanel(g, 120, 3, 18, 18);
-    Assets.draw(g, "trophy", 121, 4);
-    woodPanel(g, 140, 3, 18, 18);
-    drawBook(g, 141, 4);
+    woodPanel(g, 4, 3, 18, 18);
+    Assets.draw(g, "trophy", 5, 4);
+    woodPanel(g, 24, 3, 18, 18);
+    drawBook(g, 25, 4);
     if (jobOpen()) {
-      fill(g, 153, 5, 3, 3, C.flower);
-      px(g, 154, 4, C.flower);
+      fill(g, 37, 5, 3, 3, C.flower);
+      px(g, 38, 4, C.flower);
     }
 
     woodPanel(g, 206, 4, 110, 21);
@@ -3142,17 +3140,16 @@
       if (idx >= 0 && idx < slots) selectedSlot = idx;
       return true;
     }
-    if (p.x >= 120 && p.x <= 138 && p.y >= 3 && p.y <= 21) {
+    if (p.x >= 4 && p.x <= 22 && p.y >= 3 && p.y <= 21) {
       achieveOpen = !achieveOpen;
       questOpen = false;
       return true;
     }
-    if (p.x >= 140 && p.x <= 158 && p.y >= 3 && p.y <= 21) {
+    if (p.x >= 24 && p.x <= 42 && p.y >= 3 && p.y <= 21) {
       questOpen = !questOpen;
       achieveOpen = false;
       return true;
     }
-    if (p.x >= 4 && p.x <= 118 && p.y >= 4 && p.y <= 17) return true;
     if (p.x >= 206 && p.x <= 316 && p.y >= 4 && p.y <= 25) return true;
     if (p.x >= VIEW_W - 18 && p.x <= VIEW_W - 2 && p.y >= VIEW_H - 80 && p.y <= VIEW_H - 14) return true;
     return false;
