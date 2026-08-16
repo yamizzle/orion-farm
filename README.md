@@ -36,7 +36,7 @@ On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Saf
 - Town folk: **Pip** keeps the shop, **Lila** waters the green, **Reed** watches the red car. Tap them to talk. The car loops the cobble and waits if you stand in the road.
 - In the shop, spend gold: seed tin 5G (extra garden plots), flower 8G, honey bun 6G, straw hat 25G, fence kit 12G, path kit 8G. Sell a carrot for 10G. Flowers plant on grass or meadow; tap a honey bun to eat it (heals two hearts and a bit of energy); tap the hat to put it on or take it off.
 - Five red hearts sit on the HUD (50 HP). The green E bar is real energy (100). Chopping, rock-smashing, and sword swings each cost a little; a long walk costs a tiny bit. Old saves start full. Sleeping refills both.
-- Just inside the mine, a stone pedestal holds a cave sword. Walk up and tap it. Equip the sword on the last hotbar slot, then tap a monster (or tap the tile in front of you) to swing. Slimes take two hits; bats and rock-grubs take three. Touch-first; WASD still only walks.
+- Just inside the mine, a stone pedestal holds a cave sword. Walk up and tap it. A round wood-and-gold sword button appears at the lower-right; tap it (or press Space / J) to swing an arc in front of Orion. Slimes take two hits; bats and rock-grubs take three. Touch-first; WASD still only walks. Tapping a foe still works as a bonus.
 - Cute slimes, bats, and rock-grubs wander the mine rooms only. They bump Orion for one heart, then he flashes for a moment. They do not chase across the whole cave, and they stay off the ladder and room doors. Defeat one for a little gold (sometimes a stone). First foe unlocks the CAVE FOE star.
 - If hearts or energy hit zero, a short 16-bit "YOU DIED..." card plays (letterbox, stars, wood plaque). Then Orion wakes in his house bed on the next morning with full hearts and energy. The file keeps going — bag, sword, gold, quests, and mine progress stay. The mountain takes a 10% gold toll (rounded down, minimum 0) and says THE MOUNTAIN SENT YOU HOME. A refresh after that wake does not put him back in the mine at 0 HP.
 
@@ -53,12 +53,12 @@ assets/
   tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall, wood floor, interior wall, cobble, meadow)
   props/            house, tree, stump, well, mailbox, mailbox-up, crate, pond, rocks, weeds, fences, cave, lantern, lantern-off, ladder, hole, chest, note, bed, table, rug, window, doormat, door, shop, town houses, fountain, statue, counter, sword pedestal
   actors/           player, neighbor, chicken, town folk, car, slime, bat, rock-grub, faint pose (one PNG per facing/frame)
-  ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, gem, moon crystal, star, star badge, sparkle, letter, flower, honey bun, straw hat, heart, empty heart, sword, gold coin, faint star
+  ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, gem, moon crystal, star, star badge, sparkle, letter, flower, honey bun, straw hat, heart, empty heart, sword, gold coin, faint star, slash
 tools/
   process-generated.py  chroma-key, crop, and scale generated-src into game sizes
   export-assets.py      pack those PNGs into atlas.png (do not use --regen)
   town_sprites.py       paint town houses, folk, car, shop goods
-  combat_sprites.py     paint hearts, sword, pedestal, gold coin, mine foes, faint pose, faint stars
+  combat_sprites.py     paint hearts, sword, pedestal, gold coin, mine foes, faint pose, faint stars, slash sparks
   mine_sprites.py       paint the down-hole, gem, chest, and moon crystal
 ```
 

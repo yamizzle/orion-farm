@@ -1879,6 +1879,23 @@
       "generated": true
     },
     {
+      "id": "slash",
+      "file": "ui/slash-{n}.png",
+      "w": 24,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        12,
+        8
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 141,
+      "y": 372,
+      "fw": 24,
+      "generated": true
+    },
+    {
       "id": "gem",
       "file": "ui/gem.png",
       "w": 16,
@@ -1890,7 +1907,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 141,
+      "x": 190,
       "y": 372,
       "fw": 16,
       "generated": true
@@ -1907,7 +1924,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 158,
+      "x": 207,
       "y": 372,
       "fw": 16,
       "generated": true
@@ -1924,7 +1941,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 175,
+      "x": 224,
       "y": 372,
       "fw": 16,
       "generated": true
@@ -1941,7 +1958,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 192,
+      "x": 241,
       "y": 372,
       "fw": 10,
       "generated": true
@@ -1958,8 +1975,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 203,
-      "y": 372,
+      "x": 1,
+      "y": 389,
       "fw": 10,
       "generated": true
     }

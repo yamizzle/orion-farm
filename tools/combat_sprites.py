@@ -323,6 +323,41 @@ def install(ns):
             g.px(13, 12, hi)
         return g
 
+    def gen_slash(frame):
+        """Faint 16-bit crescent spark for the sword arc (2 frames)."""
+        g = Pix(24, 16)
+        hi = C.get("steelHi", "#E8F0F4")
+        mid = C.get("steel", "#C8D0D8")
+        gold = C.get("lanternGlow", "#F0C060")
+        parch = C.get("parch", "#F3D2A3")
+        sh = C.get("steelSh", "#6A7888")
+        # C-shaped crescent opening right, readable when rotated with the blade
+        arc = [
+            (11, 1), (12, 1), (13, 2), (14, 2),
+            (9, 2), (10, 2), (8, 3), (7, 4),
+            (6, 5), (5, 6), (5, 7), (5, 8),
+            (6, 9), (7, 10), (8, 11), (9, 12),
+            (10, 13), (11, 14), (12, 14), (13, 13), (14, 13),
+        ]
+        inner = [
+            (11, 2), (12, 2), (10, 3), (9, 3),
+            (8, 4), (7, 5), (6, 6), (6, 7), (6, 8),
+            (7, 9), (8, 10), (9, 11), (10, 12), (11, 13), (12, 13),
+        ]
+        for x, y in arc:
+            g.px(x, y, hi if y < 5 else (mid if y < 11 else sh))
+        for x, y in inner:
+            g.px(x, y, gold if frame else mid)
+        if frame:
+            g.px(15, 2, parch)
+            g.px(16, 3, gold)
+            g.px(4, 7, parch)
+            g.px(15, 13, parch)
+            g.px(16, 12, gold)
+            g.px(12, 3, parch)
+            g.px(7, 7, parch)
+        return g
+
     extra_gen = {
         "heart": lambda: gen_heart(True),
         "heartEmpty": lambda: gen_heart(False),
@@ -339,6 +374,8 @@ def install(ns):
         "faintStar-0": lambda: gen_faint_star(0),
         "faintStar-1": lambda: gen_faint_star(1),
         "faintStar-2": lambda: gen_faint_star(2),
+        "slash-0": lambda: gen_slash(0),
+        "slash-1": lambda: gen_slash(1),
     }
     GENERATORS.update(extra_gen)
 
@@ -354,6 +391,7 @@ def install(ns):
         {"id": "rockgrub", "file": "actors/rockgrub-{n}.png", "w": 16, "h": 16, "frames": 2, "anchor": MonA, "ox": 0, "oy": 0, "generated": True},
         {"id": "player-faint", "file": "actors/player-faint.png", "w": 24, "h": 16, "frames": 1, "anchor": [12, 14], "ox": 0, "oy": 0, "generated": True},
         {"id": "faintStar", "file": "ui/faintStar-{n}.png", "w": 16, "h": 16, "frames": 3, "anchor": [8, 8], "ox": 0, "oy": 0, "generated": True},
+        {"id": "slash", "file": "ui/slash-{n}.png", "w": 24, "h": 16, "frames": 2, "anchor": [12, 8], "ox": 0, "oy": 0, "generated": True},
     ]
     ns["COMBAT_SPRITES"] = extra_sprites
     return extra_sprites
