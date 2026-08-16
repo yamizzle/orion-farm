@@ -361,6 +361,7 @@
     path: [],
     stepFrom: null,
     stepT: 0,
+    queuedWalk: null,
     anim: 0,
     swing: 0,
     hitting: null
@@ -374,6 +375,7 @@
     path: [],
     stepFrom: null,
     stepT: 0,
+    queuedWalk: null,
     idle: 400,
     anim: 0,
     react: 0
@@ -765,7 +767,22 @@
     else if (dy !== 0) who.face = dy > 0 ? "down" : "up";
   }
 
-  function startWalk(who, path, speed) {
+  function pathEnd(path, tx, ty) {
+    if (path && path.length) return path[path.length - 1];
+    return { tx: tx, ty: ty };
+  }
+
+  function walkIntent(who) {
+    if (who.queuedWalk) return who.queuedWalk;
+    return pathEnd(who.path, who.tx, who.ty);
+  }
+
+  function midStep(who) {
+    return who.path && who.path.length && who.stepFrom && who.stepT > 0 && who.stepT < 1;
+  }
+
+  function applyWalk(who, path, speed) {
+    who.queuedWalk = null;
     who.x = tileCenterX(who.tx);
     who.y = tileFootY(who.ty);
     who.path = path || [];
@@ -780,6 +797,20 @@
       who.moving = false;
       who.frame = 0;
     }
+  }
+
+  function startWalk(who, path, speed) {
+    path = path || [];
+    var dest = pathEnd(path, who.tx, who.ty);
+    var intent = walkIntent(who);
+    if ((who.moving || (who.path && who.path.length) || who.queuedWalk) && dest.tx === intent.tx && dest.ty === intent.ty) {
+      return;
+    }
+    if (midStep(who) && path.length) {
+      who.queuedWalk = { tx: dest.tx, ty: dest.ty, speed: speed };
+      return;
+    }
+    applyWalk(who, path, speed);
   }
 
   function advanceWalk(who, dt) {
@@ -799,7 +830,12 @@
       who.path.shift();
       who.stepT = 0;
       if (who === player) tryPickupHere();
-      if (who.path.length) {
+      if (who.queuedWalk) {
+        var q = who.queuedWalk;
+        who.queuedWalk = null;
+        applyWalk(who, findPath(who.tx, who.ty, q.tx, q.ty), q.speed);
+        if (!who.path.length) return true;
+      } else if (who.path.length) {
         who.stepFrom = { tx: who.tx, ty: who.ty };
         faceToward(who, who.path[0].tx, who.path[0].ty);
       } else {
@@ -1006,6 +1042,7 @@
   function beginHit(prop) {
     if (!isHarvestable(prop)) return;
     player.path = [];
+    player.queuedWalk = null;
     player.moving = false;
     player.stepT = 0;
     player.frame = 0;
@@ -1153,6 +1190,7 @@
     player.x = tileCenterX(tx);
     player.y = tileFootY(ty);
     player.path = [];
+    player.queuedWalk = null;
     player.moving = false;
     player.stepT = 0;
     player.frame = 0;
