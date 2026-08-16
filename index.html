@@ -191,7 +191,11 @@
     "'": [0x04,0x04,0x08,0x00,0x00,0x00,0x00],
     "·": [0x00,0x00,0x00,0x04,0x00,0x00,0x00],
     ".": [0x00,0x00,0x00,0x00,0x00,0x04,0x04],
-    "!": [0x04,0x04,0x04,0x04,0x04,0x00,0x04]
+    "!": [0x04,0x04,0x04,0x04,0x04,0x00,0x04],
+    "-": [0x00,0x00,0x00,0x1F,0x00,0x00,0x00],
+    ",": [0x00,0x00,0x00,0x00,0x00,0x04,0x08],
+    "?": [0x0E,0x11,0x01,0x02,0x04,0x00,0x04],
+    ":": [0x00,0x04,0x04,0x00,0x04,0x04,0x00]
   };
 
   var canvas = document.getElementById("game");
@@ -263,11 +267,14 @@
   var sparks = [];
   var pickups = [];
   var selectedSlot = 0;
-  var inventory = { wood: 0, stone: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, mushroom: 0, moonshard: 0 };
   var slotShake = 0;
   var SLOT_SEED = 0;
   var SLOT_WOOD = 1;
   var SLOT_STONE = 2;
+  var SLOT_COPPER = 3;
+  var SLOT_MUSH = 4;
+  var SLOT_MOON = 5;
   var HIT_COUNT = 3;
   var HIT_GAP = 380;
   var WOOD_PER_TREE = 2;
@@ -277,7 +284,7 @@
   var sceneCache = { overworld: null, mine: null };
   var tick = 0;
   var lastTs = 0;
-  var dialogue = false;
+  var dialogue = null;
   var crops = {};
   var pending = null;
   var solid = null;
@@ -288,8 +295,29 @@
   var camY = 0;
   var camera = { x: 0, y: 0 };
   var portalIn = { tx: 37, ty: 6 };
-  var portalOut = { tx: 12, ty: 13 };
+  var portalOut = { tx: 16, ty: 20 };
   var FARM = { x0: 2, y0: 24, x1: 22, y1: 35 };
+  var MINE_COLS = 32;
+  var MINE_ROWS = 24;
+  var SAVE_KEY = "moondrop-mountain-v1";
+  var found = { copper: false, mushroom: false, moonshard: false };
+  var introSeen = false;
+  var outroSeen = false;
+  var unlocked = {};
+  var toast = null;
+  var toastQueue = [];
+  var achieveOpen = false;
+  var ACH = [
+    { id: "caveDoor", name: "CAVE DOOR", blurb: "FIRST STEP IN" },
+    { id: "stoneTap", name: "STONE TAP", blurb: "SMASHED A ROCK" },
+    { id: "copperGlow", name: "COPPER GLOW", blurb: "FOUND COPPER" },
+    { id: "caveSnack", name: "CAVE SNACK", blurb: "FOUND A MUSHROOM" },
+    { id: "moonPiece", name: "MOON PIECE", blurb: "FOUND A SHARD" },
+    { id: "moonlightPocket", name: "MOONLIGHT POCKET", blurb: "FOUND ALL THREE" }
+  ];
+  var COLLECT_ACH = { copper: "copperGlow", mushroom: "caveSnack", moonshard: "moonPiece" };
+  var NOTE_OPEN = ["I LEFT MOON SHARDS", "IN THESE CAVES.", "BRING THEM HOME."];
+  var NOTE_CLOSE = ["YOU FOUND THEM ALL.", "THE MOUNTAIN HUMS.", "THANK YOU."];
 
   var player = {
     tx: 16, ty: 30,
@@ -443,7 +471,7 @@
   }
 
   function buildMineGround() {
-    var cols = 24, rows = 16;
+    var cols = MINE_COLS, rows = MINE_ROWS;
     var g = [];
     var y, x, row;
     for (y = 0; y < rows; y++) {
@@ -456,25 +484,50 @@
     function wall(tx, ty) {
       if (tx > 0 && ty > 0 && tx < cols - 1 && ty < rows - 1) g[ty][tx] = "#";
     }
-    wall(9, 4); wall(10, 4); wall(9, 5); wall(10, 5);
-    wall(16, 8); wall(17, 8);
-    wall(5, 10); wall(6, 10);
+    function box(x0, y0, x1, y1, gx, gy) {
+      var xx, yy;
+      for (xx = x0; xx <= x1; xx++) {
+        if (xx !== gx || y0 !== gy) wall(xx, y0);
+        if (xx !== gx || y1 !== gy) wall(xx, y1);
+      }
+      for (yy = y0 + 1; yy <= y1 - 1; yy++) {
+        if (x0 !== gx || yy !== gy) wall(x0, yy);
+        if (x1 !== gx || yy !== gy) wall(x1, yy);
+      }
+    }
+    box(2, 2, 6, 5, 4, 5);
+    box(25, 2, 29, 5, 27, 5);
+    box(2, 15, 6, 18, 4, 15);
+    box(25, 15, 29, 18, 27, 15);
+    wall(10, 8); wall(11, 8); wall(10, 9); wall(11, 9);
+    wall(20, 8); wall(21, 8); wall(20, 9); wall(21, 9);
+    wall(10, 13); wall(11, 13); wall(10, 14); wall(11, 14);
+    wall(20, 13); wall(21, 13); wall(20, 14); wall(21, 14);
     return g;
   }
 
   function buildMineProps() {
-    return [
-      { kind: "ladder", tx: 12, ty: 13 },
-      { kind: "lantern", tx: 3, ty: 3 },
-      { kind: "lantern", tx: 20, ty: 4 },
-      { kind: "lantern", tx: 6, ty: 11 },
-      { kind: "rock", tx: 4, ty: 6 },
-      { kind: "rock", tx: 18, ty: 3 },
-      { kind: "rock", tx: 15, ty: 7 },
-      { kind: "rock", tx: 8, ty: 9 },
-      { kind: "rock", tx: 19, ty: 11 },
-      { kind: "rock", tx: 3, ty: 12 }
+    var list = [
+      { kind: "ladder", tx: 16, ty: 20 },
+      { kind: "note", tx: 14, ty: 19 },
+      { kind: "lantern", tx: 8, ty: 3 },
+      { kind: "lantern", tx: 23, ty: 3 },
+      { kind: "lantern", tx: 8, ty: 20 },
+      { kind: "lantern", tx: 24, ty: 12 },
+      { kind: "lantern", tx: 16, ty: 8 },
+      { kind: "rock", tx: 8, ty: 6 },
+      { kind: "rock", tx: 22, ty: 4 },
+      { kind: "rock", tx: 28, ty: 10 },
+      { kind: "rock", tx: 5, ty: 12 },
+      { kind: "rock", tx: 18, ty: 16 },
+      { kind: "rock", tx: 10, ty: 20 },
+      { kind: "rock", tx: 24, ty: 19 },
+      { kind: "rock", tx: 4, ty: 17 }
     ];
+    if (!found.copper) list.push({ kind: "copper", tx: 4, ty: 3 });
+    if (!found.mushroom) list.push({ kind: "mushroom", tx: 27, ty: 3 });
+    if (!found.moonshard) list.push({ kind: "moonshard", tx: 27, ty: 17 });
+    return list;
   }
 
   function saveScene() {
@@ -492,8 +545,8 @@
       GROUND = cached.ground;
       PROPS = cached.props;
     } else if (name === "mine") {
-      COLS = 24;
-      ROWS = 16;
+      COLS = MINE_COLS;
+      ROWS = MINE_ROWS;
       GROUND = buildMineGround();
       PROPS = buildMineProps();
     } else {
@@ -675,6 +728,7 @@
       who.y = tileFootY(who.ty);
       who.path.shift();
       who.stepT = 0;
+      if (who === player) tryPickupHere();
       if (who.path.length) {
         who.stepFrom = { tx: who.tx, ty: who.ty };
         faceToward(who, who.path[0].tx, who.path[0].ty);
@@ -835,6 +889,9 @@
   function addItem(kind, amount) {
     if (kind === "wood") inventory.wood += amount;
     else if (kind === "stone") inventory.stone += amount;
+    else if (kind === "copper" || kind === "mushroom" || kind === "moonshard") {
+      inventory[kind] = (inventory[kind] || 0) + amount;
+    }
   }
 
   function flushPickups() {
@@ -895,6 +952,7 @@
       if (i >= 0) PROPS.splice(i, 1);
       buildSolid();
       spawnPickup("stone", prop.tx, prop.ty, STONE_PER_ROCK);
+      if (currentScene === "mine") unlockAch("stoneTap");
     }
   }
 
@@ -1008,9 +1066,171 @@
     updateCamera();
   }
 
+  function loadSave() {
+    try {
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      if (data.found) {
+        found.copper = !!data.found.copper;
+        found.mushroom = !!data.found.mushroom;
+        found.moonshard = !!data.found.moonshard;
+      }
+      if (data.unlocked) unlocked = data.unlocked;
+      introSeen = !!data.introSeen;
+      outroSeen = !!data.outroSeen;
+      if (found.copper) inventory.copper = 1;
+      if (found.mushroom) inventory.mushroom = 1;
+      if (found.moonshard) inventory.moonshard = 1;
+    } catch (err) {}
+  }
+
+  function persistSave() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        found: found,
+        unlocked: unlocked,
+        introSeen: introSeen,
+        outroSeen: outroSeen
+      }));
+    } catch (err) {}
+  }
+
+  function openDialogue(title, lines) {
+    dialogue = { title: title, lines: lines };
+  }
+
+  function allFound() {
+    return found.copper && found.mushroom && found.moonshard;
+  }
+
+  function noteLines() {
+    return allFound() ? NOTE_CLOSE : NOTE_OPEN;
+  }
+
+  function unlockAch(id) {
+    if (!id || unlocked[id]) return;
+    unlocked[id] = true;
+    persistSave();
+    toastQueue.push(id);
+  }
+
+  function updateToasts(dt) {
+    var def;
+    if (!toast && toastQueue.length) {
+      def = null;
+      var i;
+      for (i = 0; i < ACH.length; i++) {
+        if (ACH[i].id === toastQueue[0]) def = ACH[i];
+      }
+      toastQueue.shift();
+      if (def) toast = { name: def.name, age: 0, life: 2800 };
+    }
+    if (toast) {
+      toast.age += dt;
+      if (toast.age >= toast.life) toast = null;
+    }
+  }
+
+  function isCollectible(p) {
+    return p && (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard");
+  }
+
+  function findNote() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "note") return p;
+    }
+    return null;
+  }
+
+  function pickupCollectible(prop) {
+    var i;
+    if (!isCollectible(prop) || found[prop.kind]) return;
+    i = PROPS.indexOf(prop);
+    if (i >= 0) PROPS.splice(i, 1);
+    found[prop.kind] = true;
+    spawnPickup(prop.kind, prop.tx, prop.ty, 1);
+    spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+    unlockAch(COLLECT_ACH[prop.kind]);
+    if (allFound()) {
+      unlockAch("moonlightPocket");
+      if (!outroSeen) {
+        outroSeen = true;
+        persistSave();
+        openDialogue("NIM'S NOTE", NOTE_CLOSE);
+      } else {
+        persistSave();
+      }
+    } else {
+      persistSave();
+    }
+  }
+
+  function tryPickupHere() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (isCollectible(p) && p.tx === player.tx && p.ty === player.ty) {
+        pickupCollectible(p);
+        return;
+      }
+    }
+  }
+
+  function goCollect(prop) {
+    if (!isCollectible(prop) || found[prop.kind]) return;
+    highlight = { tx: prop.tx, ty: prop.ty };
+    if (player.tx === prop.tx && player.ty === prop.ty) {
+      pending = null;
+      pickupCollectible(prop);
+      return;
+    }
+    if (!walkable(prop.tx, prop.ty)) {
+      var side = nearestAdjacent(prop.tx, prop.ty);
+      if (!side) return;
+      pending = { type: "collect", prop: prop };
+      startWalk(player, findPath(player.tx, player.ty, side.tx, side.ty), 3.5);
+      return;
+    }
+    var path = findPath(player.tx, player.ty, prop.tx, prop.ty);
+    if (!path.length) return;
+    pending = { type: "collect", prop: prop };
+    startWalk(player, path, 3.5);
+  }
+
+  function goReadNote() {
+    var note = findNote();
+    highlight = note ? { tx: note.tx, ty: note.ty } : null;
+    if (!note || isNear(player.tx, player.ty, note.tx, note.ty) || (player.tx === note.tx && player.ty === note.ty)) {
+      pending = null;
+      openDialogue("NIM'S NOTE", noteLines());
+      return;
+    }
+    var dest = walkable(note.tx, note.ty) ? { tx: note.tx, ty: note.ty } : nearestAdjacent(note.tx, note.ty);
+    if (!dest) {
+      openDialogue("NIM'S NOTE", noteLines());
+      return;
+    }
+    var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      openDialogue("NIM'S NOTE", noteLines());
+      return;
+    }
+    pending = { type: "note" };
+    startWalk(player, path, 3.5);
+  }
+
   function enterMine() {
     applyScene("mine");
-    placePlayer(12, 12, "up");
+    placePlayer(16, 19, "up");
+    unlockAch("caveDoor");
+    if (!introSeen) {
+      introSeen = true;
+      persistSave();
+      openDialogue("NIM'S NOTE", NOTE_OPEN);
+    }
   }
 
   function exitMine() {
@@ -1029,6 +1249,7 @@
       exitMine();
       return;
     }
+    tryPickupHere();
     if (!pending) return;
     var act = pending;
     pending = null;
@@ -1041,7 +1262,13 @@
       if (isNear(player.tx, player.ty, npc.tx, npc.ty)) {
         faceToward(player, npc.tx, npc.ty);
         faceToward(npc, player.tx, player.ty);
-        dialogue = true;
+        openDialogue("NEIGHBOR", ["HI! WELCOME TO", "MOONDROP MOUNTAIN."]);
+      }
+    } else if (act.type === "note") {
+      openDialogue("NIM'S NOTE", noteLines());
+    } else if (act.type === "collect") {
+      if (isCollectible(act.prop) && (player.tx === act.prop.tx && player.ty === act.prop.ty || isNear(player.tx, player.ty, act.prop.tx, act.prop.ty))) {
+        pickupCollectible(act.prop);
       }
     } else if (act.type === "enter") {
       enterMine();
@@ -1067,7 +1294,7 @@
       startWalk(player, [], 3.5);
       faceToward(player, npc.tx, npc.ty);
       faceToward(npc, player.tx, player.ty);
-      dialogue = true;
+      openDialogue("NEIGHBOR", ["HI! WELCOME TO", "MOONDROP MOUNTAIN."]);
       return;
     }
     var dest = nearestAdjacent(npc.tx, npc.ty);
@@ -1253,6 +1480,9 @@
     if (p.kind === "cave") return p.ty * TILE + 32;
     if (p.kind === "lantern") return p.ty * TILE + 20;
     if (p.kind === "ladder") return p.ty * TILE + 20;
+    if (p.kind === "note" || p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard") {
+      return p.ty * TILE + 14;
+    }
     return p.ty * TILE + TILE;
   }
 
@@ -1316,6 +1546,15 @@
       Assets.draw(g, "lantern", x, y);
     } else if (p.kind === "ladder") {
       Assets.draw(g, "ladder", x, y);
+    } else if (p.kind === "note") {
+      Assets.draw(g, "note", x, y);
+    } else if (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard") {
+      var bob = Math.round(Math.sin(tick / 280) * 1);
+      if (p.kind === "moonshard") {
+        g.fillStyle = "rgba(232,240,255,0.22)";
+        g.fillRect(x - 2, y - 2 + bob, 20, 20);
+      }
+      Assets.draw(g, p.kind, x, y + bob);
     }
   }
 
@@ -1345,7 +1584,9 @@
     var i, pk, id;
     for (i = 0; i < pickups.length; i++) {
       pk = pickups[i];
-      id = pk.kind === "wood" ? "wood" : "stoneItem";
+      if (pk.kind === "wood") id = "wood";
+      else if (pk.kind === "stone") id = "stoneItem";
+      else id = pk.kind;
       Assets.draw(g, id, Math.round(pk.x - 8), Math.round(pk.y - 8));
     }
   }
@@ -1364,13 +1605,65 @@
 
   function drawDialogue(g) {
     if (!dialogue) return;
-    var x = 16, y = 116, w = 288, h = 50;
+    var lines = dialogue.lines || [];
+    var title = dialogue.title || "";
+    var x = 16, w = 288;
+    var h = 16 + Math.max(2, lines.length) * 10;
+    if (h < 50) h = 50;
+    var y = 166 - h;
+    if (y < 88) y = 88;
     woodPanel(g, x, y, w, h);
     fill(g, x + 4, y + 4, w - 8, h - 8, C.parch);
-    woodPanel(g, x + 8, y - 6, 62, 11);
-    drawText(g, "NEIGHBOR", x + 12, y - 3, C.parch);
-    drawText(g, "HI! WELCOME TO", x + 10, y + 12, C.uiText);
-    drawText(g, "MOONDROP MOUNTAIN.", x + 10, y + 22, C.uiText);
+    var tw = textWidth(title) + 12;
+    if (tw < 62) tw = 62;
+    woodPanel(g, x + 8, y - 6, tw, 11);
+    drawText(g, title, x + 12, y - 3, C.parch);
+    var i;
+    for (i = 0; i < lines.length; i++) {
+      drawText(g, lines[i], x + 10, y + 12 + i * 10, C.uiText);
+    }
+  }
+
+  function drawToast(g) {
+    if (!toast) return;
+    var t = toast.age / toast.life;
+    var alpha = 1;
+    if (t < 0.12) alpha = t / 0.12;
+    else if (t > 0.72) alpha = (1 - t) / 0.28;
+    if (alpha <= 0) return;
+    g.save();
+    g.globalAlpha = alpha;
+    var name = toast.name;
+    var w = textWidth(name) + 30;
+    if (w < 96) w = 96;
+    var x = ((VIEW_W - w) / 2) | 0;
+    var y = 22;
+    woodPanel(g, x, y, w, 18);
+    fill(g, x + 3, y + 3, w - 6, 12, C.parch);
+    Assets.draw(g, "trophy", x + 2, y + 1);
+    drawText(g, name, x + 20, y + 6, C.uiText);
+    g.restore();
+  }
+
+  function drawAchieveList(g) {
+    if (!achieveOpen) return;
+    var x = 24, y = 28, w = 272, h = 132;
+    woodPanel(g, x, y, w, h);
+    fill(g, x + 4, y + 4, w - 8, h - 8, C.parch);
+    woodPanel(g, x + 8, y - 6, 50, 11);
+    drawText(g, "STARS", x + 12, y - 3, C.parch);
+    var i, a, ly;
+    for (i = 0; i < ACH.length; i++) {
+      a = ACH[i];
+      ly = y + 14 + i * 18;
+      if (unlocked[a.id]) {
+        Assets.draw(g, "trophy", x + 8, ly - 2);
+        drawText(g, a.name, x + 28, ly + 2, C.uiText);
+      } else {
+        drawText(g, "....", x + 10, ly + 2, C.woodSh);
+        drawText(g, a.name, x + 28, ly + 2, C.woodSh);
+      }
+    }
   }
 
   function hitSprite(p, x, y, w, h, ox, oy) {
@@ -1464,6 +1757,8 @@
   function drawHUD(g) {
     woodPanel(g, 4, 4, 114, 13);
     drawText(g, "MOONDROP MOUNTAIN", 8, 7, C.parch);
+    woodPanel(g, 120, 3, 18, 18);
+    Assets.draw(g, "trophy", 121, 4);
 
     woodPanel(g, 206, 4, 110, 21);
     fill(g, 210, 8, 7, 7, C.flower);
@@ -1506,6 +1801,15 @@
       } else if (i === SLOT_STONE) {
         Assets.draw(g, "stoneItem", sx + 1, sy + 1);
         count = inventory.stone;
+      } else if (i === SLOT_COPPER) {
+        Assets.draw(g, "copper", sx + 1, sy + 1);
+        count = inventory.copper;
+      } else if (i === SLOT_MUSH) {
+        Assets.draw(g, "mushroom", sx + 1, sy + 1);
+        count = inventory.mushroom;
+      } else if (i === SLOT_MOON) {
+        Assets.draw(g, "moonshard", sx + 1, sy + 1);
+        count = inventory.moonshard;
       } else {
         count = -1;
       }
@@ -1600,7 +1904,9 @@
     drawSparks(g);
     g.restore();
     drawHUD(g);
+    drawToast(g);
     drawDialogue(g);
+    drawAchieveList(g);
   }
 
   function readInset(name) {
@@ -1792,6 +2098,10 @@
       if (idx >= 0 && idx < slots) selectedSlot = idx;
       return true;
     }
+    if (p.x >= 120 && p.x <= 138 && p.y >= 3 && p.y <= 21) {
+      achieveOpen = !achieveOpen;
+      return true;
+    }
     if (p.x >= 4 && p.x <= 118 && p.y >= 4 && p.y <= 17) return true;
     if (p.x >= 206 && p.x <= 316 && p.y >= 4 && p.y <= 25) return true;
     if (p.x >= VIEW_W - 18 && p.x <= VIEW_W - 2 && p.y >= VIEW_H - 80 && p.y <= VIEW_H - 14) return true;
@@ -1803,7 +2113,11 @@
     if (p.x < 0 || p.y < 0 || p.x >= VIEW_W || p.y >= VIEW_H) return;
 
     if (dialogue) {
-      dialogue = false;
+      dialogue = null;
+      return;
+    }
+    if (achieveOpen) {
+      achieveOpen = false;
       return;
     }
 
@@ -1853,6 +2167,27 @@
       goExit();
       return;
     }
+    var hitProp = propAt(tx, ty);
+    if (!hitProp) {
+      var hi;
+      for (hi = 0; hi < PROPS.length; hi++) {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note") {
+          var bb = propBounds(PROPS[hi]);
+          if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
+            hitProp = PROPS[hi];
+            break;
+          }
+        }
+      }
+    }
+    if (hitProp && hitProp.kind === "note") {
+      goReadNote();
+      return;
+    }
+    if (hitProp && isCollectible(hitProp)) {
+      goCollect(hitProp);
+      return;
+    }
     if (harvest) {
       goHarvest(harvest);
       return;
@@ -1879,7 +2214,7 @@
     if (dt > 64) dt = 64;
     lastTs = ts;
     ctx.imageSmoothingEnabled = false;
-    if (!dialogue) {
+    if (!dialogue && !achieveOpen) {
       if (player.hitting) {
         updateHit(dt);
       } else if (player.moving || (player.path && player.path.length)) {
@@ -1892,6 +2227,7 @@
       updateFx(dt);
       tick += dt;
     }
+    updateToasts(dt);
     drawWorld(ctx, dt);
     requestAnimationFrame(loop);
   }
@@ -1912,6 +2248,7 @@
   }
 
   paintLoading();
+  loadSave();
   applyScene("overworld");
   updateCamera();
   paintFsFace();

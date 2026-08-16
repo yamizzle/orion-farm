@@ -1134,6 +1134,132 @@ def gen_ladder():
     return g
 
 
+
+def gen_copper():
+    """3/4 copper nugget: top plane + front face."""
+    g = Pix(16, 16)
+    hi, mid, sh = C["copperHi"], C["copperMid"], C["copperSh"]
+    g.fill(4, 13, 8, 2, C["shadow"])
+    # top
+    g.fill(5, 5, 6, 1, hi)
+    g.fill(4, 6, 8, 2, hi)
+    g.fill(5, 7, 6, 1, mid)
+    g.px(6, 6, C["flower"])
+    g.px(8, 7, sh)
+    # front
+    g.fill(4, 8, 8, 5, mid)
+    g.fill(4, 8, 2, 5, hi)
+    g.fill(10, 8, 2, 5, sh)
+    g.fill(4, 12, 8, 1, C["woodOut"])
+    g.fill(3, 8, 1, 5, C["woodOut"])
+    g.fill(12, 8, 1, 5, C["woodOut"])
+    g.px(7, 10, sh)
+    g.px(9, 9, hi)
+    return g
+
+
+def gen_mushroom():
+    """3/4 cave mushroom: cap top + front, pale stem."""
+    g = Pix(16, 16)
+    cap, caph, caps = C["mushCap"], C["mushCapHi"], C["mushCapSh"]
+    stem, stems = C["mushStem"], C["mushStemSh"]
+    g.fill(5, 14, 6, 2, C["shadow"])
+    # stem
+    g.fill(6, 9, 4, 5, stem)
+    g.fill(6, 9, 1, 5, C["parch"])
+    g.fill(9, 9, 1, 5, stems)
+    g.fill(6, 13, 4, 1, C["woodOut"])
+    # cap top plane
+    g.fill(4, 3, 8, 2, caph)
+    g.fill(3, 5, 10, 2, cap)
+    g.fill(4, 4, 8, 1, cap)
+    g.px(5, 3, C["parch"])
+    g.px(7, 4, caph)
+    # cap front
+    g.fill(3, 7, 10, 3, cap)
+    g.fill(3, 7, 10, 1, caph)
+    g.fill(3, 9, 10, 1, caps)
+    g.fill(2, 7, 1, 3, caps)
+    g.fill(13, 7, 1, 3, C["woodOut"])
+    g.px(6, 8, C["parch"])
+    g.px(10, 8, caph)
+    return g
+
+
+def gen_moonshard():
+    """3/4 moon shard crystal: top facet + glowing front."""
+    g = Pix(16, 16)
+    hi, mid, sh, glow = C["moonHi"], C["moonMid"], C["moonSh"], C["moonGlow"]
+    g.fill(5, 14, 6, 2, C["shadow"])
+    # diamond crystal, 3/4
+    pts = [
+        (7, 2, hi), (8, 2, hi),
+        (6, 3, hi), (7, 3, hi), (8, 3, glow), (9, 3, mid),
+        (5, 4, mid), (6, 4, hi), (7, 4, glow), (8, 4, hi), (9, 4, mid), (10, 4, sh),
+        (4, 5, mid), (5, 5, hi), (6, 5, glow), (7, 5, hi), (8, 5, mid), (9, 5, mid), (10, 5, sh), (11, 5, sh),
+        (4, 6, mid), (5, 6, mid), (6, 6, hi), (7, 6, mid), (8, 6, mid), (9, 6, sh), (10, 6, sh), (11, 6, C["woodOut"]),
+        (5, 7, mid), (6, 7, mid), (7, 7, mid), (8, 7, sh), (9, 7, sh), (10, 7, C["woodOut"]),
+        (5, 8, mid), (6, 8, sh), (7, 8, sh), (8, 8, sh), (9, 8, C["woodOut"]),
+        (6, 9, sh), (7, 9, sh), (8, 9, C["woodOut"]),
+        (6, 10, sh), (7, 10, C["woodOut"]), (8, 10, C["woodOut"]),
+        (7, 11, C["woodOut"]),
+    ]
+    for x, y, col in pts:
+        g.px(x, y, col)
+    g.px(7, 5, glow)
+    g.px(6, 4, hi)
+    return g
+
+
+def gen_note():
+    """Wall note: wood slat + tacked parchment, 3/4."""
+    g = Pix(16, 16)
+    g.fill(3, 14, 10, 2, C["shadow"])
+    # wood board
+    g.fill(2, 2, 12, 3, C["woodHi"])
+    g.fill(2, 5, 12, 9, C["woodMid"])
+    g.fill(2, 5, 1, 9, C["woodHi"])
+    g.fill(13, 5, 1, 9, C["woodSh"])
+    g.fill(2, 13, 12, 1, C["woodOut"])
+    # parchment
+    g.fill(4, 4, 8, 8, C["parch"])
+    g.fill(4, 4, 8, 1, C["flower"])
+    g.fill(4, 11, 8, 1, C["dirtSh"])
+    g.px(5, 6, C["uiText"])
+    g.px(6, 6, C["uiText"])
+    g.px(7, 6, C["uiText"])
+    g.px(5, 8, C["uiText"])
+    g.px(6, 8, C["uiText"])
+    g.px(8, 8, C["uiText"])
+    g.px(5, 10, C["uiText"])
+    g.px(7, 10, C["uiText"])
+    # tack
+    g.px(7, 3, C["copperMid"])
+    g.px(8, 3, C["copperHi"])
+    return g
+
+
+def gen_trophy():
+    """Tiny 3/4 wood star for the achievement HUD."""
+    g = Pix(16, 16)
+    gold, hi, sh = C["flower"], C["parch"], C["dirtSh"]
+    g.fill(5, 14, 6, 2, C["shadow"])
+    # five-point star, chunky
+    g.fill(7, 2, 2, 2, hi)
+    g.fill(6, 4, 4, 2, gold)
+    g.fill(2, 6, 12, 2, gold)
+    g.fill(3, 6, 10, 1, hi)
+    g.fill(5, 8, 6, 2, gold)
+    g.fill(4, 10, 3, 3, gold)
+    g.fill(9, 10, 3, 3, sh)
+    g.fill(6, 8, 4, 3, gold)
+    g.px(7, 5, hi)
+    g.px(8, 7, C["dirtHi"])
+    g.px(4, 7, sh)
+    g.px(11, 7, sh)
+    return g
+
+
 GENERATORS = {
     "grass0": lambda: gen_grass(0),
     "grass1": lambda: gen_grass(1),
@@ -1188,6 +1314,11 @@ GENERATORS = {
     "cave": gen_cave,
     "lantern": gen_lantern,
     "ladder": gen_ladder,
+    "copper": gen_copper,
+    "mushroom": gen_mushroom,
+    "moonshard": gen_moonshard,
+    "note": gen_note,
+    "trophy": gen_trophy,
 }
 
 
@@ -1238,6 +1369,11 @@ def builtin_sprites():
         {"id": "cave", "file": "props/cave.png", "w": 64, "h": 48, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
         {"id": "lantern", "file": "props/lantern.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
         {"id": "ladder", "file": "props/ladder.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
+        {"id": "copper", "file": "ui/copper.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "mushroom", "file": "ui/mushroom.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "moonshard", "file": "ui/moonshard.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "note", "file": "props/note.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "trophy", "file": "ui/trophy.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
     ]
 
 

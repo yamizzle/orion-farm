@@ -86,7 +86,19 @@
     "caveFloorHi": "#6A685C",
     "caveFloorSh": "#2C2A24",
     "lanternGlow": "#F0C060",
-    "hillMid": "#7A7A68"
+    "hillMid": "#7A7A68",
+    "copperHi": "#F0A848",
+    "copperMid": "#D07028",
+    "copperSh": "#8A4010",
+    "mushCap": "#C45A6A",
+    "mushCapHi": "#E87888",
+    "mushCapSh": "#7A3040",
+    "mushStem": "#F0D8A8",
+    "mushStemSh": "#C4A070",
+    "moonHi": "#F8F0C8",
+    "moonMid": "#C8D8F0",
+    "moonSh": "#6A88C0",
+    "moonGlow": "#E8F0FF"
   },
   "sprites": [
     {
@@ -816,6 +828,91 @@
       "ox": 0,
       "oy": 0,
       "x": 52,
+      "y": 165,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "copper",
+      "file": "ui/copper.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 69,
+      "y": 165,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "mushroom",
+      "file": "ui/mushroom.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 86,
+      "y": 165,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "moonshard",
+      "file": "ui/moonshard.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 103,
+      "y": 165,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "note",
+      "file": "props/note.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 120,
+      "y": 165,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "trophy",
+      "file": "ui/trophy.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 137,
       "y": 165,
       "fw": 16,
       "generated": true

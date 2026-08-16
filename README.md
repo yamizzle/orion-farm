@@ -21,6 +21,8 @@ On iPhone, tap the wood **FULL** plaque (top-right) so the farm fills the Safari
 - Tap the neighbor in the straw hat. They say hello, then tap again to close the box.
 - A chicken wanders the farm grass. Tap it and it hops.
 - Follow the dirt path north to the timbered cave in the rocky hill. Walk onto the mouth to go inside; tap the ladder to come back out.
+- Inside, Nim left a wall note and three treasures in different rooms: a copper nugget, a cave mushroom, and a moon shard. Walk onto them to pick them up.
+- A wood star on the HUD opens your stars. New ones pop up on a little plaque.
 
 ## Where the art lives
 
@@ -32,9 +34,9 @@ assets/
   atlas.png         packed sheet the game loads
   atlas.json        same frame rects (handy for tools)
   tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall)
-  props/            house, tree, stump, well, mailbox, crate, pond, rocks, weeds, fences, cave, lantern, ladder
+  props/            house, tree, stump, well, mailbox, crate, pond, rocks, weeds, fences, cave, lantern, ladder, note
   actors/           player, neighbor, chicken (one PNG per facing/frame)
-  ui/               seed packet, sprout, wood, stone
+  ui/               seed packet, sprout, wood, stone, copper, mushroom, moon shard, star
 tools/
   process-generated.py  chroma-key, crop, and scale generated-src into game sizes
   export-assets.py      pack those PNGs into atlas.png (do not use --regen)

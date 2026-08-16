@@ -84,5 +84,17 @@
   "caveFloorHi": "#6A685C",
   "caveFloorSh": "#2C2A24",
   "lanternGlow": "#F0C060",
-  "hillMid": "#7A7A68"
+  "hillMid": "#7A7A68",
+  "copperHi": "#F0A848",
+  "copperMid": "#D07028",
+  "copperSh": "#8A4010",
+  "mushCap": "#C45A6A",
+  "mushCapHi": "#E87888",
+  "mushCapSh": "#7A3040",
+  "mushStem": "#F0D8A8",
+  "mushStemSh": "#C4A070",
+  "moonHi": "#F8F0C8",
+  "moonMid": "#C8D8F0",
+  "moonSh": "#6A88C0",
+  "moonGlow": "#E8F0FF"
 }
