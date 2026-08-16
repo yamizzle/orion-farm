@@ -311,7 +311,14 @@
   var toast = null;
   var toastQueue = [];
   var achieveOpen = false;
-  var mailRead = { welcome: false, mine: false };
+  var questOpen = false;
+  var mailRead = { welcome: false, mine: false, thanks: false };
+  var quest = {
+    flowerAsked: false,
+    flowerDone: false,
+    errandDone: false,
+    homeDone: false
+  };
   var LETTERS = {
     welcome: {
       id: "welcome",
@@ -322,6 +329,11 @@
       id: "mine",
       title: "NIM",
       lines: ["I SAW YOU GO IN", "THE MINE. BRING A", "MOON SHARD HOME."]
+    },
+    thanks: {
+      id: "thanks",
+      title: "NIM",
+      lines: ["THANKS FOR THE WOOD.", "THE CAVE FEELS WARM.", "COME BACK ANY TIME."]
     }
   };
   var ACH = [
@@ -330,7 +342,10 @@
     { id: "copperGlow", name: "COPPER GLOW", blurb: "FOUND COPPER" },
     { id: "caveSnack", name: "CAVE SNACK", blurb: "FOUND A MUSHROOM" },
     { id: "moonPiece", name: "MOON PIECE", blurb: "FOUND A SHARD" },
-    { id: "moonlightPocket", name: "MOONLIGHT POCKET", blurb: "FOUND ALL THREE" }
+    { id: "moonlightPocket", name: "MOONLIGHT POCKET", blurb: "FOUND ALL THREE" },
+    { id: "kindHeart", name: "KIND HEART", blurb: "GAVE A MUSHROOM" },
+    { id: "caveHelper", name: "CAVE HELPER", blurb: "LEFT WOOD FOR NIM" },
+    { id: "homeGlow", name: "HOME GLOW", blurb: "BROUGHT THE SHARD HOME" }
   ];
   var COLLECT_ACH = { copper: "copperGlow", mushroom: "caveSnack", moonshard: "moonPiece" };
   var NOTE_OPEN = ["I LEFT MOON SHARDS", "IN THESE CAVES.", "BRING THEM HOME."];
@@ -1167,9 +1182,16 @@
       if (data.mailRead) {
         mailRead.welcome = !!data.mailRead.welcome;
         mailRead.mine = !!data.mailRead.mine;
+        mailRead.thanks = !!data.mailRead.thanks;
+      }
+      if (data.quest) {
+        quest.flowerAsked = !!data.quest.flowerAsked;
+        quest.flowerDone = !!data.quest.flowerDone;
+        quest.errandDone = !!data.quest.errandDone;
+        quest.homeDone = !!data.quest.homeDone;
       }
       if (found.copper) inventory.copper = 1;
-      if (found.mushroom) inventory.mushroom = 1;
+      if (found.mushroom && !quest.flowerDone) inventory.mushroom = 1;
       if (found.moonshard) inventory.moonshard = 1;
     } catch (err) {}
   }
@@ -1181,7 +1203,8 @@
         unlocked: unlocked,
         introSeen: introSeen,
         outroSeen: outroSeen,
-        mailRead: mailRead
+        mailRead: mailRead,
+        quest: quest
       }));
     } catch (err) {}
   }
@@ -1196,12 +1219,15 @@
 
   function hasUnreadMail() {
     if (!mailRead.welcome) return true;
-    return mineMailReady() && !mailRead.mine;
+    if (mineMailReady() && !mailRead.mine) return true;
+    return quest.errandDone && !mailRead.thanks;
   }
 
   function letterToShow() {
     if (!mailRead.welcome) return LETTERS.welcome;
     if (mineMailReady() && !mailRead.mine) return LETTERS.mine;
+    if (quest.errandDone && !mailRead.thanks) return LETTERS.thanks;
+    if (quest.errandDone) return LETTERS.thanks;
     if (mineMailReady()) return LETTERS.mine;
     return LETTERS.welcome;
   }
@@ -1265,7 +1291,104 @@
   }
 
   function noteLines() {
+    if (quest.errandDone && allFound()) {
+      return ["YOU FOUND THEM ALL.", "THANKS FOR THE WOOD.", "THE MOUNTAIN HUMS."];
+    }
+    if (quest.errandDone) {
+      return ["THANKS FOR THE WOOD.", "MOON SHARDS ARE STILL", "IN THESE CAVES."];
+    }
     return allFound() ? NOTE_CLOSE : NOTE_OPEN;
+  }
+
+  function questHint() {
+    if (!quest.flowerAsked) return "SAY HI TO THE NEIGHBOR";
+    if (!quest.flowerDone) return "BRING A MUSHROOM TO THE NEIGHBOR";
+    if (mineMailReady() && !mailRead.mine) return "READ THE NEW LETTER";
+    if (!quest.errandDone && mailRead.mine) return "LEAVE WOOD AT NIM'S NOTE";
+    if (quest.errandDone && !mailRead.thanks) return "READ THE NEW LETTER";
+    if (found.moonshard && !quest.homeDone) return "TAKE THE SHARD HOME";
+    if (!found.moonshard) return "FIND A MOON SHARD";
+    return "ALL JOBS DONE";
+  }
+
+  function jobOpen() {
+    return questHint() !== "ALL JOBS DONE";
+  }
+
+  function hasMushroomToGive() {
+    return !quest.flowerDone && (inventory.mushroom > 0 || found.mushroom);
+  }
+
+  function giveMushroom() {
+    var i;
+    inventory.mushroom = 0;
+    for (i = pickups.length - 1; i >= 0; i--) {
+      if (pickups[i].kind === "mushroom") pickups.splice(i, 1);
+    }
+    quest.flowerAsked = true;
+    quest.flowerDone = true;
+    persistSave();
+    unlockAch("kindHeart");
+  }
+
+  function neighborLines() {
+    if (!quest.flowerAsked) {
+      if (hasMushroomToGive()) {
+        giveMushroom();
+        return ["OH! YOU FOUND A", "CAVE MUSHROOM.", "THANK YOU!"];
+      }
+      quest.flowerAsked = true;
+      persistSave();
+      return ["HI! CAN YOU FIND", "A CAVE MUSHROOM", "FOR MY GARDEN?"];
+    }
+    if (!quest.flowerDone) {
+      if (hasMushroomToGive()) {
+        giveMushroom();
+        return ["OH! A CAVE FLOWER.", "THANK YOU, ORION!"];
+      }
+      return ["A CAVE MUSHROOM", "GROWS IN THE MINE.", "BRING ME ONE?"];
+    }
+    if (mineMailReady() && !mailRead.mine) {
+      return ["THANKS AGAIN!", "CHECK YOUR MAIL."];
+    }
+    if (!quest.errandDone) {
+      return ["NIM WANTS WOOD.", "LEAVE SOME AT", "THE MINE NOTE."];
+    }
+    if (found.moonshard && !quest.homeDone) {
+      return ["TAKE THE SHARD", "INSIDE YOUR HOUSE.", "IT LIKES HOME."];
+    }
+    if (!found.moonshard) {
+      return ["NIM LEFT A SHARD", "IN THE CAVE.", "BRING IT HOME."];
+    }
+    return ["THE MOUNTAIN IS", "HAPPY. COME PLAY", "ANY TIME!"];
+  }
+
+  function talkNeighbor() {
+    faceToward(player, npc.tx, npc.ty);
+    faceToward(npc, player.tx, player.ty);
+    openDialogue("NEIGHBOR", neighborLines());
+  }
+
+  function tryLeaveWood() {
+    if (!(quest.flowerDone && mailRead.mine && !quest.errandDone)) return false;
+    if (inventory.wood < 1) return false;
+    inventory.wood -= 1;
+    quest.errandDone = true;
+    persistSave();
+    unlockAch("caveHelper");
+    return true;
+  }
+
+  function readNoteNow() {
+    if (tryLeaveWood()) {
+      openDialogue("NIM'S NOTE", ["YOU LEFT WOOD HERE.", "NIM WILL LIKE THIS."]);
+      return;
+    }
+    if (quest.flowerDone && mailRead.mine && !quest.errandDone) {
+      openDialogue("NIM'S NOTE", ["NIM WANTS WOOD.", "CHOP A TREE, THEN", "COME BACK."]);
+      return;
+    }
+    openDialogue("NIM'S NOTE", noteLines());
   }
 
   function unlockAch(id) {
@@ -1365,17 +1488,17 @@
     highlight = note ? { tx: note.tx, ty: note.ty } : null;
     if (!note || isNear(player.tx, player.ty, note.tx, note.ty) || (player.tx === note.tx && player.ty === note.ty)) {
       pending = null;
-      openDialogue("NIM'S NOTE", noteLines());
+      readNoteNow();
       return;
     }
     var dest = walkable(note.tx, note.ty) ? { tx: note.tx, ty: note.ty } : nearestAdjacent(note.tx, note.ty);
     if (!dest) {
-      openDialogue("NIM'S NOTE", noteLines());
+      readNoteNow();
       return;
     }
     var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) {
-      openDialogue("NIM'S NOTE", noteLines());
+      readNoteNow();
       return;
     }
     pending = { type: "note" };
@@ -1401,6 +1524,12 @@
   function enterHouse() {
     applyScene("house");
     placePlayer(10, 9, "up");
+    if (found.moonshard && !quest.homeDone) {
+      quest.homeDone = true;
+      persistSave();
+      unlockAch("homeGlow");
+      openDialogue("ORION", ["THE SHARD GLOWS.", "I AM HOME."]);
+    }
   }
 
   function exitHouse() {
@@ -1440,12 +1569,10 @@
       }
     } else if (act.type === "talk") {
       if (isNear(player.tx, player.ty, npc.tx, npc.ty)) {
-        faceToward(player, npc.tx, npc.ty);
-        faceToward(npc, player.tx, player.ty);
-        openDialogue("NEIGHBOR", ["HI! WELCOME TO", "MOONDROP MOUNTAIN."]);
+        talkNeighbor();
       }
     } else if (act.type === "note") {
-      openDialogue("NIM'S NOTE", noteLines());
+      readNoteNow();
     } else if (act.type === "mail") {
       openMail();
     } else if (act.type === "collect") {
@@ -1478,9 +1605,7 @@
     if (isNear(player.tx, player.ty, npc.tx, npc.ty)) {
       pending = null;
       startWalk(player, [], 3.5);
-      faceToward(player, npc.tx, npc.ty);
-      faceToward(npc, player.tx, player.ty);
-      openDialogue("NEIGHBOR", ["HI! WELCOME TO", "MOONDROP MOUNTAIN."]);
+      talkNeighbor();
       return;
     }
     var dest = nearestAdjacent(npc.tx, npc.ty);
@@ -1885,7 +2010,7 @@
 
   function drawAchieveList(g) {
     if (!achieveOpen) return;
-    var x = 24, y = 28, w = 272, h = 132;
+    var x = 24, y = 22, w = 272, h = 148;
     woodPanel(g, x, y, w, h);
     fill(g, x + 4, y + 4, w - 8, h - 8, C.parch);
     woodPanel(g, x + 8, y - 6, 50, 11);
@@ -1893,15 +2018,42 @@
     var i, a, ly;
     for (i = 0; i < ACH.length; i++) {
       a = ACH[i];
-      ly = y + 14 + i * 18;
+      ly = y + 11 + i * 15;
       if (unlocked[a.id]) {
-        Assets.draw(g, "trophy", x + 8, ly - 2);
-        drawText(g, a.name, x + 28, ly + 2, C.uiText);
+        Assets.draw(g, "trophy", x + 8, ly - 3);
+        drawText(g, a.name, x + 28, ly + 1, C.uiText);
       } else {
-        drawText(g, "....", x + 10, ly + 2, C.woodSh);
-        drawText(g, a.name, x + 28, ly + 2, C.woodSh);
+        drawText(g, "....", x + 10, ly + 1, C.woodSh);
+        drawText(g, a.name, x + 28, ly + 1, C.woodSh);
       }
     }
+  }
+
+  function drawBook(g, x, y) {
+    fill(g, x + 2, y + 2, 12, 13, C.woodOut);
+    fill(g, x + 3, y + 3, 5, 11, C.parch);
+    fill(g, x + 8, y + 3, 5, 11, "#E8C888");
+    fill(g, x + 7, y + 3, 2, 11, C.woodMid);
+    fill(g, x + 4, y + 5, 3, 1, C.woodSh);
+    fill(g, x + 4, y + 7, 3, 1, C.woodSh);
+    fill(g, x + 4, y + 9, 3, 1, C.woodSh);
+    fill(g, x + 10, y + 5, 2, 1, C.woodSh);
+    fill(g, x + 10, y + 7, 2, 1, C.woodSh);
+  }
+
+  function drawQuestPlaque(g) {
+    if (!questOpen) return;
+    var line = questHint();
+    var w = textWidth(line) + 20;
+    if (w < 168) w = 168;
+    if (w > 300) w = 300;
+    var x = ((VIEW_W - w) / 2) | 0;
+    var y = 28;
+    woodPanel(g, x, y, w, 28);
+    fill(g, x + 3, y + 3, w - 6, 22, C.parch);
+    woodPanel(g, x + 8, y - 6, 38, 11);
+    drawText(g, "JOB", x + 14, y - 3, C.parch);
+    drawText(g, line, x + 10, y + 11, C.uiText);
   }
 
   function hitSprite(p, x, y, w, h, ox, oy) {
@@ -1997,6 +2149,12 @@
     drawText(g, "MOONDROP MOUNTAIN", 8, 7, C.parch);
     woodPanel(g, 120, 3, 18, 18);
     Assets.draw(g, "trophy", 121, 4);
+    woodPanel(g, 140, 3, 18, 18);
+    drawBook(g, 141, 4);
+    if (jobOpen()) {
+      fill(g, 153, 5, 3, 3, C.flower);
+      px(g, 154, 4, C.flower);
+    }
 
     woodPanel(g, 206, 4, 110, 21);
     fill(g, 210, 8, 7, 7, C.flower);
@@ -2147,6 +2305,7 @@
     drawToast(g);
     drawDialogue(g);
     drawAchieveList(g);
+    drawQuestPlaque(g);
   }
 
   function readInset(name) {
@@ -2340,6 +2499,12 @@
     }
     if (p.x >= 120 && p.x <= 138 && p.y >= 3 && p.y <= 21) {
       achieveOpen = !achieveOpen;
+      questOpen = false;
+      return true;
+    }
+    if (p.x >= 140 && p.x <= 158 && p.y >= 3 && p.y <= 21) {
+      questOpen = !questOpen;
+      achieveOpen = false;
       return true;
     }
     if (p.x >= 4 && p.x <= 118 && p.y >= 4 && p.y <= 17) return true;
@@ -2358,6 +2523,10 @@
     }
     if (achieveOpen) {
       achieveOpen = false;
+      return;
+    }
+    if (questOpen) {
+      questOpen = false;
       return;
     }
 
@@ -2474,7 +2643,7 @@
     if (dt > 64) dt = 64;
     lastTs = ts;
     ctx.imageSmoothingEnabled = false;
-    if (!dialogue && !achieveOpen) {
+    if (!dialogue && !achieveOpen && !questOpen) {
       if (player.hitting) {
         updateHit(dt);
       } else if (player.moving || (player.path && player.path.length)) {

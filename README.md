@@ -16,15 +16,17 @@ On iPhone, tap the wood **FULL** plaque (top-right) so the farm fills the Safari
 
 - Tap the grass or path to walk there. The camera follows so you stay in the middle until you reach the edge of the mountain.
 - Tap the farmhouse door or the stoop in front of it to go inside. Walk onto the doormat (or tap the inside door) to come back out, just south of the house.
-- The mailbox by the house raises a teal flag and a letter when mail is waiting. Tap it (walk up if you need to) to read a wood-and-parchment letter. After you read it the flag goes down; tap again to re-read. A second letter arrives after the first mine visit.
+- The mailbox by the house raises a teal flag and a letter when mail is waiting. Tap it (walk up if you need to) to read a wood-and-parchment letter. After you read it the flag goes down; tap again to re-read. A second letter arrives after the first mine visit. A third letter arrives after you leave wood at Nim's note.
 - The first hotbar slot is a seed packet. Tap an empty brown plot inside the fence to plant a sprout.
 - Tap a tree or a rock (outside or in the mine). Walk up, face it, and hit it three times. Trees leave a stump and give **wood**; rocks give **stone**.
 - Wood is the second hotbar slot (2 wood = one fence). Stone is the third (1 stone = one path). Tap the slot, then tap empty grass or dirt to build. Fences block walking; paths do not.
-- Tap the neighbor in the straw hat. They say hello, then tap again to close the box.
+- Tap the neighbor in the straw hat. They have a small job for you. Tap again to close the box.
 - A chicken wanders the farm grass. Tap it and it hops.
 - Follow the dirt path north to the timbered cave in the rocky hill. Walk onto the mouth to go inside; tap the ladder to come back out.
 - Inside, Nim left a wall note and three treasures in different rooms: a copper nugget, a cave mushroom, and a moon shard. Walk onto them to pick them up.
 - A wood star on the HUD opens your stars. New ones pop up on a little plaque.
+- A wood book next to the star is your job list. Tap it for one line, like BRING A MUSHROOM TO THE NEIGHBOR.
+- Jobs: bring the neighbor a cave mushroom, leave wood at Nim's note after you read the mine letter, then take a moon shard inside the house.
 
 ## Where the art lives
 
