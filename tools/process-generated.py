@@ -7,6 +7,8 @@ assets/manifest.json, and writes tiles/props/actors/ui.
 
 Does not call the pixel painter and does not invoke export-assets.py --regen.
 After this script, pack with:  python3 tools/export-assets.py
+
+  python3 tools/process-generated.py --heroes   # Orion/Junie/Nim/town/props only
 """
 from __future__ import annotations
 
@@ -336,7 +338,64 @@ def key_match(kind, r, g, b, loose=False):
     return is_magenta(r, g, b, loose=loose) or is_grey_white(r, g, b, loose=loose)
 
 
+def _key_masks(arr, kind):
+    """Return (strict, loose) boolean masks for chroma. arr is HxWx4 uint8."""
+    import numpy as np
+    r = arr[:, :, 0].astype(np.int16)
+    g = arr[:, :, 1].astype(np.int16)
+    b = arr[:, :, 2].astype(np.int16)
+    a = arr[:, :, 3]
+    transp = a <= 8
+    if kind == "magenta":
+        rb = (r + b) // 2
+        strict = (g < 90) & (r >= 170) & (b >= 155) & ((rb - g) >= 85)
+        loose = (g < 130) & (r >= 140) & (b >= 130) & ((rb - g) >= 50)
+    elif kind == "checker":
+        mx = np.maximum(np.maximum(r, g), b)
+        mn = np.minimum(np.minimum(r, g), b)
+        strict = (mx >= 215) & ((mx - mn) <= 22)
+        loose = (mx >= 195) & ((mx - mn) <= 32)
+    else:
+        rb = (r + b) // 2
+        mag_s = (g < 90) & (r >= 170) & (b >= 155) & ((rb - g) >= 85)
+        mag_l = (g < 130) & (r >= 140) & (b >= 130) & ((rb - g) >= 50)
+        mx = np.maximum(np.maximum(r, g), b)
+        mn = np.minimum(np.minimum(r, g), b)
+        gw_s = (mx >= 215) & ((mx - mn) <= 22)
+        gw_l = (mx >= 195) & ((mx - mn) <= 32)
+        strict = mag_s | gw_s
+        loose = mag_l | gw_l
+    return transp | strict, loose
+
+
 def chroma_key(pix, kind):
+    """Key matching pixels (border flood + leftover islands + loose fringe)."""
+    try:
+        import numpy as np
+    except ImportError:
+        np = None
+    if np is None:
+        return _chroma_key_py(pix, kind)
+    w, h = pix.w, pix.h
+    arr = np.frombuffer(pix.data, dtype=np.uint8).reshape(h, w, 4)
+    strict, loose = _key_masks(arr, kind)
+    marked = strict.copy()
+    up = np.zeros_like(marked)
+    down = np.zeros_like(marked)
+    left = np.zeros_like(marked)
+    right = np.zeros_like(marked)
+    up[1:, :] = marked[:-1, :]
+    down[:-1, :] = marked[1:, :]
+    left[:, 1:] = marked[:, :-1]
+    right[:, :-1] = marked[:, 1:]
+    fringe = loose & ~marked & (up | down | left | right)
+    marked |= fringe
+    arr[:, :, 3] = np.where(marked, 0, arr[:, :, 3])
+    pix.data = bytearray(arr.tobytes())
+    return int(marked.sum())
+
+
+def _chroma_key_py(pix, kind):
     """Flood-fill from the border, then sweep leftover matching pixels."""
     w, h = pix.w, pix.h
     marked = bytearray(w * h)
@@ -364,7 +423,6 @@ def chroma_key(pix, kind):
             if 0 <= nx < w and 0 <= ny < h:
                 consider(nx, ny, False)
 
-    # leftover islands that are clearly the same key color
     for y in range(h):
         for x in range(w):
             i = y * w + x
@@ -374,7 +432,6 @@ def chroma_key(pix, kind):
             if a > 8 and key_match(kind, r, g, b, loose=False):
                 marked[i] = 1
 
-    # fringe: opaque pixels next to keyed ones that are loosely bg
     extra = []
     for y in range(h):
         for x in range(w):
@@ -456,12 +513,154 @@ def tile_square(pix):
     return pix.crop(x0, y0, x0 + side, y0 + side)
 
 
-def main():
-    print("process-generated: src=%s pillow=%s" % (SRC, PILImage is not None))
-    if not SRC.exists():
-        raise SystemExit("missing %s" % SRC)
+PALETTE_RGB = None
 
-    # --- tiles: full-bleed, no chroma ------------------------------------
+
+def load_palette_rgb():
+    global PALETTE_RGB
+    if PALETTE_RGB is not None:
+        return PALETTE_RGB
+    pal = json.loads((ASSETS / "palette.json").read_text(encoding="utf-8"))
+    colors = []
+    seen = set()
+    for v in pal.values():
+        if not isinstance(v, str) or not v.startswith("#"):
+            continue
+        h = v[1:]
+        if len(h) == 3:
+            h = "".join(ch * 2 for ch in h)
+        if len(h) < 6:
+            continue
+        rgb = (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+        if rgb in seen:
+            continue
+        seen.add(rgb)
+        colors.append(rgb)
+    PALETTE_RGB = colors
+    return colors
+
+
+def quantize(pix):
+    """Snap opaque pixels to the nearest assets/palette.json color."""
+    colors = load_palette_rgb()
+    if not colors:
+        return pix
+    try:
+        import numpy as np
+    except ImportError:
+        np = None
+    if np is None:
+        out = pix.copy()
+        d = out.data
+        for i in range(0, len(d), 4):
+            if d[i + 3] <= 8:
+                continue
+            r, g, b = d[i], d[i + 1], d[i + 2]
+            best, best_d = colors[0], 1e18
+            for pr, pg, pb in colors:
+                dist = (r - pr) * (r - pr) + (g - pg) * (g - pg) + (b - pb) * (b - pb)
+                if dist < best_d:
+                    best_d = dist
+                    best = (pr, pg, pb)
+                    if dist == 0:
+                        break
+            d[i], d[i + 1], d[i + 2] = best
+        return out
+    arr = np.frombuffer(pix.data, dtype=np.uint8).reshape(pix.h, pix.w, 4).copy()
+    pal = np.array(colors, dtype=np.int16)
+    opaque = arr[:, :, 3] > 8
+    if not opaque.any():
+        return pix
+    pixels = arr[opaque, :3].astype(np.int16)
+    diffs = pixels[:, None, :] - pal[None, :, :]
+    idx = (diffs * diffs).sum(axis=2).argmin(axis=1)
+    arr[opaque, :3] = pal[idx]
+    out = Pix(pix.w, pix.h, arr.tobytes())
+    return out
+
+
+def actor_pair(src_name, dest_stub, tw, th):
+    pix, _ = process_sprite(src_name)
+    if pix is None:
+        return None
+    f0 = quantize(pix.fit_grounded(tw, th))
+    f1 = quantize(pix.shift(0, -max(1, pix.h // 80)).fit_grounded(tw, th))
+    if f0.opaque_count() and f1.opaque_count() == f0.opaque_count():
+        f1 = f0.shift(0, 1)
+    f0.save(ASSETS / ("%s-0.png" % dest_stub))
+    f1.save(ASSETS / ("%s-1.png" % dest_stub))
+    print("  wrote %s-0/1.png (%dx%d)" % (dest_stub, tw, th))
+    return f0, f1
+
+
+def flip_pair(frames, dest_stub):
+    if not frames:
+        return
+    f0, f1 = frames
+    f0.flip_h().save(ASSETS / ("%s-0.png" % dest_stub))
+    f1.flip_h().save(ASSETS / ("%s-1.png" % dest_stub))
+    print("  wrote %s-0/1.png (flip)" % dest_stub)
+
+
+def reuse_pair(frames, dest_stub):
+    if not frames:
+        return
+    f0, f1 = frames
+    f0.save(ASSETS / ("%s-0.png" % dest_stub))
+    f1.save(ASSETS / ("%s-1.png" % dest_stub))
+    print("  wrote %s-0/1.png (reuse)" % dest_stub)
+
+
+def emit_q(pix, rel, tw, th, stretch=False):
+    if pix is None:
+        return False
+    out = pix.nn_scale(tw, th) if stretch else pix.fit_grounded(tw, th)
+    out = quantize(out)
+    dest = ASSETS / rel
+    out.save(dest)
+    print("  wrote %s (%dx%d) from %dx%d" % (rel, tw, th, pix.w, pix.h))
+    return True
+
+
+def process_heroes():
+    """Pack generated Orion / Junie / Nim / town / statue / shard / heart."""
+    # Orion -> player-*
+    pr = actor_pair("player-down.png", "actors/player-down", 16, 32)
+    actor_pair("player-up.png", "actors/player-up", 16, 32)
+    pright = actor_pair("player-right.png", "actors/player-right", 16, 32)
+    flip_pair(pright, "actors/player-left")
+    faint, _ = process_sprite("player-faint.png")
+    emit_q(faint, "actors/player-faint.png", 24, 16)
+
+    # Junie -> npc-* (she is the neighbor)
+    actor_pair("junie-down.png", "actors/npc-down", 16, 32)
+    actor_pair("junie-up.png", "actors/npc-up", 16, 32)
+    jright = actor_pair("junie-right.png", "actors/npc-right", 16, 32)
+    flip_pair(jright, "actors/npc-left")
+
+    # Nim (packed, still not spawned)
+    actor_pair("nim-down.png", "actors/nim-down", 16, 32)
+    actor_pair("nim-up.png", "actors/nim-up", 16, 32)
+    nright = actor_pair("nim-right.png", "actors/nim-right", 16, 32)
+    flip_pair(nright, "actors/nim-left")
+
+    # Town folk: down only — reuse for up/right, flip for left
+    for name in ("pip", "lila", "reed"):
+        frames = actor_pair("%s-down.png" % name, "actors/%s-down" % name, 16, 32)
+        reuse_pair(frames, "actors/%s-up" % name)
+        reuse_pair(frames, "actors/%s-right" % name)
+        flip_pair(frames, "actors/%s-left" % name)
+
+    statue, _ = process_sprite("statue.png")
+    emit_q(statue, "props/statue.png", 16, 32)
+    shard, _ = process_sprite("moonshard.png")
+    emit_q(shard, "ui/moonshard.png", 16, 16)
+    crystal, _ = process_sprite("mooncrystal.png")
+    emit_q(crystal, "ui/mooncrystal.png", 16, 16)
+
+
+def process_world():
+    """Tiles and farm props from generated-src (not used with --heroes)."""
     grass_src, _ = process_sprite("grass.png", chroma=False)
     dirt_src, _ = process_sprite("dirt.png", chroma=False)
     till_src, _ = process_sprite("till.png", chroma=False)
@@ -484,7 +683,6 @@ def main():
         tile_square(water_src).nn_scale(16, 16).save(ASSETS / "tiles/water.png")
         print("  wrote tiles/water.png")
 
-    # --- hero / props ----------------------------------------------------
     house, _ = process_sprite("house.png")
     emit(house, "props/house.png", 80, 80)
 
@@ -517,7 +715,6 @@ def main():
     if fence:
         emit(fence, "props/fenceH.png", 16, 16)
         mid = max(1, fence.w // 2)
-        # left post + a bit of rail; right post + a bit of rail
         left = fence.crop(0, 0, mid + max(1, fence.w // 8), fence.h)
         right = fence.crop(mid - max(1, fence.w // 8), 0, fence.w, fence.h)
         emit(left, "props/fenceL.png", 16, 16)
@@ -529,51 +726,11 @@ def main():
     sprout, _ = process_sprite("sprout.png")
     emit(sprout, "ui/sprout.png", 16, 16)
 
-    # --- actors ----------------------------------------------------------
-    def actor_pair(src_name, dest_stub, tw, th):
-        pix, _ = process_sprite(src_name)
-        if pix is None:
-            return None
-        f0 = pix.fit_grounded(tw, th)
-        f1 = pix.shift(0, -max(1, pix.h // 80)).fit_grounded(tw, th)
-        # if shift was tiny on source, also nudge the scaled frame 1px
-        if f0.opaque_count() and f1.opaque_count() == f0.opaque_count():
-            f1 = f0.shift(0, 1)
-        f0.save(ASSETS / ("%s-0.png" % dest_stub))
-        f1.save(ASSETS / ("%s-1.png" % dest_stub))
-        print("  wrote %s-0/1.png (%dx%d)" % (dest_stub, tw, th))
-        return f0, f1
-
-    def flip_pair(frames, dest_stub):
-        if not frames:
-            return
-        f0, f1 = frames
-        f0.flip_h().save(ASSETS / ("%s-0.png" % dest_stub))
-        f1.flip_h().save(ASSETS / ("%s-1.png" % dest_stub))
-        print("  wrote %s-0/1.png (flip)" % dest_stub)
-
-    pd = actor_pair("player-down.png", "actors/player-down", 16, 32)
-    pu = actor_pair("player-up.png", "actors/player-up", 16, 32)
-    pr = actor_pair("player-right.png", "actors/player-right", 16, 32)
-    flip_pair(pr, "actors/player-left")
-
-    nd = actor_pair("npc-down.png", "actors/npc-down", 16, 32)
-    actor_pair("npc-right.png", "actors/npc-right", 16, 32)
-    # npc-left from right
-    nr0 = ASSETS / "actors/npc-right-0.png"
-    if nr0.exists():
-        r0 = Pix.load(nr0)
-        r1 = Pix.load(ASSETS / "actors/npc-right-1.png")
-        flip_pair((r0, r1), "actors/npc-left")
-    # npc-up: reuse npc-down (no up source)
-    if nd:
-        nd[0].save(ASSETS / "actors/npc-up-0.png")
-        nd[1].save(ASSETS / "actors/npc-up-1.png")
-        print("  wrote actors/npc-up-0/1.png (from npc-down)")
-
     cr = actor_pair("chicken-right.png", "actors/chicken-right", 16, 16)
     flip_pair(cr, "actors/chicken-left")
 
+
+def print_report():
     print("\n--- chroma/crop report ---")
     failed = []
     for name, status, kind, keyed, frac in REPORT:
@@ -587,6 +744,21 @@ def main():
         print("issues:", ", ".join(failed))
     else:
         print("no chroma/crop failures")
+
+
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description="Process IMAGE-GENERATOR PNGs into game-sized sprites")
+    ap.add_argument("--heroes", action="store_true",
+                    help="only pack Orion/Junie/Nim/town/statue/shard/heart (leave world tiles)")
+    args = ap.parse_args(argv)
+    print("process-generated: src=%s pillow=%s heroes=%s" % (SRC, PILImage is not None, args.heroes))
+    if not SRC.exists():
+        raise SystemExit("missing %s" % SRC)
+    if not args.heroes:
+        process_world()
+    process_heroes()
+    print_report()
     print("done")
 
 
