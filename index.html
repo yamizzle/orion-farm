@@ -178,7 +178,16 @@
     "X": [0x11,0x11,0x0A,0x04,0x0A,0x11,0x11],
     "Y": [0x11,0x11,0x0A,0x04,0x04,0x04,0x04],
     "Z": [0x1F,0x01,0x02,0x04,0x08,0x10,0x1F],
+    "0": [0x0E,0x11,0x13,0x15,0x19,0x11,0x0E],
     "1": [0x04,0x0C,0x04,0x04,0x04,0x04,0x0E],
+    "2": [0x0E,0x11,0x01,0x02,0x04,0x08,0x1F],
+    "3": [0x1E,0x01,0x01,0x0E,0x01,0x01,0x1E],
+    "4": [0x02,0x06,0x0A,0x12,0x1F,0x02,0x02],
+    "5": [0x1F,0x10,0x1E,0x01,0x01,0x11,0x0E],
+    "6": [0x0E,0x10,0x10,0x1E,0x11,0x11,0x0E],
+    "7": [0x1F,0x01,0x02,0x04,0x08,0x08,0x08],
+    "8": [0x0E,0x11,0x11,0x0E,0x11,0x11,0x0E],
+    "9": [0x0E,0x11,0x11,0x0F,0x01,0x01,0x0E],
     "'": [0x04,0x04,0x08,0x00,0x00,0x00,0x00],
     "·": [0x00,0x00,0x00,0x04,0x00,0x00,0x00],
     ".": [0x00,0x00,0x00,0x00,0x00,0x04,0x04],
@@ -251,7 +260,21 @@
 
   var highlight = null;
   var ripples = [];
+  var sparks = [];
+  var pickups = [];
   var selectedSlot = 0;
+  var inventory = { wood: 0, stone: 0 };
+  var slotShake = 0;
+  var SLOT_SEED = 0;
+  var SLOT_WOOD = 1;
+  var SLOT_STONE = 2;
+  var HIT_COUNT = 3;
+  var HIT_GAP = 380;
+  var WOOD_PER_TREE = 2;
+  var STONE_PER_ROCK = 1;
+  var FENCE_COST = 2;
+  var PATH_COST = 1;
+  var sceneCache = { overworld: null, mine: null };
   var tick = 0;
   var lastTs = 0;
   var dialogue = false;
@@ -278,7 +301,9 @@
     path: [],
     stepFrom: null,
     stepT: 0,
-    anim: 0
+    anim: 0,
+    swing: 0,
+    hitting: null
   };
   var chicken = {
     tx: 10, ty: 32,
@@ -352,9 +377,7 @@
         if (g[y][x] === "g" && hash(x, y, 3) < 0.62) set(x, y, "h");
       }
     }
-    var out = [];
-    for (y = 0; y < rows; y++) out.push(g[y].join(""));
-    return out;
+    return g;
   }
 
   function buildOverworldProps() {
@@ -436,9 +459,7 @@
     wall(9, 4); wall(10, 4); wall(9, 5); wall(10, 5);
     wall(16, 8); wall(17, 8);
     wall(5, 10); wall(6, 10);
-    var out = [];
-    for (y = 0; y < rows; y++) out.push(g[y].join(""));
-    return out;
+    return g;
   }
 
   function buildMineProps() {
@@ -456,9 +477,21 @@
     ];
   }
 
+  function saveScene() {
+    if (!GROUND || !GROUND.length) return;
+    sceneCache[currentScene] = { cols: COLS, rows: ROWS, ground: GROUND, props: PROPS };
+  }
+
   function applyScene(name) {
+    saveScene();
     currentScene = name;
-    if (name === "mine") {
+    var cached = sceneCache[name];
+    if (cached) {
+      COLS = cached.cols;
+      ROWS = cached.rows;
+      GROUND = cached.ground;
+      PROPS = cached.props;
+    } else if (name === "mine") {
       COLS = 24;
       ROWS = 16;
       GROUND = buildMineGround();
@@ -484,7 +517,11 @@
 
   function cell(tx, ty) {
     if (ty < 0 || ty >= ROWS || tx < 0 || tx >= COLS) return "g";
-    return GROUND[ty].charAt(tx);
+    return GROUND[ty][tx];
+  }
+
+  function setCell(tx, ty, ch) {
+    if (ty >= 0 && ty < ROWS && tx >= 0 && tx < COLS) GROUND[ty][tx] = ch;
   }
 
   function isSoft(ch) {
@@ -688,6 +725,253 @@
     crops[k] = "sprout";
   }
 
+  function isFenceKind(kind) {
+    return kind === "fenceH" || kind === "fenceL" || kind === "fenceR";
+  }
+
+  function isHarvestable(p) {
+    return p && (p.kind === "tree" || p.kind === "rock");
+  }
+
+  function propOccupies(p, tx, ty) {
+    if (!p) return false;
+    if (p.kind === "house") return tx >= p.tx && tx < p.tx + 5 && ty >= p.ty && ty < p.ty + 4;
+    if (p.kind === "pond") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
+    if (p.kind === "cave") return tx >= p.tx && tx < p.tx + 4 && ty >= p.ty && ty < p.ty + 2;
+    return p.tx === tx && p.ty === ty;
+  }
+
+  function propAt(tx, ty) {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (propOccupies(p, tx, ty)) return p;
+    }
+    return null;
+  }
+
+  function harvestableAtTile(tx, ty) {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (isHarvestable(p) && p.tx === tx && p.ty === ty) return p;
+    }
+    return null;
+  }
+
+  function harvestableAtPoint(wx, wy) {
+    var i, p, b, rock = null, tree = null;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!isHarvestable(p)) continue;
+      b = propBounds(p);
+      if (wx >= b.x && wx < b.x + b.w && wy >= b.y && wy < b.y + b.h) {
+        if (p.kind === "rock") rock = p;
+        else tree = p;
+      }
+    }
+    return rock || tree;
+  }
+
+  function hasFence(tx, ty) {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (isFenceKind(p.kind) && p.tx === tx && p.ty === ty) return true;
+    }
+    return false;
+  }
+
+  function fenceKindFor(tx, ty) {
+    var v = hasFence(tx, ty - 1) || hasFence(tx, ty + 1);
+    var h = hasFence(tx - 1, ty) || hasFence(tx + 1, ty);
+    if (v && !h) return "fenceL";
+    return "fenceH";
+  }
+
+  function canBuildOn(tx, ty) {
+    var ch;
+    if (currentScene !== "overworld") return false;
+    if (!inBounds(tx, ty)) return false;
+    ch = cell(tx, ty);
+    if (ch !== "g" && ch !== "d" && ch !== "h") return false;
+    if (!walkable(tx, ty)) return false;
+    if (propAt(tx, ty)) return false;
+    if (tx === npc.tx && ty === npc.ty) return false;
+    if (tx === chicken.tx && ty === chicken.ty) return false;
+    if (isEntrance(tx, ty)) return false;
+    return true;
+  }
+
+  function spawnSparks(x, y) {
+    var i, ang;
+    for (i = 0; i < 5; i++) {
+      ang = (i / 5) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: x,
+        y: y,
+        vx: Math.cos(ang) * 0.035,
+        vy: Math.sin(ang) * 0.028 - 0.02,
+        age: 0,
+        life: 260 + Math.random() * 140,
+        col: i % 2 ? C.parch : C.flower
+      });
+    }
+  }
+
+  function spawnPickup(kind, tx, ty, amount) {
+    pickups.push({
+      kind: kind,
+      amount: amount,
+      x: tx * TILE + 8,
+      y: ty * TILE + 4,
+      sx: tx * TILE + 8,
+      sy: ty * TILE + 4,
+      age: 0,
+      life: 420
+    });
+  }
+
+  function addItem(kind, amount) {
+    if (kind === "wood") inventory.wood += amount;
+    else if (kind === "stone") inventory.stone += amount;
+  }
+
+  function flushPickups() {
+    var i, pk;
+    for (i = 0; i < pickups.length; i++) {
+      pk = pickups[i];
+      addItem(pk.kind, pk.amount);
+    }
+    pickups = [];
+  }
+
+  function cancelHit() {
+    player.hitting = null;
+  }
+
+  function doHit() {
+    var h = player.hitting;
+    var prop, cx, cy;
+    if (!h || !isHarvestable(h.prop)) {
+      cancelHit();
+      return;
+    }
+    prop = h.prop;
+    faceToward(player, prop.tx, prop.ty);
+    player.swing = 220;
+    prop.shake = 200;
+    cx = prop.tx * TILE + 8;
+    cy = prop.ty * TILE + (prop.kind === "tree" ? 2 : 6);
+    spawnSparks(cx, cy);
+    h.left -= 1;
+    if (h.left <= 0) {
+      finishHarvest(prop);
+      cancelHit();
+    } else {
+      h.wait = HIT_GAP;
+    }
+  }
+
+  function beginHit(prop) {
+    if (!isHarvestable(prop)) return;
+    player.path = [];
+    player.moving = false;
+    player.stepT = 0;
+    player.frame = 0;
+    faceToward(player, prop.tx, prop.ty);
+    player.hitting = { prop: prop, left: HIT_COUNT, wait: 0 };
+    doHit();
+  }
+
+  function finishHarvest(prop) {
+    if (prop.kind === "tree") {
+      prop.kind = "stump";
+      prop.shake = 0;
+      buildSolid();
+      spawnPickup("wood", prop.tx, prop.ty, WOOD_PER_TREE);
+    } else if (prop.kind === "rock") {
+      var i = PROPS.indexOf(prop);
+      if (i >= 0) PROPS.splice(i, 1);
+      buildSolid();
+      spawnPickup("stone", prop.tx, prop.ty, STONE_PER_ROCK);
+    }
+  }
+
+  function updateHit(dt) {
+    if (player.swing > 0) player.swing -= dt;
+    if (!player.hitting) return;
+    if (!isHarvestable(player.hitting.prop)) {
+      cancelHit();
+      return;
+    }
+    player.hitting.wait -= dt;
+    if (player.hitting.wait <= 0) doHit();
+  }
+
+  function updatePickups(dt) {
+    var i, pk, t, destX, destY;
+    for (i = pickups.length - 1; i >= 0; i--) {
+      pk = pickups[i];
+      pk.age += dt;
+      t = pk.age / pk.life;
+      if (t >= 1) {
+        addItem(pk.kind, pk.amount);
+        pickups.splice(i, 1);
+        continue;
+      }
+      destX = player.x;
+      destY = player.y - 10;
+      pk.x = pk.sx + (destX - pk.sx) * t;
+      pk.y = pk.sy + (destY - pk.sy) * t - Math.sin(t * Math.PI) * 12;
+    }
+  }
+
+  function updateFx(dt) {
+    var i, p, sp;
+    if (slotShake > 0) slotShake -= dt;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.shake > 0) p.shake -= dt;
+    }
+    for (i = sparks.length - 1; i >= 0; i--) {
+      sp = sparks[i];
+      sp.age += dt;
+      if (sp.age >= sp.life) {
+        sparks.splice(i, 1);
+        continue;
+      }
+      sp.x += sp.vx * dt;
+      sp.y += sp.vy * dt;
+      sp.vy += 0.00018 * dt;
+    }
+  }
+
+  function tryBuild(tx, ty) {
+    var placingFence = selectedSlot === SLOT_WOOD;
+    var placingPath = selectedSlot === SLOT_STONE;
+    if (!placingFence && !placingPath) return false;
+    if (!canBuildOn(tx, ty)) return false;
+    if (placingFence && player.tx === tx && player.ty === ty) return false;
+    if (placingFence && inventory.wood < FENCE_COST) {
+      slotShake = 220;
+      return true;
+    }
+    if (placingPath && inventory.stone < PATH_COST) {
+      slotShake = 220;
+      return true;
+    }
+    if (placingFence) {
+      inventory.wood -= FENCE_COST;
+      PROPS.push({ kind: fenceKindFor(tx, ty), tx: tx, ty: ty });
+      buildSolid();
+    } else {
+      inventory.stone -= PATH_COST;
+      setCell(tx, ty, "k");
+    }
+    return true;
+  }
+
   function caveAt(tx, ty) {
     var i, p;
     for (i = 0; i < PROPS.length; i++) {
@@ -718,6 +1002,9 @@
     pending = null;
     highlight = null;
     ripples = [];
+    sparks = [];
+    flushPickups();
+    cancelHit();
     updateCamera();
   }
 
@@ -760,6 +1047,15 @@
       enterMine();
     } else if (act.type === "exit") {
       exitMine();
+    } else if (act.type === "harvest") {
+      if (isHarvestable(act.prop) && isNear(player.tx, player.ty, act.prop.tx, act.prop.ty)) {
+        beginHit(act.prop);
+      }
+    } else if (act.type === "build") {
+      if (isNear(player.tx, player.ty, act.tx, act.ty) || (player.tx === act.tx && player.ty === act.ty)) {
+        faceToward(player, act.tx, act.ty);
+        tryBuild(act.tx, act.ty);
+      }
     }
   }
 
@@ -825,6 +1121,63 @@
     startWalk(player, path, 3.5);
   }
 
+  function goHarvest(prop) {
+    if (!isHarvestable(prop)) return;
+    highlight = { tx: prop.tx, ty: prop.ty };
+    if (isNear(player.tx, player.ty, prop.tx, prop.ty)) {
+      pending = null;
+      startWalk(player, [], 3.5);
+      beginHit(prop);
+      return;
+    }
+    var dest = nearestAdjacent(prop.tx, prop.ty);
+    if (!dest) return;
+    var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) return;
+    pending = { type: "harvest", prop: prop };
+    startWalk(player, path, 3.5);
+  }
+
+  function goBuild(tx, ty) {
+    var placingFence = selectedSlot === SLOT_WOOD;
+    var ghost = placingFence ? fenceKindFor(tx, ty) : "path";
+    highlight = { tx: tx, ty: ty, ghost: ghost };
+    if (!canBuildOn(tx, ty)) return;
+    if (placingFence && player.tx === tx && player.ty === ty) return;
+    if (placingFence && inventory.wood < FENCE_COST) {
+      slotShake = 220;
+      return;
+    }
+    if (!placingFence && inventory.stone < PATH_COST) {
+      slotShake = 220;
+      return;
+    }
+    if (placingFence) {
+      if (isNear(player.tx, player.ty, tx, ty)) {
+        pending = null;
+        faceToward(player, tx, ty);
+        tryBuild(tx, ty);
+        return;
+      }
+      var dest = nearestAdjacent(tx, ty);
+      if (!dest) return;
+      var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+      if (!path.length) return;
+      pending = { type: "build", tx: tx, ty: ty };
+      startWalk(player, path, 3.5);
+      return;
+    }
+    if (player.tx === tx && player.ty === ty) {
+      pending = null;
+      tryBuild(tx, ty);
+      return;
+    }
+    var pathOn = findPath(player.tx, player.ty, tx, ty);
+    if (!pathOn.length) return;
+    pending = { type: "build", tx: tx, ty: ty };
+    startWalk(player, pathOn, 3.5);
+  }
+
   function updateChicken(dt) {
     if (currentScene !== "overworld") return;
     if (chicken.react > 0) chicken.react -= dt;
@@ -862,8 +1215,17 @@
 
   function drawPlayer(g) {
     var bob = (player.moving && player.frame) ? -1 : 0;
+    var sx = 0, sy = 0, amp;
+    if (player.swing > 0) {
+      amp = Math.round(Math.sin((1 - player.swing / 220) * Math.PI) * 3);
+      if (player.face === "left") sx = -amp;
+      else if (player.face === "right") sx = amp;
+      else if (player.face === "up") sy = -amp;
+      else sy = amp;
+      bob -= 1;
+    }
     drawShadow(g, player.x, player.y, 5);
-    Assets.draw(g, "player-" + player.face, player.x, player.y + bob, player.frame);
+    Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
   }
 
   function drawNpc(g) {
@@ -887,7 +1249,7 @@
     if (p.kind === "well") return p.ty * TILE + 28;
     if (p.kind === "mailbox") return p.ty * TILE + 20;
     if (p.kind === "pond") return p.ty * TILE + 20;
-    if (p.kind === "crate") return p.ty * TILE + 14;
+    if (p.kind === "crate" || p.kind === "stump") return p.ty * TILE + 14;
     if (p.kind === "cave") return p.ty * TILE + 32;
     if (p.kind === "lantern") return p.ty * TILE + 20;
     if (p.kind === "ladder") return p.ty * TILE + 20;
@@ -914,10 +1276,15 @@
   function drawProp(g, p) {
     var x = p.tx * TILE;
     var y = p.ty * TILE;
+    if (p.shake > 0) {
+      x += ((tick / 40) | 0) % 2 ? 1 : -1;
+    }
     if (p.kind === "house") {
       Assets.draw(g, "house", x, y);
     } else if (p.kind === "tree") {
       Assets.draw(g, "tree", x, y);
+    } else if (p.kind === "stump") {
+      Assets.draw(g, "stump", x, y);
     } else if (p.kind === "well") {
       Assets.draw(g, "well", x, y);
     } else if (p.kind === "mailbox") {
@@ -971,6 +1338,27 @@
       else if (list[i].kind === "player") drawPlayer(g);
       else if (list[i].kind === "chicken") drawChickenSpr(g);
       else drawNpc(g);
+    }
+  }
+
+  function drawPickups(g) {
+    var i, pk, id;
+    for (i = 0; i < pickups.length; i++) {
+      pk = pickups[i];
+      id = pk.kind === "wood" ? "wood" : "stoneItem";
+      Assets.draw(g, id, Math.round(pk.x - 8), Math.round(pk.y - 8));
+    }
+  }
+
+  function drawSparks(g) {
+    var i, sp, life;
+    for (i = 0; i < sparks.length; i++) {
+      sp = sparks[i];
+      life = 1 - sp.age / sp.life;
+      if (life <= 0) continue;
+      g.fillStyle = sp.col;
+      g.fillRect(Math.round(sp.x), Math.round(sp.y), 1, 1);
+      if (life > 0.45) g.fillRect(Math.round(sp.x) + 1, Math.round(sp.y) - 1, 1, 1);
     }
   }
 
@@ -1093,10 +1481,15 @@
     var bx = ((VIEW_W - barW) / 2) | 0;
     var by = VIEW_H - 22;
     woodPanel(g, bx - 3, by - 3, barW + 6, 24);
-    var i, sx, sy, sel;
+    var i, sx, sy, sel, count, label, shakeX;
     for (i = 0; i < slots; i++) {
       sx = bx + i * (slot + gap);
       sy = by;
+      shakeX = 0;
+      if (slotShake > 0 && (i === SLOT_WOOD || i === SLOT_STONE) && i === selectedSlot) {
+        shakeX = ((tick / 40) | 0) % 2 ? 1 : -1;
+      }
+      sx += shakeX;
       sel = i === selectedSlot;
       fill(g, sx, sy, slot, slot, sel ? C.woodHi : C.woodSh);
       fill(g, sx + 1, sy + 1, slot - 2, slot - 2, C.slot);
@@ -1105,8 +1498,22 @@
         fill(g, sx, sy, slot, 1, C.parch);
         fill(g, sx, sy, 1, slot, C.parch);
       }
-      if (i === 0) {
+      if (i === SLOT_SEED) {
         Assets.draw(g, "seed", sx + 1, sy + 1);
+      } else if (i === SLOT_WOOD) {
+        Assets.draw(g, "wood", sx + 1, sy + 1);
+        count = inventory.wood;
+      } else if (i === SLOT_STONE) {
+        Assets.draw(g, "stoneItem", sx + 1, sy + 1);
+        count = inventory.stone;
+      } else {
+        count = -1;
+      }
+      if (count >= 0) {
+        if (count > 99) count = 99;
+        label = String(count);
+        drawText(g, label, sx + slot - textWidth(label) - 2, sy + slot - 9, C.woodOut);
+        drawText(g, label, sx + slot - textWidth(label) - 3, sy + slot - 10, C.parch);
       }
     }
 
@@ -1146,6 +1553,8 @@
           Assets.draw(g, "stone" + ((tx + ty) & 1), dx, dy);
         } else if (ch === "h") {
           Assets.draw(g, "hill", dx, dy);
+        } else if (ch === "k") {
+          Assets.draw(g, "path", dx, dy);
         } else if (ch === "#") {
           Assets.draw(g, "wall", dx, dy);
         } else {
@@ -1155,9 +1564,14 @@
     }
 
     if (highlight) {
-      g.fillStyle = "rgba(243,210,163,0.32)";
+      if (highlight.ghost && Assets.spr[highlight.ghost]) {
+        g.globalAlpha = 0.4;
+        Assets.draw(g, highlight.ghost, highlight.tx * TILE, highlight.ty * TILE);
+        g.globalAlpha = 1;
+      }
+      g.fillStyle = highlight.ghost ? "rgba(107,203,60,0.28)" : "rgba(243,210,163,0.32)";
       g.fillRect(highlight.tx * TILE, highlight.ty * TILE, TILE, TILE);
-      g.fillStyle = "rgba(243,210,163,0.7)";
+      g.fillStyle = highlight.ghost ? "rgba(107,203,60,0.75)" : "rgba(243,210,163,0.7)";
       g.fillRect(highlight.tx * TILE, highlight.ty * TILE, TILE, 1);
       g.fillRect(highlight.tx * TILE, highlight.ty * TILE, 1, TILE);
       g.fillRect(highlight.tx * TILE, highlight.ty * TILE + 15, TILE, 1);
@@ -1182,6 +1596,8 @@
     }
 
     drawActors(g);
+    drawPickups(g);
+    drawSparks(g);
     g.restore();
     drawHUD(g);
     drawDialogue(g);
@@ -1394,6 +1810,12 @@
     if (tapHud(p)) return;
 
     var world = { x: p.x + camX, y: p.y + camY };
+    var tx = Math.floor(world.x / TILE);
+    var ty = Math.floor(world.y / TILE);
+    var harvest = harvestableAtPoint(world.x, world.y);
+    if (!harvest && inBounds(tx, ty)) harvest = harvestableAtTile(tx, ty);
+    if (player.hitting && harvest && player.hitting.prop === harvest) return;
+    cancelHit();
 
     if (currentScene === "overworld") {
       if (hitSprite(world, npc.x, npc.y, 16, 32, 8, 28)) {
@@ -1407,8 +1829,6 @@
       }
     }
 
-    var tx = Math.floor(world.x / TILE);
-    var ty = Math.floor(world.y / TILE);
     if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return;
     highlight = { tx: tx, ty: ty };
     ripples.push({
@@ -1433,8 +1853,21 @@
       goExit();
       return;
     }
-    if (selectedSlot === 0 && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
+    if (harvest) {
+      goHarvest(harvest);
+      return;
+    }
+    if (selectedSlot === SLOT_SEED && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
       goPlant(tx, ty);
+      return;
+    }
+    if ((selectedSlot === SLOT_WOOD || selectedSlot === SLOT_STONE) && canBuildOn(tx, ty)) {
+      goBuild(tx, ty);
+      return;
+    }
+    if ((selectedSlot === SLOT_WOOD || selectedSlot === SLOT_STONE) && currentScene === "overworld") {
+      highlight = { tx: tx, ty: ty };
+      slotShake = 180;
       return;
     }
     goWalk(tx, ty);
@@ -1447,10 +1880,16 @@
     lastTs = ts;
     ctx.imageSmoothingEnabled = false;
     if (!dialogue) {
-      if (player.moving || (player.path && player.path.length)) {
+      if (player.hitting) {
+        updateHit(dt);
+      } else if (player.moving || (player.path && player.path.length)) {
         if (advanceWalk(player, dt)) arrive();
+      } else if (player.swing > 0) {
+        player.swing -= dt;
       }
       updateChicken(dt);
+      updatePickups(dt);
+      updateFx(dt);
       tick += dt;
     }
     drawWorld(ctx, dt);

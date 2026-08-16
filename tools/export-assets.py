@@ -710,6 +710,96 @@ def gen_sprout():
     return g
 
 
+
+def gen_stump():
+    """Cut trunk: top rings + front face + little roots."""
+    g = Pix(16, 16)
+    g.fill(3, 14, 10, 2, C["shadow"])
+    # cut top plane (rings)
+    g.fill(5, 5, 6, 1, C["woodHi"])
+    g.fill(4, 6, 8, 3, C["woodHi"])
+    g.fill(5, 7, 6, 1, C["woodMid"])
+    g.px(7, 7, C["woodOut"])
+    g.px(8, 6, C["woodSh"])
+    g.px(6, 6, C["dirtHi"])
+    # front face
+    g.fill(4, 9, 8, 5, C["woodMid"])
+    g.fill(4, 9, 2, 5, C["woodHi"])
+    g.fill(10, 9, 2, 5, C["woodSh"])
+    g.fill(4, 13, 8, 1, C["woodOut"])
+    g.fill(3, 9, 1, 5, C["woodOut"])
+    g.fill(12, 9, 1, 5, C["woodOut"])
+    # bark nick
+    g.px(6, 11, C["woodOut"])
+    g.px(9, 12, C["woodSh"])
+    # roots
+    g.fill(2, 12, 2, 2, C["woodSh"])
+    g.px(2, 13, C["woodOut"])
+    g.fill(12, 12, 2, 2, C["woodSh"])
+    g.px(13, 13, C["woodOut"])
+    return g
+
+
+def gen_wood():
+    """3/4 log for the hotbar and pickup."""
+    g = Pix(16, 16)
+    g.fill(3, 13, 10, 2, C["shadow"])
+    # top of the cylinder
+    g.fill(4, 4, 8, 1, C["woodOut"])
+    g.fill(3, 5, 10, 1, C["woodHi"])
+    g.fill(2, 6, 11, 2, C["woodHi"])
+    g.fill(3, 7, 9, 1, C["woodMid"])
+    # front
+    g.fill(2, 8, 11, 5, C["woodMid"])
+    g.fill(2, 8, 2, 5, C["woodHi"])
+    g.fill(11, 8, 2, 5, C["woodSh"])
+    g.fill(2, 12, 11, 1, C["woodOut"])
+    # right end-grain
+    g.fill(12, 6, 3, 6, C["woodSh"])
+    g.fill(13, 7, 1, 4, C["woodOut"])
+    g.px(13, 8, C["dirtHi"])
+    g.px(4, 9, C["woodOut"])
+    g.px(8, 11, C["woodSh"])
+    return g
+
+
+def gen_stone_item():
+    """Small 3/4 stone chunk for the hotbar and pickup."""
+    g = Pix(16, 16)
+    g.fill(4, 13, 8, 2, C["shadow"])
+    blob(g, 7, 8, 5, 3, C["stoneHi"], C["stone"], C["stoneHi"], C["stoneSh"])
+    blob(g, 8, 11, 5, 3, C["stone"], C["stoneSh"], C["stone"], C["stoneSh"])
+    blob(g, 11, 10, 3, 2, C["stone"], C["stoneSh"], C["stoneHi"], C["stoneSh"])
+    g.px(5, 8, C["stoneHi"])
+    g.px(10, 12, C["stoneSh"])
+    return g
+
+
+def gen_path():
+    """Walkable cobble path, 3/4 south lip."""
+    g = Pix(16, 16)
+    g.fill(0, 0, 16, 16, C["stone"])
+    cobbles = [
+        (1, 1, 6, 5), (8, 1, 7, 4),
+        (1, 6, 5, 4), (7, 6, 8, 5),
+        (1, 11, 7, 3), (9, 12, 6, 2),
+    ]
+    for i, (x, y, w, h) in enumerate(cobbles):
+        hi = C["stoneHi"] if i % 2 == 0 else C["stone"]
+        sh = C["stoneSh"]
+        g.fill(x, y, w, h, hi)
+        g.fill(x, y + h - 1, w, 1, sh)
+        g.fill(x + w - 1, y, 1, h, sh)
+        if i % 3 == 0:
+            g.px(x + 1, y + 1, C["stoneHi"])
+    for x in range(16):
+        if x % 4 == 0:
+            g.px(x, 0, C["stoneHi"])
+        g.px(x, 14, C["stoneSh"])
+        g.px(x, 15, C["woodOut"] if x % 2 else C["stoneSh"])
+    return g
+
+
 # --- actors ----------------------------------------------------------------
 
 def _person_colors(kind):
@@ -1067,6 +1157,10 @@ GENERATORS = {
     "fenceR": gen_fence_r,
     "seed": gen_seed,
     "sprout": gen_sprout,
+    "stump": gen_stump,
+    "wood": gen_wood,
+    "stoneItem": gen_stone_item,
+    "path": gen_path,
     "player-down-0": lambda: gen_person("player", "down", 0),
     "player-down-1": lambda: gen_person("player", "down", 1),
     "player-up-0": lambda: gen_person("player", "up", 0),
@@ -1123,6 +1217,10 @@ def builtin_sprites():
         {"id": "fenceR", "file": "props/fenceR.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "seed", "file": "ui/seed.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "sprout", "file": "ui/sprout.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "stump", "file": "props/stump.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "wood", "file": "ui/wood.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "stoneItem", "file": "ui/stone.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "path", "file": "tiles/path.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "player-down", "file": "actors/player-down-{n}.png", "w": 16, "h": 32, "frames": 2, "anchor": A, "ox": 0, "oy": 0, "generated": True},
         {"id": "player-up", "file": "actors/player-up-{n}.png", "w": 16, "h": 32, "frames": 2, "anchor": A, "ox": 0, "oy": 0, "generated": True},
         {"id": "player-right", "file": "actors/player-right-{n}.png", "w": 16, "h": 32, "frames": 2, "anchor": A, "ox": 0, "oy": 0, "generated": True},

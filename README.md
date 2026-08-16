@@ -16,6 +16,8 @@ On iPhone, tap the wood **FULL** plaque (top-right) so the farm fills the Safari
 
 - Tap the grass or path to walk there. The camera follows so you stay in the middle until you reach the edge of the mountain.
 - The first hotbar slot is a seed packet. Tap an empty brown plot inside the fence to plant a sprout.
+- Tap a tree or a rock (outside or in the mine). Walk up, face it, and hit it three times. Trees leave a stump and give **wood**; rocks give **stone**.
+- Wood is the second hotbar slot (2 wood = one fence). Stone is the third (1 stone = one path). Tap the slot, then tap empty grass or dirt to build. Fences block walking; paths do not.
 - Tap the neighbor in the straw hat. They say hello, then tap again to close the box.
 - A chicken wanders the farm grass. Tap it and it hops.
 - Follow the dirt path north to the timbered cave in the rocky hill. Walk onto the mouth to go inside; tap the ladder to come back out.
@@ -30,9 +32,9 @@ assets/
   atlas.png         packed sheet the game loads
   atlas.json        same frame rects (handy for tools)
   tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall)
-  props/            house, tree, well, mailbox, crate, pond, rocks, weeds, fences, cave, lantern, ladder
+  props/            house, tree, stump, well, mailbox, crate, pond, rocks, weeds, fences, cave, lantern, ladder
   actors/           player, neighbor, chicken (one PNG per facing/frame)
-  ui/               seed packet, sprout
+  ui/               seed packet, sprout, wood, stone
 tools/
   process-generated.py  chroma-key, crop, and scale generated-src into game sizes
   export-assets.py      pack those PNGs into atlas.png (do not use --regen)

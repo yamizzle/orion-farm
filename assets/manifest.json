@@ -651,6 +651,74 @@
       "generated": true
     },
     {
+      "id": "stump",
+      "file": "props/stump.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 120,
+      "y": 148,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "wood",
+      "file": "ui/wood.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 137,
+      "y": 148,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "stoneItem",
+      "file": "ui/stone.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 154,
+      "y": 148,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "path",
+      "file": "tiles/path.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 171,
+      "y": 148,
+      "fw": 16,
+      "generated": true
+    },
+    {
       "id": "chicken-right",
       "file": "actors/chicken-right-{n}.png",
       "w": 16,
@@ -662,7 +730,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 120,
+      "x": 188,
       "y": 148,
       "fw": 16,
       "generated": true
@@ -679,7 +747,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 153,
+      "x": 221,
       "y": 148,
       "fw": 16,
       "generated": true
@@ -696,8 +764,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 186,
-      "y": 148,
+      "x": 1,
+      "y": 165,
       "fw": 16,
       "generated": true
     },
@@ -713,8 +781,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 203,
-      "y": 148,
+      "x": 18,
+      "y": 165,
       "fw": 16,
       "generated": true
     },
@@ -730,8 +798,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 220,
-      "y": 148,
+      "x": 35,
+      "y": 165,
       "fw": 16,
       "generated": true
     },
@@ -747,8 +815,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 237,
-      "y": 148,
+      "x": 52,
+      "y": 165,
       "fw": 16,
       "generated": true
     }
