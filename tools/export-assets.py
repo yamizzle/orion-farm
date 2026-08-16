@@ -1260,6 +1260,262 @@ def gen_trophy():
     return g
 
 
+
+def gen_woodfloor():
+    """3/4 pine floor: plank tops + a darker south lip."""
+    g = Pix(16, 16)
+    g.fill(0, 0, 16, 16, C["woodMid"])
+    # three receding planks
+    bands = [(0, 5, C["woodHi"], C["woodMid"]), (5, 5, C["woodMid"], C["woodSh"]), (10, 4, C["woodMid"], C["woodSh"])]
+    y0 = 0
+    for i, (skip, h, hi, mid) in enumerate(bands):
+        g.fill(0, y0, 16, h, mid)
+        g.fill(0, y0, 16, 1, hi)
+        g.fill(0, y0 + h - 1, 16, 1, C["woodSh"])
+        # grain
+        for x in (2 + i, 7 + i, 12 + (i % 2)):
+            if 0 <= x < 16:
+                g.px(x, y0 + 2, C["woodSh"])
+                if y0 + 3 < y0 + h - 1:
+                    g.px(x, y0 + 3, C["woodHi"] if i == 0 else C["woodSh"])
+        # plank seams
+        g.fill(5 + i * 3, y0 + 1, 1, h - 2, C["woodOut"])
+        y0 += h
+    # 3/4 south lip
+    g.fill(0, 14, 16, 1, C["woodSh"])
+    g.fill(0, 15, 16, 1, C["woodOut"])
+    g.px(3, 1, C["woodHi"])
+    g.px(11, 6, C["woodHi"])
+    return g
+
+
+def gen_inwall():
+    """3/4 interior timber wall: top plate + front boards."""
+    g = Pix(16, 16)
+    g.fill(0, 0, 16, 5, C["woodHi"])
+    g.fill(0, 1, 16, 1, C["woodMid"])
+    g.fill(0, 4, 16, 1, C["woodSh"])
+    g.fill(0, 5, 16, 11, C["woodMid"])
+    g.fill(0, 5, 16, 1, C["woodHi"])
+    # board seams
+    for x in (3, 8, 13):
+        g.fill(x, 6, 1, 9, C["woodSh"])
+    g.fill(0, 9, 16, 1, C["woodSh"])
+    g.fill(0, 10, 16, 1, C["woodHi"])
+    g.fill(0, 5, 1, 11, C["woodHi"])
+    g.fill(15, 5, 1, 11, C["woodSh"])
+    g.px(5, 7, C["woodHi"])
+    g.px(11, 12, C["woodSh"])
+    g.fill(0, 15, 16, 1, C["woodOut"])
+    return g
+
+
+def gen_bed():
+    """Original 3/4 bed: pine frame, two pillows, spring quilt. Not a Stardew copy."""
+    g = Pix(32, 32)
+    g.fill(3, 29, 26, 3, C["shadow"])
+    # headboard (far): top cap + front
+    g.fill(4, 2, 24, 3, C["woodHi"])
+    g.fill(5, 1, 22, 2, C["woodMid"])
+    g.fill(6, 0, 20, 2, C["woodHi"])
+    g.fill(4, 4, 24, 5, C["woodMid"])
+    g.fill(4, 4, 2, 5, C["woodHi"])
+    g.fill(26, 4, 2, 5, C["woodSh"])
+    g.fill(3, 2, 1, 7, C["woodOut"])
+    g.fill(28, 2, 1, 7, C["woodOut"])
+    g.fill(4, 8, 24, 1, C["woodOut"])
+    # pillows (top plane + front)
+    g.fill(6, 6, 9, 3, C["parch"])
+    g.fill(17, 6, 9, 3, C["parch"])
+    g.fill(6, 6, 9, 1, "#FFF0D0")
+    g.fill(17, 6, 9, 1, "#FFF0D0")
+    g.fill(6, 9, 9, 2, C["dirtHi"])
+    g.fill(17, 9, 9, 2, C["dirtHi"])
+    g.px(8, 7, C["blossom"])
+    g.px(20, 7, C["flower"])
+    # quilt top (receding patches of teal / blossom / gold)
+    quilt = [
+        (C["playerShirt"], C["playerShirtHi"], C["playerShirtSh"]),
+        (C["blossom"], "#F0C0C8", C["roofSh"]),
+        (C["flower"], C["parch"], C["dirtSh"]),
+    ]
+    for row in range(3):
+        y = 11 + row * 4
+        for col in range(4):
+            q = quilt[(row + col) % 3]
+            x = 5 + col * 5
+            g.fill(x, y, 5, 3, q[0])
+            g.fill(x, y, 5, 1, q[1])
+            g.fill(x, y + 2, 5, 1, q[2])
+    # quilt front face
+    g.fill(5, 23, 22, 4, C["playerShirt"])
+    g.fill(5, 23, 22, 1, C["playerShirtHi"])
+    g.fill(5, 26, 22, 1, C["playerShirtSh"])
+    g.fill(10, 24, 5, 2, C["blossom"])
+    g.fill(20, 24, 5, 2, C["flower"])
+    # side rails
+    g.fill(3, 11, 2, 16, C["woodMid"])
+    g.fill(3, 11, 1, 16, C["woodHi"])
+    g.fill(27, 11, 2, 16, C["woodSh"])
+    g.fill(28, 11, 1, 16, C["woodOut"])
+    # footboard
+    g.fill(3, 26, 26, 4, C["woodMid"])
+    g.fill(3, 26, 26, 1, C["woodHi"])
+    g.fill(3, 29, 26, 1, C["woodOut"])
+    g.fill(3, 26, 1, 4, C["woodHi"])
+    g.fill(28, 26, 1, 4, C["woodOut"])
+    g.px(8, 27, C["woodHi"])
+    g.px(22, 28, C["woodSh"])
+    return g
+
+
+def gen_table():
+    """3/4 farm table with a clay pot of spring flowers."""
+    g = Pix(32, 24)
+    g.fill(4, 22, 24, 2, C["shadow"])
+    # top plane
+    g.fill(3, 6, 26, 4, C["woodHi"])
+    g.fill(4, 5, 24, 2, C["woodHi"])
+    g.fill(6, 4, 20, 2, C["parch"])
+    g.fill(3, 9, 26, 1, C["woodOut"])
+    g.px(8, 6, C["woodMid"])
+    g.px(18, 7, C["woodMid"])
+    # front apron
+    g.fill(3, 10, 24, 4, C["woodMid"])
+    g.fill(3, 10, 24, 1, C["woodHi"])
+    g.fill(3, 13, 24, 1, C["woodSh"])
+    g.fill(3, 10, 1, 4, C["woodHi"])
+    g.fill(26, 10, 1, 4, C["woodOut"])
+    # right side sliver
+    g.fill(27, 6, 3, 4, C["woodSh"])
+    g.fill(27, 10, 3, 4, C["woodSh"])
+    g.fill(29, 6, 1, 8, C["woodOut"])
+    # legs
+    for x in (4, 23):
+        g.fill(x, 14, 3, 8, C["woodMid"])
+        g.fill(x, 14, 1, 8, C["woodHi"])
+        g.fill(x + 2, 14, 1, 8, C["woodSh"])
+        g.fill(x, 21, 3, 1, C["woodOut"])
+    # clay pot + flowers (sits on the top plane)
+    g.fill(14, 2, 5, 4, C["copperMid"])
+    g.fill(14, 2, 5, 1, C["copperHi"])
+    g.fill(14, 5, 5, 1, C["copperSh"])
+    g.fill(15, 1, 3, 2, C["copperMid"])
+    g.px(13, 0, C["leaf"])
+    g.px(16, 0, C["blossom"])
+    g.px(18, 0, C["flower"])
+    g.px(15, 0, C["leaf"])
+    g.px(17, 1, C["leaf"])
+    return g
+
+
+def gen_rug():
+    """Plum oval rug with a blossom border. Walkable floor cloth."""
+    g = Pix(48, 32)
+    mid, hi, sh = C["npcShirt"], C["npcShirtHi"], C["npcShirtSh"]
+    for y in range(32):
+        for x in range(48):
+            dx = (x - 23.5) / 21.0
+            dy = (y - 16.0) / 12.5
+            d = dx * dx + dy * dy
+            if d <= 1.05:
+                if d > 0.82:
+                    g.px(x, y, C["parch"] if y < 18 else C["dirtHi"])
+                elif d > 0.68:
+                    g.px(x, y, hi if y < 15 else sh)
+                else:
+                    col = mid
+                    if y < 12:
+                        col = hi
+                    elif y > 20:
+                        col = sh
+                    g.px(x, y, col)
+    # inner diamond stitch
+    for x, y in ((24, 10), (18, 16), (24, 16), (30, 16), (24, 21)):
+        g.px(x, y, C["blossom"])
+    g.px(24, 13, C["flower"])
+    g.px(21, 16, C["parch"])
+    g.px(27, 16, C["parch"])
+    # south lip
+    for x in range(8, 40):
+        dx = (x - 23.5) / 21.0
+        if dx * dx + (14.0 / 12.5) ** 2 <= 1.02:
+            g.px(x, 27, sh)
+            g.px(x, 28, C["woodOut"])
+    return g
+
+
+def gen_window():
+    """Interior casement: sky glass, wood frame, sill flower."""
+    g = Pix(16, 24)
+    g.fill(1, 2, 14, 18, C["woodOut"])
+    g.fill(2, 3, 12, 3, C["woodHi"])
+    g.fill(2, 6, 12, 12, C["woodMid"])
+    # glass
+    g.fill(3, 5, 10, 11, C["sky"])
+    g.fill(3, 5, 10, 3, "#A8D4F0")
+    g.fill(3, 13, 10, 3, C["glass"])
+    # distant hill hint
+    g.fill(3, 14, 10, 2, C["grassMid"])
+    g.px(5, 13, C["grassHi"])
+    g.px(10, 13, C["leaf"])
+    # muntins
+    g.fill(7, 5, 2, 11, C["woodOut"])
+    g.fill(3, 9, 10, 2, C["woodOut"])
+    g.px(4, 6, C["parch"])
+    g.px(11, 6, C["parch"])
+    # sill
+    g.fill(0, 17, 16, 3, C["woodMid"])
+    g.fill(0, 17, 16, 1, C["woodHi"])
+    g.fill(0, 19, 16, 1, C["woodOut"])
+    g.px(4, 16, C["leaf"])
+    g.px(6, 15, C["blossom"])
+    g.px(8, 16, C["leaf"])
+    g.px(10, 15, C["flower"])
+    return g
+
+
+def gen_doormat():
+    """Woven rush mat on the floor in front of the door."""
+    g = Pix(16, 16)
+    g.fill(1, 4, 14, 9, C["dirtMid"])
+    g.fill(1, 4, 14, 1, C["dirtHi"])
+    g.fill(1, 12, 14, 1, C["dirtSh"])
+    for y in range(5, 12):
+        col = C["dirtHi"] if y % 2 == 0 else C["dirtSh"]
+        g.fill(2, y, 12, 1, col)
+    g.fill(1, 4, 1, 9, C["tillOut"])
+    g.fill(14, 4, 1, 9, C["tillOut"])
+    g.px(4, 7, C["parch"])
+    g.px(11, 9, C["parch"])
+    g.fill(2, 13, 12, 1, C["woodOut"])
+    return g
+
+
+def gen_inndoor():
+    """Interior pine door in a frame, 3/4, matching the cottage (not Stardew)."""
+    g = Pix(16, 24)
+    # frame
+    g.fill(1, 0, 14, 23, C["woodOut"])
+    g.fill(2, 1, 12, 2, C["woodHi"])
+    g.fill(2, 3, 12, 19, C["woodMid"])
+    # door slab
+    g.fill(3, 3, 10, 18, C["door"])
+    g.fill(3, 3, 10, 1, C["woodHi"])
+    g.fill(3, 3, 1, 18, C["woodMid"])
+    g.fill(12, 3, 1, 18, C["woodOut"])
+    g.fill(3, 11, 10, 1, C["woodOut"])
+    g.fill(3, 20, 10, 1, C["woodOut"])
+    # window pane
+    g.fill(6, 5, 4, 4, C["glass"])
+    g.fill(6, 5, 4, 1, C["parch"])
+    g.fill(7, 6, 2, 2, C["sky"])
+    # knob
+    g.px(11, 13, C["flower"])
+    g.px(11, 14, C["dirtHi"])
+    return g
+
+
 GENERATORS = {
     "grass0": lambda: gen_grass(0),
     "grass1": lambda: gen_grass(1),
@@ -1319,6 +1575,14 @@ GENERATORS = {
     "moonshard": gen_moonshard,
     "note": gen_note,
     "trophy": gen_trophy,
+    "woodfloor": gen_woodfloor,
+    "inwall": gen_inwall,
+    "bed": gen_bed,
+    "table": gen_table,
+    "rug": gen_rug,
+    "window": gen_window,
+    "doormat": gen_doormat,
+    "inndoor": gen_inndoor,
 }
 
 
@@ -1374,6 +1638,14 @@ def builtin_sprites():
         {"id": "moonshard", "file": "ui/moonshard.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "note", "file": "props/note.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "trophy", "file": "ui/trophy.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "woodfloor", "file": "tiles/woodfloor.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "inwall", "file": "tiles/inwall.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "bed", "file": "props/bed.png", "w": 32, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "table", "file": "props/table.png", "w": 32, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
+        {"id": "rug", "file": "props/rug.png", "w": 48, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "window", "file": "props/window.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "doormat", "file": "props/doormat.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "inndoor", "file": "props/inndoor.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
     ]
 
 

@@ -323,6 +323,40 @@
       "generated": true
     },
     {
+      "id": "bed",
+      "file": "props/bed.png",
+      "w": 32,
+      "h": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 34,
+      "y": 115,
+      "fw": 32,
+      "generated": true
+    },
+    {
+      "id": "rug",
+      "file": "props/rug.png",
+      "w": 48,
+      "h": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 67,
+      "y": 115,
+      "fw": 48,
+      "generated": true
+    },
+    {
       "id": "mailbox",
       "file": "props/mailbox.png",
       "w": 16,
@@ -334,7 +368,7 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 34,
+      "x": 116,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -351,7 +385,7 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 51,
+      "x": 133,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -368,7 +402,58 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 68,
+      "x": 150,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "table",
+      "file": "props/table.png",
+      "w": 32,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 167,
+      "y": 115,
+      "fw": 32,
+      "generated": true
+    },
+    {
+      "id": "window",
+      "file": "props/window.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 200,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "inndoor",
+      "file": "props/inndoor.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 217,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -385,7 +470,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 85,
+      "x": 234,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -402,8 +487,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 102,
-      "y": 115,
+      "x": 1,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -419,8 +504,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 119,
-      "y": 115,
+      "x": 18,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -436,8 +521,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 136,
-      "y": 115,
+      "x": 35,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -453,8 +538,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 153,
-      "y": 115,
+      "x": 52,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -470,8 +555,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 170,
-      "y": 115,
+      "x": 69,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -487,8 +572,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 187,
-      "y": 115,
+      "x": 86,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -504,8 +589,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 204,
-      "y": 115,
+      "x": 103,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -521,8 +606,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 221,
-      "y": 115,
+      "x": 120,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -538,8 +623,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 238,
-      "y": 115,
+      "x": 137,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -555,7 +640,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
+      "x": 154,
       "y": 148,
       "fw": 16,
       "generated": true
@@ -572,7 +657,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 18,
+      "x": 171,
       "y": 148,
       "fw": 16,
       "generated": true
@@ -589,7 +674,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 35,
+      "x": 188,
       "y": 148,
       "fw": 16,
       "generated": true
@@ -606,7 +691,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 52,
+      "x": 205,
       "y": 148,
       "fw": 16,
       "generated": true
@@ -623,7 +708,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 69,
+      "x": 222,
       "y": 148,
       "fw": 16,
       "generated": true
@@ -640,7 +725,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 86,
+      "x": 239,
       "y": 148,
       "fw": 16,
       "generated": true
@@ -657,8 +742,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 103,
-      "y": 148,
+      "x": 1,
+      "y": 165,
       "fw": 16,
       "generated": true
     },
@@ -674,8 +759,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 120,
-      "y": 148,
+      "x": 18,
+      "y": 165,
       "fw": 16,
       "generated": true
     },
@@ -691,8 +776,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 137,
-      "y": 148,
+      "x": 35,
+      "y": 165,
       "fw": 16,
       "generated": true
     },
@@ -708,8 +793,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 154,
-      "y": 148,
+      "x": 52,
+      "y": 165,
       "fw": 16,
       "generated": true
     },
@@ -725,8 +810,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 171,
-      "y": 148,
+      "x": 69,
+      "y": 165,
       "fw": 16,
       "generated": true
     },
@@ -742,8 +827,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 188,
-      "y": 148,
+      "x": 86,
+      "y": 165,
       "fw": 16,
       "generated": true
     },
@@ -759,8 +844,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 221,
-      "y": 148,
+      "x": 119,
+      "y": 165,
       "fw": 16,
       "generated": true
     },
@@ -776,7 +861,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
+      "x": 152,
       "y": 165,
       "fw": 16,
       "generated": true
@@ -793,7 +878,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 18,
+      "x": 169,
       "y": 165,
       "fw": 16,
       "generated": true
@@ -810,7 +895,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 35,
+      "x": 186,
       "y": 165,
       "fw": 16,
       "generated": true
@@ -827,7 +912,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 52,
+      "x": 203,
       "y": 165,
       "fw": 16,
       "generated": true
@@ -844,7 +929,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 69,
+      "x": 220,
       "y": 165,
       "fw": 16,
       "generated": true
@@ -861,7 +946,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 86,
+      "x": 237,
       "y": 165,
       "fw": 16,
       "generated": true
@@ -878,8 +963,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 103,
-      "y": 165,
+      "x": 1,
+      "y": 182,
       "fw": 16,
       "generated": true
     },
@@ -895,8 +980,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 120,
-      "y": 165,
+      "x": 18,
+      "y": 182,
       "fw": 16,
       "generated": true
     },
@@ -912,8 +997,59 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 137,
-      "y": 165,
+      "x": 35,
+      "y": 182,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "woodfloor",
+      "file": "tiles/woodfloor.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 52,
+      "y": 182,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "inwall",
+      "file": "tiles/inwall.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 69,
+      "y": 182,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "doormat",
+      "file": "props/doormat.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 86,
+      "y": 182,
       "fw": 16,
       "generated": true
     }
