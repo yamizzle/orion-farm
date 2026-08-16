@@ -385,6 +385,23 @@
   var walkCharge = 0;
   var lineNote = null;
   var swordOwned = false;
+  var axeOwned = false;
+  var pickaxeOwned = false;
+  var shieldOwned = false;
+  var ironSwordOwned = false;
+  var bowOwned = false;
+  var craftOpen = false;
+  var craftMsg = "";
+  var craftMsgT = 0;
+  var shieldSkip = false;
+  var arrows = [];
+  var CRAFT_RECIPES = [
+    { id: "axe", name: "AXE", wood: 6, stone: 1, icon: "axe", made: "YOU MADE AN AXE!" },
+    { id: "pickaxe", name: "PICKAXE", wood: 5, stone: 2, icon: "pickaxe", made: "YOU MADE A PICKAXE!" },
+    { id: "shield", name: "SHIELD", wood: 6, stone: 2, icon: "shield", made: "YOU MADE A SHIELD!" },
+    { id: "ironSword", name: "IRON SWORD", wood: 4, stone: 3, icon: "ironSword", needSword: true, made: "YOU MADE AN IRON SWORD!" },
+    { id: "bow", name: "BOW", wood: 8, stone: 1, icon: "bow", made: "YOU MADE A BOW!" }
+  ];
   var iFrames = 0;
   var faintFx = null;
   var monsters = [];
@@ -1067,6 +1084,7 @@
       { kind: "table", tx: 14, ty: 5 },
       { kind: "lantern", tx: 16, ty: 3 },
       { kind: "housePlant", tx: 18, ty: 9 },
+      { kind: "workbench", tx: 1, ty: 7 },
       { kind: "doormat", tx: 10, ty: 10 },
       { kind: "inndoor", tx: 10, ty: 11 }
     ];
@@ -1341,7 +1359,7 @@
       } else if (p.kind === "bed") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
-      } else if (p.kind === "table" || p.kind === "desk") {
+      } else if (p.kind === "table" || p.kind === "desk" || p.kind === "workbench") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
       } else if (p.kind === "fireplace") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
@@ -1752,7 +1770,7 @@
     if (p.kind === "fountain") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "counter") return tx >= p.tx && tx < p.tx + 3 && ty === p.ty;
     if (p.kind === "bed") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
-    if (p.kind === "table" || p.kind === "desk") return tx >= p.tx && tx < p.tx + 2 && ty === p.ty;
+    if (p.kind === "table" || p.kind === "desk" || p.kind === "workbench") return tx >= p.tx && tx < p.tx + 2 && ty === p.ty;
     if (p.kind === "fireplace") return tx >= p.tx && tx < p.tx + 2 && ty === p.ty;
     if (p.kind === "rug") return tx >= p.tx && tx < p.tx + 3 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "pond") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
@@ -1910,6 +1928,18 @@
     }
   }
 
+  function harvestHitsFor(prop) {
+    if (prop && prop.kind === "tree" && axeOwned) return 1;
+    if (prop && prop.kind === "rock" && pickaxeOwned) return 1;
+    return HIT_COUNT;
+  }
+
+  function harvestDropFor(prop) {
+    if (prop && prop.kind === "tree") return axeOwned ? 3 : WOOD_PER_TREE;
+    if (prop && prop.kind === "rock") return pickaxeOwned ? 2 : STONE_PER_ROCK;
+    return 1;
+  }
+
   function beginHit(prop) {
     if (!isHarvestable(prop)) return;
     player.path = [];
@@ -1918,7 +1948,7 @@
     player.stepT = 0;
     player.frame = 0;
     faceToward(player, prop.tx, prop.ty);
-    player.hitting = { prop: prop, left: HIT_COUNT, wait: 0 };
+    player.hitting = { prop: prop, left: harvestHitsFor(prop), wait: 0 };
     doHit();
   }
 
@@ -1939,13 +1969,13 @@
       prop.kind = "stump";
       prop.shake = 0;
       buildSolid();
-      spawnPickup("wood", prop.tx, prop.ty, WOOD_PER_TREE);
+      spawnPickup("wood", prop.tx, prop.ty, harvestDropFor(prop));
       rememberHarvest(prop, "tree", "stump");
     } else if (prop.kind === "rock") {
       var i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
       buildSolid();
-      spawnPickup("stone", prop.tx, prop.ty, STONE_PER_ROCK);
+      spawnPickup("stone", prop.tx, prop.ty, harvestDropFor(prop));
       rememberHarvest(prop, "rock", "gone");
       if (currentScene === "mine") unlockAch("stoneTap");
     }
@@ -2218,6 +2248,11 @@
       hatOwned = !!(data.hatOwned || data.hatOn);
       hatOn = !!data.hatOn;
       swordOwned = !!data.swordOwned;
+      axeOwned = !!data.axeOwned;
+      pickaxeOwned = !!data.pickaxeOwned;
+      shieldOwned = !!data.shieldOwned;
+      ironSwordOwned = !!data.ironSwordOwned;
+      bowOwned = !!data.bowOwned;
       mineFloor = clampMineFloor(data.mineFloor);
       if (typeof data.hp === "number" && data.hp >= 0) {
         hp = data.hp | 0;
@@ -2389,6 +2424,11 @@
         hatOwned: !!hatOwned,
         hatOn: !!hatOn,
         swordOwned: !!swordOwned,
+        axeOwned: !!axeOwned,
+        pickaxeOwned: !!pickaxeOwned,
+        shieldOwned: !!shieldOwned,
+        ironSwordOwned: !!ironSwordOwned,
+        bowOwned: !!bowOwned,
         mineFloor: clampMineFloor(mineFloor),
         hp: hp | 0,
         energy: energy | 0,
@@ -2542,6 +2582,196 @@
     if (!world) return false;
     b = propBounds(table);
     return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
+  }
+
+  function findWorkbench() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "workbench") return p;
+    }
+    return null;
+  }
+
+  function nearWorkbench() {
+    var bench = findWorkbench();
+    var x;
+    if (!bench) return false;
+    for (x = 0; x < 2; x++) {
+      if (isNear(player.tx, player.ty, bench.tx + x, bench.ty)) return true;
+      if (player.tx === bench.tx + x && player.ty === bench.ty) return true;
+    }
+    return false;
+  }
+
+  function workbenchHit(tx, ty, world) {
+    var bench, b;
+    if (currentScene !== "house") return false;
+    bench = findWorkbench();
+    if (!bench) return false;
+    if (propOccupies(bench, tx, ty)) return true;
+    if (!world) return false;
+    b = propBounds(bench);
+    return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
+  }
+
+  function craftOwned(rec) {
+    if (!rec) return false;
+    if (rec.id === "axe") return !!axeOwned;
+    if (rec.id === "pickaxe") return !!pickaxeOwned;
+    if (rec.id === "shield") return !!shieldOwned;
+    if (rec.id === "ironSword") return !!ironSwordOwned;
+    if (rec.id === "bow") return !!bowOwned;
+    return false;
+  }
+
+  function setCraftOwned(rec) {
+    if (rec.id === "axe") axeOwned = true;
+    else if (rec.id === "pickaxe") pickaxeOwned = true;
+    else if (rec.id === "shield") shieldOwned = true;
+    else if (rec.id === "ironSword") ironSwordOwned = true;
+    else if (rec.id === "bow") bowOwned = true;
+  }
+
+  function craftCanMake(rec) {
+    if (!rec || craftOwned(rec)) return false;
+    if (rec.needSword && !swordOwned) return false;
+    if ((inventory.wood | 0) < rec.wood) return false;
+    if ((inventory.stone | 0) < rec.stone) return false;
+    return true;
+  }
+
+  function openCraft() {
+    craftOpen = true;
+    craftMsg = "";
+    craftMsgT = 0;
+  }
+
+  function closeCraft() {
+    craftOpen = false;
+    craftMsg = "";
+  }
+
+  function craftLayout() {
+    var w = 268, h = 154;
+    var x = ((VIEW_W - w) / 2) | 0;
+    var y = 12;
+    return { x: x, y: y, w: w, h: h, listY: y + 24, rowH: 20, backX: x + w - 46, backY: y + 6, backW: 36, backH: 12 };
+  }
+
+  function doCraft(rec) {
+    var bench;
+    if (!craftCanMake(rec)) {
+      if (craftOwned(rec)) craftMsg = "ALREADY MADE.";
+      else if (rec.needSword && !swordOwned) craftMsg = "NEED THE MINE SWORD.";
+      else craftMsg = "NEED MORE STUFF.";
+      craftMsgT = 1400;
+      return;
+    }
+    inventory.wood -= rec.wood;
+    inventory.stone -= rec.stone;
+    setCraftOwned(rec);
+    persistSave();
+    craftMsg = rec.made;
+    craftMsgT = 1600;
+    showLineNote(rec.made);
+    bench = findWorkbench();
+    if (bench) spawnSparks(bench.tx * TILE + 16, bench.ty * TILE + 4);
+  }
+
+  function tapCraft(p) {
+    var L = craftLayout();
+    var i, rec, rowY;
+    if (hitPad(p.x, p.y, L.backX, L.backY, L.backW, L.backH, 6)) {
+      closeCraft();
+      return true;
+    }
+    for (i = 0; i < CRAFT_RECIPES.length; i++) {
+      rec = CRAFT_RECIPES[i];
+      rowY = L.listY + i * L.rowH;
+      if (p.x >= L.x + 8 && p.x <= L.x + L.w - 8 && p.y >= rowY && p.y < rowY + L.rowH) {
+        if (craftCanMake(rec)) doCraft(rec);
+        else {
+          if (craftOwned(rec)) craftMsg = "ALREADY MADE.";
+          else if (rec.needSword && !swordOwned) craftMsg = "NEED THE MINE SWORD.";
+          else craftMsg = "NEED MORE STUFF.";
+          craftMsgT = 1200;
+        }
+        return true;
+      }
+    }
+    if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h) return true;
+    closeCraft();
+    return true;
+  }
+
+  function drawCraft(g) {
+    var L, i, rec, rowY, cost, label, col, woodLine;
+    if (!craftOpen) return;
+    g.fillStyle = "rgba(20,12,8,0.40)";
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    L = craftLayout();
+    woodPanel(g, L.x, L.y, L.w, L.h);
+    fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
+    woodPanel(g, L.x + 8, L.y - 6, 92, 11);
+    drawText(g, "WORKBENCH", L.x + 12, L.y - 3, C.parch);
+    woodPanel(g, L.backX, L.backY, L.backW, L.backH);
+    drawText(g, "BACK", L.backX + ((L.backW - textWidth("BACK")) / 2) | 0, L.backY + 2, C.parch);
+    woodLine = (inventory.wood | 0) + " WOOD  " + (inventory.stone | 0) + " STONE";
+    drawText(g, woodLine, L.x + 10, L.y + 12, C.woodSh);
+    for (i = 0; i < CRAFT_RECIPES.length; i++) {
+      rec = CRAFT_RECIPES[i];
+      rowY = L.listY + i * L.rowH;
+      if (craftOwned(rec)) fill(g, L.x + 8, rowY, L.w - 16, L.rowH - 1, "#D8C8A0");
+      else if (craftCanMake(rec)) fill(g, L.x + 8, rowY, L.w - 16, L.rowH - 1, "#E8C888");
+      Assets.draw(g, rec.icon, L.x + 10, rowY + 1);
+      col = (craftOwned(rec) || craftCanMake(rec)) ? C.uiText : "#8A7A62";
+      label = rec.name;
+      drawText(g, label, L.x + 30, rowY + 6, col);
+      if (craftOwned(rec)) {
+        drawText(g, "MADE", L.x + L.w - textWidth("MADE") - 12, rowY + 6, C.gold);
+      } else {
+        cost = rec.wood + " WOOD  " + rec.stone + " STONE";
+        drawText(g, cost, L.x + L.w - textWidth(cost) - 12, rowY + 6, col);
+      }
+    }
+    if (craftMsg && craftMsgT > 0) {
+      drawText(g, craftMsg, L.x + 12, L.y + L.h - 16, C.gold);
+    }
+  }
+
+  function goCraft() {
+    var bench, dest, path, x, best, d, cand;
+    if (currentScene !== "house") return;
+    bench = findWorkbench();
+    highlight = bench ? { tx: bench.tx, ty: bench.ty } : null;
+    if (!bench || nearWorkbench()) {
+      pending = null;
+      openCraft();
+      return;
+    }
+    best = null;
+    d = 999;
+    for (x = 0; x < 2; x++) {
+      cand = nearestAdjacent(bench.tx + x, bench.ty);
+      if (!cand) continue;
+      if (Math.abs(cand.tx - player.tx) + Math.abs(cand.ty - player.ty) < d) {
+        d = Math.abs(cand.tx - player.tx) + Math.abs(cand.ty - player.ty);
+        best = cand;
+      }
+    }
+    dest = best;
+    if (!dest) {
+      openCraft();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      openCraft();
+      return;
+    }
+    pending = { type: "craft" };
+    startWalk(player, path, 3.5);
   }
 
   function talkHomeLight() {
@@ -2805,7 +3035,7 @@
   }
 
   function uiPaused() {
-    return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || toast || shopOpen);
+    return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || toast || shopOpen || craftOpen);
   }
 
   function timePaused() {
@@ -3798,9 +4028,109 @@
     return { x: 262, y: 122, s: 40 };
   }
 
+  function hasActionTool() {
+    return !!(swordOwned || bowOwned);
+  }
+
+  function adjacentFoe() {
+    var i, m, spots;
+    if (currentScene !== "mine") return null;
+    spots = [
+      { tx: player.tx, ty: player.ty },
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      m = monsterAt(spots[i].tx, spots[i].ty);
+      if (m && m.hp > 0) return m;
+    }
+    return null;
+  }
+
+  function actionIcon() {
+    if (bowOwned && !(swordOwned && adjacentFoe())) return "bow";
+    if (ironSwordOwned) return "ironSword";
+    return "sword";
+  }
+
+  function arrowBusy() {
+    return arrows.length > 0;
+  }
+
+  function shootArrow() {
+    var dx = 0, dy = 0;
+    if (!bowOwned || uiPaused() || faintFx) return false;
+    if (player.face === "left") dx = -1;
+    else if (player.face === "right") dx = 1;
+    else if (player.face === "up") dy = -1;
+    else dy = 1;
+    arrows.push({
+      tx: player.tx,
+      ty: player.ty,
+      dx: dx,
+      dy: dy,
+      left: 3,
+      wait: 0,
+      face: player.face,
+      x: player.x,
+      y: player.y - 10
+    });
+    return true;
+  }
+
+  function updateArrows(dt) {
+    var i, a, nx, ny, m;
+    for (i = arrows.length - 1; i >= 0; i--) {
+      a = arrows[i];
+      a.wait += dt;
+      a.x = tileCenterX(a.tx) + a.dx * (a.wait / 80) * TILE;
+      a.y = (tileFootY(a.ty) - 10) + a.dy * (a.wait / 80) * TILE;
+      if (a.wait < 80) continue;
+      a.wait = 0;
+      nx = a.tx + a.dx;
+      ny = a.ty + a.dy;
+      a.left -= 1;
+      if (!inBounds(nx, ny) || (solid && solid[ny] && solid[ny][nx]) || a.left < 0) {
+        arrows.splice(i, 1);
+        continue;
+      }
+      a.tx = nx;
+      a.ty = ny;
+      a.x = tileCenterX(nx);
+      a.y = tileFootY(ny) - 10;
+      m = monsterAt(nx, ny);
+      if (m && m.hp > 0) {
+        hitMonsterOnce(m);
+        spendEnergy(ENERGY_SWING);
+        arrows.splice(i, 1);
+        continue;
+      }
+      if (a.left <= 0) arrows.splice(i, 1);
+    }
+  }
+
+  function drawArrows(g) {
+    var i, a, ang;
+    for (i = 0; i < arrows.length; i++) {
+      a = arrows[i];
+      ang = 0;
+      if (a.face === "left") ang = Math.PI;
+      else if (a.face === "up") ang = -Math.PI * 0.5;
+      else if (a.face === "down") ang = Math.PI * 0.5;
+      g.save();
+      g.imageSmoothingEnabled = false;
+      g.translate(Math.round(a.x), Math.round(a.y));
+      g.rotate(ang);
+      Assets.draw(g, "arrow", -8, -8);
+      g.restore();
+    }
+  }
+
   function hitSwordBtn(p) {
     var b, pad, cx, cy, dx, dy;
-    if (!swordOwned) return false;
+    if (!hasActionTool()) return false;
     b = swordBtnRect();
     pad = 4;
     cx = b.x + b.s * 0.5;
@@ -3829,7 +4159,7 @@
 
   function hitMonsterOnce(m) {
     if (!m || m.hp <= 0) return;
-    m.hp -= 1;
+    m.hp -= ironSwordOwned ? 2 : 1;
     m.shake = 200;
     spawnSparks(m.x, m.y - 4);
     if (m.hp <= 0) defeatMonster(m);
@@ -3863,14 +4193,16 @@
   }
 
   function startSwordSwing() {
-    if (!swordOwned || uiPaused() || faintFx) return false;
-    if (player.arc > 0) return false;
+    if (!hasActionTool() || uiPaused() || faintFx) return false;
+    if (player.arc > 0 || arrowBusy()) return false;
     player.path = [];
     player.queuedWalk = null;
     player.moving = false;
     player.stepT = 0;
     player.frame = 0;
     cancelHit();
+    if (bowOwned && !(swordOwned && adjacentFoe())) return shootArrow();
+    if (!swordOwned) return false;
     player.arc = SWING_MS;
     player.arcHit = false;
     return true;
@@ -4048,6 +4380,16 @@
 
   function hurtPlayer(amt) {
     if (iFrames > 0 || faintFx) return;
+    if (shieldOwned) {
+      shieldSkip = !shieldSkip;
+      if (shieldSkip) {
+        spawnSparks(player.x, player.y - 8);
+        showLineNote("BLOCKED!");
+        iFrames = 800;
+        persistSave();
+        return;
+      }
+    }
     hp -= amt | 0;
     if (hp < 0) hp = 0;
     iFrames = 800;
@@ -4786,6 +5128,8 @@
       beginSleep();
     } else if (act.type === "homeLight") {
       talkHomeLight();
+    } else if (act.type === "craft") {
+      openCraft();
     } else if (act.type === "talkFolk") {
       if (act.folk && isNear(player.tx, player.ty, act.folk.tx, act.folk.ty)) talkFolk(act.folk);
     } else if (act.type === "tapCar") {
@@ -5089,7 +5433,7 @@
     g.imageSmoothingEnabled = false;
     g.translate(Math.round(hand.x), Math.round(hand.y));
     g.rotate(ang);
-    Assets.draw(g, "sword", -8, -13);
+    Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", -8, -13);
     g.restore();
     if (u > 0.22 && u < 0.82 && Assets.spr.slash) {
       tipX = hand.x + Math.sin(ang) * 13;
@@ -5156,6 +5500,7 @@
     if (p.kind === "townFlower") return p.ty * TILE + 12;
     if (p.kind === "bed") return p.ty * TILE + 30;
     if (p.kind === "table") return p.ty * TILE + 20;
+    if (p.kind === "workbench") return p.ty * TILE + 20;
     if (p.kind === "desk") return p.ty * TILE + 24;
     if (p.kind === "fireplace") return p.ty * TILE + 28;
     if (p.kind === "chair" || p.kind === "housePlant") return p.ty * TILE + 20;
@@ -5189,6 +5534,7 @@
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
     if (p.kind === "bed") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
     if (p.kind === "table") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 32 };
+    if (p.kind === "workbench") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 40 };
     if (p.kind === "desk") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 32, h: 32 };
     if (p.kind === "fireplace") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 48 };
     if (p.kind === "chair" || p.kind === "housePlant") {
@@ -5224,6 +5570,8 @@
       Assets.draw(g, "house", x, y);
     } else if (p.kind === "bed") {
       Assets.draw(g, "bed", x, y);
+    } else if (p.kind === "workbench") {
+      Assets.draw(g, "workbench", x, y);
     } else if (p.kind === "table") {
       Assets.draw(g, "table", x, y);
       if (homeLightOn()) {
@@ -5884,7 +6232,7 @@
 
   function drawSwordBtn(g) {
     var b, cx, cy, r, pressed;
-    if (!swordOwned) return;
+    if (!hasActionTool()) return;
     b = swordBtnRect();
     cx = b.x + (b.s >> 1);
     cy = b.y + (b.s >> 1);
@@ -5895,7 +6243,7 @@
     fillDisk(g, cx - 1, cy - 1, r - 3, pressed ? C.woodMid : C.woodHi);
     strokeCircle(g, cx, cy, r, C.lanternGlow || C.flower);
     strokeCircle(g, cx, cy, r - 1, pressed ? C.woodSh : C.parch);
-    Assets.draw(g, "sword", cx - 8, cy - 9 + (pressed ? 1 : 0));
+    Assets.draw(g, actionIcon(), cx - 8, cy - 9 + (pressed ? 1 : 0));
   }
 
   function drawHUD(g) {
@@ -5979,7 +6327,7 @@
         Assets.draw(g, "strawHat", sx + 1, sy + 1);
         count = hatOn ? 1 : 0;
       } else if (i === SLOT_SWORD && swordOwned) {
-        Assets.draw(g, "sword", sx + 1, sy + 1);
+        Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", sx + 1, sy + 1);
         count = 1;
       } else {
         count = -1;
@@ -6094,11 +6442,13 @@
       g.translate(-camX, -camY);
       drawActors(g);
       drawPickups(g);
+      drawArrows(g);
       drawSparks(g);
       g.restore();
     } else {
       drawActors(g);
       drawPickups(g);
+      drawArrows(g);
       drawSparks(g);
       g.restore();
       drawDayTint(g);
@@ -6110,6 +6460,7 @@
     drawToast(g);
     drawWipeAsk(g);
     drawShop(g);
+    drawCraft(g);
     drawSleep(g);
     drawFaint(g);
     drawLineNote(g);
@@ -6362,6 +6713,10 @@
       tapShop(p);
       return;
     }
+    if (craftOpen) {
+      tapCraft(p);
+      return;
+    }
 
     if (tapHud(p)) return;
     if (player.arc > 0) return;
@@ -6486,6 +6841,10 @@
       goSleep();
       return;
     }
+    if (currentScene === "house" && (workbenchHit(tx, ty, world) || (hitProp && hitProp.kind === "workbench"))) {
+      goCraft();
+      return;
+    }
     if (currentScene === "house" && homeLightOn() && (tableHit(tx, ty, world) || (hitProp && hitProp.kind === "table"))) {
       goHomeLight();
       return;
@@ -6590,6 +6949,7 @@
     updateLineNote(dt);
     if (!uiPaused()) {
       updateSwordArc(dt);
+      updateArrows(dt);
       if (player.hitting) {
         updateHit(dt);
       } else if (player.arc > 0) {
@@ -6613,6 +6973,7 @@
       tick += dt;
     }
     if (shopMsgT > 0) shopMsgT -= dt;
+    if (craftMsgT > 0) craftMsgT -= dt;
     updateClock(dt);
     updateToasts(dt);
     drawWorld(ctx, dt);
@@ -6672,7 +7033,7 @@
       takeKeyboard();
       return;
     }
-    if (swordOwned && !e.repeat && (e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J")) {
+    if (hasActionTool() && !e.repeat && (e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J")) {
       if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
       e.preventDefault();
       startSwordSwing();

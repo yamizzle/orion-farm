@@ -304,6 +304,237 @@ def install(ns):
         g.fill(5, 21, 6, 1, C["woodOut"])
         return g
 
+    def gen_workbench():
+        """32x32 3/4 crafting table: thick pine top, pegs, tools on the slab."""
+        g = Pix(32, 32)
+        steel = C.get("steel", "#C8D0D8")
+        steel_hi = C.get("steelHi", "#E8F0F4")
+        steel_sh = C.get("steelSh", "#6A7888")
+        g.fill(3, 29, 26, 3, C["shadow"])
+        # top plane
+        g.fill(2, 8, 26, 6, C["woodHi"])
+        g.fill(3, 7, 24, 2, C["parch"])
+        g.fill(5, 6, 20, 2, C["woodHi"])
+        g.fill(2, 13, 26, 1, C["woodOut"])
+        g.px(7, 9, C["woodMid"])
+        g.px(16, 10, C["woodMid"])
+        g.px(22, 8, C["woodMid"])
+        # right sliver
+        g.fill(26, 8, 4, 6, C["woodSh"])
+        g.fill(29, 8, 1, 6, C["woodOut"])
+        # apron + peg rack
+        g.fill(2, 14, 24, 7, C["woodMid"])
+        g.fill(2, 14, 24, 1, C["woodHi"])
+        g.fill(2, 20, 24, 1, C["woodSh"])
+        g.fill(2, 14, 1, 7, C["woodHi"])
+        g.fill(25, 14, 1, 7, C["woodOut"])
+        g.fill(26, 14, 4, 7, C["woodSh"])
+        g.fill(29, 14, 1, 7, C["woodOut"])
+        g.fill(5, 16, 18, 3, C["woodSh"])
+        g.fill(5, 16, 18, 1, C["woodOut"])
+        for x in (7, 12, 17, 21):
+            g.px(x, 17, C["woodHi"])
+            g.px(x, 18, C["woodOut"])
+        # legs
+        for x in (3, 22):
+            g.fill(x, 21, 4, 8, C["woodMid"])
+            g.fill(x, 21, 1, 8, C["woodHi"])
+            g.fill(x + 3, 21, 1, 8, C["woodSh"])
+            g.fill(x, 28, 4, 1, C["woodOut"])
+        # stone slab inset
+        g.fill(6, 9, 8, 3, C["stone"])
+        g.fill(6, 9, 8, 1, C["stoneHi"])
+        g.fill(6, 11, 8, 1, C["stoneSh"])
+        g.px(5, 9, C["woodOut"])
+        g.px(14, 9, C["woodOut"])
+        # tiny mallet on the right
+        g.fill(20, 5, 2, 4, C["woodMid"])
+        g.px(20, 5, C["woodHi"])
+        g.fill(18, 4, 6, 2, C["stone"])
+        g.fill(18, 4, 6, 1, C["stoneHi"])
+        g.px(17, 4, C["woodOut"])
+        g.px(24, 4, C["woodOut"])
+        # saw / plank
+        g.fill(16, 10, 8, 1, steel)
+        g.px(16, 10, steel_hi)
+        g.px(23, 10, steel_sh)
+        g.px(24, 10, C["woodOut"])
+        return g
+
+    def gen_axe():
+        """16x16 stone axe, 3/4, dark-brown outline."""
+        g = Pix(16, 16)
+        out = C["woodOut"]
+        g.fill(3, 14, 9, 2, C["shadow"])
+        # handle
+        g.fill(6, 5, 2, 9, C["woodMid"])
+        g.fill(6, 5, 1, 9, C["woodHi"])
+        g.fill(7, 8, 1, 4, C["woodSh"])
+        g.fill(6, 13, 2, 1, out)
+        # stone head
+        g.fill(3, 2, 8, 4, C["stone"])
+        g.fill(3, 2, 8, 1, C["stoneHi"])
+        g.fill(3, 5, 8, 1, C["stoneSh"])
+        g.fill(2, 3, 2, 2, C["stoneHi"])
+        g.fill(10, 3, 2, 2, C["stoneSh"])
+        g.px(2, 2, out)
+        g.px(11, 2, out)
+        g.px(1, 3, out)
+        g.px(12, 4, out)
+        g.px(4, 1, out)
+        g.px(8, 1, out)
+        g.px(5, 6, out)
+        g.px(8, 6, out)
+        return g
+
+    def gen_pickaxe():
+        """16x16 stone pickaxe, pointed head."""
+        g = Pix(16, 16)
+        out = C["woodOut"]
+        g.fill(4, 14, 8, 2, C["shadow"])
+        g.fill(7, 5, 2, 9, C["woodMid"])
+        g.fill(7, 5, 1, 9, C["woodHi"])
+        g.fill(8, 9, 1, 3, C["woodSh"])
+        g.fill(7, 13, 2, 1, out)
+        # pointed head
+        g.fill(4, 3, 8, 3, C["stone"])
+        g.fill(4, 3, 8, 1, C["stoneHi"])
+        g.fill(2, 4, 3, 2, C["stoneHi"])
+        g.fill(11, 4, 3, 2, C["stoneSh"])
+        g.px(1, 5, C["stoneHi"])
+        g.px(14, 5, C["stoneSh"])
+        g.px(3, 2, out)
+        g.px(12, 2, out)
+        g.px(0, 5, out)
+        g.px(15, 5, out)
+        g.px(6, 6, out)
+        g.px(9, 6, out)
+        return g
+
+    def gen_shield():
+        """16x16 round wood shield with a steel boss."""
+        g = Pix(16, 16)
+        steel = C.get("steel", "#C8D0D8")
+        steel_hi = C.get("steelHi", "#E8F0F4")
+        steel_sh = C.get("steelSh", "#6A7888")
+        out = C["woodOut"]
+        g.fill(3, 14, 10, 2, C["shadow"])
+        for y in range(1, 15):
+            for x in range(1, 15):
+                dx = x - 7.5
+                dy = y - 7.5
+                d = dx * dx + dy * dy
+                if d <= 42:
+                    if d > 34:
+                        g.px(x, y, out)
+                    elif y < 6:
+                        g.px(x, y, C["woodHi"])
+                    elif y > 10:
+                        g.px(x, y, C["woodSh"])
+                    else:
+                        g.px(x, y, C["woodMid"])
+        g.fill(6, 6, 4, 4, steel)
+        g.fill(6, 6, 4, 1, steel_hi)
+        g.fill(6, 9, 4, 1, steel_sh)
+        g.px(6, 6, steel_hi)
+        g.px(9, 9, steel_sh)
+        g.px(7, 7, C["parch"])
+        return g
+
+    def gen_iron_sword():
+        """16x16 iron sword: cooler steel blade, darker grip."""
+        g = Pix(16, 16)
+        steel = C.get("steel", "#C8D0D8")
+        steel_hi = C.get("steelHi", "#E8F0F4")
+        steel_sh = C.get("steelSh", "#6A7888")
+        gold = C.get("lanternGlow", "#F0C060")
+        gold_sh = C.get("honeySh", "#A86C14")
+        out = C["woodOut"]
+        g.fill(4, 13, 8, 2, C["shadow"])
+        g.fill(8, 0, 2, 9, steel)
+        g.px(8, 0, steel_hi)
+        g.px(9, 0, steel)
+        g.fill(7, 1, 1, 8, steel_hi)
+        g.fill(10, 1, 1, 8, steel_sh)
+        g.px(9, 0, steel_hi)
+        g.px(7, 0, out)
+        g.px(10, 0, out)
+        g.px(11, 2, out)
+        g.fill(4, 8, 8, 2, steel)
+        g.fill(4, 8, 8, 1, steel_hi)
+        g.fill(4, 9, 8, 1, steel_sh)
+        g.px(3, 8, out)
+        g.px(12, 8, out)
+        g.fill(7, 10, 2, 4, C["woodSh"])
+        g.px(7, 10, C["woodMid"])
+        g.px(8, 12, out)
+        g.fill(6, 14, 4, 1, gold)
+        g.px(6, 14, gold_sh)
+        g.px(9, 14, out)
+        return g
+
+    def gen_bow():
+        """16x16 wooden bow, 3/4, string taut."""
+        g = Pix(16, 16)
+        out = C["woodOut"]
+        string = C.get("parch", "#F3D2A3")
+        g.fill(4, 14, 8, 2, C["shadow"])
+        # limb
+        g.px(10, 1, C["woodHi"])
+        g.px(11, 2, C["woodHi"])
+        g.fill(11, 3, 2, 3, C["woodMid"])
+        g.fill(10, 6, 2, 4, C["woodMid"])
+        g.fill(11, 10, 2, 3, C["woodMid"])
+        g.px(11, 13, C["woodSh"])
+        g.px(10, 14, C["woodSh"])
+        g.px(12, 3, C["woodSh"])
+        g.px(12, 12, C["woodSh"])
+        g.px(9, 1, out)
+        g.px(12, 2, out)
+        g.px(13, 4, out)
+        g.px(13, 11, out)
+        g.px(12, 13, out)
+        g.px(9, 14, out)
+        # grip
+        g.fill(9, 7, 2, 3, C["woodSh"])
+        g.px(9, 8, C["woodHi"])
+        # string
+        g.px(5, 2, string)
+        g.px(4, 4, string)
+        g.px(4, 6, string)
+        g.px(4, 8, string)
+        g.px(4, 10, string)
+        g.px(4, 12, string)
+        g.px(5, 13, string)
+        return g
+
+    def gen_arrow():
+        """16x16 short arrow, shaft pointing right."""
+        g = Pix(16, 16)
+        steel = C.get("steel", "#C8D0D8")
+        steel_hi = C.get("steelHi", "#E8F0F4")
+        out = C["woodOut"]
+        # shaft
+        g.fill(2, 7, 10, 2, C["woodMid"])
+        g.fill(2, 7, 10, 1, C["woodHi"])
+        g.fill(2, 8, 10, 1, C["woodSh"])
+        # tip
+        g.fill(11, 6, 3, 4, C["stone"])
+        g.fill(11, 6, 3, 1, C["stoneHi"])
+        g.px(14, 7, C["stoneHi"])
+        g.px(14, 8, C["stone"])
+        g.px(15, 7, out)
+        g.px(13, 5, out)
+        g.px(13, 10, out)
+        # fletching
+        g.px(1, 6, C["blossom"])
+        g.px(2, 6, C["blossom"])
+        g.px(1, 9, C["npcShirt"])
+        g.px(2, 9, C["npcShirt"])
+        g.px(0, 7, C["parch"])
+        g.px(0, 8, C["parch"])
+        return g
+
     GENERATORS["inwall"] = gen_inwall
     GENERATORS.update({
         "windowNight": gen_window_night,
@@ -313,6 +544,13 @@ def install(ns):
         "desk": gen_desk,
         "chair": gen_chair,
         "housePlant": gen_house_plant,
+        "workbench": gen_workbench,
+        "axe": gen_axe,
+        "pickaxe": gen_pickaxe,
+        "shield": gen_shield,
+        "ironSword": gen_iron_sword,
+        "bow": gen_bow,
+        "arrow": gen_arrow,
     })
 
     extra_sprites = [
@@ -322,6 +560,13 @@ def install(ns):
         {"id": "desk", "file": "props/desk.png", "w": 32, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
         {"id": "chair", "file": "props/chair.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
         {"id": "housePlant", "file": "props/housePlant.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
+        {"id": "workbench", "file": "props/workbench.png", "w": 32, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
+        {"id": "axe", "file": "ui/axe.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "pickaxe", "file": "ui/pickaxe.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "shield", "file": "ui/shield.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "ironSword", "file": "ui/ironSword.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "bow", "file": "ui/bow.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "arrow", "file": "ui/arrow.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
     ]
     ns["HOUSE_SPRITES"] = extra_sprites
     return extra_sprites
