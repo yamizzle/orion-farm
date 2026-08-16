@@ -1400,6 +1400,122 @@ def gen_trophy():
     return g
 
 
+def _inside_star(x, y, cx, cy, r_out, r_in, n=5):
+    """Even-odd test for an upright n-point star."""
+    pts = []
+    rot = -math.pi / 2
+    for i in range(n * 2):
+        r = r_out if i % 2 == 0 else r_in
+        a = rot + i * math.pi / n
+        pts.append((cx + math.cos(a) * r, cy + math.sin(a) * r))
+    inside = False
+    j = len(pts) - 1
+    for i, (xi, yi) in enumerate(pts):
+        xj, yj = pts[j]
+        if ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi + 1e-9) + xi):
+            inside = not inside
+        j = i
+    return inside
+
+
+def gen_starBadge():
+    """32x32 wood medallion with a gold star for the unlock card."""
+    g = Pix(32, 32)
+    gold, hi, mid, sh = C["flower"], C["parch"], C["dirtHi"], C["dirtSh"]
+    # soft ground shadow
+    for y in range(32):
+        for x in range(32):
+            dx = x - 16.0
+            dy = y - 18.4
+            if dx * dx + dy * dy <= 13.6 * 13.6:
+                g.px(x, y, C["shadow"])
+    # wood disc + gold rim
+    for y in range(32):
+        for x in range(32):
+            dx = x - 15.5
+            dy = y - 14.6
+            d = (dx * dx + dy * dy) ** 0.5
+            if d > 14.15:
+                continue
+            if d > 13.15:
+                g.px(x, y, C["woodOut"])
+            elif d > 11.85:
+                if dy < -3:
+                    g.px(x, y, hi)
+                elif dy > 5:
+                    g.px(x, y, sh)
+                else:
+                    g.px(x, y, gold)
+            else:
+                if dy < -4.5 and dx < 0.5:
+                    g.px(x, y, C["woodHi"])
+                elif dy > 5.2 or dx > 6.2:
+                    g.px(x, y, C["woodSh"])
+                else:
+                    g.px(x, y, C["woodMid"])
+    # gold star
+    for y in range(32):
+        for x in range(32):
+            px = x + 0.5
+            py = y + 0.5
+            if not _inside_star(px, py, 16.0, 14.6, 9.4, 4.05):
+                continue
+            dx = x - 15.5
+            dy = y - 13.4
+            if dy < -3.2 and dx < 1:
+                g.px(x, y, hi)
+            elif dy > 3.6 or dx > 4.2:
+                g.px(x, y, sh)
+            elif dy < 0 and abs(dx) < 2:
+                g.px(x, y, mid)
+            else:
+                g.px(x, y, gold)
+    # rim glints
+    g.px(10, 4, hi)
+    g.px(21, 5, hi)
+    g.px(8, 16, sh)
+    g.px(24, 18, sh)
+    return g
+
+
+def gen_sparkle(n):
+    """16x16 plus-sparkle. n=0 tiny, 1 mid, 2 burst."""
+    g = Pix(16, 16)
+    gold, hi, mid, sh = C["flower"], C["parch"], C["dirtHi"], C["dirtSh"]
+    cx, cy = 8, 8
+    if n <= 0:
+        g.px(cx, cy, hi)
+        g.px(cx, cy - 1, gold)
+        g.px(cx, cy + 1, gold)
+        g.px(cx - 1, cy, gold)
+        g.px(cx + 1, cy, gold)
+        return g
+    if n == 1:
+        g.px(cx, cy, hi)
+        for d in (1, 2):
+            g.px(cx, cy - d, gold if d == 1 else mid)
+            g.px(cx, cy + d, gold if d == 1 else sh)
+            g.px(cx - d, cy, gold if d == 1 else mid)
+            g.px(cx + d, cy, gold if d == 1 else sh)
+        g.px(cx - 1, cy - 1, mid)
+        g.px(cx + 1, cy - 1, mid)
+        return g
+    # n == 2: big 8-point sparkle
+    g.px(cx, cy, hi)
+    for d in (1, 2, 3, 4):
+        col = hi if d == 1 else (gold if d < 3 else mid)
+        g.px(cx, cy - d, col)
+        g.px(cx, cy + d, gold if d < 3 else sh)
+        g.px(cx - d, cy, col)
+        g.px(cx + d, cy, gold if d < 3 else sh)
+    for d in (1, 2):
+        g.px(cx - d, cy - d, gold if d == 1 else mid)
+        g.px(cx + d, cy - d, gold if d == 1 else mid)
+        g.px(cx - d, cy + d, mid)
+        g.px(cx + d, cy + d, sh)
+    g.px(cx, cy - 5, hi)
+    return g
+
 
 def gen_woodfloor():
     """3/4 pine floor: plank tops + a darker south lip."""
@@ -1720,6 +1836,10 @@ GENERATORS = {
     "moonshard": gen_moonshard,
     "note": gen_note,
     "trophy": gen_trophy,
+    "starBadge": gen_starBadge,
+    "sparkle-0": lambda: gen_sparkle(0),
+    "sparkle-1": lambda: gen_sparkle(1),
+    "sparkle-2": lambda: gen_sparkle(2),
     "woodfloor": gen_woodfloor,
     "inwall": gen_inwall,
     "bed": gen_bed,
@@ -1788,6 +1908,8 @@ def builtin_sprites():
         {"id": "moonshard", "file": "ui/moonshard.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "note", "file": "props/note.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "trophy", "file": "ui/trophy.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "starBadge", "file": "ui/starBadge.png", "w": 32, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "sparkle", "file": "ui/sparkle-{n}.png", "w": 16, "h": 16, "frames": 3, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "woodfloor", "file": "tiles/woodfloor.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "inwall", "file": "tiles/inwall.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "bed", "file": "props/bed.png", "w": 32, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},

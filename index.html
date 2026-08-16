@@ -2092,7 +2092,7 @@
   }
 
   function timePaused() {
-    return !!(dialogue || achieveOpen || questOpen || document.hidden || sleepFx || wipeAsk);
+    return !!(dialogue || achieveOpen || questOpen || document.hidden || sleepFx || wipeAsk || toast);
   }
 
   function updateClock(dt) {
@@ -2353,6 +2353,14 @@
     openDialogue("NIM'S NOTE", noteLines());
   }
 
+  function findAch(id) {
+    var i;
+    for (i = 0; i < ACH.length; i++) {
+      if (ACH[i].id === id) return ACH[i];
+    }
+    return null;
+  }
+
   function unlockAch(id) {
     if (!id || unlocked[id]) return;
     unlocked[id] = true;
@@ -2360,20 +2368,62 @@
     toastQueue.push(id);
   }
 
-  function updateToasts(dt) {
-    var def;
-    if (!toast && toastQueue.length) {
-      def = null;
-      var i;
-      for (i = 0; i < ACH.length; i++) {
-        if (ACH[i].id === toastQueue[0]) def = ACH[i];
-      }
-      toastQueue.shift();
-      if (def) toast = { name: def.name, age: 0, life: 2800 };
+  function beginUnlock(def) {
+    var i, ang, bits;
+    bits = [];
+    for (i = 0; i < 16; i++) {
+      ang = (i / 16) * Math.PI * 2 + (i % 3) * 0.11;
+      bits.push({
+        ang: ang,
+        dist: 6 + (i % 4),
+        spd: 0.05 + (i % 5) * 0.01,
+        age: 0,
+        life: 640 + (i % 4) * 90,
+        frame: i % 3
+      });
     }
-    if (toast) {
-      toast.age += dt;
-      if (toast.age >= toast.life) toast = null;
+    toast = {
+      name: def.name,
+      blurb: def.blurb || "",
+      age: 0,
+      motion: 2000,
+      ready: false,
+      bits: bits
+    };
+  }
+
+  function dismissUnlock() {
+    toast = null;
+  }
+
+  function updateToasts(dt) {
+    var def, i, b, ang;
+    if (!toast && toastQueue.length) {
+      def = findAch(toastQueue.shift());
+      if (def) beginUnlock(def);
+    }
+    if (!toast) return;
+    toast.age += dt;
+    if (!toast.ready && toast.age >= toast.motion) toast.ready = true;
+    for (i = toast.bits.length - 1; i >= 0; i--) {
+      b = toast.bits[i];
+      b.age += dt;
+      b.dist += b.spd * dt;
+      b.spd *= 0.993;
+      if (b.age >= b.life) toast.bits.splice(i, 1);
+    }
+    if (toast.age > 280 && toast.bits.length < 12) {
+      if (((toast.age / 110) | 0) !== (((toast.age - dt) / 110) | 0)) {
+        ang = (toast.age * 0.013) % (Math.PI * 2);
+        toast.bits.push({
+          ang: ang,
+          dist: 12 + (toast.age % 9),
+          spd: 0.028,
+          age: 0,
+          life: 540,
+          frame: ((toast.age / 80) | 0) % 3
+        });
+      }
     }
   }
 
@@ -2979,24 +3029,127 @@
     }
   }
 
+  function clamp01(t) {
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    return t;
+  }
+
+  function easeOutBack(t) {
+    var u;
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    u = t - 1;
+    return 1 + 2.70158 * u * u * u + 1.70158 * u * u;
+  }
+
+  function drawUnlockBadge(g, cx, cy, scale) {
+    var s = Assets.spr.starBadge;
+    var fw, fh, dw, dh;
+    if (s && Assets.img) {
+      fw = s.fw || s.w;
+      fh = s.h;
+      dw = Math.round(fw * scale);
+      dh = Math.round(fh * scale);
+      if (dw < 2) dw = 2;
+      if (dh < 2) dh = 2;
+      g.drawImage(
+        Assets.img,
+        s.x, s.y, fw, fh,
+        Math.round(cx - dw / 2), Math.round(cy - dh / 2),
+        dw, dh
+      );
+      return;
+    }
+    Assets.draw(g, "trophy", Math.round(cx - 8), Math.round(cy - 8));
+  }
+
   function drawToast(g) {
     if (!toast) return;
-    var t = toast.age / toast.life;
-    var alpha = 1;
-    if (t < 0.12) alpha = t / 0.12;
-    else if (t > 0.72) alpha = (1 - t) / 0.28;
-    if (alpha <= 0) return;
+    var age = toast.age;
+    var dim = clamp01(age / 180) * 0.58;
+    var pop = easeOutBack(clamp01(age / 480));
+    var badgeScale = 0.22 + 0.78 * pop;
+    var cardA = clamp01((age - 380) / 240);
+    var cx = (VIEW_W / 2) | 0;
+    var cy = 56;
+    var i, b, bx, by, fr, ring, rayA, rayL, ra, t, x0, y0, x1, y1, steps;
+    var name, blurb, w, x, y, tw, okW, okX, okY;
+
+    if (age > 480) badgeScale = 1 + 0.045 * Math.sin(age / 160);
+
+    g.fillStyle = "rgba(42,26,16," + dim.toFixed(3) + ")";
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+
+    if (age < 900) {
+      ring = 10 + clamp01(age / 520) * 44;
+      strokeCircle(g, cx, cy, ring, "rgba(232,200,74," + (0.58 * (1 - age / 900)).toFixed(2) + ")");
+      if (ring > 10) {
+        strokeCircle(g, cx, cy, ring - 7, "rgba(243,210,163," + (0.38 * (1 - age / 900)).toFixed(2) + ")");
+      }
+    }
+
+    if (age < 820) {
+      rayA = 0.6 * (1 - age / 820);
+      rayL = 8 + clamp01(age / 380) * 30;
+      g.fillStyle = "rgba(240,208,96," + rayA.toFixed(2) + ")";
+      for (i = 0; i < 8; i++) {
+        ra = (i / 8) * Math.PI * 2 + age * 0.0011;
+        x0 = Math.round(cx + Math.cos(ra) * 9);
+        y0 = Math.round(cy + Math.sin(ra) * 9);
+        x1 = Math.round(cx + Math.cos(ra) * rayL);
+        y1 = Math.round(cy + Math.sin(ra) * rayL);
+        steps = 7;
+        for (t = 0; t <= steps; t++) {
+          g.fillRect(
+            Math.round(x0 + (x1 - x0) * t / steps),
+            Math.round(y0 + (y1 - y0) * t / steps),
+            1,
+            1
+          );
+        }
+      }
+    }
+
+    drawUnlockBadge(g, cx, cy, badgeScale);
+
+    for (i = 0; i < toast.bits.length; i++) {
+      b = toast.bits[i];
+      bx = Math.round(cx + Math.cos(b.ang) * b.dist);
+      by = Math.round(cy + Math.sin(b.ang) * b.dist * 0.78);
+      fr = b.age > b.life * 0.55 ? 0 : b.frame;
+      g.save();
+      g.globalAlpha = clamp01(1 - b.age / b.life);
+      Assets.draw(g, "sparkle", bx - 8, by - 8, fr);
+      g.restore();
+    }
+
+    if (cardA <= 0) return;
     g.save();
-    g.globalAlpha = alpha;
-    var name = toast.name;
-    var w = textWidth(name) + 30;
-    if (w < 96) w = 96;
-    var x = ((VIEW_W - w) / 2) | 0;
-    var y = 22;
-    woodPanel(g, x, y, w, 18);
-    fill(g, x + 3, y + 3, w - 6, 12, C.parch);
-    Assets.draw(g, "trophy", x + 2, y + 1);
-    drawText(g, name, x + 20, y + 6, C.uiText);
+    g.globalAlpha = cardA;
+    name = toast.name;
+    blurb = toast.blurb;
+    w = textWidth(name) + 24;
+    if (textWidth(blurb) + 24 > w) w = textWidth(blurb) + 24;
+    if (w < 168) w = 168;
+    if (w > 280) w = 280;
+    x = ((VIEW_W - w) / 2) | 0;
+    y = 90;
+    woodPanel(g, x, y, w, 60);
+    fill(g, x + 4, y + 4, w - 8, 52, C.parch);
+    woodPanel(g, x + 8, y - 6, 62, 11);
+    drawText(g, "A STAR!", x + 12, y - 3, C.parch);
+    tw = textWidth(name);
+    drawText(g, name, x + ((w - tw) / 2) | 0, y + 14, C.uiText);
+    tw = textWidth(blurb);
+    drawText(g, blurb, x + ((w - tw) / 2) | 0, y + 26, C.woodSh);
+    if (toast.ready) {
+      okW = 28;
+      okX = x + ((w - okW) / 2) | 0;
+      okY = y + 41;
+      woodPanel(g, okX, okY, okW, 12);
+      drawText(g, "OK", okX + 8, okY + 3, C.parch);
+    }
     g.restore();
   }
 
@@ -3301,10 +3454,10 @@
     g.restore();
     drawDayTint(g);
     drawHUD(g);
-    drawToast(g);
     drawDialogue(g);
     drawAchieveList(g);
     drawQuestPlaque(g);
+    drawToast(g);
     drawWipeAsk(g);
     drawSleep(g);
   }
@@ -3519,6 +3672,10 @@
     var p = pointFromEvent(e);
     if (p.x < 0 || p.y < 0 || p.x >= VIEW_W || p.y >= VIEW_H) return;
 
+    if (toast) {
+      if (toast.ready) dismissUnlock();
+      return;
+    }
     if (dialogue) {
       dialogue = null;
       return;
@@ -3659,7 +3816,7 @@
     lastTs = ts;
     ctx.imageSmoothingEnabled = false;
     updateSleep(dt);
-    if (!dialogue && !achieveOpen && !questOpen && !sleepFx && !wipeAsk) {
+    if (!dialogue && !achieveOpen && !questOpen && !sleepFx && !wipeAsk && !toast) {
       if (player.hitting) {
         updateHit(dt);
       } else if (player.moving || (player.path && player.path.length)) {
