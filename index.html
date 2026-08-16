@@ -402,6 +402,7 @@
     errandDone: false,
     homeDone: false
   };
+  var homeLight = false;
   var LETTERS = {
     welcome: {
       id: "welcome",
@@ -1048,6 +1049,7 @@
       { kind: "window", tx: 13, ty: 0 },
       { kind: "rug", tx: 7, ty: 4 },
       { kind: "table", tx: 14, ty: 5 },
+      { kind: "lantern", tx: 16, ty: 3 },
       { kind: "crate", tx: 17, ty: 2 },
       { kind: "doormat", tx: 10, ty: 10 },
       { kind: "inndoor", tx: 10, ty: 11 }
@@ -2168,6 +2170,10 @@
         quest.errandDone = !!data.quest.errandDone;
         quest.homeDone = !!data.quest.homeDone;
       }
+      if (data.homeLight || quest.homeDone || unlocked.homeGlow) {
+        homeLight = true;
+        quest.homeDone = true;
+      }
       if (data.day >= 1) dayNumber = data.day | 0;
       if (typeof data.dayMs === "number" && data.dayMs >= 0) {
         dayMs = data.dayMs;
@@ -2327,6 +2333,7 @@
         outroSeen: outroSeen,
         mailRead: mailRead,
         quest: quest,
+        homeLight: !!homeLight,
         day: dayNumber,
         dayMs: dayMs,
         phase: clockPhase(),
@@ -2453,6 +2460,75 @@
     if (!world) return false;
     b = propBounds(bed);
     return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
+  }
+
+  function findTable() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "table") return p;
+    }
+    return null;
+  }
+
+  function nearTable() {
+    var table = findTable();
+    var x;
+    if (!table) return false;
+    for (x = 0; x < 2; x++) {
+      if (isNear(player.tx, player.ty, table.tx + x, table.ty)) return true;
+      if (player.tx === table.tx + x && player.ty === table.ty) return true;
+    }
+    return false;
+  }
+
+  function tableHit(tx, ty, world) {
+    var table, b;
+    if (currentScene !== "house") return false;
+    table = findTable();
+    if (!table) return false;
+    if (propOccupies(table, tx, ty)) return true;
+    if (!world) return false;
+    b = propBounds(table);
+    return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
+  }
+
+  function talkHomeLight() {
+    openDialogue("ORION", ["THE HOME LIGHT.", "THE TOWN STATUE", "IS STILL DARK."]);
+  }
+
+  function goHomeLight() {
+    var table, dest, path, x, best, d, cand;
+    if (currentScene !== "house" || !homeLightOn()) return;
+    table = findTable();
+    highlight = table ? { tx: table.tx, ty: table.ty } : null;
+    if (!table || nearTable()) {
+      pending = null;
+      talkHomeLight();
+      return;
+    }
+    best = null;
+    d = 999;
+    for (x = 0; x < 2; x++) {
+      cand = nearestAdjacent(table.tx + x, table.ty);
+      if (!cand) continue;
+      if (Math.abs(cand.tx - player.tx) + Math.abs(cand.ty - player.ty) < d) {
+        d = Math.abs(cand.tx - player.tx) + Math.abs(cand.ty - player.ty);
+        best = cand;
+      }
+    }
+    dest = best;
+    if (!dest) {
+      talkHomeLight();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkHomeLight();
+      return;
+    }
+    pending = { type: "homeLight" };
+    startWalk(player, path, 3.5);
   }
 
   function sleepWakeSpot() {
@@ -2725,10 +2801,11 @@
 
   function currentTint() {
     var t = dayMs / DAY_MS;
+    var cozy = currentScene === "house" && homeLightOn();
     if (currentScene === "house" || currentScene === "shop") {
-      if (t >= 0.72) return { r: 255, g: 200, b: 130, a: 0.24 };
-      if (t >= 0.56) return { r: 255, g: 196, b: 140, a: 0.16 };
-      return { r: 255, g: 236, b: 210, a: 0.04 };
+      if (t >= 0.72) return { r: 255, g: cozy ? 184 : 200, b: cozy ? 104 : 130, a: cozy ? 0.38 : 0.24 };
+      if (t >= 0.56) return { r: 255, g: cozy ? 178 : 196, b: cozy ? 112 : 140, a: cozy ? 0.26 : 0.16 };
+      return { r: 255, g: cozy ? 220 : 236, b: cozy ? 176 : 210, a: cozy ? 0.12 : 0.04 };
     }
     if (currentScene === "mine") {
       if (mineFloor === 3) return { r: 72, g: 62, b: 88, a: 0.44 };
@@ -2749,6 +2826,7 @@
   }
 
   function lanternIsLit() {
+    if (currentScene === "house") return true;
     return lanternGlowAmt() > 0.12;
   }
 
@@ -2867,6 +2945,36 @@
     fillBlend(g, "multiply", gr.mulA, gr.mulR, gr.mulG, gr.mulB);
   }
 
+  function drawHouseHomeGlow(g) {
+    var table = findTable();
+    var spots = [];
+    var i, s, sx, sy, flicker, rad, grd;
+    if (table) spots.push({ x: table.tx * TILE + 16, y: table.ty * TILE + 2, scale: 1 });
+    for (i = 0; i < PROPS.length; i++) {
+      if (PROPS[i].kind === "lantern") {
+        spots.push({ x: PROPS[i].tx * TILE + 8, y: PROPS[i].ty * TILE + 2, scale: 0.85 });
+      }
+    }
+    g.save();
+    g.globalCompositeOperation = "screen";
+    for (i = 0; i < spots.length; i++) {
+      s = spots[i];
+      sx = s.x - camX;
+      sy = s.y - camY;
+      flicker = 0.88 + Math.sin(tick / 160 + i * 1.4) * 0.12;
+      rad = 36 * flicker * s.scale;
+      grd = g.createRadialGradient(sx, sy, 2, sx, sy, rad);
+      grd.addColorStop(0, "rgba(255,210,130," + (0.28 * flicker).toFixed(3) + ")");
+      grd.addColorStop(0.45, "rgba(255,176,88," + (0.14 * flicker).toFixed(3) + ")");
+      grd.addColorStop(1, "rgba(255,150,60,0)");
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(sx, sy, rad, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.restore();
+  }
+
   function drawDayTint(g) {
     var tint, amt;
     if (currentScene === "house" || currentScene === "shop" || currentScene === "mine") {
@@ -2874,6 +2982,7 @@
       if (tint && tint.a >= 0.01) {
         fillBlend(g, "multiply", tint.a, tint.r, tint.g, tint.b);
       }
+      if (currentScene === "house" && homeLightOn()) drawHouseHomeGlow(g);
       return;
     }
     drawOutdoorGrade(g);
@@ -2983,7 +3092,11 @@
     if (quest.errandDone && !mailRead.thanks) return "READ THE NEW LETTER";
     if (found.moonshard && !quest.homeDone) return "TAKE THE SHARD HOME";
     if (!found.moonshard) return "FIND A MOON SHARD";
-    return "ALL JOBS DONE";
+    return "THE HOUSE GLOWS. THE TOWN STATUE IS DARK.";
+  }
+
+  function homeLightOn() {
+    return !!(homeLight || quest.homeDone || unlocked.homeGlow);
   }
 
   function jobOpen() {
@@ -3055,7 +3168,7 @@
     if (!found.moonshard) {
       return ["NIM LEFT A SHARD", "IN THE CAVE.", "BRING IT HOME."];
     }
-    return ["THE MOUNTAIN IS", "HAPPY. COME PLAY", "ANY TIME!"];
+    return ["THE HOUSE GLOWS.", "THE TOWN STATUE", "IS STILL DARK."];
   }
 
   function talkNeighbor() {
@@ -4332,10 +4445,12 @@
     placePlayer(10, 9, "up");
     if (found.moonshard && !quest.homeDone) {
       quest.homeDone = true;
+      homeLight = true;
       persistSave();
       unlockAch("homeGlow");
       openDialogue("ORION", ["THE SHARD GLOWS.", "I AM HOME."]);
     } else {
+      if (homeLightOn()) homeLight = true;
       persistSave();
     }
   }
@@ -4436,6 +4551,8 @@
       }
     } else if (act.type === "sleep") {
       beginSleep();
+    } else if (act.type === "homeLight") {
+      talkHomeLight();
     } else if (act.type === "talkFolk") {
       if (act.folk && isNear(player.tx, player.ty, act.folk.tx, act.folk.ty)) talkFolk(act.folk);
     } else if (act.type === "landmark") {
@@ -4831,7 +4948,7 @@
     if (p.kind === "statue") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
     if (p.kind === "bed") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
-    if (p.kind === "table") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 32, h: 24 };
+    if (p.kind === "table") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 32 };
     if (p.kind === "rug") return { x: p.tx * TILE, y: p.ty * TILE, w: 48, h: 32 };
     if (p.kind === "window" || p.kind === "inndoor") {
       return { x: p.tx * TILE, y: p.ty * TILE - (p.kind === "inndoor" ? 8 : 0), w: 16, h: 24 };
@@ -4863,6 +4980,14 @@
       Assets.draw(g, "bed", x, y);
     } else if (p.kind === "table") {
       Assets.draw(g, "table", x, y);
+      if (homeLightOn()) {
+        var shardGlow = 0.16 + 0.10 * (0.5 + 0.5 * Math.sin(tick / 180));
+        g.fillStyle = "rgba(255,214,140," + shardGlow.toFixed(3) + ")";
+        g.fillRect(x - 2, y - 14, 36, 22);
+        g.fillStyle = "rgba(232,240,255,0.24)";
+        g.fillRect(x + 6, y - 14, 20, 16);
+        Assets.draw(g, "moonshard", x + 8, y - 14);
+      }
     } else if (p.kind === "rug") {
       Assets.draw(g, "rug", x, y);
     } else if (p.kind === "window") {
@@ -4907,10 +5032,11 @@
     } else if (p.kind === "lantern") {
       var lit = lanternIsLit();
       var flicker;
+      var cozyLamp = currentScene === "house" && homeLightOn();
       if (lit) {
-        flicker = 0.10 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 140 + p.tx * 0.8));
+        flicker = (cozyLamp ? 0.22 : 0.10) + (cozyLamp ? 0.14 : 0.08) * (0.5 + 0.5 * Math.sin(tick / 140 + p.tx * 0.8));
         g.fillStyle = "rgba(240,192,96," + flicker.toFixed(3) + ")";
-        g.fillRect(x - 12, y - 16, 40, 40);
+        g.fillRect(x - (cozyLamp ? 18 : 12), y - (cozyLamp ? 22 : 16), cozyLamp ? 52 : 40, cozyLamp ? 52 : 40);
       }
       Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
     } else if (p.kind === "ladder") {
@@ -5909,6 +6035,10 @@
     }
     if (currentScene === "house" && (bedHit(tx, ty, world) || (hitProp && hitProp.kind === "bed"))) {
       goSleep();
+      return;
+    }
+    if (currentScene === "house" && homeLightOn() && (tableHit(tx, ty, world) || (hitProp && hitProp.kind === "table"))) {
+      goHomeLight();
       return;
     }
     if (hitProp && (hitProp.kind === "doormat" || hitProp.kind === "inndoor")) {
