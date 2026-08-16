@@ -23,6 +23,7 @@ On iPhone, tap the wood **FULL** plaque (top-right) so the farm fills the Safari
 
 ```
 assets/
+  generated-src/    IMAGE-GENERATOR originals (full-size, before chroma/crop)
   palette.json      named hex colors (grassMid, woodMid, …)
   manifest.json     every sprite: id, file, size, frames, anchor, atlas rect
   atlas.png         packed sheet the game loads
@@ -32,7 +33,8 @@ assets/
   actors/           player, neighbor, chicken (one PNG per facing/frame)
   ui/               seed packet, sprout
 tools/
-  export-assets.py  paints built-in PNGs and rebuilds the atlas
+  process-generated.py  chroma-key, crop, and scale generated-src into game sizes
+  export-assets.py      pack those PNGs into atlas.png (do not use --regen)
 ```
 
 The game loads `assets/manifest.json` + `assets/atlas.png`, then draws with `Assets.draw(ctx, id, x, y, frame)`. It does not paint world pixels in the game loop.
