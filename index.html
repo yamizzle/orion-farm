@@ -333,6 +333,7 @@
   var houseOut = { tx: 10, ty: 10 };
   var shopIn = { tx: 44, ty: 26 };
   var shopOut = { tx: 8, ty: 8 };
+  var pipLanternAt = { tx: 43, ty: 25 };
   var TOWN_GREEN = { x0: 43, y0: 29, x1: 55, y1: 32 };
   var SAVE_KEY = "moondrop-mountain-v1";
   var SAVE_VER = 2;
@@ -406,6 +407,8 @@
   var homeLight = false;
   var lilaFlowers = 0;
   var lilaDone = false;
+  var pipDone = false;
+  var pipLantern = false;
   var LETTERS = {
     welcome: {
       id: "welcome",
@@ -434,6 +437,7 @@
     { id: "caveHelper", name: "CAVE HELPER", blurb: "LEFT WOOD FOR NIM" },
     { id: "homeGlow", name: "HOME GLOW", blurb: "BROUGHT THE SHARD HOME" },
     { id: "greenThumb", name: "GREEN THUMB", blurb: "PLANTED LILA'S FLOWERS" },
+    { id: "shopGlow", name: "SHOP GLOW", blurb: "LIT PIP'S LANTERN" },
     { id: "caveFoe", name: "CAVE FOE", blurb: "BEAT A MONSTER" }
   ];
   var COLLECT_ACH = { copper: "copperGlow", mushroom: "caveSnack", moonshard: "moonPiece" };
@@ -1263,6 +1267,7 @@
       applyExtraPlots(GROUND);
       applyBuildsTo(GROUND, PROPS);
     }
+    if (name === "overworld") applyPipLantern(PROPS);
     if (fresh && name !== "house") applyHarvestState(name === "mine" ? harvestSceneName() : name, PROPS);
     if (name === "mine") {
       if (monsterCache[mineFloor]) monsters = monsterCache[mineFloor];
@@ -2183,6 +2188,8 @@
       if (typeof data.lilaFlowers === "number" && data.lilaFlowers > 0) {
         lilaFlowers = data.lilaFlowers | 0;
       }
+      pipDone = !!data.pipDone;
+      pipLantern = !!(data.pipLantern || data.pipDone);
       if (data.day >= 1) dayNumber = data.day | 0;
       if (typeof data.dayMs === "number" && data.dayMs >= 0) {
         dayMs = data.dayMs;
@@ -2346,6 +2353,8 @@
         homeLight: !!homeLight,
         lilaFlowers: lilaFlowers | 0,
         lilaDone: !!lilaDone,
+        pipDone: !!pipDone,
+        pipLantern: !!pipLantern,
         day: dayNumber,
         dayMs: dayMs,
         phase: clockPhase(),
@@ -2410,6 +2419,20 @@
         if (!exists) props.push({ kind: b.kind, tx: b.tx, ty: b.ty });
       }
     }
+  }
+
+  function applyPipLantern(props) {
+    var i, exists;
+    if (!props) return;
+    if (!pipLantern && !pipDone) return;
+    exists = false;
+    for (i = 0; i < props.length; i++) {
+      if (props[i].kind === "lantern" && props[i].tx === pipLanternAt.tx && props[i].ty === pipLanternAt.ty) {
+        exists = true;
+        break;
+      }
+    }
+    if (!exists) props.push({ kind: "lantern", tx: pipLanternAt.tx, ty: pipLanternAt.ty });
   }
 
   function applyRestore() {
@@ -3105,6 +3128,7 @@
     if (found.moonshard && !quest.homeDone) return "TAKE THE SHARD HOME";
     if (!found.moonshard) return "FIND A MOON SHARD";
     if (!lilaDone) return "PLANT FLOWERS WITH LILA";
+    if (!pipDone) return "BRING COPPER TO PIP";
     return "THE TOWN STATUE IS DARK.";
   }
 
@@ -3320,6 +3344,47 @@
     return ["THE STATUE USED TO TWINKLE.", "PLANT THREE FLOWERS", "ON THE GREEN FOR ME."];
   }
 
+  function hasCopperToGive() {
+    return (inventory.copper || 0) > 0;
+  }
+
+  function giveCopperToPip() {
+    if ((inventory.copper || 0) > 0) inventory.copper -= 1;
+  }
+
+  function placePipLantern() {
+    pipLantern = true;
+    if (currentScene === "overworld") {
+      applyPipLantern(PROPS);
+      buildSolid();
+    }
+    if (sceneCache.overworld && sceneCache.overworld.props) applyPipLantern(sceneCache.overworld.props);
+  }
+
+  function finishPipJob() {
+    if (pipDone) return;
+    pipDone = true;
+    giveCopperToPip();
+    placePipLantern();
+    persistSave();
+    unlockAch("shopGlow");
+  }
+
+  function pipLines() {
+    if (pipDone) {
+      return ["THANKS. THE LANTERN", "IS UP."];
+    }
+    if (hasCopperToGive()) {
+      finishPipJob();
+      return ["A REAL COPPER!", "THE SHOP LANTERN", "IS UP."];
+    }
+    return ["NIM USED TO BUY HONEY BUNS.", "BRING ME ONE COPPER", "FOR A SHOP LANTERN."];
+  }
+
+  function talkPip() {
+    openDialogue("PIP", pipLines());
+  }
+
   function talkFolk(f) {
     var lines;
     faceToward(player, f.tx, f.ty);
@@ -3328,11 +3393,11 @@
       openDialogue(f.name, lilaLines());
       return;
     }
-    lines = f.lines[(tick / 800 | 0) % f.lines.length];
     if (f.id === "pip") {
-      openDialogue(f.name, lines);
+      openDialogue(f.name, pipLines());
       return;
     }
+    lines = f.lines[(tick / 800 | 0) % f.lines.length];
     openDialogue(f.name, lines);
   }
 
@@ -5372,7 +5437,7 @@
 
   function drawAchieveList(g) {
     if (!achieveOpen) return;
-    var x = 24, y = 22, w = 272, h = 176;
+    var x = 24, y = 22, w = 272, h = 192;
     woodPanel(g, x, y, w, h);
     fill(g, x + 4, y + 4, w - 8, h - 8, C.parch);
     woodPanel(g, x + 8, y - 6, 50, 11);
@@ -6018,7 +6083,7 @@
     }
     if (currentScene === "shop") {
       if (hitSprite(world, tileCenterX(8), tileFootY(4), 16, 32, 8, 28)) {
-        openShop();
+        talkPip();
         return;
       }
     }
@@ -6114,6 +6179,10 @@
       return;
     }
     if (currentScene === "shop" && hitProp && (hitProp.kind === "counter" || hitProp.kind === "shopSign")) {
+      if (!pipDone && hasCopperToGive()) {
+        talkPip();
+        return;
+      }
       openShop();
       return;
     }
