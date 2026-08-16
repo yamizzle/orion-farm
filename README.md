@@ -52,14 +52,15 @@ assets/
   atlas.json        same frame rects (handy for tools)
   tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall, wood floor, interior wall, cobble, meadow)
   props/            house, tree, stump, well, mailbox, mailbox-up, crate, pond, rocks, weeds, fences, cave, lantern, lantern-off, ladder, hole, chest, note, bed, table, rug, window, doormat, door, shop, town houses, fountain, statue, counter, sword pedestal
-  actors/           player, neighbor, chicken, town folk, car, slime, bat, rock-grub, faint pose (one PNG per facing/frame)
+  actors/           player (Orion), neighbor (Junie art), Nim (atlas only — not placed yet), chicken, town folk, car, slime, bat, rock-grub, faint pose
   ui/               seed packet, sprout, young crop, ready crop, veggie, wood, stone, copper, mushroom, moon shard, gem, moon crystal, star, star badge, sparkle, letter, flower, honey bun, straw hat, heart, empty heart, sword, gold coin, faint star, slash
 tools/
   process-generated.py  chroma-key, crop, and scale generated-src into game sizes
   export-assets.py      pack those PNGs into atlas.png (do not use --regen)
   town_sprites.py       paint town houses, folk, car, shop goods
-  combat_sprites.py     paint hearts, sword, pedestal, gold coin, mine foes, faint pose, faint stars, slash sparks
-  mine_sprites.py       paint the down-hole, gem, chest, and moon crystal
+  combat_sprites.py     paint hearts, sword, pedestal, gold coin, mine foes, faint stars, slash sparks
+  mine_sprites.py       paint the down-hole, gem, and chest
+  hero_sprites.py       paint Orion, Junie, Nim, moon-kid statue, moon shard, mountain heart, faint pose
 ```
 
 The game loads `assets/manifest.json` + `assets/atlas.png`, then draws with `Assets.draw(ctx, id, x, y, frame)`. It does not paint world pixels in the game loop.
