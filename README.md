@@ -27,6 +27,8 @@ On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Saf
 - A wood star on the HUD opens your stars. New ones pop up on a little plaque.
 - A wood book next to the star is your job list. Tap it for one line, like BRING A MUSHROOM TO THE NEIGHBOR.
 - Jobs: bring the neighbor a cave mushroom, leave wood at Nim's note after you read the mine letter, then take a moon shard inside the house.
+- The wood clock on the right counts real days. Morning turns to afternoon, evening, then night (a cool blue over the farm; the house stays lamplit). A full day is about two and a half minutes. Time pauses while you read a letter or open stars, and when the tab is hidden.
+
 
 ## Where the art lives
 
