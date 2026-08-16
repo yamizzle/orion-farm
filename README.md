@@ -1,6 +1,6 @@
 # Moondrop Mountain
 
-A tiny farm game for Orion. You look down at a spring farm: walk around, plant a seed, talk to a neighbor, and watch a chicken wander.
+A tiny farm game for Orion. You look down at a spring farm on Moondrop Mountain: walk the fields, plant a seed, talk to a neighbor, watch a chicken wander, and follow the dirt path north to a mine in the rocky hill.
 
 Art is **original 16-bit 3/4** (2.5D): you see the top of the ground and the front of walls, roofs, crates, and people. It is meant to feel like the same *family* as Stardew Valley. It does **not** copy or trace Stardew sprites, the farmhouse, UI, or characters.
 
@@ -14,10 +14,11 @@ On a Chromebook, iPad, or iPhone: open that link in the browser (Safari or Chrom
 
 On iPhone, tap the wood **FULL** plaque (top-right) so the farm fills the Safari page. Tap **EXIT**, or swipe down from the top, to go back. Add to Home Screen for a chrome-free farm.
 
-- Tap the grass or path to walk there (the little person will go around the house, water, trees, and fence).
+- Tap the grass or path to walk there. The camera follows so you stay in the middle until you reach the edge of the mountain.
 - The first hotbar slot is a seed packet. Tap an empty brown plot inside the fence to plant a sprout.
 - Tap the neighbor in the straw hat. They say hello, then tap again to close the box.
-- A chicken wanders on the grass. Tap it and it hops.
+- A chicken wanders the farm grass. Tap it and it hops.
+- Follow the dirt path north to the timbered cave in the rocky hill. Walk onto the mouth to go inside; tap the ladder to come back out.
 
 ## Where the art lives
 
@@ -28,8 +29,8 @@ assets/
   manifest.json     every sprite: id, file, size, frames, anchor, atlas rect
   atlas.png         packed sheet the game loads
   atlas.json        same frame rects (handy for tools)
-  tiles/            16×16 ground (grass, dirt, till, water)
-  props/            house, tree, well, mailbox, crate, pond, rocks, weeds, fences
+  tiles/            16×16 ground (grass, dirt, till, water, hill, stone, wall)
+  props/            house, tree, well, mailbox, crate, pond, rocks, weeds, fences, cave, lantern, ladder
   actors/           player, neighbor, chicken (one PNG per facing/frame)
   ui/               seed packet, sprout
 tools/

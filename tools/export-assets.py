@@ -870,6 +870,180 @@ def gen_chicken(fr):
     return g
 
 
+
+def gen_stone_floor(v):
+    """Dark mine floor, 3/4 south lip."""
+    g = Pix(16, 16)
+    mid = C.get("caveFloor", "#4A4840")
+    hi = C.get("caveFloorHi", "#6A685C")
+    sh = C.get("caveFloorSh", "#2C2A24")
+    g.fill(0, 0, 16, 16, mid)
+    for i in range(18):
+        r = hash01(v + 3, i, 9)
+        x = int(hash01(v, i, 1) * 16)
+        y = int(hash01(v, i, 2) * 14)
+        if r < 0.34:
+            g.px(x, y, hi)
+        elif r < 0.62:
+            g.px(x, y, sh)
+        elif r < 0.70:
+            g.px(x, y, C["stoneSh"])
+    # faint mortar cracks
+    if v == 0:
+        g.fill(5, 3, 1, 4, sh)
+        g.fill(9, 8, 4, 1, sh)
+    else:
+        g.fill(3, 6, 5, 1, sh)
+        g.fill(11, 2, 1, 5, sh)
+    for x in range(16):
+        if (x + v) % 4 == 0:
+            g.px(x, 0, hi)
+        g.px(x, 14, sh)
+        g.px(x, 15, C["woodOut"] if (x + v) % 2 else sh)
+    return g
+
+
+def gen_hill():
+    """Rocky grass for the northern hill."""
+    g = gen_grass(2)
+    pebbles = [(2, 4), (7, 3), (12, 6), (4, 9), (10, 11), (14, 8), (1, 12), (8, 7), (13, 13)]
+    for i, (x, y) in enumerate(pebbles):
+        col = C["stoneHi"] if i % 3 == 0 else C["stone"] if i % 3 == 1 else C["stoneSh"]
+        g.px(x, y, col)
+        if i % 2 == 0:
+            g.px(x + 1, y, C["stoneSh"])
+    g.px(5, 5, C.get("hillMid", "#7A7A68"))
+    g.px(11, 9, C.get("hillMid", "#7A7A68"))
+    return g
+
+
+def gen_wall():
+    """3/4 stone wall: top plane + front face."""
+    g = Pix(16, 16)
+    g.fill(0, 0, 16, 5, C["stoneHi"])
+    g.fill(0, 1, 16, 1, C["stone"])
+    g.fill(0, 4, 16, 1, C["stoneSh"])
+    g.fill(0, 5, 16, 11, C["stone"])
+    g.fill(0, 5, 16, 1, C["stoneHi"])
+    # block mortar
+    for y in (7, 11, 15):
+        g.fill(0, y, 16, 1, C["stoneSh"])
+    for x, y in ((3, 6), (10, 6), (6, 10), (13, 10), (2, 14), (9, 14)):
+        g.fill(x, y, 1, 3 if y < 14 else 2, C["stoneSh"])
+    g.fill(0, 5, 1, 11, C["stoneHi"])
+    g.fill(15, 5, 1, 11, C["stoneSh"])
+    g.px(4, 8, C["stoneHi"])
+    g.px(12, 12, C["stoneSh"])
+    g.fill(0, 15, 16, 1, C["woodOut"])
+    return g
+
+
+def gen_cave():
+    """Original 3/4 rocky hill with a timber-framed mine mouth."""
+    g = Pix(64, 48)
+    dark = C.get("caveDark", "#14110E")
+    g.fill(8, 45, 48, 3, C["shadow"])
+    g.fill(14, 44, 36, 1, C["shadowSoft"])
+    # back / top of the outcrop
+    blob(g, 32, 16, 24, 11, C["stone"], C["stoneSh"], C["stoneHi"], C["stoneSh"])
+    blob(g, 14, 20, 13, 9, C["stone"], C["stoneSh"], C["stoneHi"], C["stoneSh"])
+    blob(g, 50, 20, 13, 9, C["stone"], C["stoneSh"], C["stoneHi"], C["stoneSh"])
+    blob(g, 32, 24, 16, 8, C["stoneHi"], C["stone"], C["stoneHi"], C["stoneSh"])
+    # front boulders
+    blob(g, 12, 34, 11, 8, C["stone"], C["stoneSh"], C["stone"], C["woodOut"])
+    blob(g, 52, 34, 11, 8, C["stone"], C["stoneSh"], C["stone"], C["woodOut"])
+    blob(g, 32, 38, 20, 7, C["stone"], C["stoneSh"], C["stone"], C["woodOut"])
+    # extra chips
+    g.px(20, 12, C["stoneHi"])
+    g.px(21, 12, C["stoneHi"])
+    g.px(44, 14, C["stoneHi"])
+    g.px(8, 28, C["stoneSh"])
+    g.px(56, 26, C["stoneSh"])
+    # carve the dark arch (front-center)
+    for y in range(20, 46):
+        for x in range(21, 44):
+            dx = (x - 32) / 9.4
+            dy = (y - 35) / 12.2
+            if dx * dx + dy * dy <= 1.02:
+                g.px(x, y, dark)
+    # timber frame around the mouth
+    g.fill(22, 24, 3, 20, C["woodMid"])
+    g.fill(22, 24, 1, 20, C["woodHi"])
+    g.fill(24, 24, 1, 20, C["woodSh"])
+    g.fill(22, 43, 3, 1, C["woodOut"])
+    g.fill(39, 24, 3, 20, C["woodMid"])
+    g.fill(39, 24, 1, 20, C["woodHi"])
+    g.fill(41, 24, 1, 20, C["woodSh"])
+    g.fill(39, 43, 3, 1, C["woodOut"])
+    g.fill(21, 21, 22, 4, C["woodMid"])
+    g.fill(21, 21, 22, 1, C["woodHi"])
+    g.fill(21, 24, 22, 1, C["woodOut"])
+    g.fill(21, 21, 1, 4, C["woodOut"])
+    g.fill(42, 21, 1, 4, C["woodOut"])
+    g.px(26, 22, C["woodSh"])
+    g.px(36, 23, C["woodSh"])
+    # inner glow hint
+    g.px(30, 32, C["woodSh"])
+    g.px(33, 34, C["woodMid"])
+    # grass tufts at the base
+    for x, y in ((6, 40), (7, 39), (8, 41), (55, 40), (56, 39), (57, 41), (18, 43), (46, 43)):
+        g.px(x, y, C["grassMid"] if y % 2 else C["grassHi"])
+        g.px(x, y + 1, C["grassSh"])
+    return g
+
+
+def gen_lantern():
+    g = Pix(16, 24)
+    glow = C.get("lanternGlow", "#F0C060")
+    g.fill(5, 22, 6, 2, C["shadow"])
+    g.fill(7, 12, 2, 10, C["woodMid"])
+    g.fill(7, 12, 1, 10, C["woodHi"])
+    g.fill(8, 12, 1, 10, C["woodSh"])
+    g.fill(3, 2, 10, 2, C["woodSh"])
+    g.fill(4, 1, 8, 1, C["woodMid"])
+    g.fill(5, 0, 6, 1, C["woodHi"])
+    g.fill(4, 4, 8, 8, C["woodOut"])
+    g.fill(5, 5, 6, 6, glow)
+    g.fill(6, 6, 4, 4, C["parch"])
+    g.px(7, 7, C["flower"])
+    g.fill(4, 4, 8, 1, C["woodHi"])
+    g.fill(4, 11, 8, 1, C["woodSh"])
+    return g
+
+
+def gen_ladder():
+    """Hole in the stone floor with a wooden ladder down."""
+    g = Pix(16, 24)
+    dark = C.get("caveDark", "#14110E")
+    # stone rim (top plane of the hole)
+    for y in range(2, 12):
+        for x in range(1, 15):
+            dx = (x - 8) / 6.4
+            dy = (y - 6) / 4.2
+            d = dx * dx + dy * dy
+            if d < 1.15:
+                if d > 0.72:
+                    g.px(x, y, C["stoneHi"] if y < 7 else C["stone"])
+                else:
+                    g.px(x, y, dark)
+    # darker south lip of the rim
+    for x in range(3, 13):
+        g.px(x, 10, C["stoneSh"])
+        g.px(x, 11, C["woodOut"])
+    # rails
+    g.fill(4, 8, 2, 15, C["woodMid"])
+    g.fill(4, 8, 1, 15, C["woodHi"])
+    g.fill(5, 8, 1, 15, C["woodSh"])
+    g.fill(10, 8, 2, 15, C["woodMid"])
+    g.fill(10, 8, 1, 15, C["woodHi"])
+    g.fill(11, 8, 1, 15, C["woodSh"])
+    # rungs
+    for y in (10, 14, 18, 22):
+        g.fill(4, y, 8, 2, C["woodMid"])
+        g.fill(4, y, 8, 1, C["woodHi"])
+    return g
+
+
 GENERATORS = {
     "grass0": lambda: gen_grass(0),
     "grass1": lambda: gen_grass(1),
@@ -913,6 +1087,13 @@ GENERATORS = {
     "chicken-right-1": lambda: gen_chicken(1),
     "chicken-left-0": lambda: gen_chicken(0).flip_h(),
     "chicken-left-1": lambda: gen_chicken(1).flip_h(),
+    "stone0": lambda: gen_stone_floor(0),
+    "stone1": lambda: gen_stone_floor(1),
+    "hill": gen_hill,
+    "wall": gen_wall,
+    "cave": gen_cave,
+    "lantern": gen_lantern,
+    "ladder": gen_ladder,
 }
 
 
@@ -952,6 +1133,13 @@ def builtin_sprites():
         {"id": "npc-left", "file": "actors/npc-left-{n}.png", "w": 16, "h": 32, "frames": 2, "anchor": A, "ox": 0, "oy": 0, "generated": True},
         {"id": "chicken-right", "file": "actors/chicken-right-{n}.png", "w": 16, "h": 16, "frames": 2, "anchor": Ck, "ox": 0, "oy": 0, "generated": True},
         {"id": "chicken-left", "file": "actors/chicken-left-{n}.png", "w": 16, "h": 16, "frames": 2, "anchor": Ck, "ox": 0, "oy": 0, "generated": True},
+        {"id": "stone0", "file": "tiles/stone0.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "stone1", "file": "tiles/stone1.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "hill", "file": "tiles/hill.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "wall", "file": "tiles/wall.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "cave", "file": "props/cave.png", "w": 64, "h": 48, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
+        {"id": "lantern", "file": "props/lantern.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
+        {"id": "ladder", "file": "props/ladder.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
     ]
 
 

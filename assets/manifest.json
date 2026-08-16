@@ -80,7 +80,13 @@
     "chickFeet": "#D49420",
     "chickEye": "#3A2210",
     "flag": "#3A8A6A",
-    "flagHi": "#5CBC88"
+    "flagHi": "#5CBC88",
+    "caveDark": "#14110E",
+    "caveFloor": "#4A4840",
+    "caveFloorHi": "#6A685C",
+    "caveFloorSh": "#2C2A24",
+    "lanternGlow": "#F0C060",
+    "hillMid": "#7A7A68"
   },
   "sprites": [
     {
@@ -118,6 +124,23 @@
       "generated": true
     },
     {
+      "id": "cave",
+      "file": "props/cave.png",
+      "w": 64,
+      "h": 48,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 131,
+      "y": 1,
+      "fw": 64,
+      "generated": true
+    },
+    {
       "id": "well",
       "file": "props/well.png",
       "w": 16,
@@ -129,7 +152,7 @@
       ],
       "ox": 0,
       "oy": -16,
-      "x": 131,
+      "x": 196,
       "y": 1,
       "fw": 16,
       "generated": true
@@ -146,7 +169,7 @@
       ],
       "ox": -2,
       "oy": 0,
-      "x": 148,
+      "x": 213,
       "y": 1,
       "fw": 36,
       "generated": true
@@ -163,8 +186,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 185,
-      "y": 1,
+      "x": 1,
+      "y": 82,
       "fw": 16,
       "generated": true
     },
@@ -180,8 +203,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 218,
-      "y": 1,
+      "x": 34,
+      "y": 82,
       "fw": 16,
       "generated": true
     },
@@ -197,7 +220,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
+      "x": 67,
       "y": 82,
       "fw": 16,
       "generated": true
@@ -214,7 +237,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
+      "x": 100,
       "y": 82,
       "fw": 16,
       "generated": true
@@ -231,7 +254,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
+      "x": 133,
       "y": 82,
       "fw": 16,
       "generated": true
@@ -248,7 +271,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 100,
+      "x": 166,
       "y": 82,
       "fw": 16,
       "generated": true
@@ -265,7 +288,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 133,
+      "x": 199,
       "y": 82,
       "fw": 16,
       "generated": true
@@ -282,8 +305,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 166,
-      "y": 82,
+      "x": 1,
+      "y": 115,
       "fw": 16,
       "generated": true
     },
@@ -299,8 +322,42 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 199,
-      "y": 82,
+      "x": 34,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "lantern",
+      "file": "props/lantern.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 51,
+      "y": 115,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "ladder",
+      "file": "props/ladder.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 68,
+      "y": 115,
       "fw": 16,
       "generated": true
     },
@@ -316,8 +373,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 216,
-      "y": 82,
+      "x": 85,
+      "y": 115,
       "fw": 16,
       "generated": true
     },
@@ -333,8 +390,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 233,
-      "y": 82,
+      "x": 102,
+      "y": 115,
       "fw": 16,
       "generated": true
     },
@@ -350,7 +407,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
+      "x": 119,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -367,7 +424,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 18,
+      "x": 136,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -384,7 +441,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 35,
+      "x": 153,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -401,7 +458,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 52,
+      "x": 170,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -418,7 +475,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 69,
+      "x": 187,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -435,7 +492,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 86,
+      "x": 204,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -452,7 +509,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 103,
+      "x": 221,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -469,7 +526,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 120,
+      "x": 238,
       "y": 115,
       "fw": 16,
       "generated": true
@@ -486,8 +543,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 137,
-      "y": 115,
+      "x": 1,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -503,8 +560,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 154,
-      "y": 115,
+      "x": 18,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -520,8 +577,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 171,
-      "y": 115,
+      "x": 35,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -537,8 +594,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 188,
-      "y": 115,
+      "x": 52,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -554,8 +611,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 205,
-      "y": 115,
+      "x": 69,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -571,8 +628,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 222,
-      "y": 115,
+      "x": 86,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -588,8 +645,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 239,
-      "y": 115,
+      "x": 103,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -605,8 +662,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 132,
+      "x": 120,
+      "y": 148,
       "fw": 16,
       "generated": true
     },
@@ -622,8 +679,76 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 132,
+      "x": 153,
+      "y": 148,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "stone0",
+      "file": "tiles/stone0.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 186,
+      "y": 148,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "stone1",
+      "file": "tiles/stone1.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 203,
+      "y": 148,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "hill",
+      "file": "tiles/hill.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 220,
+      "y": 148,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "wall",
+      "file": "tiles/wall.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 237,
+      "y": 148,
       "fw": 16,
       "generated": true
     }

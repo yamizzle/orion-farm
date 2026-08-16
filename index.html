@@ -100,8 +100,10 @@
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
-  var COLS = 20;
-  var ROWS = 12;
+  var OVER_COLS = 48;
+  var OVER_ROWS = 36;
+  var COLS = OVER_COLS;
+  var ROWS = OVER_ROWS;
 
   var C = {
     sky: "#8EC8E8",
@@ -141,7 +143,10 @@
     door: "#5A3A22",
     glass: "#7AB8C8",
     letterbox: "#2A1A10",
-    skin: "#F0C090"
+    skin: "#F0C090",
+    caveDark: "#14110E",
+    caveFloor: "#4A4840",
+    lanternGlow: "#F0C060"
   };
 
   /* 5x7 bitmasks, bit4 = left */
@@ -253,10 +258,20 @@
   var crops = {};
   var pending = null;
   var solid = null;
+  var GROUND = [];
+  var PROPS = [];
+  var currentScene = "overworld";
+  var camX = 0;
+  var camY = 0;
+  var camera = { x: 0, y: 0 };
+  var portalIn = { tx: 37, ty: 6 };
+  var portalOut = { tx: 12, ty: 13 };
+  var FARM = { x0: 2, y0: 24, x1: 22, y1: 35 };
+
   var player = {
-    tx: 14, ty: 6,
-    x: 14 * 16 + 8,
-    y: 6 * 16 + 14,
+    tx: 16, ty: 30,
+    x: 16 * 16 + 8,
+    y: 30 * 16 + 14,
     face: "down",
     frame: 0,
     moving: false,
@@ -266,9 +281,9 @@
     anim: 0
   };
   var chicken = {
-    tx: 8, ty: 8,
-    x: 8 * 16 + 8,
-    y: 8 * 16 + 14,
+    tx: 10, ty: 32,
+    x: 10 * 16 + 8,
+    y: 32 * 16 + 14,
     face: "right",
     frame: 0,
     path: [],
@@ -279,55 +294,183 @@
     react: 0
   };
   var npc = {
-    tx: 10, ty: 5,
-    x: 10 * 16 + 8,
-    y: 5 * 16 + 14,
+    tx: 12, ty: 29,
+    x: 12 * 16 + 8,
+    y: 29 * 16 + 14,
     face: "right",
     frame: 0
   };
 
-  /* Ground: g grass, d dirt path, p tilled, w water */
-  var GROUND = [
-    "gggggggggggggggggggg",
-    "gggggggggggggggggggg",
-    "gggggggggggggggggggg",
-    "gggggggggggggggggggg",
-    "gggggggggggggggggggg",
-    "ggggggggggggddddgggg",
-    "gggggppgggggddddgggg",
-    "gggggppgggggdddggggg",
-    "gggggppggggdddgggggg",
-    "ggggggggggdddggggggg",
-    "gggggggggdddgggggggg",
-    "ggggggggddgggggggggg"
-  ];
+  function hash(x, y, s) {
+    var n = (x * 374761393 + y * 668265263 + s * 1274126177) | 0;
+    n = (n ^ (n >>> 13)) * 1274126177;
+    return ((n >>> 0) % 1000) / 1000;
+  }
 
-  var PROPS = [
-    { kind: "tree", tx: 2, ty: 3 },
-    { kind: "house", tx: 13, ty: 1 },
-    { kind: "well", tx: 18, ty: 4 },
-    { kind: "mailbox", tx: 16, ty: 5 },
-    { kind: "crate", tx: 12, ty: 4 },
-    { kind: "pond", tx: 1, ty: 9 },
-    { kind: "rock", tx: 8, ty: 3 },
-    { kind: "rock", tx: 18, ty: 10 },
-    { kind: "rock", tx: 11, ty: 11 },
-    { kind: "weed", tx: 4, ty: 4 },
-    { kind: "weed", tx: 10, ty: 2 },
-    { kind: "weed", tx: 12, ty: 5 },
-    { kind: "weed", tx: 19, ty: 7 },
-    { kind: "weed", tx: 9, ty: 6 },
-    { kind: "fenceH", tx: 4, ty: 5 },
-    { kind: "fenceH", tx: 5, ty: 5 },
-    { kind: "fenceH", tx: 6, ty: 5 },
-    { kind: "fenceL", tx: 4, ty: 6 },
-    { kind: "fenceL", tx: 4, ty: 7 },
-    { kind: "fenceL", tx: 4, ty: 8 },
-    { kind: "fenceR", tx: 7, ty: 5 },
-    { kind: "fenceR", tx: 7, ty: 6 },
-    { kind: "fenceR", tx: 7, ty: 7 },
-    { kind: "fenceR", tx: 7, ty: 8 }
-  ];
+  function buildOverworldGround() {
+    var cols = OVER_COLS, rows = OVER_ROWS;
+    var g = [];
+    var y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) row[x] = "g";
+      g[y] = row;
+    }
+    function set(tx, ty, ch) {
+      if (tx >= 0 && ty >= 0 && tx < cols && ty < rows) g[ty][tx] = ch;
+    }
+    function rect(x0, y0, x1, y1, ch) {
+      var xx, yy;
+      for (yy = y0; yy <= y1; yy++) {
+        for (xx = x0; xx <= x1; xx++) set(xx, yy, ch);
+      }
+    }
+    /* farm till (original 5-6,6-8 + offset 2,24) */
+    rect(7, 30, 8, 32, "p");
+    /* farm dirt south of the house */
+    rect(14, 29, 17, 30, "d");
+    rect(14, 31, 16, 31, "d");
+    rect(13, 32, 15, 32, "d");
+    rect(12, 33, 14, 33, "d");
+    rect(11, 34, 13, 34, "d");
+    rect(10, 35, 11, 35, "d");
+    /* path north, west of the house, then east to the mine */
+    for (y = 10; y <= 29; y++) {
+      set(13, y, "d");
+      set(14, y, "d");
+    }
+    for (x = 13; x <= 37; x++) {
+      set(x, 9, "d");
+      set(x, 10, "d");
+    }
+    for (y = 6; y <= 9; y++) set(37, y, "d");
+    /* spur to the second pond */
+    for (x = 15; x <= 25; x++) set(x, 16, "d");
+    /* rocky hill around the mine */
+    for (y = 2; y <= 8; y++) {
+      for (x = 32; x <= 43; x++) {
+        if (g[y][x] === "g" && hash(x, y, 3) < 0.62) set(x, y, "h");
+      }
+    }
+    var out = [];
+    for (y = 0; y < rows; y++) out.push(g[y].join(""));
+    return out;
+  }
+
+  function buildOverworldProps() {
+    return [
+      { kind: "tree", tx: 4, ty: 27 },
+      { kind: "house", tx: 15, ty: 25 },
+      { kind: "well", tx: 20, ty: 28 },
+      { kind: "mailbox", tx: 18, ty: 29 },
+      { kind: "crate", tx: 14, ty: 28 },
+      { kind: "pond", tx: 3, ty: 33 },
+      { kind: "rock", tx: 10, ty: 27 },
+      { kind: "rock", tx: 20, ty: 34 },
+      { kind: "rock", tx: 13, ty: 35 },
+      { kind: "weed", tx: 6, ty: 28 },
+      { kind: "weed", tx: 12, ty: 26 },
+      { kind: "weed", tx: 14, ty: 29 },
+      { kind: "weed", tx: 21, ty: 31 },
+      { kind: "weed", tx: 11, ty: 30 },
+      { kind: "fenceH", tx: 6, ty: 29 },
+      { kind: "fenceH", tx: 7, ty: 29 },
+      { kind: "fenceH", tx: 8, ty: 29 },
+      { kind: "fenceL", tx: 6, ty: 30 },
+      { kind: "fenceL", tx: 6, ty: 31 },
+      { kind: "fenceL", tx: 6, ty: 32 },
+      { kind: "fenceR", tx: 9, ty: 29 },
+      { kind: "fenceR", tx: 9, ty: 30 },
+      { kind: "fenceR", tx: 9, ty: 31 },
+      { kind: "fenceR", tx: 9, ty: 32 },
+      { kind: "cave", tx: 36, ty: 5 },
+      { kind: "pond", tx: 24, ty: 13 },
+      { kind: "tree", tx: 8, ty: 12 },
+      { kind: "tree", tx: 5, ty: 18 },
+      { kind: "tree", tx: 22, ty: 8 },
+      { kind: "tree", tx: 18, ty: 20 },
+      { kind: "tree", tx: 30, ty: 20 },
+      { kind: "tree", tx: 40, ty: 14 },
+      { kind: "tree", tx: 42, ty: 28 },
+      { kind: "tree", tx: 44, ty: 24 },
+      { kind: "tree", tx: 26, ty: 32 },
+      { kind: "tree", tx: 33, ty: 30 },
+      { kind: "rock", tx: 33, ty: 4 },
+      { kind: "rock", tx: 40, ty: 3 },
+      { kind: "rock", tx: 42, ty: 6 },
+      { kind: "rock", tx: 34, ty: 8 },
+      { kind: "rock", tx: 41, ty: 8 },
+      { kind: "rock", tx: 32, ty: 6 },
+      { kind: "rock", tx: 20, ty: 12 },
+      { kind: "rock", tx: 28, ty: 22 },
+      { kind: "rock", tx: 10, ty: 16 },
+      { kind: "rock", tx: 45, ty: 18 },
+      { kind: "rock", tx: 6, ty: 8 },
+      { kind: "weed", tx: 17, ty: 14 },
+      { kind: "weed", tx: 19, ty: 18 },
+      { kind: "weed", tx: 23, ty: 22 },
+      { kind: "weed", tx: 31, ty: 12 },
+      { kind: "weed", tx: 35, ty: 16 },
+      { kind: "weed", tx: 14, ty: 10 },
+      { kind: "weed", tx: 27, ty: 28 },
+      { kind: "weed", tx: 40, ty: 32 },
+      { kind: "weed", tx: 8, ty: 22 },
+      { kind: "weed", tx: 44, ty: 10 }
+    ];
+  }
+
+  function buildMineGround() {
+    var cols = 24, rows = 16;
+    var g = [];
+    var y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) {
+        row[x] = (x === 0 || y === 0 || x === cols - 1 || y === rows - 1) ? "#" : "s";
+      }
+      g[y] = row;
+    }
+    function wall(tx, ty) {
+      if (tx > 0 && ty > 0 && tx < cols - 1 && ty < rows - 1) g[ty][tx] = "#";
+    }
+    wall(9, 4); wall(10, 4); wall(9, 5); wall(10, 5);
+    wall(16, 8); wall(17, 8);
+    wall(5, 10); wall(6, 10);
+    var out = [];
+    for (y = 0; y < rows; y++) out.push(g[y].join(""));
+    return out;
+  }
+
+  function buildMineProps() {
+    return [
+      { kind: "ladder", tx: 12, ty: 13 },
+      { kind: "lantern", tx: 3, ty: 3 },
+      { kind: "lantern", tx: 20, ty: 4 },
+      { kind: "lantern", tx: 6, ty: 11 },
+      { kind: "rock", tx: 4, ty: 6 },
+      { kind: "rock", tx: 18, ty: 3 },
+      { kind: "rock", tx: 15, ty: 7 },
+      { kind: "rock", tx: 8, ty: 9 },
+      { kind: "rock", tx: 19, ty: 11 },
+      { kind: "rock", tx: 3, ty: 12 }
+    ];
+  }
+
+  function applyScene(name) {
+    currentScene = name;
+    if (name === "mine") {
+      COLS = 24;
+      ROWS = 16;
+      GROUND = buildMineGround();
+      PROPS = buildMineProps();
+    } else {
+      COLS = OVER_COLS;
+      ROWS = OVER_ROWS;
+      GROUND = buildOverworldGround();
+      PROPS = buildOverworldProps();
+    }
+    buildSolid();
+  }
 
   function px(g, x, y, color) {
     g.fillStyle = color;
@@ -339,37 +482,50 @@
     g.fillRect(x, y, w, h);
   }
 
-  function hash(x, y, s) {
-    var n = (x * 374761393 + y * 668265263 + s * 1274126177) | 0;
-    n = (n ^ (n >>> 13)) * 1274126177;
-    return ((n >>> 0) % 1000) / 1000;
-  }
-
   function cell(tx, ty) {
     if (ty < 0 || ty >= ROWS || tx < 0 || tx >= COLS) return "g";
     return GROUND[ty].charAt(tx);
   }
 
+  function isSoft(ch) {
+    return ch === "g" || ch === "h";
+  }
+
   function buildSolid() {
-    var y, x, i;
+    var y, x, i, p;
     solid = [];
     for (y = 0; y < ROWS; y++) {
       solid[y] = [];
-      for (x = 0; x < COLS; x++) solid[y][x] = false;
+      for (x = 0; x < COLS; x++) {
+        solid[y][x] = cell(x, y) === "#";
+      }
     }
     function block(tx, ty) {
       if (tx >= 0 && ty >= 0 && tx < COLS && ty < ROWS) solid[ty][tx] = true;
     }
-    for (y = 1; y <= 4; y++) {
-      for (x = 13; x <= 17; x++) block(x, y);
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "house") {
+        for (y = 0; y < 4; y++) {
+          for (x = 0; x < 5; x++) block(p.tx + x, p.ty + y);
+        }
+      } else if (p.kind === "pond") {
+        block(p.tx, p.ty); block(p.tx + 1, p.ty);
+        block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
+      } else if (p.kind === "cave") {
+        for (x = 0; x < 4; x++) block(p.tx + x, p.ty);
+        block(p.tx, p.ty + 1);
+        block(p.tx + 2, p.ty + 1);
+        block(p.tx + 3, p.ty + 1);
+      } else if (
+        p.kind === "tree" || p.kind === "well" || p.kind === "rock" ||
+        p.kind === "lantern" || p.kind === "fenceH" || p.kind === "fenceL" ||
+        p.kind === "fenceR"
+      ) {
+        block(p.tx, p.ty);
+      }
     }
-    block(2, 3);
-    block(1, 9); block(2, 9); block(1, 10); block(2, 10);
-    block(18, 4);
-    block(8, 3); block(18, 10); block(11, 11);
-    var fences = [[4, 5], [5, 5], [6, 5], [4, 6], [4, 7], [4, 8], [7, 5], [7, 6], [7, 7], [7, 8]];
-    for (i = 0; i < fences.length; i++) block(fences[i][0], fences[i][1]);
-    block(npc.tx, npc.ty);
+    if (currentScene === "overworld") block(npc.tx, npc.ty);
   }
 
   function inBounds(tx, ty) {
@@ -381,13 +537,30 @@
   }
 
   function chickenOk(tx, ty) {
+    if (currentScene !== "overworld") return false;
     if (!walkable(tx, ty)) return false;
+    if (tx < FARM.x0 || tx > FARM.x1 || ty < FARM.y0 || ty > FARM.y1) return false;
     var ch = cell(tx, ty);
     return ch === "g" || ch === "d";
   }
 
   function tileCenterX(tx) { return tx * TILE + 8; }
   function tileFootY(ty) { return ty * TILE + 14; }
+
+  function updateCamera() {
+    var worldW = COLS * TILE;
+    var worldH = ROWS * TILE;
+    var targetX = player.x - (VIEW_W >> 1);
+    var targetY = player.y - (VIEW_H >> 1);
+    var maxX = worldW - VIEW_W;
+    var maxY = worldH - VIEW_H;
+    if (maxX < 0) maxX = 0;
+    if (maxY < 0) maxY = 0;
+    camX = Math.round(Math.max(0, Math.min(maxX, targetX)));
+    camY = Math.round(Math.max(0, Math.min(maxY, targetY)));
+    camera.x = camX;
+    camera.y = camY;
+  }
 
   function findPath(sx, sy, ex, ey) {
     if (!walkable(ex, ey)) return [];
@@ -515,7 +688,60 @@
     crops[k] = "sprout";
   }
 
+  function caveAt(tx, ty) {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "cave" && tx >= p.tx && tx < p.tx + 4 && ty >= p.ty && ty < p.ty + 2) return p;
+    }
+    return null;
+  }
+
+  function isEntrance(tx, ty) {
+    return currentScene === "overworld" && tx === portalIn.tx && ty === portalIn.ty;
+  }
+
+  function isExit(tx, ty) {
+    return currentScene === "mine" && tx === portalOut.tx && ty === portalOut.ty;
+  }
+
+  function placePlayer(tx, ty, face) {
+    player.tx = tx;
+    player.ty = ty;
+    player.x = tileCenterX(tx);
+    player.y = tileFootY(ty);
+    player.path = [];
+    player.moving = false;
+    player.stepT = 0;
+    player.frame = 0;
+    if (face) player.face = face;
+    pending = null;
+    highlight = null;
+    ripples = [];
+    updateCamera();
+  }
+
+  function enterMine() {
+    applyScene("mine");
+    placePlayer(12, 12, "up");
+  }
+
+  function exitMine() {
+    applyScene("overworld");
+    placePlayer(37, 7, "down");
+  }
+
   function arrive() {
+    if (isEntrance(player.tx, player.ty)) {
+      pending = null;
+      enterMine();
+      return;
+    }
+    if (isExit(player.tx, player.ty)) {
+      pending = null;
+      exitMine();
+      return;
+    }
     if (!pending) return;
     var act = pending;
     pending = null;
@@ -530,10 +756,15 @@
         faceToward(npc, player.tx, player.ty);
         dialogue = true;
       }
+    } else if (act.type === "enter") {
+      enterMine();
+    } else if (act.type === "exit") {
+      exitMine();
     }
   }
 
   function goTalk() {
+    if (currentScene !== "overworld") return;
     highlight = { tx: npc.tx, ty: npc.ty };
     if (isNear(player.tx, player.ty, npc.tx, npc.ty)) {
       pending = null;
@@ -570,7 +801,32 @@
     startWalk(player, findPath(player.tx, player.ty, tx, ty), 3.5);
   }
 
+  function goEnter() {
+    highlight = { tx: portalIn.tx, ty: portalIn.ty };
+    if (player.tx === portalIn.tx && player.ty === portalIn.ty) {
+      enterMine();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, portalIn.tx, portalIn.ty);
+    if (!path.length) return;
+    pending = { type: "enter" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExit() {
+    highlight = { tx: portalOut.tx, ty: portalOut.ty };
+    if (player.tx === portalOut.tx && player.ty === portalOut.ty) {
+      exitMine();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, portalOut.tx, portalOut.ty);
+    if (!path.length) return;
+    pending = { type: "exit" };
+    startWalk(player, path, 3.5);
+  }
+
   function updateChicken(dt) {
+    if (currentScene !== "overworld") return;
     if (chicken.react > 0) chicken.react -= dt;
     chicken.anim += dt;
     if (chicken.anim > 280) {
@@ -625,15 +881,90 @@
     Assets.draw(g, "chicken-" + face, chicken.x, chicken.y + bob + hop, chicken.frame);
   }
 
+  function propFoot(p) {
+    if (p.kind === "house") return p.ty * TILE + 64;
+    if (p.kind === "tree") return p.ty * TILE + 24;
+    if (p.kind === "well") return p.ty * TILE + 28;
+    if (p.kind === "mailbox") return p.ty * TILE + 20;
+    if (p.kind === "pond") return p.ty * TILE + 20;
+    if (p.kind === "crate") return p.ty * TILE + 14;
+    if (p.kind === "cave") return p.ty * TILE + 32;
+    if (p.kind === "lantern") return p.ty * TILE + 20;
+    if (p.kind === "ladder") return p.ty * TILE + 20;
+    return p.ty * TILE + TILE;
+  }
+
+  function propBounds(p) {
+    if (p.kind === "house") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 80, h: 80 };
+    if (p.kind === "tree") return { x: p.tx * TILE - 16, y: p.ty * TILE - 48, w: 48, h: 64 };
+    if (p.kind === "cave") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 48 };
+    if (p.kind === "pond") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 36, h: 32 };
+    if (p.kind === "well") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
+    if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "ladder") {
+      return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
+    }
+    return { x: p.tx * TILE, y: p.ty * TILE, w: 16, h: 16 };
+  }
+
+  function onScreen(b) {
+    return b.x + b.w > camX - 8 && b.x < camX + VIEW_W + 8 &&
+      b.y + b.h > camY - 8 && b.y < camY + VIEW_H + 8;
+  }
+
+  function drawProp(g, p) {
+    var x = p.tx * TILE;
+    var y = p.ty * TILE;
+    if (p.kind === "house") {
+      Assets.draw(g, "house", x, y);
+    } else if (p.kind === "tree") {
+      Assets.draw(g, "tree", x, y);
+    } else if (p.kind === "well") {
+      Assets.draw(g, "well", x, y);
+    } else if (p.kind === "mailbox") {
+      Assets.draw(g, "mailbox", x, y);
+    } else if (p.kind === "crate") {
+      Assets.draw(g, "crate", x, y);
+    } else if (p.kind === "pond") {
+      Assets.draw(g, "pond", x, y);
+      if (((tick / 700) | 0) % 2) {
+        px(g, x + 18, y + 11, C.waterFm);
+        px(g, x + 10, y + 19, C.waterFm);
+      }
+    } else if (p.kind === "rock") {
+      Assets.draw(g, "rock" + ((p.tx + p.ty) & 1), x, y);
+    } else if (p.kind === "weed") {
+      Assets.draw(g, "weed" + ((p.tx + p.ty) & 1), x, y);
+    } else if (p.kind === "fenceH") {
+      Assets.draw(g, "fenceH", x, y);
+    } else if (p.kind === "fenceL") {
+      Assets.draw(g, "fenceL", x, y);
+    } else if (p.kind === "fenceR") {
+      Assets.draw(g, "fenceR", x, y);
+    } else if (p.kind === "cave") {
+      Assets.draw(g, "cave", x, y);
+    } else if (p.kind === "lantern") {
+      var flicker = ((tick / 200) | 0) % 2;
+      g.fillStyle = flicker ? "rgba(240,192,96,0.18)" : "rgba(240,192,96,0.10)";
+      g.fillRect(x - 12, y - 16, 40, 40);
+      Assets.draw(g, "lantern", x, y);
+    } else if (p.kind === "ladder") {
+      Assets.draw(g, "ladder", x, y);
+    }
+  }
+
   function drawActors(g) {
     var list = [];
-    var i;
+    var i, p, b;
     for (i = 0; i < PROPS.length; i++) {
-      list.push({ foot: propFoot(PROPS[i]), kind: "prop", p: PROPS[i] });
+      p = PROPS[i];
+      b = propBounds(p);
+      if (onScreen(b)) list.push({ foot: propFoot(p), kind: "prop", p: p });
     }
     list.push({ foot: player.y, kind: "player" });
-    list.push({ foot: chicken.y, kind: "chicken" });
-    list.push({ foot: npc.y, kind: "npc" });
+    if (currentScene === "overworld") {
+      list.push({ foot: chicken.y, kind: "chicken" });
+      list.push({ foot: npc.y, kind: "npc" });
+    }
     list.sort(function (a, b) { return a.foot - b.foot; });
     for (i = 0; i < list.length; i++) {
       if (list[i].kind === "prop") drawProp(g, list[i].p);
@@ -659,7 +990,6 @@
     var top = y - oy;
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
-
 
   function drawText(g, str, x, y, color) {
     g.fillStyle = color;
@@ -697,11 +1027,10 @@
 
   function drawDirtTile(g, tx, ty, dx, dy) {
     Assets.draw(g, "dirt", dx, dy);
-    /* jagged grass bites on edges */
-    var n = cell(tx, ty - 1) === "g";
-    var s = cell(tx, ty + 1) === "g";
-    var e = cell(tx + 1, ty) === "g";
-    var w = cell(tx - 1, ty) === "g";
+    var n = isSoft(cell(tx, ty - 1));
+    var s = isSoft(cell(tx, ty + 1));
+    var e = isSoft(cell(tx + 1, ty));
+    var w = isSoft(cell(tx - 1, ty));
     var i, ox, col;
     if (n) {
       for (i = 0; i < 16; i++) {
@@ -734,49 +1063,6 @@
     }
   }
 
-
-  function propFoot(p) {
-    if (p.kind === "house") return p.ty * TILE + 64;
-    if (p.kind === "tree") return p.ty * TILE + 24;
-    if (p.kind === "well") return p.ty * TILE + 28;
-    if (p.kind === "mailbox") return p.ty * TILE + 20;
-    if (p.kind === "pond") return p.ty * TILE + 20;
-    if (p.kind === "crate") return p.ty * TILE + 14;
-    return p.ty * TILE + TILE;
-  }
-
-  function drawProp(g, p) {
-    var x = p.tx * TILE;
-    var y = p.ty * TILE;
-    if (p.kind === "house") {
-      Assets.draw(g, "house", x, y);
-    } else if (p.kind === "tree") {
-      Assets.draw(g, "tree", x, y);
-    } else if (p.kind === "well") {
-      Assets.draw(g, "well", x, y);
-    } else if (p.kind === "mailbox") {
-      Assets.draw(g, "mailbox", x, y);
-    } else if (p.kind === "crate") {
-      Assets.draw(g, "crate", x, y);
-    } else if (p.kind === "pond") {
-      Assets.draw(g, "pond", x, y);
-      if (((tick / 700) | 0) % 2) {
-        px(g, x + 18, y + 11, C.waterFm);
-        px(g, x + 10, y + 19, C.waterFm);
-      }
-    } else if (p.kind === "rock") {
-      Assets.draw(g, "rock" + ((p.tx + p.ty) & 1), x, y);
-    } else if (p.kind === "weed") {
-      Assets.draw(g, "weed" + ((p.tx + p.ty) & 1), x, y);
-    } else if (p.kind === "fenceH") {
-      Assets.draw(g, "fenceH", x, y);
-    } else if (p.kind === "fenceL") {
-      Assets.draw(g, "fenceL", x, y);
-    } else if (p.kind === "fenceR") {
-      Assets.draw(g, "fenceR", x, y);
-    }
-  }
-
   function strokeCircle(g, cx, cy, r, color) {
     g.fillStyle = color;
     var a, x, y;
@@ -788,11 +1074,9 @@
   }
 
   function drawHUD(g) {
-    /* title plaque — widened for MOONDROP MOUNTAIN */
     woodPanel(g, 4, 4, 114, 13);
     drawText(g, "MOONDROP MOUNTAIN", 8, 7, C.parch);
 
-    /* day plaque */
     woodPanel(g, 206, 4, 110, 21);
     fill(g, 210, 8, 7, 7, C.flower);
     fill(g, 212, 10, 3, 3, C.parch);
@@ -800,9 +1084,8 @@
     px(g, 217, 11, C.flower);
     px(g, 213, 7, C.flower);
     drawText(g, "DAY 1", 220, 8, C.uiText);
-    drawText(g, "SPRING · MORNING", 210, 16, C.parch);
+    drawText(g, currentScene === "mine" ? "SPRING · MINE" : "SPRING · MORNING", 210, 16, C.parch);
 
-    /* hotbar */
     var slots = 10;
     var slot = 18;
     var gap = 1;
@@ -827,7 +1110,6 @@
       }
     }
 
-    /* energy */
     var ex = VIEW_W - 16;
     var ey = VIEW_H - 70;
     woodPanel(g, ex - 2, ey - 10, 14, 56);
@@ -839,10 +1121,20 @@
   }
 
   function drawWorld(g, dt) {
+    updateCamera();
+    g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : C.grassMid;
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    g.save();
+    g.translate(-camX, -camY);
+
+    var x0 = Math.max(0, (camX / TILE) | 0);
+    var y0 = Math.max(0, (camY / TILE) | 0);
+    var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
+    var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
 
-    for (ty = 0; ty < ROWS; ty++) {
-      for (tx = 0; tx < COLS; tx++) {
+    for (ty = y0; ty < y1; ty++) {
+      for (tx = x0; tx < x1; tx++) {
         ch = cell(tx, ty);
         dx = tx * TILE;
         dy = ty * TILE;
@@ -850,8 +1142,15 @@
         else if (ch === "p") {
           Assets.draw(g, "till", dx, dy);
           if (crops[tx + "," + ty]) Assets.draw(g, "sprout", dx, dy);
+        } else if (ch === "s") {
+          Assets.draw(g, "stone" + ((tx + ty) & 1), dx, dy);
+        } else if (ch === "h") {
+          Assets.draw(g, "hill", dx, dy);
+        } else if (ch === "#") {
+          Assets.draw(g, "wall", dx, dy);
+        } else {
+          Assets.draw(g, "grass" + grassIndex(tx, ty), dx, dy);
         }
-        else Assets.draw(g, "grass" + grassIndex(tx, ty), dx, dy);
       }
     }
 
@@ -883,6 +1182,7 @@
     }
 
     drawActors(g);
+    g.restore();
     drawHUD(g);
     drawDialogue(g);
   }
@@ -1064,15 +1364,7 @@
     };
   }
 
-  function tap(e) {
-    var p = pointFromEvent(e);
-    if (p.x < 0 || p.y < 0 || p.x >= VIEW_W || p.y >= VIEW_H) return;
-
-    if (dialogue) {
-      dialogue = false;
-      return;
-    }
-
+  function tapHud(p) {
     var slots = 10;
     var slot = 18;
     var gap = 1;
@@ -1082,21 +1374,41 @@
     if (p.y >= by - 3 && p.y <= by + 18 && p.x >= bx && p.x <= bx + barW) {
       var idx = ((p.x - bx) / (slot + gap)) | 0;
       if (idx >= 0 && idx < slots) selectedSlot = idx;
+      return true;
+    }
+    if (p.x >= 4 && p.x <= 118 && p.y >= 4 && p.y <= 17) return true;
+    if (p.x >= 206 && p.x <= 316 && p.y >= 4 && p.y <= 25) return true;
+    if (p.x >= VIEW_W - 18 && p.x <= VIEW_W - 2 && p.y >= VIEW_H - 80 && p.y <= VIEW_H - 14) return true;
+    return false;
+  }
+
+  function tap(e) {
+    var p = pointFromEvent(e);
+    if (p.x < 0 || p.y < 0 || p.x >= VIEW_W || p.y >= VIEW_H) return;
+
+    if (dialogue) {
+      dialogue = false;
       return;
     }
 
-    if (hitSprite(p, npc.x, npc.y, 16, 32, 8, 28)) {
-      goTalk();
-      return;
-    }
-    if (hitSprite(p, chicken.x, chicken.y, 16, 16, 8, 14)) {
-      chicken.react = 420;
-      chicken.idle = 500;
-      return;
+    if (tapHud(p)) return;
+
+    var world = { x: p.x + camX, y: p.y + camY };
+
+    if (currentScene === "overworld") {
+      if (hitSprite(world, npc.x, npc.y, 16, 32, 8, 28)) {
+        goTalk();
+        return;
+      }
+      if (hitSprite(world, chicken.x, chicken.y, 16, 16, 8, 14)) {
+        chicken.react = 420;
+        chicken.idle = 500;
+        return;
+      }
     }
 
-    var tx = Math.floor(p.x / TILE);
-    var ty = Math.floor(p.y / TILE);
+    var tx = Math.floor(world.x / TILE);
+    var ty = Math.floor(world.y / TILE);
     if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return;
     highlight = { tx: tx, ty: ty };
     ripples.push({
@@ -1104,13 +1416,21 @@
       y: ty * TILE + 8,
       age: 0
     });
-    if (tx === npc.tx && ty === npc.ty) {
+    if (currentScene === "overworld" && tx === npc.tx && ty === npc.ty) {
       goTalk();
       return;
     }
-    if (tx === chicken.tx && ty === chicken.ty) {
+    if (currentScene === "overworld" && tx === chicken.tx && ty === chicken.ty) {
       chicken.react = 420;
       chicken.idle = 500;
+      return;
+    }
+    if (isEntrance(tx, ty) || caveAt(tx, ty)) {
+      goEnter();
+      return;
+    }
+    if (isExit(tx, ty)) {
+      goExit();
       return;
     }
     if (selectedSlot === 0 && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
@@ -1153,7 +1473,8 @@
   }
 
   paintLoading();
-  buildSolid();
+  applyScene("overworld");
+  updateCamera();
   paintFsFace();
   if (isStandalone()) enterFill();
   else resize();

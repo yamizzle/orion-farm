@@ -78,5 +78,11 @@
   "chickFeet": "#D49420",
   "chickEye": "#3A2210",
   "flag": "#3A8A6A",
-  "flagHi": "#5CBC88"
+  "flagHi": "#5CBC88",
+  "caveDark": "#14110E",
+  "caveFloor": "#4A4840",
+  "caveFloorHi": "#6A685C",
+  "caveFloorSh": "#2C2A24",
+  "lanternGlow": "#F0C060",
+  "hillMid": "#7A7A68"
 }
