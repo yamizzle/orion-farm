@@ -12,7 +12,7 @@ https://yamizzle.github.io/orion-farm/
 
 On a Chromebook, iPad, or iPhone: open that link in the browser (Safari or Chrome). Landscape on iPad is the intended view.
 
-On iPhone, tap the wood **FULL** plaque (top-right) so the farm fills the Safari page. Tap **EXIT**, or swipe down from the top, to go back. Add to Home Screen for a chrome-free farm.
+On iPhone, tap the tiny wood **FS** plaque (top-right) so the farm fills the Safari page. Tap **X**, or swipe down from the top, to go back. Add to Home Screen for a chrome-free farm.
 
 - Tap the grass or path to walk there. The camera follows so you stay in the middle until you reach the edge of the mountain.
 - Tap the farmhouse door or the stoop in front of it to go inside. Walk onto the doormat (or tap the inside door) to come back out, just south of the house.
