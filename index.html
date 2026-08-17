@@ -633,7 +633,7 @@
     o.stop(t + dur + 0.02);
   }
 
-  function playNoise(dur, vol, hpHz, t, dest) {
+  function playNoise(dur, vol, hz, t, dest, type) {
     var src, g, f;
     if (!audioCtx || !audioNoiseBuf) return;
     t = t || audioCtx.currentTime;
@@ -641,8 +641,9 @@
     src.buffer = audioNoiseBuf;
     src.loop = true;
     f = audioCtx.createBiquadFilter();
-    f.type = "highpass";
-    f.frequency.setValueAtTime(hpHz || 1800, t);
+    f.type = type || "highpass";
+    f.frequency.setValueAtTime(hz || 1800, t);
+    if (type === "bandpass" || type === "lowpass") f.Q.setValueAtTime(0.7, t);
     g = envGain(vol, dur, t);
     src.connect(f);
     f.connect(g);
@@ -660,9 +661,14 @@
       playPulse(190, 0.09, 0.22, audioSfx, t);
       playTri(98, 0.11, 0.18, audioSfx, t);
     } else if (kind === "smash") {
-      playNoise(0.09, 0.50, 500, t);
-      playPulse(140, 0.10, 0.24, audioSfx, t);
-      playTri(70, 0.12, 0.20, audioSfx, t);
+      playTri(48, 0.16, 0.28, audioSfx, t);
+      playTri(30, 0.22, 0.16, audioSfx, t);
+      playNoise(0.18, 0.72, 180, t, audioSfx, "lowpass");
+      playNoise(0.14, 0.55, 320, t, audioSfx);
+      playNoise(0.09, 0.32, 700, t, audioSfx, "bandpass");
+      playNoise(0.06, 0.26, 1200, t + 0.07, audioSfx);
+      playNoise(0.05, 0.16, 1600, t + 0.13, audioSfx);
+      playNoise(0.04, 0.10, 900, t + 0.20, audioSfx);
     } else if (kind === "swing") {
       playNoise(0.05, 0.32, 2400, t);
       playPulse(520, 0.05, 0.18, audioSfx, t);
