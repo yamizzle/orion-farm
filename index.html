@@ -5501,10 +5501,10 @@
     if (p.kind === "bed") return p.ty * TILE + 30;
     if (p.kind === "table") return p.ty * TILE + 20;
     if (p.kind === "workbench") return p.ty * TILE + 20;
-    if (p.kind === "desk") return p.ty * TILE + 24;
+    if (p.kind === "desk") return p.ty * TILE + 30;
     if (p.kind === "fireplace") return p.ty * TILE + 28;
     if (p.kind === "chair" || p.kind === "housePlant") return p.ty * TILE + 20;
-    if (p.kind === "flowerbox") return p.ty * TILE + 10;
+    if (p.kind === "flowerbox") return p.ty * TILE + 14;
     if (p.kind === "rug" || p.kind === "doormat") return p.ty * TILE + 4;
     if (p.kind === "window") return p.ty * TILE + 8;
     if (p.kind === "inndoor") return p.ty * TILE + 20;
@@ -5514,7 +5514,7 @@
     if (p.kind === "pond") return p.ty * TILE + 20;
     if (p.kind === "crate" || p.kind === "stump") return p.ty * TILE + 14;
     if (p.kind === "cave") return p.ty * TILE + 32;
-    if (p.kind === "lantern") return p.ty * TILE + 20;
+    if (p.kind === "lantern") return p.ty * TILE + (currentScene === "house" ? 24 : 20);
     if (p.kind === "ladder" || p.kind === "hole") return p.ty * TILE + 20;
     if (p.kind === "swordPedestal") return p.ty * TILE + 20;
     if (p.kind === "note" || p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
@@ -5535,14 +5535,17 @@
     if (p.kind === "bed") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
     if (p.kind === "table") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 32 };
     if (p.kind === "workbench") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 40 };
-    if (p.kind === "desk") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 32, h: 32 };
+    if (p.kind === "desk") return { x: p.tx * TILE, y: p.ty * TILE, w: 48, h: 32 };
     if (p.kind === "fireplace") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 48 };
     if (p.kind === "chair" || p.kind === "housePlant") {
       return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     }
-    if (p.kind === "flowerbox") return { x: p.tx * TILE, y: p.ty * TILE, w: 16, h: 16 };
+    if (p.kind === "flowerbox") return { x: p.tx * TILE - 8, y: p.ty * TILE, w: 32, h: 16 };
     if (p.kind === "rug") return { x: p.tx * TILE, y: p.ty * TILE, w: 48, h: 32 };
     if (p.kind === "window" || p.kind === "inndoor") {
+      if (p.kind === "window" && currentScene === "house") {
+        return { x: p.tx * TILE - 8, y: p.ty * TILE, w: 32, h: 32 };
+      }
       return { x: p.tx * TILE, y: p.ty * TILE - (p.kind === "inndoor" ? 8 : 0), w: 16, h: 24 };
     }
     if (p.kind === "tree") return { x: p.tx * TILE - 16, y: p.ty * TILE - 48, w: 48, h: 64 };
@@ -5550,6 +5553,9 @@
     if (p.kind === "pond") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 36, h: 32 };
     if (p.kind === "well") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "ladder" || p.kind === "hole" || p.kind === "swordPedestal") {
+      if (p.kind === "lantern" && currentScene === "house") {
+        return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
+      }
       return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     }
     return { x: p.tx * TILE, y: p.ty * TILE, w: 16, h: 16 };
@@ -5585,7 +5591,7 @@
     } else if (p.kind === "desk") {
       Assets.draw(g, "desk", x, y);
     } else if (p.kind === "chair") {
-      Assets.draw(g, "chair", x, y);
+      /* chair is part of the Imagine desk combo */
     } else if (p.kind === "fireplace") {
       var fireFlicker = 0.12 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 120 + p.tx));
       g.fillStyle = "rgba(240,150,70," + fireFlicker.toFixed(3) + ")";
@@ -5645,7 +5651,8 @@
         g.fillStyle = "rgba(240,192,96," + flicker.toFixed(3) + ")";
         g.fillRect(x - (cozyLamp ? 10 : 12), y - (cozyLamp ? 14 : 16), cozyLamp ? 36 : 40, cozyLamp ? 36 : 40);
       }
-      Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
+      if (currentScene === "house") Assets.draw(g, "houseLamp", x, y);
+      else Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
     } else if (p.kind === "ladder") {
       Assets.draw(g, "ladder", x, y);
     } else if (p.kind === "hole") {
