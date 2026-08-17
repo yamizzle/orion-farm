@@ -7079,7 +7079,7 @@
       px(g, 38, 4, C.flower);
     }
 
-    woodPanel(g, 46, 3, 68, 22);
+    woodPanel(g, 46, 3, 68, 18);
     var hi, hs, hid;
     for (hi = 0; hi < HEARTS; hi++) {
       hid = (hp > hi * HP_PER_HEART) ? "heart" : "heartEmpty";
@@ -7170,14 +7170,18 @@
       }
     }
 
-    drawText(g, "E", 48, 15, C.parch);
+    fill(g, 48, 13, 3, 1, C.parch);
+    fill(g, 48, 14, 1, 1, C.parch);
+    fill(g, 48, 15, 3, 1, C.parch);
+    fill(g, 48, 16, 1, 1, C.parch);
+    fill(g, 48, 17, 3, 1, C.parch);
     var ew = 54;
     var filled = Math.round(ew * energy / MAX_ENERGY);
     if (energy > 0 && filled < 1) filled = 1;
     if (energy <= 0) filled = 0;
-    fill(g, 55, 16, ew, 2, C.energyEmpty);
+    fill(g, 53, 15, ew, 2, C.energyEmpty);
     if (filled > 0) {
-      fill(g, 55, 16, filled, 2, energy <= 15 ? "#C8B03C" : C.energy);
+      fill(g, 53, 15, filled, 2, energy <= 15 ? "#C8B03C" : C.energy);
     }
     drawSwordBtn(g);
   }
