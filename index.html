@@ -567,7 +567,7 @@
 
   function ensureOverworldBgm() {
     if (overworldBgm) return overworldBgm;
-    overworldBgm = new Audio(bustUrl("assets/music/overworld.mp3"));
+    overworldBgm = new Audio(bustUrl("assets/music/overworld.mp3?m=2"));
     overworldBgm.loop = true;
     overworldBgm.preload = "auto";
     overworldBgm.volume = 0.28;
