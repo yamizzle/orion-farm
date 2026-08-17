@@ -491,31 +491,31 @@
   var audioNext = 0;
   var TUNES = {
     farmDay: {
-      bpm: 72, leadV: 0.14, bassV: 0.16, hatV: 0.06,
+      bpm: 72, leadV: 0.28, bassV: 0.30, hatV: 0.12,
       lead: [74,0,71,0,67,0,69,0,74,0,76,0,71,0,67,0],
       bass: [43,0,0,0,50,0,0,0,47,0,0,0,38,0,0,0],
       hat:  [1,0,0,1,1,0,0,1,1,0,0,1,1,0,1,0]
     },
     farmNight: {
-      bpm: 58, leadV: 0.10, bassV: 0.12, hatV: 0.04,
+      bpm: 58, leadV: 0.22, bassV: 0.24, hatV: 0.08,
       lead: [64,0,0,0,67,0,0,0,62,0,0,0,0,0,0,0],
       bass: [40,0,0,0,0,0,0,0,43,0,0,0,0,0,0,0],
       hat:  [0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0]
     },
     house: {
-      bpm: 52, leadV: 0.08, bassV: 0.10, hatV: 0,
+      bpm: 52, leadV: 0.18, bassV: 0.20, hatV: 0,
       lead: [0,0,67,0,0,0,0,0,0,0,64,0,0,0,0,0],
       bass: [43,0,0,0,0,0,0,0,40,0,0,0,0,0,0,0],
       hat:  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     },
     mine: {
-      bpm: 86, leadV: 0.12, bassV: 0.14, hatV: 0.07,
+      bpm: 86, leadV: 0.26, bassV: 0.28, hatV: 0.14,
       lead: [64,0,0,63,0,0,59,0,0,64,0,0,55,0,52,0],
       bass: [28,0,0,0,31,0,0,0,28,0,0,0,26,0,0,0],
       hat:  [1,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1]
     },
     festival: {
-      bpm: 108, leadV: 0.13, bassV: 0.15, hatV: 0.06,
+      bpm: 108, leadV: 0.26, bassV: 0.28, hatV: 0.12,
       lead: [79,71,74,67,79,76,74,71,76,74,71,67,74,71,67,62],
       bass: [43,0,47,0,50,0,47,0,43,0,38,0,43,0,50,0],
       hat:  [0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,0]
@@ -533,13 +533,13 @@
     if (!AC) return null;
     audioCtx = new AC();
     audioMaster = audioCtx.createGain();
-    audioMaster.gain.value = 0.85;
+    audioMaster.gain.value = 1.0;
     audioMaster.connect(audioCtx.destination);
     audioMusic = audioCtx.createGain();
-    audioMusic.gain.value = 0.55;
+    audioMusic.gain.value = 0.85;
     audioMusic.connect(audioMaster);
     audioSfx = audioCtx.createGain();
-    audioSfx.gain.value = 1.0;
+    audioSfx.gain.value = 1.2;
     audioSfx.connect(audioMaster);
     real = new Float32Array(32);
     imag = new Float32Array(32);
@@ -622,24 +622,24 @@
     if (!audioLive()) return;
     t = audioCtx.currentTime;
     if (kind === "chop") {
-      playNoise(0.07, 0.22, 900, t);
-      playPulse(190, 0.09, 0.10, audioSfx, t);
-      playTri(98, 0.11, 0.08, audioSfx, t);
+      playNoise(0.07, 0.45, 900, t);
+      playPulse(190, 0.09, 0.22, audioSfx, t);
+      playTri(98, 0.11, 0.18, audioSfx, t);
     } else if (kind === "smash") {
-      playNoise(0.09, 0.26, 500, t);
-      playPulse(140, 0.10, 0.11, audioSfx, t);
-      playTri(70, 0.12, 0.09, audioSfx, t);
+      playNoise(0.09, 0.50, 500, t);
+      playPulse(140, 0.10, 0.24, audioSfx, t);
+      playTri(70, 0.12, 0.20, audioSfx, t);
     } else if (kind === "swing") {
-      playNoise(0.05, 0.14, 2400, t);
-      playPulse(520, 0.05, 0.07, audioSfx, t);
+      playNoise(0.05, 0.32, 2400, t);
+      playPulse(520, 0.05, 0.18, audioSfx, t);
     } else if (kind === "hit") {
-      playPulse(240, 0.07, 0.12, audioSfx, t);
-      playTri(120, 0.08, 0.08, audioSfx, t + 0.02);
+      playPulse(240, 0.07, 0.26, audioSfx, t);
+      playTri(120, 0.08, 0.18, audioSfx, t + 0.02);
     } else if (kind === "pickup") {
-      playPulse(midiHz(76), 0.06, 0.09, audioSfx, t);
-      playPulse(midiHz(83), 0.08, 0.08, audioSfx, t + 0.05);
+      playPulse(midiHz(76), 0.06, 0.20, audioSfx, t);
+      playPulse(midiHz(83), 0.08, 0.18, audioSfx, t + 0.05);
     } else if (kind === "talk") {
-      playPulse(520, 0.045, 0.06, audioSfx, t);
+      playPulse(520, 0.045, 0.16, audioSfx, t);
     } else if (kind === "sleep") {
       playTri(360, 0.16, 0.08, audioSfx, t);
       playTri(240, 0.20, 0.07, audioSfx, t + 0.14);
@@ -649,7 +649,7 @@
       playPulse(midiHz(71), 0.07, 0.08, audioSfx, t + 0.07);
       playPulse(midiHz(74), 0.10, 0.09, audioSfx, t + 0.14);
     } else if (kind === "ui") {
-      playPulse(880, 0.03, 0.05, audioSfx, t);
+      playPulse(880, 0.03, 0.14, audioSfx, t);
     } else if (kind === "faint") {
       playTri(330, 0.18, 0.10, audioSfx, t);
       playTri(247, 0.22, 0.09, audioSfx, t + 0.16);
@@ -692,7 +692,7 @@
       audioMusic.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.04);
       return;
     }
-    audioMusic.gain.setTargetAtTime(0.55, audioCtx.currentTime, 0.08);
+    audioMusic.gain.setTargetAtTime(0.85, audioCtx.currentTime, 0.08);
     if (audioCtx.state === "suspended") return;
     want = wantedTune();
     if (want !== audioTune) {
