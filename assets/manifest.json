@@ -2236,6 +2236,102 @@
       "generated": true
     },
     {
+      "id": "houseFloor",
+      "file": "tiles/houseFloor.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 18,
+      "y": 471,
+      "fw": 16
+    },
+    {
+      "id": "houseWallN",
+      "file": "tiles/houseWallN.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 35,
+      "y": 471,
+      "fw": 16
+    },
+    {
+      "id": "houseWallS",
+      "file": "tiles/houseWallS.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 52,
+      "y": 471,
+      "fw": 16
+    },
+    {
+      "id": "houseWallL",
+      "file": "tiles/houseWallL.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 69,
+      "y": 471,
+      "fw": 16
+    },
+    {
+      "id": "houseWallR",
+      "file": "tiles/houseWallR.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 86,
+      "y": 471,
+      "fw": 16
+    },
+    {
+      "id": "housePost",
+      "file": "tiles/housePost.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 103,
+      "y": 471,
+      "fw": 16
+    },
+    {
       "id": "heart",
       "file": "ui/heart.png",
       "w": 10,
@@ -2247,7 +2343,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 18,
+      "x": 120,
       "y": 471,
       "fw": 10,
       "generated": true
@@ -2264,7 +2360,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 29,
+      "x": 131,
       "y": 471,
       "fw": 10,
       "generated": true

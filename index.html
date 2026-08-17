@@ -6357,6 +6357,17 @@
     drawSwordBtn(g);
   }
 
+
+  function houseShellTile(tx, ty) {
+    if (currentScene !== "house") return "wall";
+    if ((tx === 0 || tx === COLS - 1) && (ty === 0 || ty === ROWS - 1)) return "housePost";
+    if (ty === 0) return "houseWallN";
+    if (ty === ROWS - 1) return "houseWallS";
+    if (tx === 0) return "houseWallL";
+    if (tx === COLS - 1) return "houseWallR";
+    return "inwall";
+  }
+
   function drawWorld(g, dt) {
     updateCamera();
     g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : C.grassMid;
@@ -6394,9 +6405,9 @@
         } else if (ch === "m") {
           Assets.draw(g, "meadow", dx, dy);
         } else if (ch === "f") {
-          Assets.draw(g, "woodfloor", dx, dy);
+          Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
         } else if (ch === "#") {
-          Assets.draw(g, currentScene === "house" ? "inwall" : "wall", dx, dy);
+          Assets.draw(g, houseShellTile(tx, ty), dx, dy);
         } else {
           Assets.draw(g, "grass" + grassIndex(tx, ty), dx, dy);
         }
