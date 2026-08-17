@@ -489,6 +489,7 @@
   var audioTune = "";
   var audioStep = 0;
   var audioNext = 0;
+  var overworldBgm = null;
   var TUNES = {
     farmDay: {
       bpm: 72, leadV: 0.28, bassV: 0.30, hatV: 0.12,
@@ -560,6 +561,39 @@
     if (!audioCtx) return;
     if (audioCtx.state === "suspended") audioCtx.resume();
     audioUnlocked = true;
+    ensureOverworldBgm();
+    tickOverworldBgm(wantedTune());
+  }
+
+  function ensureOverworldBgm() {
+    if (overworldBgm) return overworldBgm;
+    overworldBgm = new Audio(bustUrl("assets/music/overworld.mp3"));
+    overworldBgm.loop = true;
+    overworldBgm.preload = "auto";
+    overworldBgm.volume = 0.28;
+    return overworldBgm;
+  }
+
+  function usesOverworldFile(tune) {
+    return tune === "farmDay" || tune === "farmNight" || tune === "house";
+  }
+
+  function tickOverworldBgm(want) {
+    var a, on, vol, playP;
+    a = ensureOverworldBgm();
+    on = !!(audioUnlocked && !audioMuted && !document.hidden && usesOverworldFile(want));
+    if (want === "house") vol = 0.18;
+    else if (want === "farmNight") vol = 0.22;
+    else vol = 0.28;
+    if (on) {
+      a.volume = vol;
+      if (a.paused) {
+        playP = a.play();
+        if (playP && playP.catch) playP.catch(function () {});
+      }
+    } else if (!a.paused) {
+      a.pause();
+    }
   }
 
   function envGain(vol, dur, t) {
@@ -687,14 +721,20 @@
   function tickMusic() {
     var want, song, stepDur, t;
     if (!audioUnlocked || !audioCtx) return;
+    want = wantedTune();
+    tickOverworldBgm(want);
     if (audioMuted || document.hidden) {
       if (audioTune) audioTune = "";
       audioMusic.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.04);
       return;
     }
+    if (usesOverworldFile(want)) {
+      audioTune = want;
+      audioMusic.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.04);
+      return;
+    }
     audioMusic.gain.setTargetAtTime(0.85, audioCtx.currentTime, 0.08);
     if (audioCtx.state === "suspended") return;
-    want = wantedTune();
     if (want !== audioTune) {
       audioTune = want;
       audioStep = 0;
@@ -7887,6 +7927,7 @@
       persistSave();
       clearMoveKeys();
       audioTune = "";
+      if (overworldBgm && !overworldBgm.paused) overworldBgm.pause();
     } else if (audioUnlocked && audioCtx && audioCtx.state === "suspended" && !audioMuted) {
       audioCtx.resume();
     }
