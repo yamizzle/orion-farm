@@ -554,10 +554,10 @@ def install(ns):
     })
 
     extra_sprites = [
-        {"id": "windowNight", "file": "props/windowNight.png", "w": 32, "h": 32, "frames": 1, "anchor": [0, 0], "ox": -8, "oy": 0, "generated": True},
+        {"id": "windowNight", "file": "props/windowNight.png", "w": 32, "h": 40, "frames": 1, "anchor": [0, 0], "ox": -8, "oy": 0, "generated": True},
         {"id": "flowerbox", "file": "props/flowerbox.png", "w": 32, "h": 16, "frames": 1, "anchor": [0, 0], "ox": -8, "oy": 0, "generated": True},
-        {"id": "fireplace", "file": "props/fireplace-{n}.png", "w": 32, "h": 48, "frames": 2, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
-        {"id": "desk", "file": "props/desk.png", "w": 48, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "fireplace", "file": "props/fireplace-{n}.png", "w": 48, "h": 64, "frames": 2, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
+        {"id": "desk", "file": "props/desk.png", "w": 64, "h": 48, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "houseLamp", "file": "props/houseLamp.png", "w": 16, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16},
         {"id": "chair", "file": "props/chair.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
         {"id": "housePlant", "file": "props/housePlant.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},

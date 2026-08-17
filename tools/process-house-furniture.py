@@ -19,14 +19,10 @@ spec.loader.exec_module(pg)
 AGENT = Path("/home/box/sand-data/agents/69b3f4ed-e3f8-4ba5-9073-59a5293c2321/assets")
 
 SOURCES = {
-    "window-night.png": "2d0a4f452cf1dc0c2b44e2814017850075eaaa54bd51b679ff9027f73f80b94b.png",
-    "flowerbox.png": "dc1995a3515272020915120f7e79d997eb8acc72525f4c9f7471e8f356692be8.png",
-    "fireplace.png": "5aa5ab92da92f5c2d4f968e304d0fcd7dc1594fb30410aa5a2ee0a52871b1777.png",
-    "desk-chair.png": "c72b33f1ab5782d38f7adb8975e33393c1258d8489904c79165406785ef57218.png",
-    "bed.png": "759cbdaa2d1b64ef40d27d7988e720ed3bbb9526408412cb2db27c78aa88d578.png",
-    "rug.png": "829343e6fa9919ad8150e57f125ecbab7d9df31cbc65cbc5d3f2c4effa0f3f6f.png",
-    "floor-lamp.png": "11bac05a8bae5e95095e5e1cae2f55f1bcd601b4d5b4a6d400e7feb50abb9aa1.png",
-    "moon-table.png": "c9d7be33affab22a73184eaf88d446722256568fb8b0251af413b03cfe9107ab.png",
+    "window-night.png": "da1aa3b38cbcbf0521bd81322ff20b88d1c6b4eea1b94e978df3fc03b3eb18dd.png",
+    "fireplace.png": "2fff7c8bd10f149ea7202f192f993be826f5ebbeea55bc2350caa819375f3ce1.png",
+    "desk-chair.png": "b3667dfe580ce2eed18c1e6b67004b71bbf090372c0d2ad8ab996f58c52b8340.png",
+    "bed.png": "b32bd70b2c614f0cbcd5a7c73c9f6047210117e039cfb1911887d3f645f6ba5b.png",
 }
 
 
@@ -123,56 +119,35 @@ def main():
         shutil.copy2(src, dst)
         print("copied", dest_name)
 
-    # --- window night: 32x32 chunky 3/4 ---
+    # --- window night: 32x40 (taller night casement, house only) ---
     win = keyed_crop("window-night.png")
-    emit(win, "props/windowNight.png", 32, 32)
-    win.fit_grounded(32, 32).save(PREVIEW / "windowNight.png")
+    print("  window crop aspect %.3f (w/h)" % (win.w / max(1, win.h)))
+    emit(win, "props/windowNight.png", 32, 40)
+    win.fit_grounded(32, 40).save(PREVIEW / "windowNight.png")
 
-    # --- flower box: 32x16 under the window ---
-    box = keyed_crop("flowerbox.png")
-    emit(box, "props/flowerbox.png", 32, 16)
-    box.fit_grounded(32, 16).save(PREVIEW / "flowerbox.png")
-
-    # --- fireplace 32x48, two fire frames ---
+    # --- fireplace 48x64, two fire frames ---
     fire = keyed_crop("fireplace.png")
-    f0 = fireplace_frame(fire, 0).fit_grounded(32, 48)
-    f1 = fireplace_frame(fire, 1).fit_grounded(32, 48)
+    print("  fireplace crop aspect %.3f (w/h)" % (fire.w / max(1, fire.h)))
+    f0 = fireplace_frame(fire, 0).fit_grounded(48, 64)
+    f1 = fireplace_frame(fire, 1).fit_grounded(48, 64)
     f0.save(ASSETS / "props/fireplace-0.png")
     f1.save(ASSETS / "props/fireplace-1.png")
     f0.save(PREVIEW / "fireplace-0.png")
     f1.save(PREVIEW / "fireplace-1.png")
-    print("  wrote props/fireplace-0/1.png (32x48)")
+    print("  wrote props/fireplace-0/1.png (48x64)")
 
-    # --- desk + chair ---
+    # --- desk + chair stay one 64x48 sprite ---
     pair = keyed_crop("desk-chair.png")
-    # Chair tucks under the left of the desk — keep one 48x32 combo.
-    emit(pair, "props/desk.png", 48, 32)
-    pair.fit_grounded(48, 32).save(PREVIEW / "deskchair-48x32.png")
-    desk, chair = split_desk_chair(pair)
-    if chair:
-        emit(chair, "props/chair.png", 16, 24)
-        chair.fit_grounded(16, 24).save(PREVIEW / "chair.png")
-    print("  COMBINED desk 48x32 (chair tucked under; chair PNG kept for collision)")
+    print("  desk crop aspect %.3f (w/h)" % (pair.w / max(1, pair.h)))
+    emit(pair, "props/desk.png", 64, 48)
+    pair.fit_grounded(64, 48).save(PREVIEW / "deskchair-64x48.png")
+    print("  COMBINED desk 64x48 (chair tucked under)")
 
-    # --- bed 32x32 (keep 2x2 collision) ---
+    # --- bed 48x48 (keep 2x2 collision) ---
     bed = keyed_crop("bed.png")
-    emit(bed, "props/bed.png", 32, 32)
-    bed.fit_grounded(32, 32).save(PREVIEW / "bed.png")
-
-    # --- rug 48x32 walkable ---
-    rug = keyed_crop("rug.png")
-    emit(rug, "props/rug.png", 48, 32)
-    rug.fit_grounded(48, 32).save(PREVIEW / "rug.png")
-
-    # --- floor lamp 16x32 house-only ---
-    lamp = keyed_crop("floor-lamp.png")
-    emit(lamp, "props/houseLamp.png", 16, 32)
-    lamp.fit_grounded(16, 32).save(PREVIEW / "houseLamp.png")
-
-    # --- moon table 32x32 ---
-    table = keyed_crop("moon-table.png")
-    emit(table, "props/table.png", 32, 32)
-    table.fit_grounded(32, 32).save(PREVIEW / "table.png")
+    print("  bed crop aspect %.3f (w/h)" % (bed.w / max(1, bed.h)))
+    emit(bed, "props/bed.png", 48, 48)
+    bed.fit_grounded(48, 48).save(PREVIEW / "bed.png")
 
     pg.print_report()
     print("done")

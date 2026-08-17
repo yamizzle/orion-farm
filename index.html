@@ -1075,8 +1075,8 @@
       { kind: "bed", tx: 2, ty: 2 },
       { kind: "window", tx: 6, ty: 0 },
       { kind: "window", tx: 13, ty: 0 },
-      { kind: "flowerbox", tx: 6, ty: 1 },
-      { kind: "flowerbox", tx: 13, ty: 1 },
+      { kind: "flowerbox", tx: 6, ty: 2 },
+      { kind: "flowerbox", tx: 13, ty: 2 },
       { kind: "desk", tx: 9, ty: 2 },
       { kind: "chair", tx: 9, ty: 3 },
       { kind: "fireplace", tx: 17, ty: 1 },
@@ -1359,10 +1359,13 @@
       } else if (p.kind === "bed") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
-      } else if (p.kind === "table" || p.kind === "desk" || p.kind === "workbench") {
+      } else if (p.kind === "table" || p.kind === "workbench") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
+      } else if (p.kind === "desk") {
+        block(p.tx, p.ty); block(p.tx + 1, p.ty); block(p.tx + 2, p.ty);
       } else if (p.kind === "fireplace") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
+        block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
       } else if (p.kind === "chair" || p.kind === "housePlant" || p.kind === "flowerbox") {
         block(p.tx, p.ty);
       } else if (p.kind === "pond") {
@@ -1770,8 +1773,9 @@
     if (p.kind === "fountain") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "counter") return tx >= p.tx && tx < p.tx + 3 && ty === p.ty;
     if (p.kind === "bed") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
-    if (p.kind === "table" || p.kind === "desk" || p.kind === "workbench") return tx >= p.tx && tx < p.tx + 2 && ty === p.ty;
-    if (p.kind === "fireplace") return tx >= p.tx && tx < p.tx + 2 && ty === p.ty;
+    if (p.kind === "table" || p.kind === "workbench") return tx >= p.tx && tx < p.tx + 2 && ty === p.ty;
+    if (p.kind === "desk") return tx >= p.tx && tx < p.tx + 3 && ty === p.ty;
+    if (p.kind === "fireplace") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "rug") return tx >= p.tx && tx < p.tx + 3 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "pond") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "cave") return tx >= p.tx && tx < p.tx + 4 && ty >= p.ty && ty < p.ty + 2;
@@ -3242,7 +3246,7 @@
       if (PROPS[i].kind === "lantern") {
         spots.push({ x: PROPS[i].tx * TILE + 8, y: PROPS[i].ty * TILE + 2, scale: 0.7 });
       } else if (PROPS[i].kind === "fireplace") {
-        spots.push({ x: PROPS[i].tx * TILE + 16, y: PROPS[i].ty * TILE + 10, scale: 0.95 });
+        spots.push({ x: PROPS[i].tx * TILE + 24, y: PROPS[i].ty * TILE + 22, scale: 1.05 });
       }
     }
     g.save();
@@ -5501,12 +5505,12 @@
     if (p.kind === "bed") return p.ty * TILE + 30;
     if (p.kind === "table") return p.ty * TILE + 20;
     if (p.kind === "workbench") return p.ty * TILE + 20;
-    if (p.kind === "desk") return p.ty * TILE + 30;
-    if (p.kind === "fireplace") return p.ty * TILE + 28;
+    if (p.kind === "desk") return p.ty * TILE + 46;
+    if (p.kind === "fireplace") return p.ty * TILE + 46;
     if (p.kind === "chair" || p.kind === "housePlant") return p.ty * TILE + 20;
     if (p.kind === "flowerbox") return p.ty * TILE + 14;
     if (p.kind === "rug" || p.kind === "doormat") return p.ty * TILE + 4;
-    if (p.kind === "window") return p.ty * TILE + 8;
+    if (p.kind === "window") return p.ty * TILE + (currentScene === "house" ? 36 : 8);
     if (p.kind === "inndoor") return p.ty * TILE + 20;
     if (p.kind === "tree") return p.ty * TILE + 24;
     if (p.kind === "well") return p.ty * TILE + 28;
@@ -5532,11 +5536,11 @@
     if (p.kind === "fountain") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
     if (p.kind === "statue") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
-    if (p.kind === "bed") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
+    if (p.kind === "bed") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 48, h: 48 };
     if (p.kind === "table") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 32 };
     if (p.kind === "workbench") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 40 };
-    if (p.kind === "desk") return { x: p.tx * TILE, y: p.ty * TILE, w: 48, h: 32 };
-    if (p.kind === "fireplace") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 48 };
+    if (p.kind === "desk") return { x: p.tx * TILE, y: p.ty * TILE, w: 64, h: 48 };
+    if (p.kind === "fireplace") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 48, h: 64 };
     if (p.kind === "chair" || p.kind === "housePlant") {
       return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     }
@@ -5544,7 +5548,7 @@
     if (p.kind === "rug") return { x: p.tx * TILE, y: p.ty * TILE, w: 48, h: 32 };
     if (p.kind === "window" || p.kind === "inndoor") {
       if (p.kind === "window" && currentScene === "house") {
-        return { x: p.tx * TILE - 8, y: p.ty * TILE, w: 32, h: 32 };
+        return { x: p.tx * TILE - 8, y: p.ty * TILE, w: 32, h: 40 };
       }
       return { x: p.tx * TILE, y: p.ty * TILE - (p.kind === "inndoor" ? 8 : 0), w: 16, h: 24 };
     }
@@ -5595,7 +5599,7 @@
     } else if (p.kind === "fireplace") {
       var fireFlicker = 0.12 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 120 + p.tx));
       g.fillStyle = "rgba(240,150,70," + fireFlicker.toFixed(3) + ")";
-      g.fillRect(x + 6, y + 2, 20, 18);
+      g.fillRect(x + 10, y + 14, 28, 22);
       Assets.draw(g, "fireplace", x, y, ((tick / 220) | 0) % 2);
     } else if (p.kind === "flowerbox") {
       Assets.draw(g, "flowerbox", x, y);

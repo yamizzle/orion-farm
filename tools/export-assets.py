@@ -1939,7 +1939,7 @@ def builtin_sprites():
         {"id": "sparkle", "file": "ui/sparkle-{n}.png", "w": 16, "h": 16, "frames": 3, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "woodfloor", "file": "tiles/woodfloor.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "inwall", "file": "tiles/inwall.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
-        {"id": "bed", "file": "props/bed.png", "w": 32, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "bed", "file": "props/bed.png", "w": 48, "h": 48, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
         {"id": "table", "file": "props/table.png", "w": 32, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
         {"id": "rug", "file": "props/rug.png", "w": 48, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "window", "file": "props/window.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
