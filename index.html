@@ -7079,10 +7079,17 @@
       px(g, 38, 4, C.flower);
     }
 
-    woodPanel(g, 46, 3, 66, 18);
-    var hi;
+    woodPanel(g, 46, 3, 68, 22);
+    var hi, hs, hid;
     for (hi = 0; hi < HEARTS; hi++) {
-      Assets.draw(g, (hp > hi * HP_PER_HEART) ? "heart" : "heartEmpty", 49 + hi * 12, 7);
+      hid = (hp > hi * HP_PER_HEART) ? "heart" : "heartEmpty";
+      hs = Assets.spr[hid];
+      if (hs && Assets.img) {
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.img, hs.x, hs.y, hs.fw || hs.w, hs.h, 49 + hi * 10, 5, 8, 7);
+      } else {
+        Assets.draw(g, hid, 49 + hi * 10, 5);
+      }
     }
 
     woodPanel(g, 206, 4, 114, 21);
@@ -7163,19 +7170,14 @@
       }
     }
 
-    var ex = VIEW_W - 16;
-    var ey = VIEW_H - 70;
-    var eh = 40;
-    var filled = Math.round(eh * energy / MAX_ENERGY);
+    drawText(g, "E", 48, 15, C.parch);
+    var ew = 54;
+    var filled = Math.round(ew * energy / MAX_ENERGY);
     if (energy > 0 && filled < 1) filled = 1;
     if (energy <= 0) filled = 0;
-    woodPanel(g, ex - 2, ey - 10, 14, 56);
-    drawText(g, "E", ex + 2, ey - 8, C.parch);
-    fill(g, ex + 1, ey + 2, 8, eh, C.energyEmpty);
+    fill(g, 55, 16, ew, 2, C.energyEmpty);
     if (filled > 0) {
-      fill(g, ex + 1, ey + 2 + (eh - filled), 8, filled, energy <= 15 ? "#C8B03C" : C.energy);
-      fill(g, ex + 1, ey + 2 + (eh - filled), 8, 1, C.grassHi);
-      fill(g, ex + 1, ey + 2 + (eh - filled), 1, filled, C.grassHi);
+      fill(g, 55, 16, filled, 2, energy <= 15 ? "#C8B03C" : C.energy);
     }
     drawSwordBtn(g);
   }
@@ -7289,9 +7291,13 @@
         Assets.draw(g, highlight.ghost, highlight.tx * TILE, highlight.ty * TILE);
         g.globalAlpha = 1;
       }
-      g.fillStyle = highlight.ghost ? "rgba(107,203,60,0.28)" : "rgba(243,210,163,0.32)";
-      g.fillRect(highlight.tx * TILE, highlight.ty * TILE, TILE, TILE);
-      g.fillStyle = highlight.ghost ? "rgba(107,203,60,0.75)" : "rgba(243,210,163,0.7)";
+      if (highlight.ghost) {
+        g.fillStyle = "rgba(107,203,60,0.22)";
+        g.fillRect(highlight.tx * TILE, highlight.ty * TILE, TILE, TILE);
+        g.fillStyle = "rgba(107,203,60,0.7)";
+      } else {
+        g.fillStyle = "rgba(243,210,163,0.55)";
+      }
       g.fillRect(highlight.tx * TILE, highlight.ty * TILE, TILE, 1);
       g.fillRect(highlight.tx * TILE, highlight.ty * TILE, 1, TILE);
       g.fillRect(highlight.tx * TILE, highlight.ty * TILE + 15, TILE, 1);
