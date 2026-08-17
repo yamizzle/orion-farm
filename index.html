@@ -7005,31 +7005,30 @@
     var i, ox, col;
     if (n) {
       for (i = 0; i < 16; i++) {
-        ox = (hash(tx, ty, i + 40) < 0.45) ? 2 : 1;
+        if (hash(tx, ty, i + 40) > 0.35) continue;
         col = hash(tx, i, 2) < 0.5 ? C.grassMid : C.grassHi;
-        fill(g, dx + i, dy, 1, ox, col);
-        if (hash(tx, ty, i) < 0.25) px(g, dx + i, dy + ox, C.grassSh);
+        px(g, dx + i, dy, col);
       }
     }
     if (s) {
       for (i = 0; i < 16; i++) {
-        ox = (hash(tx, ty, i + 80) < 0.4) ? 2 : 1;
+        if (hash(tx, ty, i + 80) > 0.35) continue;
         col = hash(tx, i, 5) < 0.5 ? C.grassMid : C.grassSh;
-        fill(g, dx + i, dy + 16 - ox, 1, ox, col);
+        px(g, dx + i, dy + 15, col);
       }
     }
     if (w) {
       for (i = 0; i < 16; i++) {
-        ox = (hash(tx, ty, i + 120) < 0.4) ? 2 : 1;
+        if (hash(tx, ty, i + 120) > 0.35) continue;
         col = hash(ty, i, 3) < 0.5 ? C.grassMid : C.grassHi;
-        fill(g, dx, dy + i, ox, 1, col);
+        px(g, dx, dy + i, col);
       }
     }
     if (e) {
       for (i = 0; i < 16; i++) {
-        ox = (hash(tx, ty, i + 160) < 0.4) ? 2 : 1;
+        if (hash(tx, ty, i + 160) > 0.35) continue;
         col = hash(ty, i, 8) < 0.5 ? C.grassMid : C.grassSh;
-        fill(g, dx + 16 - ox, dy + i, ox, 1, col);
+        px(g, dx + 15, dy + i, col);
       }
     }
   }
