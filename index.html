@@ -273,7 +273,7 @@
   var sparks = [];
   var pickups = [];
   var selectedSlot = 0;
-  var inventory = { wood: 0, stone: 0, copper: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0 };
   var slotShake = 0;
   var SLOT_SEED = 0;
   var SLOT_WOOD = 1;
@@ -363,7 +363,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -405,7 +405,7 @@
   var iFrames = 0;
   var faintFx = null;
   var monsters = [];
-  var monsterCache = { 1: null, 2: null, 3: null };
+  var monsterCache = { 1: null, 2: null, 3: null, 4: null, 5: null, 6: null };
   var mineFloor = 1;
   var MINE3_COLS = 22;
   var MINE3_ROWS = 16;
@@ -458,7 +458,8 @@
     { id: "greenThumb", name: "GREEN THUMB", blurb: "PLANTED LILA'S FLOWERS" },
     { id: "shopGlow", name: "SHOP GLOW", blurb: "LIT PIP'S LANTERN" },
     { id: "carFriend", name: "CAR FRIEND", blurb: "LIT THE CAR'S NIGHT LAMPS" },
-    { id: "caveFoe", name: "CAVE FOE", blurb: "BEAT A MONSTER" }
+    { id: "caveFoe", name: "CAVE FOE", blurb: "BEAT A MONSTER" },
+    { id: "peakGlow", name: "PEAK GLOW", blurb: "THE PEAK LIGHT." }
   ];
   var COLLECT_ACH = { copper: "copperGlow", mushroom: "caveSnack", moonshard: "moonPiece" };
   var NOTE_OPEN = ["I LEFT MOON SHARDS", "IN THESE CAVES.", "BRING THEM HOME."];
@@ -571,8 +572,7 @@
 
   function harvestSceneName() {
     if (currentScene !== "mine") return currentScene;
-    if (mineFloor === 2) return "mine2";
-    if (mineFloor === 3) return "mine3";
+    if (mineFloor >= 2 && mineFloor <= 6) return "mine" + mineFloor;
     return "mine";
   }
 
@@ -584,16 +584,16 @@
   function sceneCacheKey(name, floor) {
     if (name === "mine") {
       floor = floor || mineFloor;
-      if (floor === 2) return "mine2";
-      if (floor === 3) return "mine3";
+      if (floor >= 2 && floor <= 6) return "mine" + floor;
     }
     return name;
   }
 
   function clampMineFloor(n) {
     n = n | 0;
-    if (n === 2 || n === 3) return n;
-    return 1;
+    if (n < 1) return 1;
+    if (n > 6) return 6;
+    return n;
   }
 
   function markTile(map, tx, ty) {
@@ -1042,6 +1042,7 @@
   function buildMine3Props() {
     var list = [
       { kind: "ladder", tx: 11, ty: 13 },
+      { kind: "hole", tx: 16, ty: 10 },
       { kind: "lantern", tx: 11, ty: 7 },
       { kind: "rock", tx: 5, ty: 6 },
       { kind: "rock", tx: 16, ty: 6 },
@@ -1053,6 +1054,107 @@
       list.push({ kind: "mooncrystal", tx: 12, ty: 3 });
     }
     return list.concat(scatterDeepRocks(GROUND, list, 0.02, 91));
+  }
+
+  function buildMine4Ground() {
+    var g = blankMine(MINE_COLS, MINE_ROWS);
+    carveMine(g, 3, 5, 12, 16);
+    carveMine(g, 10, 8, 22, 12);
+    carveMine(g, 18, 3, 28, 10);
+    carveMine(g, 16, 12, 28, 20);
+    carveMine(g, 4, 16, 12, 21);
+    g[9][14] = "#";
+    g[10][14] = "#";
+    g[7][22] = "#";
+    g[14][20] = "#";
+    g[15][20] = "#";
+    return g;
+  }
+
+  function buildMine4Props() {
+    var list = [
+      { kind: "ladder", tx: 6, ty: 8 },
+      { kind: "hole", tx: 24, ty: 16 },
+      { kind: "lantern", tx: 8, ty: 7 },
+      { kind: "lantern", tx: 25, ty: 5 },
+      { kind: "lantern", tx: 20, ty: 18 },
+      { kind: "rock", tx: 9, ty: 13 },
+      { kind: "rock", tx: 14, ty: 10 },
+      { kind: "rock", tx: 21, ty: 6 },
+      { kind: "rock", tx: 26, ty: 9 },
+      { kind: "rock", tx: 19, ty: 15 },
+      { kind: "rock", tx: 5, ty: 18 },
+      { kind: "rock", tx: 11, ty: 19 },
+      { kind: "rock", tx: 27, ty: 18 }
+    ];
+    if (!found.iron) list.push({ kind: "iron", tx: 26, ty: 4 });
+    return list.concat(scatterDeepRocks(GROUND, list, 0.04, 113));
+  }
+
+  function buildMine5Ground() {
+    var g = blankMine(MINE_COLS, MINE_ROWS);
+    carveMine(g, 4, 3, 14, 12);
+    carveMine(g, 12, 8, 26, 13);
+    carveMine(g, 18, 3, 28, 9);
+    carveMine(g, 6, 12, 16, 20);
+    carveMine(g, 16, 14, 27, 20);
+    g[6][10] = "#";
+    g[7][10] = "#";
+    g[10][20] = "#";
+    g[16][18] = "#";
+    g[17][18] = "#";
+    return g;
+  }
+
+  function buildMine5Props() {
+    var list = [
+      { kind: "ladder", tx: 24, ty: 16 },
+      { kind: "hole", tx: 8, ty: 5 },
+      { kind: "lantern", tx: 10, ty: 4 },
+      { kind: "lantern", tx: 25, ty: 5 },
+      { kind: "lantern", tx: 14, ty: 18 },
+      { kind: "rock", tx: 6, ty: 8 },
+      { kind: "rock", tx: 12, ty: 6 },
+      { kind: "rock", tx: 20, ty: 5 },
+      { kind: "rock", tx: 26, ty: 8 },
+      { kind: "rock", tx: 9, ty: 14 },
+      { kind: "rock", tx: 15, ty: 16 },
+      { kind: "rock", tx: 22, ty: 18 },
+      { kind: "rock", tx: 18, ty: 11 }
+    ];
+    if (!found.sapphire) list.push({ kind: "sapphire", tx: 26, ty: 4 });
+    if (!found.iron) list.push({ kind: "iron", tx: 6, ty: 18 });
+    return list.concat(scatterDeepRocks(GROUND, list, 0.036, 131));
+  }
+
+  function buildMine6Ground() {
+    var g = blankMine(MINE_COLS, MINE_ROWS);
+    carveMine(g, 5, 8, 26, 18);
+    carveMine(g, 10, 3, 21, 10);
+    carveMine(g, 12, 16, 20, 21);
+    g[10][9] = "#";
+    g[11][9] = "#";
+    g[10][22] = "#";
+    g[11][22] = "#";
+    g[14][15] = "#";
+    return g;
+  }
+
+  function buildMine6Props() {
+    var list = [
+      { kind: "ladder", tx: 8, ty: 10 },
+      { kind: "moonAltar", tx: 16, ty: 5 },
+      { kind: "lantern", tx: 12, ty: 8 },
+      { kind: "lantern", tx: 20, ty: 8 },
+      { kind: "lantern", tx: 16, ty: 16 },
+      { kind: "rock", tx: 7, ty: 14 },
+      { kind: "rock", tx: 24, ty: 12 },
+      { kind: "rock", tx: 11, ty: 18 },
+      { kind: "rock", tx: 21, ty: 18 },
+      { kind: "rock", tx: 14, ty: 12 }
+    ];
+    if (!found.peakChest) list.push({ kind: "chest", tx: 20, ty: 6 });
+    return list.concat(scatterDeepRocks(GROUND, list, 0.022, 149));
   }
 
 
@@ -1267,6 +1369,21 @@
         ROWS = MINE3_ROWS;
         GROUND = buildMine3Ground();
         PROPS = buildMine3Props();
+      } else if (mineFloor === 4) {
+        COLS = MINE_COLS;
+        ROWS = MINE_ROWS;
+        GROUND = buildMine4Ground();
+        PROPS = buildMine4Props();
+      } else if (mineFloor === 5) {
+        COLS = MINE_COLS;
+        ROWS = MINE_ROWS;
+        GROUND = buildMine5Ground();
+        PROPS = buildMine5Props();
+      } else if (mineFloor === 6) {
+        COLS = MINE_COLS;
+        ROWS = MINE_ROWS;
+        GROUND = buildMine6Ground();
+        PROPS = buildMine6Props();
       } else {
         COLS = MINE_COLS;
         ROWS = MINE_ROWS;
@@ -1379,7 +1496,7 @@
       } else if (
         p.kind === "tree" || p.kind === "well" || p.kind === "rock" ||
         p.kind === "lantern" || p.kind === "fenceH" || p.kind === "fenceL" ||
-        p.kind === "fenceR" || p.kind === "swordPedestal"
+        p.kind === "fenceR" || p.kind === "swordPedestal" || p.kind === "moonAltar"
       ) {
         block(p.tx, p.ty);
       }
@@ -1881,9 +1998,14 @@
     else if (kind === "flower") inventory.flower = (inventory.flower || 0) + amount;
     else if (kind === "snack") inventory.snack = (inventory.snack || 0) + amount;
     else if (kind === "gold") gold = (gold | 0) + amount;
-    else if (kind === "copper" || kind === "mushroom" || kind === "moonshard") {
+    else if (kind === "copper" || kind === "mushroom" || kind === "moonshard" || kind === "iron") {
       inventory[kind] = (inventory[kind] || 0) + amount;
-    } else if (kind === "gem" || kind === "mooncrystal") {
+    } else if (kind === "pebble") {
+      inventory.stone = (inventory.stone || 0) + amount;
+    } else if (kind === "sapphire") {
+      gold = (gold | 0) + amount;
+      found.sapphire = true;
+    } else if (kind === "gem" || kind === "mooncrystal" || kind === "goldPile") {
       gold = (gold | 0) + amount;
     }
     persistSave();
@@ -1980,6 +2102,11 @@
       if (i >= 0) PROPS.splice(i, 1);
       buildSolid();
       spawnPickup("stone", prop.tx, prop.ty, harvestDropFor(prop));
+      if (currentScene === "mine" && mineFloor >= 5 && Math.random() < 0.45) {
+        spawnPickup("iron", prop.tx, prop.ty, 1);
+      } else if (currentScene === "mine" && mineFloor === 4 && Math.random() < 0.22) {
+        spawnPickup("iron", prop.tx, prop.ty, 1);
+      }
       rememberHarvest(prop, "rock", "gone");
       if (currentScene === "mine") unlockAch("stoneTap");
     }
@@ -2106,6 +2233,9 @@
     if (currentScene !== "mine") return null;
     if (mineFloor === 1) return { tx: 16, ty: 4 };
     if (mineFloor === 2) return { tx: 24, ty: 16 };
+    if (mineFloor === 3) return { tx: 16, ty: 10 };
+    if (mineFloor === 4) return { tx: 24, ty: 16 };
+    if (mineFloor === 5) return { tx: 8, ty: 5 };
     return null;
   }
 
@@ -2113,6 +2243,9 @@
     if (currentScene !== "mine") return null;
     if (mineFloor === 2) return { tx: 5, ty: 8 };
     if (mineFloor === 3) return { tx: 11, ty: 13 };
+    if (mineFloor === 4) return { tx: 6, ty: 8 };
+    if (mineFloor === 5) return { tx: 24, ty: 16 };
+    if (mineFloor === 6) return { tx: 8, ty: 10 };
     return null;
   }
 
@@ -2210,6 +2343,10 @@
         found.moonshard = !!data.found.moonshard;
         found.gem = !!data.found.gem;
         found.mooncrystal = !!data.found.mooncrystal;
+        found.iron = !!data.found.iron;
+        found.sapphire = !!data.found.sapphire;
+        found.peakLight = !!data.found.peakLight;
+        found.peakChest = !!data.found.peakChest;
       }
       if (data.unlocked && typeof data.unlocked === "object") unlocked = data.unlocked;
       introSeen = !!data.introSeen;
@@ -2276,6 +2413,7 @@
         inventory.wood = clampCount(data.inventory.wood);
         inventory.stone = clampCount(data.inventory.stone);
         inventory.copper = clampCount(data.inventory.copper);
+        inventory.iron = clampCount(data.inventory.iron);
         inventory.mushroom = clampCount(data.inventory.mushroom);
         inventory.moonshard = clampCount(data.inventory.moonshard);
         inventory.veggie = clampCount(data.inventory.veggie);
@@ -2312,7 +2450,7 @@
           nState = nv.state === "gone" || nv.state === "stump" ? nv.state : "";
           if (!nState) continue;
           harvestNodes[nk] = {
-            scene: (nv.scene === "mine" || nv.scene === "mine2" || nv.scene === "mine3") ? nv.scene : "overworld",
+            scene: (nv.scene === "mine" || nv.scene === "mine2" || nv.scene === "mine3" || nv.scene === "mine4" || nv.scene === "mine5" || nv.scene === "mine6") ? nv.scene : "overworld",
             kind: nv.kind === "rock" ? "rock" : "tree",
             state: nState,
             tx: nv.tx | 0,
@@ -2419,6 +2557,7 @@
           wood: inventory.wood | 0,
           stone: inventory.stone | 0,
           copper: inventory.copper | 0,
+          iron: inventory.iron | 0,
           mushroom: inventory.mushroom | 0,
           moonshard: inventory.moonshard | 0,
           veggie: inventory.veggie | 0,
@@ -2515,6 +2654,9 @@
       else if (scene === "mine") {
         if (mineFloor === 2) { tx = 5; ty = 10; face = "down"; }
         else if (mineFloor === 3) { tx = 11; ty = 11; face = "up"; }
+        else if (mineFloor === 4) { tx = 6; ty = 10; face = "down"; }
+        else if (mineFloor === 5) { tx = 24; ty = 14; face = "up"; }
+        else if (mineFloor === 6) { tx = 8; ty = 12; face = "down"; }
         else { tx = 16; ty = 19; face = "up"; }
       }
       else { tx = 16; ty = 30; face = "down"; }
@@ -3093,6 +3235,9 @@
       return { r: 255, g: cozy ? 220 : 236, b: cozy ? 176 : 210, a: cozy ? 0.12 : 0.04 };
     }
     if (currentScene === "mine") {
+      if (mineFloor >= 6) return { r: 48, g: 36, b: 72, a: 0.56 };
+      if (mineFloor >= 5) return { r: 56, g: 42, b: 80, a: 0.52 };
+      if (mineFloor >= 4) return { r: 64, g: 48, b: 84, a: 0.48 };
       if (mineFloor === 3) return { r: 72, g: 62, b: 88, a: 0.44 };
       if (mineFloor === 2) return { r: 118, g: 104, b: 116, a: 0.34 };
       return { r: 168, g: 152, b: 138, a: 0.22 };
@@ -3389,7 +3534,8 @@
     if (!lilaDone) return "PLANT FLOWERS WITH LILA";
     if (!pipDone) return "BRING COPPER TO PIP";
     if (!reedDone) return "HELP REED'S CAR";
-    return "THE TOWN STATUE IS DARK.";
+    if (!found.peakLight) return "THE PEAK LIGHT WAITS.";
+    return "THE PEAK GLOWS.";
   }
 
   function homeLightOn() {
@@ -3762,6 +3908,40 @@
     if (p.kind === "statue" || p.kind === "fountain") return p;
     if (p.kind === "townHouseA" || p.kind === "townHouseB") return p;
     return null;
+  }
+
+  function talkPeakAltar() {
+    if (found.peakLight) {
+      openDialogue("ORION", ["THE PEAK GLOWS.", "HOME, TOWN, PEAK."]);
+      return;
+    }
+    found.peakLight = true;
+    persistSave();
+    unlockAch("peakGlow");
+    openDialogue("ORION", ["THE PEAK LIGHT.", "THE MOUNTAIN GLOWS."]);
+  }
+
+  function goPeakAltar(prop) {
+    var dest, path;
+    if (!prop || prop.kind !== "moonAltar") return;
+    highlight = { tx: prop.tx, ty: prop.ty };
+    if (isNear(player.tx, player.ty, prop.tx, prop.ty) || (player.tx === prop.tx && player.ty === prop.ty)) {
+      pending = null;
+      talkPeakAltar();
+      return;
+    }
+    dest = nearestAdjacent(prop.tx, prop.ty);
+    if (!dest) {
+      talkPeakAltar();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkPeakAltar();
+      return;
+    }
+    pending = { type: "peakAltar", prop: prop };
+    startWalk(player, path, 3.5);
   }
 
   function talkLandmark(p) {
@@ -4217,6 +4397,8 @@
       slime: { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1, scale: 1 },
       bat: { sprite: "bat", maxHp: 3, dmg: BUMP_DMG, gold: 2, scale: 1 },
       grub: { sprite: "rockgrub", maxHp: 3, dmg: BUMP_DMG, gold: 1, scale: 1 },
+      toughgrub: { sprite: "rockgrub", maxHp: 5, dmg: BUMP_DMG, gold: 2, scale: 1.25 },
+      crystalbat: { sprite: "crystalbat", maxHp: 4, dmg: BUMP_DMG, gold: 3, scale: 1 },
       toughslime: { sprite: "slime", maxHp: 4, dmg: BUMP_DMG, gold: 3, scale: 1.2 },
       bigslime: { sprite: "slime", maxHp: 5, dmg: BUMP_DMG, gold: 5, scale: 1.5 }
     }[kind] || { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1, scale: 1 };
@@ -4264,6 +4446,33 @@
         makeMon("grub", 14, 7),
         makeMon("bigslime", 11, 8)
       ];
+    } else if (mineFloor === 4) {
+      monsters = [
+        makeMon("crystalbat", 22, 5),
+        makeMon("crystalbat", 26, 14),
+        makeMon("crystalbat", 10, 18),
+        makeMon("grub", 8, 13),
+        makeMon("grub", 20, 10),
+        makeMon("toughslime", 16, 16)
+      ];
+    } else if (mineFloor === 5) {
+      monsters = [
+        makeMon("crystalbat", 22, 5),
+        makeMon("crystalbat", 10, 8),
+        makeMon("crystalbat", 20, 16),
+        makeMon("toughgrub", 8, 16),
+        makeMon("toughgrub", 16, 11),
+        makeMon("toughgrub", 25, 18),
+        makeMon("grub", 14, 18)
+      ];
+    } else if (mineFloor === 6) {
+      monsters = [
+        makeMon("crystalbat", 12, 12),
+        makeMon("crystalbat", 20, 12),
+        makeMon("crystalbat", 16, 18),
+        makeMon("crystalbat", 24, 16),
+        makeMon("bigslime", 16, 10)
+      ];
     } else {
       monsters = [
         makeMon("slime", 8, 11),
@@ -4287,6 +4496,25 @@
     if (mineFloor === 3) {
       if (tx === 11 && (ty === 11 || ty === 12 || ty === 13)) return true;
       if ((tx === 11 || tx === 12) && ty === 3) return true;
+      if (tx === 16 && (ty === 9 || ty === 10 || ty === 11)) return true;
+      return false;
+    }
+    if (mineFloor === 4) {
+      if (tx === 6 && (ty === 8 || ty === 9 || ty === 10)) return true;
+      if (tx === 24 && (ty === 14 || ty === 15 || ty === 16)) return true;
+      if (tx === 26 && ty === 4) return true;
+      return false;
+    }
+    if (mineFloor === 5) {
+      if (tx === 24 && (ty === 14 || ty === 15 || ty === 16)) return true;
+      if (tx === 8 && (ty === 4 || ty === 5 || ty === 6)) return true;
+      if (tx === 26 && ty === 4) return true;
+      return false;
+    }
+    if (mineFloor === 6) {
+      if (tx === 8 && (ty === 10 || ty === 11 || ty === 12)) return true;
+      if (tx === 16 && (ty === 4 || ty === 5 || ty === 6)) return true;
+      if (tx === 20 && ty === 6) return true;
       return false;
     }
     if (tx === 16 && (ty === 19 || ty === 20)) return true;
@@ -4624,12 +4852,46 @@
     startSwordSwing();
   }
 
+  function spawnMineDrop(mon) {
+    var roll = Math.random();
+    var deep = mineFloor >= 4;
+    var shift = Math.min(0.10, (mineFloor - 1) * 0.018);
+    var tNothing = 0.35 - shift;
+    var tJunk = tNothing + 0.40;
+    var tUseful = tJunk + 0.20;
+    var j, u, v, goldAmt;
+    if (roll < tNothing) return;
+    if (roll < tJunk) {
+      j = Math.random();
+      if (j < 0.34) spawnPickup("pebble", mon.tx, mon.ty, 1);
+      else if (j < 0.67) spawnPickup("stone", mon.tx, mon.ty, 1);
+      else spawnPickup("gold", mon.tx, mon.ty, 1);
+      return;
+    }
+    if (roll < tUseful) {
+      u = Math.random();
+      if (u < (deep ? 0.50 : 0.18)) spawnPickup("iron", mon.tx, mon.ty, 1);
+      else if (u < (deep ? 0.80 : 0.62)) spawnPickup("copper", mon.tx, mon.ty, 1);
+      else spawnPickup("mushroom", mon.tx, mon.ty, 1);
+      return;
+    }
+    v = Math.random();
+    goldAmt = 5 + ((Math.random() * 4) | 0);
+    if (deep) {
+      if (v < 0.40) spawnPickup("sapphire", mon.tx, mon.ty, 20);
+      else spawnPickup("gold", mon.tx, mon.ty, goldAmt);
+    } else if (v < 0.35) {
+      spawnPickup("gem", mon.tx, mon.ty, 8);
+    } else {
+      spawnPickup("gold", mon.tx, mon.ty, goldAmt);
+    }
+  }
+
   function defeatMonster(mon) {
     var i;
     mon.hp = 0;
     spawnSparks(mon.x, mon.y - 2);
-    spawnPickup("gold", mon.tx, mon.ty, mon.gold + ((Math.random() * 2) | 0));
-    if (mon.kind === "grub" && Math.random() < 0.5) spawnPickup("stone", mon.tx, mon.ty, 1);
+    spawnMineDrop(mon);
     i = monsters.indexOf(mon);
     if (i >= 0) monsters.splice(i, 1);
     unlockAch("caveFoe");
@@ -4861,7 +5123,8 @@
 
   function isCollectible(p) {
     return p && (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
-      p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal");
+      p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
+      p.kind === "iron" || p.kind === "sapphire");
   }
 
   function findNote() {
@@ -4886,6 +5149,31 @@
       openDialogue("ORION", ["A SHINY GEM!", "IT TWINKLES LIKE", "NIM'S LANTERN."]);
       return;
     }
+    if (prop.kind === "iron") {
+      found.iron = true;
+      spawnPickup("iron", prop.tx, prop.ty, 1);
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      persistSave();
+      openDialogue("ORION", ["IRON ORE!", "HEAVY AND COLD."]);
+      return;
+    }
+    if (prop.kind === "sapphire") {
+      found.sapphire = true;
+      spawnPickup("sapphire", prop.tx, prop.ty, 20);
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      persistSave();
+      openDialogue("ORION", ["A BLUE SAPPHIRE!", "IT FETCHES 20G."]);
+      return;
+    }
+    if (prop.kind === "chest" && mineFloor === 6) {
+      found.peakChest = true;
+      spawnPickup("gold", prop.tx, prop.ty, 12);
+      spawnPickup("goldPile", prop.tx, prop.ty, 8);
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      persistSave();
+      openDialogue("ORION", ["A PEAK CHEST!", "GOLD FOR THE CLIMB."]);
+      return;
+    }
     found.mooncrystal = true;
     for (j = PROPS.length - 1; j >= 0; j--) {
       other = PROPS[j];
@@ -4900,8 +5188,13 @@
   function pickupCollectible(prop) {
     var i;
     if (!isCollectible(prop)) return;
-    if (prop.kind === "gem" || prop.kind === "chest" || prop.kind === "mooncrystal") {
-      if ((prop.kind === "gem" && found.gem) || ((prop.kind === "chest" || prop.kind === "mooncrystal") && found.mooncrystal)) return;
+    if (prop.kind === "gem" || prop.kind === "chest" || prop.kind === "mooncrystal" ||
+        prop.kind === "iron" || prop.kind === "sapphire") {
+      if (prop.kind === "gem" && found.gem) return;
+      if (prop.kind === "iron" && found.iron) return;
+      if (prop.kind === "sapphire" && found.sapphire) return;
+      if (prop.kind === "chest" && mineFloor === 6 && found.peakChest) return;
+      if ((prop.kind === "chest" || prop.kind === "mooncrystal") && mineFloor !== 6 && found.mooncrystal) return;
       takeDeepFind(prop);
       return;
     }
@@ -4940,8 +5233,12 @@
   function goCollect(prop) {
     if (!isCollectible(prop)) return;
     if (prop.kind === "gem" && found.gem) return;
-    if ((prop.kind === "chest" || prop.kind === "mooncrystal") && found.mooncrystal) return;
-    if (prop.kind !== "gem" && prop.kind !== "chest" && prop.kind !== "mooncrystal" && found[prop.kind]) return;
+    if (prop.kind === "iron" && found.iron) return;
+    if (prop.kind === "sapphire" && found.sapphire) return;
+    if (prop.kind === "chest" && mineFloor === 6 && found.peakChest) return;
+    if ((prop.kind === "chest" || prop.kind === "mooncrystal") && mineFloor !== 6 && found.mooncrystal) return;
+    if (prop.kind !== "gem" && prop.kind !== "chest" && prop.kind !== "mooncrystal" &&
+        prop.kind !== "iron" && prop.kind !== "sapphire" && found[prop.kind]) return;
     highlight = { tx: prop.tx, ty: prop.ty };
     if (player.tx === prop.tx && player.ty === prop.ty) {
       pending = null;
@@ -4990,10 +5287,16 @@
     if (via === "down") {
       if (floor === 2) spot = { tx: 5, ty: 10, face: "down" };
       else if (floor === 3) spot = { tx: 11, ty: 11, face: "up" };
+      else if (floor === 4) spot = { tx: 6, ty: 10, face: "down" };
+      else if (floor === 5) spot = { tx: 24, ty: 14, face: "up" };
+      else if (floor === 6) spot = { tx: 8, ty: 12, face: "down" };
       else spot = { tx: 16, ty: 19, face: "up" };
     } else {
       if (floor === 1) spot = { tx: 16, ty: 5, face: "down" };
       else if (floor === 2) spot = { tx: 24, ty: 14, face: "up" };
+      else if (floor === 3) spot = { tx: 16, ty: 9, face: "up" };
+      else if (floor === 4) spot = { tx: 24, ty: 14, face: "up" };
+      else if (floor === 5) spot = { tx: 8, ty: 7, face: "down" };
       else spot = { tx: 11, ty: 11, face: "up" };
     }
     placePlayer(spot.tx, spot.ty, spot.face);
@@ -5138,6 +5441,8 @@
       if (act.folk && isNear(player.tx, player.ty, act.folk.tx, act.folk.ty)) talkFolk(act.folk);
     } else if (act.type === "tapCar") {
       beepCar();
+    } else if (act.type === "peakAltar") {
+      talkPeakAltar();
     } else if (act.type === "landmark") {
       if (act.prop) talkLandmark(act.prop);
     } else if (act.type === "enterShop") {
@@ -5519,10 +5824,12 @@
     if (p.kind === "crate" || p.kind === "stump") return p.ty * TILE + 14;
     if (p.kind === "cave") return p.ty * TILE + 32;
     if (p.kind === "lantern") return p.ty * TILE + (currentScene === "house" ? 24 : 20);
+    if (p.kind === "moonAltar") return p.ty * TILE + 28;
     if (p.kind === "ladder" || p.kind === "hole") return p.ty * TILE + 20;
     if (p.kind === "swordPedestal") return p.ty * TILE + 20;
     if (p.kind === "note" || p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
-        p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal") {
+        p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
+        p.kind === "iron" || p.kind === "sapphire") {
       return p.ty * TILE + 14;
     }
     return p.ty * TILE + TILE;
@@ -5556,6 +5863,7 @@
     if (p.kind === "cave") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 48 };
     if (p.kind === "pond") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 36, h: 32 };
     if (p.kind === "well") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
+    if (p.kind === "moonAltar") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "ladder" || p.kind === "hole" || p.kind === "swordPedestal") {
       if (p.kind === "lantern" && currentScene === "house") {
         return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
@@ -5661,15 +5969,23 @@
       Assets.draw(g, "ladder", x, y);
     } else if (p.kind === "hole") {
       Assets.draw(g, "hole", x, y);
+    } else if (p.kind === "moonAltar") {
+      if (found.peakLight) {
+        var peakGlow = 0.12 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 160));
+        g.fillStyle = "rgba(255,214,120," + peakGlow.toFixed(3) + ")";
+        g.fillRect(x - 6, y - 18, 28, 36);
+      }
+      Assets.draw(g, "moonAltar", x, y);
     } else if (p.kind === "swordPedestal") {
       Assets.draw(g, "swordPedestal", x, y);
     } else if (p.kind === "note") {
       Assets.draw(g, "note", x, y);
     } else if (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
-               p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal") {
+               p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
+               p.kind === "iron" || p.kind === "sapphire") {
       var bob = Math.round(Math.sin(tick / 280) * 1);
-      if (p.kind === "moonshard" || p.kind === "mooncrystal" || p.kind === "gem") {
-        g.fillStyle = p.kind === "gem" ? "rgba(92,188,154,0.20)" : "rgba(232,240,255,0.22)";
+      if (p.kind === "moonshard" || p.kind === "mooncrystal" || p.kind === "gem" || p.kind === "sapphire") {
+        g.fillStyle = p.kind === "sapphire" ? "rgba(60,90,200,0.22)" : (p.kind === "gem" ? "rgba(92,188,154,0.20)" : "rgba(232,240,255,0.22)");
         g.fillRect(x - 2, y - 2 + bob, 20, 20);
       }
       Assets.draw(g, p.kind, x, y + bob);
@@ -5934,6 +6250,7 @@
       if (pk.kind === "wood") id = "wood";
       else if (pk.kind === "stone") id = "stoneItem";
       else if (pk.kind === "gold") id = "goldCoin";
+      else if (pk.kind === "goldPile") id = "goldPile";
       else id = pk.kind;
       Assets.draw(g, id, Math.round(pk.x - 8), Math.round(pk.y - 8));
     }
@@ -6406,7 +6723,8 @@
             Assets.draw(g, cropSprite(crop), dx, dy + bob);
           }
         } else if (ch === "s") {
-          Assets.draw(g, "stone" + ((tx + ty) & 1), dx, dy);
+          if (currentScene === "mine" && mineFloor >= 4) Assets.draw(g, "deepFloor", dx, dy);
+          else Assets.draw(g, "stone" + ((tx + ty) & 1), dx, dy);
         } else if (ch === "h") {
           Assets.draw(g, "hill", dx, dy);
         } else if (ch === "k") {
@@ -6418,7 +6736,11 @@
         } else if (ch === "f") {
           Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
         } else if (ch === "#") {
-          Assets.draw(g, houseShellTile(tx, ty), dx, dy);
+          if (currentScene === "mine") {
+            Assets.draw(g, mineFloor >= 4 ? "deepWall" : "mineWall", dx, dy);
+          } else {
+            Assets.draw(g, houseShellTile(tx, ty), dx, dy);
+          }
         } else {
           Assets.draw(g, "grass" + grassIndex(tx, ty), dx, dy);
         }
@@ -6850,7 +7172,7 @@
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -6910,6 +7232,10 @@
     }
     if (hitProp && hitProp.kind === "swordPedestal") {
       goTakeSword(hitProp);
+      return;
+    }
+    if (hitProp && hitProp.kind === "moonAltar") {
+      goPeakAltar(hitProp);
       return;
     }
     if (currentScene === "mine") {

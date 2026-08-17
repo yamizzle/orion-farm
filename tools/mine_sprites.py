@@ -182,6 +182,15 @@ def install(ns):
         {"id": "gem", "file": "ui/gem.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "chest", "file": "props/chest.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "mooncrystal", "file": "ui/mooncrystal.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "deepFloor", "file": "tiles/deepFloor.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
+        {"id": "mineWall", "file": "tiles/mineWall.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
+        {"id": "deepWall", "file": "tiles/deepWall.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
+        {"id": "iron", "file": "ui/iron.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
+        {"id": "sapphire", "file": "ui/sapphire.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
+        {"id": "pebble", "file": "ui/pebble.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
+        {"id": "goldPile", "file": "ui/goldPile.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
+        {"id": "crystalbat", "file": "actors/crystalbat-{n}.png", "w": 16, "h": 16, "frames": 2, "anchor": [8, 14], "ox": 0, "oy": 0},
+        {"id": "moonAltar", "file": "props/moonAltar.png", "w": 16, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16},
     ]
     ns["MINE_SPRITES"] = extra_sprites
     return extra_sprites
