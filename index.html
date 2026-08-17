@@ -491,31 +491,31 @@
   var audioNext = 0;
   var TUNES = {
     farmDay: {
-      bpm: 72, leadV: 0.055, bassV: 0.07, hatV: 0.028,
+      bpm: 72, leadV: 0.14, bassV: 0.16, hatV: 0.06,
       lead: [74,0,71,0,67,0,69,0,74,0,76,0,71,0,67,0],
       bass: [43,0,0,0,50,0,0,0,47,0,0,0,38,0,0,0],
       hat:  [1,0,0,1,1,0,0,1,1,0,0,1,1,0,1,0]
     },
     farmNight: {
-      bpm: 58, leadV: 0.036, bassV: 0.05, hatV: 0.016,
+      bpm: 58, leadV: 0.10, bassV: 0.12, hatV: 0.04,
       lead: [64,0,0,0,67,0,0,0,62,0,0,0,0,0,0,0],
       bass: [40,0,0,0,0,0,0,0,43,0,0,0,0,0,0,0],
       hat:  [0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0]
     },
     house: {
-      bpm: 52, leadV: 0.022, bassV: 0.034, hatV: 0,
+      bpm: 52, leadV: 0.08, bassV: 0.10, hatV: 0,
       lead: [0,0,67,0,0,0,0,0,0,0,64,0,0,0,0,0],
       bass: [43,0,0,0,0,0,0,0,40,0,0,0,0,0,0,0],
       hat:  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     },
     mine: {
-      bpm: 86, leadV: 0.042, bassV: 0.06, hatV: 0.03,
+      bpm: 86, leadV: 0.12, bassV: 0.14, hatV: 0.07,
       lead: [64,0,0,63,0,0,59,0,0,64,0,0,55,0,52,0],
       bass: [28,0,0,0,31,0,0,0,28,0,0,0,26,0,0,0],
       hat:  [1,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1]
     },
     festival: {
-      bpm: 108, leadV: 0.05, bassV: 0.062, hatV: 0.026,
+      bpm: 108, leadV: 0.13, bassV: 0.15, hatV: 0.06,
       lead: [79,71,74,67,79,76,74,71,76,74,71,67,74,71,67,62],
       bass: [43,0,47,0,50,0,47,0,43,0,38,0,43,0,50,0],
       hat:  [0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,0]
@@ -533,13 +533,13 @@
     if (!AC) return null;
     audioCtx = new AC();
     audioMaster = audioCtx.createGain();
-    audioMaster.gain.value = 0.20;
+    audioMaster.gain.value = 0.85;
     audioMaster.connect(audioCtx.destination);
     audioMusic = audioCtx.createGain();
-    audioMusic.gain.value = 0.32;
+    audioMusic.gain.value = 0.55;
     audioMusic.connect(audioMaster);
     audioSfx = audioCtx.createGain();
-    audioSfx.gain.value = 0.70;
+    audioSfx.gain.value = 1.0;
     audioSfx.connect(audioMaster);
     real = new Float32Array(32);
     imag = new Float32Array(32);
@@ -692,7 +692,7 @@
       audioMusic.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.04);
       return;
     }
-    audioMusic.gain.setTargetAtTime(0.32, audioCtx.currentTime, 0.08);
+    audioMusic.gain.setTargetAtTime(0.55, audioCtx.currentTime, 0.08);
     if (audioCtx.state === "suspended") return;
     want = wantedTune();
     if (want !== audioTune) {
