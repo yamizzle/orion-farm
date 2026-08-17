@@ -1077,28 +1077,28 @@
     rect(12, 33, 14, 33, "d");
     rect(11, 34, 13, 34, "d");
     rect(10, 35, 11, 35, "d");
-    /* path north, west of the house, then east to the mine */
+    /* paved road north, west of the house, then east to the mine */
     for (y = 10; y <= 29; y++) {
-      set(13, y, "d");
-      set(14, y, "d");
+      set(13, y, "c");
+      set(14, y, "c");
     }
     for (x = 13; x <= 37; x++) {
-      set(x, 9, "d");
-      set(x, 10, "d");
+      set(x, 9, "c");
+      set(x, 10, "c");
     }
-    for (y = 6; y <= 9; y++) set(37, y, "d");
+    for (y = 6; y <= 9; y++) set(37, y, "c");
     /* spur to the second pond */
-    for (x = 15; x <= 25; x++) set(x, 16, "d");
+    for (x = 15; x <= 25; x++) set(x, 16, "c");
     /* rocky hill around the mine */
     for (y = 2; y <= 8; y++) {
       for (x = 32; x <= 43; x++) {
         if (g[y][x] === "g" && hash(x, y, 3) < 0.62) set(x, y, "h");
       }
     }
-    /* dirt path east from the farm to town */
+    /* paved road east from the farm to town */
     for (x = 16; x <= 39; x++) {
-      set(x, 32, "d");
-      set(x, 33, "d");
+      set(x, 32, "c");
+      set(x, 33, "c");
     }
     /* cobble loop around the town green */
     function cobble(x0, y0, x1, y1) { rect(x0, y0, x1, y1, "c"); }
@@ -7002,35 +7002,11 @@
     var s = isSoft(cell(tx, ty + 1));
     var e = isSoft(cell(tx + 1, ty));
     var w = isSoft(cell(tx - 1, ty));
-    var i, ox, col;
-    if (n) {
-      for (i = 0; i < 16; i++) {
-        if (hash(tx, ty, i + 40) > 0.35) continue;
-        col = hash(tx, i, 2) < 0.5 ? C.grassMid : C.grassHi;
-        px(g, dx + i, dy, col);
-      }
-    }
-    if (s) {
-      for (i = 0; i < 16; i++) {
-        if (hash(tx, ty, i + 80) > 0.35) continue;
-        col = hash(tx, i, 5) < 0.5 ? C.grassMid : C.grassSh;
-        px(g, dx + i, dy + 15, col);
-      }
-    }
-    if (w) {
-      for (i = 0; i < 16; i++) {
-        if (hash(tx, ty, i + 120) > 0.35) continue;
-        col = hash(ty, i, 3) < 0.5 ? C.grassMid : C.grassHi;
-        px(g, dx, dy + i, col);
-      }
-    }
-    if (e) {
-      for (i = 0; i < 16; i++) {
-        if (hash(tx, ty, i + 160) > 0.35) continue;
-        col = hash(ty, i, 8) < 0.5 ? C.grassMid : C.grassSh;
-        px(g, dx + 15, dy + i, col);
-      }
-    }
+    var i;
+    if (n) for (i = 0; i < 16; i++) px(g, dx + i, dy, C.grassMid);
+    if (s) for (i = 0; i < 16; i++) px(g, dx + i, dy + 15, C.grassSh);
+    if (w) for (i = 0; i < 16; i++) px(g, dx, dy + i, C.grassMid);
+    if (e) for (i = 0; i < 16; i++) px(g, dx + 15, dy + i, C.grassMid);
   }
 
   function strokeCircle(g, cx, cy, r, color) {
