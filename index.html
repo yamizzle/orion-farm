@@ -6723,8 +6723,15 @@
             Assets.draw(g, cropSprite(crop), dx, dy + bob);
           }
         } else if (ch === "s") {
-          if (currentScene === "mine" && mineFloor >= 4) Assets.draw(g, "deepFloor", dx, dy);
-          else Assets.draw(g, "stone" + ((tx + ty) & 1), dx, dy);
+          if (currentScene === "mine") {
+            if (mineFloor >= 4) Assets.draw(g, "deepFloor", dx, dy);
+            else Assets.draw(g, ((tx + ty) & 1) ? "mineFloor1" : "mineFloor", dx, dy);
+            if (cell(tx, ty - 1) === "#") fill(g, dx, dy, TILE, 2, "rgba(8,6,10,0.55)");
+            if (cell(tx - 1, ty) === "#") fill(g, dx, dy, 1, TILE, "rgba(8,6,10,0.28)");
+            if (cell(tx + 1, ty) === "#") fill(g, dx + TILE - 1, dy, 1, TILE, "rgba(8,6,10,0.28)");
+          } else {
+            Assets.draw(g, "stone" + ((tx + ty) & 1), dx, dy);
+          }
         } else if (ch === "h") {
           Assets.draw(g, "hill", dx, dy);
         } else if (ch === "k") {

@@ -34,6 +34,18 @@ SOURCES = {
     "mine-props.png": "d42c918720f2fafa0b940bcee673afde58cc4324b06671634cb5ad9630fcddc7.png",
 }
 
+# Capped-wall sheets: LEFT = floor, RIGHT = 3/4 wall. Do not write stone0/1.
+WALL_SHEETS = {
+    "mine-floor-wall-f13.png": (
+        "235bdd1aae77ac26e11ae859556e7d41c4518d17a0864a3d4cf1592dcbc29d6f.png",
+        ["tiles/mineFloor.png", "tiles/mineWall.png"],
+    ),
+    "mine-floor-wall-f46.png": (
+        "92b57ff4b7e8c9a8f5a4b0c75c72c1caf757887096985ba58831d0ad0c6fde6d.png",
+        ["tiles/deepFloor.png", "tiles/deepWall.png"],
+    ),
+}
+
 
 def chroma_magenta(pix: pg.Pix) -> pg.Pix:
     """Key #FF00FF and a tight pink fringe. Keep purples (deep wall / crystal bat)."""
@@ -277,10 +289,81 @@ def main():
         out, bx, by = write_sprite(crop_box(props, pboxes[i]), rel, tw, th)
         report.append((rel, bx, by, out.w, out.h))
 
+    sample_capped_walls(report)
+
     print("\n=== native sample report ===")
     for rel, bx, by, w, h in report:
         print("  %-28s  block=%.1fx%.1f  out=%dx%d" % (rel, bx, by, w, h))
     print("previews in", PREVIEW)
+
+
+def _is_key_pixel(r, g, b, a):
+    if a <= 8:
+        return True
+    if r >= 220 and b >= 220 and g <= 40:
+        return True
+    if r >= 200 and b >= 200 and g <= 70 and abs(r - b) <= 30:
+        return True
+    if g <= 80 and r >= 200 and b >= 180 and r + b - 2 * g >= 220:
+        return True
+    return False
+
+
+def fill_key_holes(pix: pg.Pix) -> int:
+    """Replace leftover magenta / transparent samples with nearest opaque pixel."""
+    bad = []
+    good = []
+    for y in range(pix.h):
+        for x in range(pix.w):
+            r, g, b, a = pix.get(x, y)
+            if _is_key_pixel(r, g, b, a):
+                bad.append((x, y))
+            else:
+                good.append((x, y, r, g, b))
+    for x, y in bad:
+        best = good[0][2:] if good else (20, 16, 14)
+        bd = 10 ** 9
+        for gx, gy, r, g, b in good:
+            d = (gx - x) * (gx - x) + (gy - y) * (gy - y)
+            if d < bd:
+                bd = d
+                best = (r, g, b)
+        o = (y * pix.w + x) * 4
+        pix.data[o : o + 4] = bytes((best[0], best[1], best[2], 255))
+    return len(bad)
+
+
+def sample_capped_walls(report):
+    """Point-sample Imagine floor+capped-wall sheets. Never writes stone0/1."""
+    for dest_name, (src_name, rels) in WALL_SHEETS.items():
+        src = AGENT / src_name
+        dst = SRC_DIR / dest_name
+        if not src.exists():
+            print("  missing capped-wall source", src_name)
+            continue
+        shutil.copy2(src, dst)
+        keyed = chroma_magenta(pg.Pix.load(dst))
+        print("keyed %s %dx%d  opaque=%d" % (dest_name, keyed.w, keyed.h, keyed.opaque_count()))
+        boxes = boxes_for(keyed, 2, 2, 1)
+        for i, rel in enumerate(rels):
+            if i >= len(boxes):
+                print("  MISSING", rel)
+                continue
+            out, bx, by = write_sprite(crop_box(keyed, boxes[i]), rel, 16, 16)
+            n = fill_key_holes(out)
+            if n:
+                dest = ASSETS / rel
+                out.save(dest)
+                nn_preview(out).save(PREVIEW / Path(rel).name)
+                print("  filled %d key holes in %s" % (n, rel))
+            report.append((rel, bx, by, out.w, out.h))
+        if rels[0] == "tiles/mineFloor.png":
+            floor = pg.Pix.load(ASSETS / "tiles/mineFloor.png")
+            v = floor.wrap(5, 3)
+            v.save(ASSETS / "tiles/mineFloor1.png")
+            nn_preview(v).save(PREVIEW / "mineFloor1.png")
+            print("  wrote tiles/mineFloor1.png  16x16  wrap-shift variant")
+            report.append(("tiles/mineFloor1.png", 0, 0, 16, 16))
 
 
 if __name__ == "__main__":

@@ -182,6 +182,8 @@ def install(ns):
         {"id": "gem", "file": "ui/gem.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "chest", "file": "props/chest.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "mooncrystal", "file": "ui/mooncrystal.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "mineFloor", "file": "tiles/mineFloor.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
+        {"id": "mineFloor1", "file": "tiles/mineFloor1.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
         {"id": "deepFloor", "file": "tiles/deepFloor.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
         {"id": "mineWall", "file": "tiles/mineWall.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
         {"id": "deepWall", "file": "tiles/deepWall.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0},
