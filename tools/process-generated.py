@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Process IMAGE-GENERATOR PNGs into game-sized sprites.
 
-Reads assets/generated-src/, chroma-keys magenta or grey/white checkerboard,
-crops to the opaque bbox (+1px pad), nearest-neighbor scales to the sizes in
-assets/manifest.json, and writes tiles/props/actors/ui.
+Prefer tools/art.py (one sprite, inbox → preview/promote). This script's
+full pass rewrites many shipped PNGs and now requires --all.
 
-Does not call the pixel painter and does not invoke export-assets.py --regen.
-After this script, pack with:  python3 tools/export-assets.py
+Reads a source dir (default assets/generated-src/), chroma-keys magenta or
+grey/white checkerboard, crops to the opaque bbox (+1px pad), nearest-neighbor
+scales, and writes tiles/props/actors/ui.
 
-  python3 tools/process-generated.py --heroes   # Orion/Junie/Nim/town/props only
+  python3 tools/process-generated.py --all      # old full world + heroes pass
+  python3 tools/process-generated.py --heroes   # Orion/Junie/Nim/town only
 """
 from __future__ import annotations
 
@@ -463,19 +464,39 @@ def _chroma_key_py(pix, kind):
 REPORT = []
 
 
-def process_sprite(src_name, chroma=True, stretch=False):
-    path = SRC / src_name
+def prepare_source(path, chroma=True):
+    """Load a PNG, optional chroma, crop to opaque bbox.
+
+    Returns (pix, kind, keyed, area). pix is None if chroma left the image empty.
+    """
+    path = Path(path)
+    pix = Pix.load(path)
+    kind = "none"
+    keyed = 0
+    area = max(1, pix.w * pix.h)
+    if chroma:
+        kind = detect_bg(pix)
+        keyed = chroma_key(pix, kind)
+        box = pix.opaque_bbox(pad=1)
+        if box is None:
+            return None, kind, keyed, area
+        pix = pix.crop(*box)
+    return pix, kind, keyed, area
+
+
+def process_sprite(src_name, chroma=True, stretch=False, src_dir=None):
+    path = (Path(src_dir) if src_dir else SRC) / src_name
     if not path.exists():
         REPORT.append((src_name, "MISSING source", None, 0, 0))
         print("  FAIL missing", src_name)
         return None, "missing"
-    pix = Pix.load(path)
-    kind = "none"
-    keyed = 0
+    pix, kind, keyed, area = prepare_source(path, chroma=chroma)
+    frac = keyed / area
     if chroma:
-        kind = detect_bg(pix)
-        keyed = chroma_key(pix, kind)
-        frac = keyed / max(1, pix.w * pix.h)
+        if pix is None:
+            REPORT.append((src_name, "FAIL empty after chroma", kind, keyed, 0))
+            print("  FAIL empty after chroma", src_name)
+            return None, "empty"
         if kind == "unknown":
             REPORT.append((src_name, "chroma unknown (best-effort)", kind, keyed, frac))
         elif frac < 0.15:
@@ -484,14 +505,6 @@ def process_sprite(src_name, chroma=True, stretch=False):
             REPORT.append((src_name, "ok", kind, keyed, frac))
     else:
         REPORT.append((src_name, "no-chroma (full-bleed tile)", "none", 0, 0))
-
-    if chroma:
-        box = pix.opaque_bbox(pad=1)
-        if box is None:
-            REPORT.append((src_name, "FAIL empty after chroma", kind, keyed, 0))
-            print("  FAIL empty after chroma", src_name)
-            return None, "empty"
-        pix = pix.crop(*box)
     return pix, kind
 
 
@@ -748,16 +761,37 @@ def print_report():
 
 def main(argv=None):
     import argparse
+    global SRC
     ap = argparse.ArgumentParser(description="Process IMAGE-GENERATOR PNGs into game-sized sprites")
+    ap.add_argument("--all", action="store_true",
+                    help="old full pass: rewrite world tiles + heroes from the source dir")
     ap.add_argument("--heroes", action="store_true",
                     help="only pack Orion/Junie/Nim/town/statue/shard/heart (leave world tiles)")
+    ap.add_argument("--src", default=None, help="source directory (default assets/generated-src)")
     args = ap.parse_args(argv)
-    print("process-generated: src=%s pillow=%s heroes=%s" % (SRC, PILImage is not None, args.heroes))
+    if args.src:
+        SRC = Path(args.src)
+    if not args.all and not args.heroes:
+        sys.stderr.write(
+            "refusing full pass (this rewrites many shipped PNGs).\n"
+            "Use:  python3 tools/art.py preview <id>\n"
+            "  or: python3 tools/process-generated.py --all\n"
+            "See assets/ART.md\n"
+        )
+        raise SystemExit(2)
+    if args.all:
+        sys.stderr.write("WARNING: --all rewrites world tiles and heroes. Prefer tools/art.py.\n")
+    elif args.heroes:
+        sys.stderr.write("WARNING: --heroes rewrites all hero/town sprites. Prefer tools/art.py.\n")
+    print("process-generated: src=%s pillow=%s all=%s heroes=%s" % (
+        SRC, PILImage is not None, args.all, args.heroes))
     if not SRC.exists():
         raise SystemExit("missing %s" % SRC)
-    if not args.heroes:
+    if args.all:
         process_world()
-    process_heroes()
+        process_heroes()
+    else:
+        process_heroes()
     print_report()
     print("done")
 

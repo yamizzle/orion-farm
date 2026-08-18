@@ -1,0 +1,46 @@
+{
+  "refs": {
+    "world": "refs/style-sheet.png",
+    "orion": "refs/orion-sheet.png"
+  },
+  "overrides": {
+    "grass0": {
+      "source": "grass.png",
+      "family": ["grass0", "grass1", "grass2", "grass3"],
+      "chroma": false,
+      "wrap": true
+    },
+    "grass1": { "from": "grass0" },
+    "grass2": { "from": "grass0" },
+    "grass3": { "from": "grass0" },
+    "dirt": { "chroma": false },
+    "till": { "chroma": false },
+    "water": { "chroma": false },
+    "npc-down": { "source": "junie-down.png" },
+    "npc-up": { "source": "junie-up.png" },
+    "npc-right": { "source": "junie-right.png", "flip": "npc-left" },
+    "npc-left": { "from": "npc-right" },
+    "player-right": { "flip": "player-left" },
+    "player-left": { "from": "player-right" },
+    "nim-right": { "flip": "nim-left" },
+    "nim-left": { "from": "nim-right" },
+    "chicken-right": { "flip": "chicken-left" },
+    "chicken-left": { "from": "chicken-right" },
+    "pip-down": { "reuse": ["pip-up", "pip-right"], "flip": "pip-left" },
+    "pip-up": { "from": "pip-down" },
+    "pip-right": { "from": "pip-down" },
+    "pip-left": { "from": "pip-down" },
+    "lila-down": { "reuse": ["lila-up", "lila-right"], "flip": "lila-left" },
+    "lila-up": { "from": "lila-down" },
+    "lila-right": { "from": "lila-down" },
+    "lila-left": { "from": "lila-down" },
+    "reed-down": { "reuse": ["reed-up", "reed-right"], "flip": "reed-left" },
+    "reed-up": { "from": "reed-down" },
+    "reed-right": { "from": "reed-down" },
+    "reed-left": { "from": "reed-down" },
+    "rock0": { "flip": "rock1" },
+    "rock1": { "from": "rock0" },
+    "weed0": { "flip": "weed1" },
+    "weed1": { "from": "weed0" }
+  }
+}
