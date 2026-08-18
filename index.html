@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260818h";
+  var BUILD = "20260818i";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2364,20 +2364,6 @@
       if (isHarvestable(p) && p.tx === tx && p.ty === ty) return p;
     }
     return null;
-  }
-
-  function harvestableAtPoint(wx, wy) {
-    var i, p, b, rock = null, tree = null;
-    for (i = 0; i < PROPS.length; i++) {
-      p = PROPS[i];
-      if (!isHarvestable(p)) continue;
-      b = propBounds(p);
-      if (wx >= b.x && wx < b.x + b.w && wy >= b.y && wy < b.y + b.h) {
-        if (p.kind === "rock") rock = p;
-        else tree = p;
-      }
-    }
-    return rock || tree;
   }
 
   function hasFence(tx, ty) {
@@ -8673,8 +8659,7 @@
     var world = { x: p.x + camX, y: p.y + camY };
     var tx = Math.floor(world.x / TILE);
     var ty = Math.floor(world.y / TILE);
-    var harvest = harvestableAtPoint(world.x, world.y);
-    if (!harvest && inBounds(tx, ty)) harvest = harvestableAtTile(tx, ty);
+    var harvest = harvestableAtTile(tx, ty);
     if (player.hitting && harvest && player.hitting.prop === harvest) return;
     cancelHit();
 
