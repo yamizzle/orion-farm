@@ -41,6 +41,12 @@
     "rock0": { "flip": "rock1" },
     "rock1": { "from": "rock0" },
     "weed0": { "flip": "weed1" },
-    "weed1": { "from": "weed0" }
+    "weed1": { "from": "weed0" },
+    "treeHurt": { "quantize": false },
+    "treeHurt2": { "quantize": false },
+    "rock0Hurt": { "flip": "rock1Hurt", "quantize": false },
+    "rock1Hurt": { "from": "rock0Hurt" },
+    "rock0Hurt2": { "flip": "rock1Hurt2", "quantize": false },
+    "rock1Hurt2": { "from": "rock0Hurt2" }
   }
 }
