@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260818a";
+  var BUILD = "20260818b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -854,6 +854,7 @@
     queuedWalk: null,
     anim: 0,
     swing: 0,
+    workTool: "",
     arc: 0,
     arcHit: false,
     hitting: null
@@ -2411,6 +2412,7 @@
     setCell(tx, ty, "p");
     builds.push({ kind: "hole", tx: tx, ty: ty });
     spendEnergy(ENERGY_HIT);
+    player.workTool = "shovel";
     player.swing = 220;
     spawnSparks(tx * TILE + 8, ty * TILE + 10);
     playSfx("dig");
@@ -2539,6 +2541,7 @@
     }
     prop = h.prop;
     faceToward(player, prop.tx, prop.ty);
+    player.workTool = workToolFor(prop);
     player.swing = 220;
     prop.shake = 200;
     cx = prop.tx * TILE + 8;
@@ -2555,6 +2558,13 @@
     } else {
       h.wait = HIT_GAP;
     }
+  }
+
+  function workToolFor(prop) {
+    if (!prop) return "";
+    if (prop.kind === "tree" && axeOwned) return "axe";
+    if (prop.kind === "rock" && pickaxeOwned) return "pickaxe";
+    return "";
   }
 
   function harvestHitsFor(prop) {
@@ -6800,6 +6810,8 @@
     }
     if (player.arc > 0 && swordOwned && player.face === "up") {
       drawSwordArc(g, sx, sy, bob);
+    } else if (player.swing > 0 && player.workTool && player.face === "up") {
+      drawWorkTool(g, sx, sy, bob);
     }
     drawShadow(g, player.x, player.y, 5);
     if (!(iFrames > 0 && ((tick / 80) | 0) % 2 === 0)) {
@@ -6810,6 +6822,8 @@
     }
     if (player.arc > 0 && swordOwned && player.face !== "up") {
       drawSwordArc(g, sx, sy, bob);
+    } else if (player.swing > 0 && player.workTool && player.face !== "up") {
+      drawWorkTool(g, sx, sy, bob);
     }
   }
 
@@ -6821,6 +6835,34 @@
     else if (player.face === "up") hy -= 2;
     else hy -= 1;
     return { x: hx, y: hy };
+  }
+
+  function workChopAngle() {
+    var u = 1 - player.swing / 220;
+    var span, mid;
+    if (u < 0) u = 0;
+    if (u > 1) u = 1;
+    u = u * u * (3 - 2 * u);
+    span = 70 * Math.PI / 180;
+    if (player.face === "down") mid = Math.PI * 0.82;
+    else if (player.face === "right") mid = Math.PI * 0.32;
+    else if (player.face === "up") mid = -0.12;
+    else mid = -Math.PI * 0.32;
+    return mid - span * 0.4 + span * u;
+  }
+
+  function drawWorkTool(g, sx, sy, bob) {
+    var hand, ang, id;
+    id = player.workTool;
+    if (!id || !Assets.spr[id]) return;
+    hand = swordHand(sx, sy, bob);
+    ang = workChopAngle();
+    g.save();
+    g.imageSmoothingEnabled = false;
+    g.translate(Math.round(hand.x), Math.round(hand.y));
+    g.rotate(ang);
+    Assets.draw(g, id, -8, -12);
+    g.restore();
   }
 
   function swingAngle() {
