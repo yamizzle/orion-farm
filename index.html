@@ -6177,7 +6177,7 @@
     if (!(iFrames > 0 && ((tick / 80) | 0) % 2 === 0)) {
       Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
       if (hatOn) {
-        Assets.draw(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 30 + bob + sy));
+        Assets.draw(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 34 + bob + sy));
       }
     }
     if (player.arc > 0 && swordOwned && player.face !== "up") {
@@ -6187,7 +6187,7 @@
 
   function swordHand(sx, sy, bob) {
     var hx = player.x + sx;
-    var hy = player.y + bob + sy - 12;
+    var hy = player.y + bob + sy - 16;
     if (player.face === "left") hx -= 3;
     else if (player.face === "right") hx += 3;
     else if (player.face === "up") hy -= 2;

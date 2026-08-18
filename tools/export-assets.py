@@ -1878,7 +1878,7 @@ GENERATORS = {
 
 
 def builtin_sprites():
-    A = [8, 28]
+    A = [8, 32]
     Ck = [8, 14]
     return [
         {"id": "grass0", "file": "tiles/grass0.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
