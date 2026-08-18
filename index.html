@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260818f";
+  var BUILD = "20260818g";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2520,48 +2520,11 @@
     return null;
   }
 
-  function shuffleDirs4() {
-    var dirs = [[0, 1], [0, -1], [-1, 0], [1, 0]];
-    var i, j, tmp;
-    for (i = 3; i > 0; i--) {
-      j = (Math.random() * (i + 1)) | 0;
-      tmp = dirs[i];
-      dirs[i] = dirs[j];
-      dirs[j] = tmp;
-    }
-    return dirs;
-  }
-
-  function chooseLootTile(fromTx, fromTy, kind) {
-    var dirs, i, nx, ny, pile;
-    pile = findLootPile(kind, fromTx, fromTy);
-    if (pile) return { tx: fromTx, ty: fromTy };
-    dirs = shuffleDirs4();
-    for (i = 0; i < dirs.length; i++) {
-      nx = fromTx + dirs[i][0];
-      ny = fromTy + dirs[i][1];
-      if (walkable(nx, ny) && findLootPile(kind, nx, ny)) return { tx: nx, ty: ny };
-    }
-    for (i = 0; i < dirs.length; i++) {
-      nx = fromTx + dirs[i][0];
-      ny = fromTy + dirs[i][1];
-      if (walkable(nx, ny) && !(nx === player.tx && ny === player.ty)) return { tx: nx, ty: ny };
-    }
-    for (i = 0; i < dirs.length; i++) {
-      nx = fromTx + dirs[i][0];
-      ny = fromTy + dirs[i][1];
-      if (walkable(nx, ny)) return { tx: nx, ty: ny };
-    }
-    if (walkable(fromTx, fromTy)) return { tx: fromTx, ty: fromTy };
-    return { tx: fromTx, ty: fromTy };
-  }
-
   function spawnGroundLoot(kind, fromTx, fromTy, amount) {
-    var dest, pile;
+    var pile;
     amount = amount | 0;
     if (!lootKindOk(kind) || amount <= 0) return;
-    dest = chooseLootTile(fromTx, fromTy, kind);
-    pile = findLootPile(kind, dest.tx, dest.ty);
+    pile = findLootPile(kind, fromTx, fromTy);
     if (pile) {
       pile.amount += amount;
       persistSave();
@@ -2572,8 +2535,8 @@
       scene: lootScene(),
       kind: kind,
       amount: amount,
-      tx: dest.tx,
-      ty: dest.ty,
+      tx: fromTx,
+      ty: fromTy,
       x: fromTx * TILE + 8,
       y: fromTy * TILE + 4,
       sx: fromTx * TILE + 8,
