@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260818g";
+  var BUILD = "20260818h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2585,27 +2585,16 @@
   }
 
   function goCollectLootAt(tx, ty) {
-    var dest, path;
+    var path;
     if (!lootAtTile(tx, ty).length) return;
     highlight = { tx: tx, ty: ty };
-    if (player.tx === tx && player.ty === ty || isNear(player.tx, player.ty, tx, ty)) {
+    if (player.tx === tx && player.ty === ty) {
       pending = null;
       collectLootAt(tx, ty);
       return;
     }
-    if (walkable(tx, ty)) {
-      path = findPath(player.tx, player.ty, tx, ty);
-      if (!path.length) {
-        collectLootAt(tx, ty);
-        return;
-      }
-      pending = { type: "loot", tx: tx, ty: ty };
-      startWalk(player, path, 3.5);
-      return;
-    }
-    dest = nearestAdjacent(tx, ty);
-    if (!dest) return;
-    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!walkable(tx, ty)) return;
+    path = findPath(player.tx, player.ty, tx, ty);
     if (!path.length) return;
     pending = { type: "loot", tx: tx, ty: ty };
     startWalk(player, path, 3.5);
@@ -6773,7 +6762,7 @@
         pickupCollectible(act.prop);
       }
     } else if (act.type === "loot") {
-      if (player.tx === act.tx && player.ty === act.ty || isNear(player.tx, player.ty, act.tx, act.ty)) {
+      if (player.tx === act.tx && player.ty === act.ty) {
         collectLootAt(act.tx, act.ty);
       }
     } else if (act.type === "enter") {
