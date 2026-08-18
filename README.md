@@ -95,4 +95,4 @@ Then inbox → preview → promote as above, and draw it with `Assets.draw(ctx, 
 
 ## How to update later
 
-Edit files in this repo and push to `main`. The same Pages URL will show the new version after deploy (usually under a minute).
+Edit files in this repo and push to `main`. GitHub Pages usually finishes deploy in under a minute. Then tap the wood **RL** plaque (top-right) or **RELOAD** in the job book — that reloads with a fresh `?v=` so Safari and Home Screen apps drop the old file. A hard browser refresh (Cmd-Shift-R) works too, but only after Pages has actually published.

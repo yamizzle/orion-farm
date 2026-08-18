@@ -106,12 +106,16 @@
       <button type="button" id="fsBtn" aria-label="Full Screen">
         <canvas id="fsFace" width="18" height="11"></canvas>
       </button>
+      <button type="button" id="rlBtn" aria-label="Reload farm">
+        <canvas id="rlFace" width="18" height="11"></canvas>
+      </button>
     </div>
   </div>
   <script>
 (function () {
   "use strict";
 
+  var BUILD = "20260818a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -218,6 +222,8 @@
   var frame = document.getElementById("frame");
   var fsBtn = document.getElementById("fsBtn");
   var fsFace = document.getElementById("fsFace");
+  var rlBtn = document.getElementById("rlBtn");
+  var rlFace = document.getElementById("rlFace");
   var sfxBtn = document.getElementById("sfxBtn");
   var sfxFace = document.getElementById("sfxFace");
   var musBtn = document.getElementById("musBtn");
@@ -227,10 +233,37 @@
   var swipeStartY = null;
   var assets = {};
 
-  function bustUrl(url) {
+  function pageVer() {
     var m = /(?:\?|&)v=([^&]*)/.exec(location.search || "");
-    if (!m) return url;
-    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + encodeURIComponent(m[1]);
+    return (m && m[1]) ? m[1] : BUILD;
+  }
+
+  function bustUrl(url) {
+    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + encodeURIComponent(pageVer());
+  }
+
+  function reloadFarm() {
+    persistSave();
+    location.replace((location.pathname || "/") + "?v=" + encodeURIComponent(BUILD + "-" + Date.now()));
+  }
+
+  function checkFreshBuild() {
+    fetch("assets/version.json?t=" + Date.now(), { cache: "no-store" }).then(function (r) {
+      if (!r.ok) return null;
+      return r.json();
+    }).then(function (ver) {
+      var remote, already;
+      if (!ver || !ver.v || ver.v === BUILD) return;
+      remote = String(ver.v);
+      already = pageVer();
+      if (already === remote) return;
+      try {
+        if (sessionStorage.getItem("moondrop-build") === remote) return;
+        sessionStorage.setItem("moondrop-build", remote);
+      } catch (err) {}
+      persistSave();
+      location.replace((location.pathname || "/") + "?v=" + encodeURIComponent(remote));
+    }).catch(function () {});
   }
 
   function loadImage(src) {
@@ -247,7 +280,7 @@
     spr: {},
     ready: false,
     load: function () {
-      return fetch(bustUrl("assets/manifest.json")).then(function (r) {
+      return fetch(bustUrl("assets/manifest.json"), { cache: "no-store" }).then(function (r) {
         if (!r.ok) throw new Error("manifest " + r.status);
         return r.json();
       }).then(function (meta) {
@@ -3879,16 +3912,26 @@
     if (w > 300) w = 300;
     var x = ((VIEW_W - w) / 2) | 0;
     var y = 28;
-    var h = 70;
+    var h = 86;
     var btnW = 88;
     var btnH = 14;
     var btnX = x + ((w - btnW) / 2) | 0;
     var btnY = y + 32;
     var muteW = 56;
     var muteH = 14;
-    var muteX = x + ((w - muteW) / 2) | 0;
+    var reloadW = 56;
+    var gap = 8;
+    var pairW = reloadW + gap + muteW;
+    var reloadX = x + ((w - pairW) / 2) | 0;
+    var muteX = reloadX + reloadW + gap;
     var muteY = y + 50;
-    return { x: x, y: y, w: w, h: h, line: line, btnX: btnX, btnY: btnY, btnW: btnW, btnH: btnH, muteX: muteX, muteY: muteY, muteW: muteW, muteH: muteH };
+    var reloadY = muteY;
+    return {
+      x: x, y: y, w: w, h: h, line: line,
+      btnX: btnX, btnY: btnY, btnW: btnW, btnH: btnH,
+      muteX: muteX, muteY: muteY, muteW: muteW, muteH: muteH,
+      reloadX: reloadX, reloadY: reloadY, reloadW: reloadW
+    };
   }
 
   function wipeLayout() {
@@ -3928,6 +3971,11 @@
     if (hitPad(p.x, p.y, L.btnX, L.btnY, L.btnW, L.btnH, 6)) {
       playSfx("ui");
       wipeAsk = true;
+      return true;
+    }
+    if (hitPad(p.x, p.y, L.reloadX, L.reloadY, L.reloadW, L.muteH, 6)) {
+      playSfx("ui");
+      reloadFarm();
       return true;
     }
     if (hitPad(p.x, p.y, L.muteX, L.muteY, L.muteW, L.muteH, 6)) {
@@ -7522,6 +7570,8 @@
     woodPanel(g, L.btnX, L.btnY, L.btnW, L.btnH);
     label = "START OVER";
     drawText(g, label, L.btnX + ((L.btnW - textWidth(label)) / 2) | 0, L.btnY + 3, C.parch);
+    woodPanel(g, L.reloadX, L.reloadY, L.reloadW, L.muteH);
+    drawText(g, "RELOAD", L.reloadX + ((L.reloadW - textWidth("RELOAD")) / 2) | 0, L.reloadY + 3, C.parch);
     woodPanel(g, L.muteX, L.muteY, L.muteW, L.muteH);
     label = (sfxMuted && musicMuted) ? "SOUND" : "MUTE";
     drawText(g, label, L.muteX + ((L.muteW - textWidth(label)) / 2) | 0, L.muteY + 3, C.parch);
@@ -8029,6 +8079,7 @@
     paintWoodHud(sfxFace, sfxBtn, "FX", sfxMuted, "Sound effects on", "Sound effects off");
     paintWoodHud(musFace, musBtn, "MU", musicMuted, "Music on", "Music off");
     paintFsFace();
+    paintWoodHud(rlFace, rlBtn, "RL", false, "Reload farm", "Reload farm");
   }
 
   function hideSafariChrome() {
@@ -8556,6 +8607,10 @@
     if (fillMode) leaveFill();
     else enterFull();
   });
+  bindHudBtn(rlBtn, function () {
+    playSfx("ui");
+    reloadFarm();
+  });
   bindHudBtn(sfxBtn, function () {
     if (!sfxMuted) playSfx("ui");
     sfxMuted = !sfxMuted;
@@ -8638,6 +8693,7 @@
   document.addEventListener("dblclick", function (e) {
     e.preventDefault();
   });
+  checkFreshBuild();
   Assets.load().then(function () {
     requestAnimationFrame(loop);
   }).catch(function () {
