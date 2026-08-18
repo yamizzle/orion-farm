@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260818c";
+  var BUILD = "20260818d";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -1684,6 +1684,16 @@
       key = keys[ki];
       rec = harvestNodes[key];
       if (!rec || rec.scene !== scene) continue;
+      if (rec.state === "hurt") {
+        for (i = 0; i < props.length; i++) {
+          p = props[i];
+          if (p.tx === rec.tx && p.ty === rec.ty && p.kind === rec.kind) {
+            p.hp = rec.hp;
+            break;
+          }
+        }
+        continue;
+      }
       ready = t - rec.harvestedAt >= NODE_RESPAWN_MS;
       if (ready && !tileBlockedForRespawn(scene, rec.tx, rec.ty, true)) {
         delete harvestNodes[key];
@@ -1724,7 +1734,8 @@
     for (ki = 0; ki < keys.length; ki++) {
       key = keys[ki];
       rec = harvestNodes[key];
-      if (!rec || t - rec.harvestedAt < NODE_RESPAWN_MS) continue;
+      if (!rec || rec.state === "hurt") continue;
+      if (t - rec.harvestedAt < NODE_RESPAWN_MS) continue;
       props = sceneProps(rec.scene);
       if (!props) continue;
       if (tileBlockedForRespawn(rec.scene, rec.tx, rec.ty)) continue;
@@ -2556,17 +2567,17 @@
     cx = prop.tx * TILE + 8;
     cy = prop.ty * TILE + (prop.kind === "tree" ? 2 : 6);
     spawnSparks(cx, cy);
-    h.left -= 1;
-    if (h.left <= 0) {
-      if (isHarvestable(prop) || isSliceable(prop)) spendEnergy(ENERGY_HIT);
-      if (isSoftStrike(prop)) finishSoftStrike(prop);
-      else finishHarvest(prop);
-      cancelHit();
-    } else if (faintFx) {
-      cancelHit();
+    if (isHarvestable(prop)) {
+      spendEnergy(ENERGY_HIT);
+      if (hurtNode(prop) <= 0) finishHarvest(prop);
+      playSfx(prop.kind === "rock" ? "smash" : "chop");
+    } else if (isSliceable(prop)) {
+      spendEnergy(ENERGY_HIT);
+      finishSoftStrike(prop);
     } else {
-      h.wait = HIT_GAP;
+      finishSoftStrike(prop);
     }
+    cancelHit();
   }
 
   function workToolFor(prop) {
@@ -2574,6 +2585,65 @@
     if (prop.kind === "tree" && toolEquipped("axe")) return "axe";
     if (prop.kind === "rock" && toolEquipped("pick")) return "pickaxe";
     return "";
+  }
+
+  function nodeMaxHp(prop) {
+    if (prop && prop.kind === "tree") return HIT_COUNT;
+    if (prop && prop.kind === "rock") {
+      if (currentScene === "mine" && mineFloor >= 4) return HIT_DEEP_ROCK;
+      if (currentScene === "mine") return HIT_MINE_ROCK;
+      return HIT_COUNT;
+    }
+    return 1;
+  }
+
+  function nodeStrikeDmg(prop) {
+    if (prop && prop.kind === "tree" && toolEquipped("axe")) return 3;
+    if (prop && prop.kind === "rock" && toolEquipped("pick")) {
+      if (currentScene === "mine" && mineFloor >= 4) return 3;
+      if (currentScene === "mine") return HIT_MINE_ROCK;
+      return 3;
+    }
+    return 1;
+  }
+
+  function hurtNode(prop) {
+    var key, rec, max;
+    if (!prop) return 0;
+    key = nodeKey(liveHarvestScene(), prop.tx, prop.ty);
+    rec = harvestNodes[key];
+    max = nodeMaxHp(prop);
+    if (!rec || rec.state !== "hurt") {
+      rec = {
+        scene: liveHarvestScene(),
+        kind: prop.kind,
+        state: "hurt",
+        tx: prop.tx,
+        ty: prop.ty,
+        hp: max,
+        maxHp: max,
+        harvestedAt: 0
+      };
+      harvestNodes[key] = rec;
+    }
+    rec.hp = (typeof rec.hp === "number" ? rec.hp : max) - nodeStrikeDmg(prop);
+    if (rec.hp < 0) rec.hp = 0;
+    rec.maxHp = max;
+    persistSave();
+    return rec.hp;
+  }
+
+  function nodeHurtStage(p) {
+    var rec, max, hp;
+    if (!p || (p.kind !== "tree" && p.kind !== "rock")) return 0;
+    rec = harvestNodes[nodeKey(liveHarvestScene(), p.tx, p.ty)];
+    if (!rec || rec.state !== "hurt") return 0;
+    max = rec.maxHp || nodeMaxHp(p);
+    hp = rec.hp;
+    if (hp <= 0) return 2;
+    if (hp * 2 <= max) return 2;
+    if (hp < max) return 1;
+    return 0;
   }
 
   function harvestHitsFor(prop) {
@@ -2605,6 +2675,7 @@
       return;
     }
     if (prop.kind === "crop" && !cropIsReady(crops[prop.tx + "," + prop.ty])) return;
+    if (player.swing > 0) return;
     player.path = [];
     player.queuedWalk = null;
     player.moving = false;
@@ -2641,7 +2712,6 @@
       buildSolid();
       spawnPickup("wood", prop.tx, prop.ty, harvestDropFor(prop));
       rememberHarvest(prop, "tree", "stump");
-      playSfx("chop");
     } else if (prop.kind === "rock") {
       var i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
@@ -2654,7 +2724,6 @@
       }
       rememberHarvest(prop, "rock", "gone");
       if (currentScene === "mine") unlockAch("stoneTap");
-      playSfx("smash");
     }
   }
 
@@ -2725,12 +2794,7 @@
       if (player.hitting.wait <= 0) doFightHit();
       return;
     }
-    if (!isHarvestable(player.hitting.prop)) {
-      cancelHit();
-      return;
-    }
-    player.hitting.wait -= dt;
-    if (player.hitting.wait <= 0) doHit();
+    cancelHit();
   }
 
   function updatePickups(dt) {
@@ -3070,7 +3134,7 @@
           if (!Object.prototype.hasOwnProperty.call(data.nodes, nk)) continue;
           nv = data.nodes[nk];
           if (!nv || typeof nv !== "object") continue;
-          nState = nv.state === "gone" || nv.state === "stump" ? nv.state : "";
+          nState = nv.state === "gone" || nv.state === "stump" || nv.state === "hurt" ? nv.state : "";
           if (!nState) continue;
           harvestNodes[nk] = {
             scene: (nv.scene === "mine" || nv.scene === "mine2" || nv.scene === "mine3" || nv.scene === "mine4" || nv.scene === "mine5" || nv.scene === "mine6") ? nv.scene : "overworld",
@@ -3078,6 +3142,8 @@
             state: nState,
             tx: nv.tx | 0,
             ty: nv.ty | 0,
+            hp: typeof nv.hp === "number" ? nv.hp : 0,
+            maxHp: typeof nv.maxHp === "number" ? nv.maxHp : 0,
             harvestedAt: typeof nv.harvestedAt === "number" ? nv.harvestedAt : 0
           };
         }
@@ -3126,6 +3192,8 @@
           state: rec && rec.state ? rec.state : p.kind,
           tx: p.tx,
           ty: p.ty,
+          hp: rec && typeof rec.hp === "number" ? rec.hp : 0,
+          maxHp: rec && typeof rec.maxHp === "number" ? rec.maxHp : 0,
           harvestedAt: rec && typeof rec.harvestedAt === "number" ? rec.harvestedAt : 0
         };
       }
@@ -3145,6 +3213,8 @@
         state: rec.state || (rec.kind === "rock" ? "gone" : "stump"),
         tx: rec.tx,
         ty: rec.ty,
+        hp: rec.hp || 0,
+        maxHp: rec.maxHp || 0,
         harvestedAt: rec.harvestedAt
       };
     }
@@ -7091,6 +7161,27 @@
     return { x: p.tx * TILE, y: p.ty * TILE, w: 16, h: 16 };
   }
 
+  function drawHurtMarks(g, p, x, y) {
+    var st = nodeHurtStage(p);
+    if (!st) return;
+    if (p.kind === "tree") {
+      fill(g, x + 6, y + 2, 3, st === 1 ? 5 : 9, C.woodOut);
+      fill(g, x + 7, y + 3, 1, st === 1 ? 3 : 7, C.woodSh);
+      if (st >= 2) {
+        fill(g, x + 12, y - 30, 7, 6, C.grassDp);
+        fill(g, x - 2, y - 22, 6, 5, C.grassDp);
+        fill(g, x + 8, y - 8, 5, 4, C.grassSh);
+      }
+    } else if (p.kind === "rock") {
+      fill(g, x + 5, y + 7, 1, st === 1 ? 4 : 6, C.stoneSh);
+      fill(g, x + 6, y + 8, 2, 1, C.woodOut);
+      if (st >= 2) {
+        fill(g, x + 8, y + 10, 4, 1, C.stoneSh);
+        px(g, x + 4, y + 11, C.woodOut);
+      }
+    }
+  }
+
   function onScreen(b) {
     return b.x + b.w > camX - 8 && b.x < camX + VIEW_W + 8 &&
       b.y + b.h > camY - 8 && b.y < camY + VIEW_H + 8;
@@ -7143,6 +7234,7 @@
       Assets.draw(g, "inndoor", x, y);
     } else if (p.kind === "tree") {
       Assets.draw(g, "tree", x, y);
+      drawHurtMarks(g, p, x, y);
     } else if (p.kind === "stump") {
       Assets.draw(g, "stump", x, y);
     } else if (p.kind === "well") {
@@ -7164,6 +7256,7 @@
       }
     } else if (p.kind === "rock") {
       Assets.draw(g, "rock" + ((p.tx + p.ty) & 1), x, y);
+      drawHurtMarks(g, p, x, y);
     } else if (p.kind === "weed") {
       Assets.draw(g, "weed" + ((p.tx + p.ty) & 1), x, y);
     } else if (p.kind === "tallGrass") {
