@@ -387,6 +387,32 @@ def install(ns):
         g.px(8, 6, out)
         return g
 
+    def gen_shovel():
+        """16x16 wood-and-steel spade, 3/4, dark-brown outline."""
+        g = Pix(16, 16)
+        out = C["woodOut"]
+        steel = C.get("steel", "#C8D0D8")
+        steel_hi = C.get("steelHi", "#E8F0F4")
+        steel_sh = C.get("steelSh", "#6A7888")
+        g.fill(4, 14, 8, 2, C["shadow"])
+        g.fill(7, 1, 2, 8, C["woodMid"])
+        g.fill(7, 1, 1, 8, C["woodHi"])
+        g.fill(8, 4, 1, 4, C["woodSh"])
+        g.fill(6, 1, 4, 2, C["woodSh"])
+        g.px(6, 1, out)
+        g.px(9, 1, out)
+        g.fill(5, 9, 6, 4, steel)
+        g.fill(5, 9, 6, 1, steel_hi)
+        g.fill(6, 13, 4, 1, steel)
+        g.fill(7, 14, 2, 1, steel_sh)
+        g.fill(5, 12, 1, 2, steel_sh)
+        g.fill(10, 12, 1, 2, steel_sh)
+        g.px(4, 10, out)
+        g.px(11, 10, out)
+        g.px(6, 15, out)
+        g.px(9, 15, out)
+        return g
+
     def gen_pickaxe():
         """16x16 stone pickaxe, pointed head."""
         g = Pix(16, 16)
@@ -546,6 +572,7 @@ def install(ns):
         "housePlant": gen_house_plant,
         "workbench": gen_workbench,
         "axe": gen_axe,
+        "shovel": gen_shovel,
         "pickaxe": gen_pickaxe,
         "shield": gen_shield,
         "ironSword": gen_iron_sword,
@@ -563,6 +590,7 @@ def install(ns):
         {"id": "housePlant", "file": "props/housePlant.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
         {"id": "workbench", "file": "props/workbench.png", "w": 32, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
         {"id": "axe", "file": "ui/axe.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "shovel", "file": "ui/shovel.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "pickaxe", "file": "ui/pickaxe.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "shield", "file": "ui/shield.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "ironSword", "file": "ui/ironSword.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},

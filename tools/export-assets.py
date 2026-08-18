@@ -681,6 +681,43 @@ def gen_rock(v):
     return g
 
 
+def gen_tall_grass(v):
+    """16x24 tuft. Variant 1 has a tiny blossom."""
+    g = Pix(16, 24)
+    g.fill(4, 21, 8, 2, C.get("shadow") or (30, 90, 18, 100))
+    blades = (
+        ((3, 22, 11), (5, 21, 13), (7, 22, 16), (8, 21, 14), (10, 22, 12), (12, 21, 10))
+        if v == 0
+        else ((2, 22, 10), (4, 21, 14), (6, 22, 15), (9, 21, 16), (11, 22, 12), (13, 21, 9))
+    )
+    for x, y0, h in blades:
+        for i in range(h):
+            y = y0 - i
+            if y < 0:
+                continue
+            if i < 2:
+                col = C["grassDp"]
+            elif i < h // 2:
+                col = C["grassSh"]
+            elif i < h - 2:
+                col = C["grassMid"]
+            else:
+                col = C["grassHi"]
+            g.px(x, y, col)
+            if i > 3 and i % 3 == 0:
+                g.px(x + (1 if (x + i) & 1 else -1), y, C["leaf"])
+    if v == 1:
+        g.px(9, 6, C["blossom"])
+        g.px(10, 6, C["meadowBloom"] if "meadowBloom" in C else C["blossom"])
+        g.px(9, 5, C["blossom"])
+        g.px(8, 6, C["leaf"])
+        g.px(11, 7, C["leaf"])
+    else:
+        g.px(7, 7, C["leaf"])
+        g.px(8, 6, C["grassHi"])
+    return g
+
+
 def gen_weed(v):
     g = Pix(16, 16)
     if v == 0:
@@ -1817,6 +1854,8 @@ GENERATORS = {
     "rock1": lambda: gen_rock(1),
     "weed0": lambda: gen_weed(0),
     "weed1": lambda: gen_weed(1),
+    "tallGrass0": lambda: gen_tall_grass(0),
+    "tallGrass1": lambda: gen_tall_grass(1),
     "fenceH": gen_fence_h,
     "fenceL": gen_fence_l,
     "fenceR": gen_fence_r,
@@ -1900,6 +1939,8 @@ def builtin_sprites():
         {"id": "rock1", "file": "props/rock1.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "weed0", "file": "props/weed0.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "weed1", "file": "props/weed1.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
+        {"id": "tallGrass0", "file": "props/tallGrass0.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
+        {"id": "tallGrass1", "file": "props/tallGrass1.png", "w": 16, "h": 24, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -8, "generated": True},
         {"id": "fenceH", "file": "props/fenceH.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "fenceL", "file": "props/fenceL.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "fenceR", "file": "props/fenceR.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
