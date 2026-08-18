@@ -2294,6 +2294,10 @@
     return p && (p.kind === "tree" || p.kind === "rock");
   }
 
+  function isSoftStrike(p) {
+    return p && (p.kind === "tallGrass" || p.kind === "weed" || p.kind === "townFlower" || p.kind === "crop");
+  }
+
   function isSliceable(p) {
     return p && (p.kind === "tallGrass" || p.kind === "weed");
   }
@@ -2529,7 +2533,7 @@
       doFightHit();
       return;
     }
-    if (!h || !isHarvestable(h.prop)) {
+    if (!h || !(isHarvestable(h.prop) || isSoftStrike(h.prop))) {
       cancelHit();
       return;
     }
@@ -2542,8 +2546,9 @@
     spawnSparks(cx, cy);
     h.left -= 1;
     if (h.left <= 0) {
-      spendEnergy(ENERGY_HIT);
-      finishHarvest(prop);
+      if (isHarvestable(prop) || isSliceable(prop)) spendEnergy(ENERGY_HIT);
+      if (isSoftStrike(prop)) finishSoftStrike(prop);
+      else finishHarvest(prop);
       cancelHit();
     } else if (faintFx) {
       cancelHit();
@@ -2555,6 +2560,7 @@
   function harvestHitsFor(prop) {
     if (prop && prop.kind === "tree" && axeOwned) return 1;
     if (prop && prop.kind === "rock" && pickaxeOwned) return 1;
+    if (isSoftStrike(prop)) return 1;
     return HIT_COUNT;
   }
 
@@ -2565,7 +2571,12 @@
   }
 
   function beginHit(prop) {
-    if (!isHarvestable(prop)) return;
+    if (!isHarvestable(prop) && !isSoftStrike(prop)) return;
+    if (prop.kind === "townFlower" && bagRoom("flower") < 1) {
+      showLineNote("BAG FULL. USE THE CHEST.");
+      return;
+    }
+    if (prop.kind === "crop" && !cropIsReady(crops[prop.tx + "," + prop.ty])) return;
     player.path = [];
     player.queuedWalk = null;
     player.moving = false;
@@ -2574,6 +2585,12 @@
     faceToward(player, prop.tx, prop.ty);
     player.hitting = { prop: prop, left: harvestHitsFor(prop), wait: 0 };
     doHit();
+  }
+
+  function finishSoftStrike(prop) {
+    if (isSliceable(prop)) sliceGrass(prop);
+    else if (prop.kind === "townFlower") pickPlant(prop);
+    else if (prop.kind === "crop") harvestCropAt(prop.tx, prop.ty);
   }
 
   function rememberHarvest(prop, kind, state) {
@@ -2631,7 +2648,6 @@
     if (!isSliceable(prop)) return false;
     i = PROPS.indexOf(prop);
     if (i >= 0) PROPS.splice(i, 1);
-    spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 8);
     playSfx("slice");
     drop = grassDropKind(prop);
     if (drop) spawnPickup(drop, prop.tx, prop.ty, 1);
@@ -6435,19 +6451,18 @@
       }
     } else if (act.type === "cutGrass") {
       if (act.prop && isSliceable(act.prop) && (isNear(player.tx, player.ty, act.prop.tx, act.prop.ty) || (player.tx === act.prop.tx && player.ty === act.prop.ty))) {
-        faceToward(player, act.prop.tx, act.prop.ty);
-        if (swordOwned) startSwordSwing();
-        else sliceGrass(act.prop);
+        startWalk(player, [], 3.5);
+        beginHit(act.prop);
       }
     } else if (act.type === "pickPlant") {
       if (act.prop && isPickablePlant(act.prop) && (isNear(player.tx, player.ty, act.prop.tx, act.prop.ty) || (player.tx === act.prop.tx && player.ty === act.prop.ty))) {
-        faceToward(player, act.prop.tx, act.prop.ty);
-        pickPlant(act.prop);
+        startWalk(player, [], 3.5);
+        beginHit(act.prop);
       }
     } else if (act.type === "pickCrop") {
       if (isNear(player.tx, player.ty, act.tx, act.ty) || (player.tx === act.tx && player.ty === act.ty)) {
-        harvestCropAt(act.tx, act.ty);
-        faceToward(player, act.tx, act.ty);
+        startWalk(player, [], 3.5);
+        beginHit({ kind: "crop", tx: act.tx, ty: act.ty });
       }
     } else if (act.type === "build") {
       if (isNear(player.tx, player.ty, act.tx, act.ty) || (player.tx === act.tx && player.ty === act.ty)) {
@@ -6599,8 +6614,8 @@
     highlight = { tx: tx, ty: ty };
     if (isNear(player.tx, player.ty, tx, ty) || (player.tx === tx && player.ty === ty)) {
       pending = null;
-      harvestCropAt(tx, ty);
-      faceToward(player, tx, ty);
+      startWalk(player, [], 3.5);
+      beginHit({ kind: "crop", tx: tx, ty: ty });
       return;
     }
     var dest = nearestAdjacent(tx, ty);
@@ -6634,8 +6649,8 @@
     faceToward(player, prop.tx, prop.ty);
     if (isNear(player.tx, player.ty, prop.tx, prop.ty) || (player.tx === prop.tx && player.ty === prop.ty)) {
       pending = null;
-      if (swordOwned) startSwordSwing();
-      else sliceGrass(prop);
+      startWalk(player, [], 3.5);
+      beginHit(prop);
       return;
     }
     var dest = nearestAdjacent(prop.tx, prop.ty);
@@ -6651,7 +6666,8 @@
     highlight = { tx: prop.tx, ty: prop.ty };
     if (isNear(player.tx, player.ty, prop.tx, prop.ty) || (player.tx === prop.tx && player.ty === prop.ty)) {
       pending = null;
-      pickPlant(prop);
+      startWalk(player, [], 3.5);
+      beginHit(prop);
       return;
     }
     var dest = nearestAdjacent(prop.tx, prop.ty);
