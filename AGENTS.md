@@ -11,3 +11,7 @@ Before any graphic work, read `assets/ART.md`.
 - After promote or restore, commit **art only** (inbox and/or shipped PNGs + atlas + manifest). Never sneak an atlas rewrite into a gameplay commit.
 - `assets/preview/` is gitignored. Inbox may be committed so the other harness can see it.
 - Do not run `tools/process-generated.py` without `--all`, and do not run `tools/export-assets.py --regen`.
+
+## Backlog
+
+Playtest issues live in `BACKLOG.md`. Pick from the top. Do not close a row without a live playtest.
