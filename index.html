@@ -4305,7 +4305,7 @@
       openMail();
       return;
     }
-    dest = walkable(box.tx, box.ty) ? { tx: box.tx, ty: box.ty } : nearestAdjacent(box.tx, box.ty);
+    dest = nearestAdjacent(box.tx, box.ty);
     if (!dest) {
       openMail();
       return;
@@ -6230,7 +6230,7 @@
       readNoteNow();
       return;
     }
-    var dest = walkable(note.tx, note.ty) ? { tx: note.tx, ty: note.ty } : nearestAdjacent(note.tx, note.ty);
+    var dest = nearestAdjacent(note.tx, note.ty);
     if (!dest) {
       readNoteNow();
       return;
@@ -6471,7 +6471,7 @@
       faceToward(player, tx, ty);
       return;
     }
-    var dest = walkable(tx, ty) ? { tx: tx, ty: ty } : nearestAdjacent(tx, ty);
+    var dest = nearestAdjacent(tx, ty);
     if (!dest) return;
     var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
@@ -6555,7 +6555,7 @@
       faceToward(player, tx, ty);
       return;
     }
-    var dest = walkable(tx, ty) ? { tx: tx, ty: ty } : nearestAdjacent(tx, ty);
+    var dest = nearestAdjacent(tx, ty);
     if (!dest) return;
     var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
@@ -6590,7 +6590,7 @@
       else sliceGrass(prop);
       return;
     }
-    var dest = walkable(prop.tx, prop.ty) ? { tx: prop.tx, ty: prop.ty } : nearestAdjacent(prop.tx, prop.ty);
+    var dest = nearestAdjacent(prop.tx, prop.ty);
     if (!dest) return;
     var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
@@ -6606,7 +6606,7 @@
       pickPlant(prop);
       return;
     }
-    var dest = walkable(prop.tx, prop.ty) ? { tx: prop.tx, ty: prop.ty } : nearestAdjacent(prop.tx, prop.ty);
+    var dest = nearestAdjacent(prop.tx, prop.ty);
     if (!dest) return;
     var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
@@ -6669,7 +6669,7 @@
       tryDig(tx, ty);
       return;
     }
-    var dest = walkable(tx, ty) ? { tx: tx, ty: ty } : nearestAdjacent(tx, ty);
+    var dest = nearestAdjacent(tx, ty);
     if (!dest) return;
     var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
@@ -8439,7 +8439,7 @@
         tryPlantFlower(tx, ty);
         return;
       }
-      var fdest = walkable(tx, ty) ? { tx: tx, ty: ty } : nearestAdjacent(tx, ty);
+      var fdest = nearestAdjacent(tx, ty);
       if (fdest) {
         pending = { type: "plantFlower", tx: tx, ty: ty };
         startWalk(player, findPath(player.tx, player.ty, fdest.tx, fdest.ty), 3.5);
