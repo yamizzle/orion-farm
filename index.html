@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260818e";
+  var BUILD = "20260818f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -324,6 +324,9 @@
   var ripples = [];
   var sparks = [];
   var pickups = [];
+  var groundLoot = [];
+  var lootSeq = 1;
+  var LOOT_POP_MS = 280;
   var selectedSlot = 0;
   var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0 };
   var slotShake = 0;
@@ -399,7 +402,7 @@
   var pipLanternAt = { tx: 43, ty: 25 };
   var TOWN_GREEN = { x0: 43, y0: 29, x1: 55, y1: 32 };
   var SAVE_KEY = "moondrop-mountain-v1";
-  var SAVE_VER = 2;
+  var SAVE_VER = 3;
   var DAY_MS = 150000;
   var PHASES = ["MORNING", "AFTERNOON", "EVENING", "NIGHT"];
   var PHASE_MS = DAY_MS / PHASES.length;
@@ -2303,7 +2306,7 @@
     var k = tx + "," + ty;
     if (!cropIsReady(crops[k])) return;
     delete crops[k];
-    spawnPickup("veggie", tx, ty, 1);
+    spawnGroundLoot("veggie", tx, ty, 1);
     persistSave();
   }
 
@@ -2467,6 +2470,182 @@
       age: 0,
       life: 420
     });
+  }
+
+  function lootKindOk(kind) {
+    return kind === "wood" || kind === "stone" || kind === "pebble" || kind === "veggie" ||
+      kind === "flower" || kind === "gold" || kind === "goldPile" || kind === "iron" ||
+      kind === "copper" || kind === "mushroom" || kind === "sapphire" || kind === "gem" ||
+      kind === "mooncrystal" ? kind : "";
+  }
+
+  function lootIsCash(kind) {
+    return kind === "gold" || kind === "sapphire" || kind === "gem" ||
+      kind === "mooncrystal" || kind === "goldPile";
+  }
+
+  function pickupSprite(kind) {
+    if (kind === "wood") return "wood";
+    if (kind === "stone") return "stoneItem";
+    if (kind === "gold") return "goldCoin";
+    if (kind === "goldPile") return "goldPile";
+    if (kind === "flower") return "townFlower";
+    return kind;
+  }
+
+  function lootScene() {
+    return liveHarvestScene();
+  }
+
+  function lootAtTile(tx, ty, scene) {
+    var i, list = [];
+    scene = scene || lootScene();
+    for (i = 0; i < groundLoot.length; i++) {
+      if (groundLoot[i].scene === scene && groundLoot[i].tx === tx && groundLoot[i].ty === ty) {
+        list.push(groundLoot[i]);
+      }
+    }
+    return list;
+  }
+
+  function findLootPile(kind, tx, ty, scene) {
+    var i;
+    scene = scene || lootScene();
+    for (i = 0; i < groundLoot.length; i++) {
+      if (groundLoot[i].scene === scene && groundLoot[i].kind === kind &&
+          groundLoot[i].tx === tx && groundLoot[i].ty === ty) {
+        return groundLoot[i];
+      }
+    }
+    return null;
+  }
+
+  function shuffleDirs4() {
+    var dirs = [[0, 1], [0, -1], [-1, 0], [1, 0]];
+    var i, j, tmp;
+    for (i = 3; i > 0; i--) {
+      j = (Math.random() * (i + 1)) | 0;
+      tmp = dirs[i];
+      dirs[i] = dirs[j];
+      dirs[j] = tmp;
+    }
+    return dirs;
+  }
+
+  function chooseLootTile(fromTx, fromTy, kind) {
+    var dirs, i, nx, ny, pile;
+    pile = findLootPile(kind, fromTx, fromTy);
+    if (pile) return { tx: fromTx, ty: fromTy };
+    dirs = shuffleDirs4();
+    for (i = 0; i < dirs.length; i++) {
+      nx = fromTx + dirs[i][0];
+      ny = fromTy + dirs[i][1];
+      if (walkable(nx, ny) && findLootPile(kind, nx, ny)) return { tx: nx, ty: ny };
+    }
+    for (i = 0; i < dirs.length; i++) {
+      nx = fromTx + dirs[i][0];
+      ny = fromTy + dirs[i][1];
+      if (walkable(nx, ny) && !(nx === player.tx && ny === player.ty)) return { tx: nx, ty: ny };
+    }
+    for (i = 0; i < dirs.length; i++) {
+      nx = fromTx + dirs[i][0];
+      ny = fromTy + dirs[i][1];
+      if (walkable(nx, ny)) return { tx: nx, ty: ny };
+    }
+    if (walkable(fromTx, fromTy)) return { tx: fromTx, ty: fromTy };
+    return { tx: fromTx, ty: fromTy };
+  }
+
+  function spawnGroundLoot(kind, fromTx, fromTy, amount) {
+    var dest, pile;
+    amount = amount | 0;
+    if (!lootKindOk(kind) || amount <= 0) return;
+    dest = chooseLootTile(fromTx, fromTy, kind);
+    pile = findLootPile(kind, dest.tx, dest.ty);
+    if (pile) {
+      pile.amount += amount;
+      persistSave();
+      return;
+    }
+    groundLoot.push({
+      id: lootSeq++,
+      scene: lootScene(),
+      kind: kind,
+      amount: amount,
+      tx: dest.tx,
+      ty: dest.ty,
+      x: fromTx * TILE + 8,
+      y: fromTy * TILE + 4,
+      sx: fromTx * TILE + 8,
+      sy: fromTy * TILE + 4,
+      popAge: 0
+    });
+    persistSave();
+  }
+
+  function lootTakeRoom(kind) {
+    var key;
+    if (lootIsCash(kind)) return 999;
+    key = stackKey(kind);
+    if (!key) return 0;
+    return bagRoom(key);
+  }
+
+  function collectLootPile(pile) {
+    var take, room, i;
+    if (!pile || pile.amount <= 0) return 0;
+    room = lootTakeRoom(pile.kind);
+    take = pile.amount < room ? pile.amount : room;
+    if (take <= 0) return 0;
+    pile.amount -= take;
+    if (pile.amount <= 0) {
+      i = groundLoot.indexOf(pile);
+      if (i >= 0) groundLoot.splice(i, 1);
+    }
+    persistSave();
+    spawnPickup(pile.kind, pile.tx, pile.ty, take);
+    spawnSparks(pile.tx * TILE + 8, pile.ty * TILE + 6);
+    return take;
+  }
+
+  function collectLootAt(tx, ty) {
+    var piles, i, took, any;
+    piles = lootAtTile(tx, ty).slice();
+    if (!piles.length) return false;
+    any = false;
+    for (i = 0; i < piles.length; i++) {
+      took = collectLootPile(piles[i]);
+      if (took > 0) any = true;
+    }
+    if (!any) showLineNote("BAG FULL. USE THE CHEST.");
+    return any;
+  }
+
+  function goCollectLootAt(tx, ty) {
+    var dest, path;
+    if (!lootAtTile(tx, ty).length) return;
+    highlight = { tx: tx, ty: ty };
+    if (player.tx === tx && player.ty === ty || isNear(player.tx, player.ty, tx, ty)) {
+      pending = null;
+      collectLootAt(tx, ty);
+      return;
+    }
+    if (walkable(tx, ty)) {
+      path = findPath(player.tx, player.ty, tx, ty);
+      if (!path.length) {
+        collectLootAt(tx, ty);
+        return;
+      }
+      pending = { type: "loot", tx: tx, ty: ty };
+      startWalk(player, path, 3.5);
+      return;
+    }
+    dest = nearestAdjacent(tx, ty);
+    if (!dest) return;
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) return;
+    pending = { type: "loot", tx: tx, ty: ty };
+    startWalk(player, path, 3.5);
   }
 
   function stackKey(kind) {
@@ -2670,10 +2849,6 @@
 
   function beginHit(prop) {
     if (!isHarvestable(prop) && !isSoftStrike(prop)) return;
-    if (prop.kind === "townFlower" && bagRoom("flower") < 1) {
-      showLineNote("BAG FULL. USE THE CHEST.");
-      return;
-    }
     if (prop.kind === "crop" && !cropIsReady(crops[prop.tx + "," + prop.ty])) return;
     if (player.swing > 0) return;
     player.path = [];
@@ -2710,17 +2885,17 @@
       prop.kind = "stump";
       prop.shake = 0;
       buildSolid();
-      spawnPickup("wood", prop.tx, prop.ty, harvestDropFor(prop));
+      spawnGroundLoot("wood", prop.tx, prop.ty, harvestDropFor(prop));
       rememberHarvest(prop, "tree", "stump");
     } else if (prop.kind === "rock") {
       var i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
       buildSolid();
-      spawnPickup("stone", prop.tx, prop.ty, harvestDropFor(prop));
+      spawnGroundLoot("stone", prop.tx, prop.ty, harvestDropFor(prop));
       if (currentScene === "mine" && mineFloor >= 5 && Math.random() < 0.45) {
-        spawnPickup("iron", prop.tx, prop.ty, 1);
+        spawnGroundLoot("iron", prop.tx, prop.ty, 1);
       } else if (currentScene === "mine" && mineFloor === 4 && Math.random() < 0.22) {
-        spawnPickup("iron", prop.tx, prop.ty, 1);
+        spawnGroundLoot("iron", prop.tx, prop.ty, 1);
       }
       rememberHarvest(prop, "rock", "gone");
       if (currentScene === "mine") unlockAch("stoneTap");
@@ -2748,7 +2923,7 @@
     if (i >= 0) PROPS.splice(i, 1);
     playSfx("slice");
     drop = grassDropKind(prop);
-    if (drop) spawnPickup(drop, prop.tx, prop.ty, 1);
+    if (drop) spawnGroundLoot(drop, prop.tx, prop.ty, 1);
     if (prop.kind === "tallGrass" && prop.regrow !== false) {
       rememberHarvest(prop, "tallGrass", "gone");
     }
@@ -2759,10 +2934,6 @@
   function pickPlant(prop) {
     var i, j;
     if (!isPickablePlant(prop)) return false;
-    if (bagRoom("flower") < 1) {
-      showLineNote("BAG FULL. USE THE CHEST.");
-      return false;
-    }
     i = PROPS.indexOf(prop);
     if (i >= 0) PROPS.splice(i, 1);
     for (j = builds.length - 1; j >= 0; j--) {
@@ -2771,8 +2942,7 @@
       }
     }
     if (!lilaDone) lilaFlowers = countGreenFlowers();
-    spawnPickup("flower", prop.tx, prop.ty, 1);
-    playSfx("pickup");
+    spawnGroundLoot("flower", prop.tx, prop.ty, 1);
     persistSave();
     return true;
   }
@@ -2813,6 +2983,21 @@
       destY = player.y - 10;
       pk.x = pk.sx + (destX - pk.sx) * t;
       pk.y = pk.sy + (destY - pk.sy) * t - Math.sin(t * Math.PI) * 12;
+    }
+  }
+
+  function updateGroundLoot(dt) {
+    var i, L, t, destX, destY;
+    for (i = 0; i < groundLoot.length; i++) {
+      L = groundLoot[i];
+      if (L.popAge >= LOOT_POP_MS) continue;
+      L.popAge += dt;
+      if (L.popAge > LOOT_POP_MS) L.popAge = LOOT_POP_MS;
+      t = L.popAge / LOOT_POP_MS;
+      destX = L.tx * TILE + 8;
+      destY = L.ty * TILE + 4;
+      L.x = L.sx + (destX - L.sx) * t;
+      L.y = L.sy + (destY - L.sy) * t - Math.sin(t * Math.PI) * 10;
     }
   }
 
@@ -3148,6 +3333,7 @@
           };
         }
       }
+      loadLoot(data.loot);
       builds = [];
       if (data.builds && typeof data.builds === "object") {
         var src = Array.isArray(data.builds) ? data.builds : [];
@@ -3221,6 +3407,51 @@
     return out;
   }
 
+  function serializeLoot() {
+    var out = [];
+    var i, L;
+    for (i = 0; i < groundLoot.length; i++) {
+      L = groundLoot[i];
+      if (!L || !lootKindOk(L.kind) || !L.amount) continue;
+      out.push({
+        scene: L.scene,
+        kind: L.kind,
+        amount: L.amount | 0,
+        tx: L.tx | 0,
+        ty: L.ty | 0
+      });
+    }
+    return out;
+  }
+
+  function loadLoot(list) {
+    var i, L, kind, scene, tx, ty;
+    groundLoot = [];
+    if (!list || !list.length) return;
+    for (i = 0; i < list.length; i++) {
+      L = list[i];
+      if (!L || typeof L !== "object") continue;
+      kind = lootKindOk(L.kind);
+      if (!kind) continue;
+      scene = typeof L.scene === "string" && L.scene ? L.scene : "overworld";
+      tx = L.tx | 0;
+      ty = L.ty | 0;
+      groundLoot.push({
+        id: lootSeq++,
+        scene: scene,
+        kind: kind,
+        amount: clampCount(L.amount) || 1,
+        tx: tx,
+        ty: ty,
+        x: tx * TILE + 8,
+        y: ty * TILE + 4,
+        sx: tx * TILE + 8,
+        sy: ty * TILE + 4,
+        popAge: LOOT_POP_MS
+      });
+    }
+  }
+
   function persistSave() {
     if (loadingSave || persistSave.busy) return;
     persistSave.busy = true;
@@ -3290,6 +3521,7 @@
         extraPlots: extraPlots | 0,
         crops: crops,
         nodes: serializeNodes(),
+        loot: serializeLoot(),
         scene: currentScene,
         player: { tx: player.tx | 0, ty: player.ty | 0, face: player.face || "down" },
         builds: builds
@@ -4536,6 +4768,9 @@
     inventory.mushroom = 0;
     for (i = pickups.length - 1; i >= 0; i--) {
       if (pickups[i].kind === "mushroom") pickups.splice(i, 1);
+    }
+    for (i = groundLoot.length - 1; i >= 0; i--) {
+      if (groundLoot[i].kind === "mushroom") groundLoot.splice(i, 1);
     }
     quest.flowerAsked = true;
     quest.flowerDone = true;
@@ -6014,27 +6249,27 @@
     if (roll < tNothing) return;
     if (roll < tJunk) {
       j = Math.random();
-      if (j < 0.34) spawnPickup("pebble", mon.tx, mon.ty, 1);
-      else if (j < 0.67) spawnPickup("stone", mon.tx, mon.ty, 1);
-      else spawnPickup("gold", mon.tx, mon.ty, 1);
+      if (j < 0.34) spawnGroundLoot("pebble", mon.tx, mon.ty, 1);
+      else if (j < 0.67) spawnGroundLoot("stone", mon.tx, mon.ty, 1);
+      else spawnGroundLoot("gold", mon.tx, mon.ty, 1);
       return;
     }
     if (roll < tUseful) {
       u = Math.random();
-      if (u < (deep ? 0.50 : 0.18)) spawnPickup("iron", mon.tx, mon.ty, 1);
-      else if (u < (deep ? 0.80 : 0.62)) spawnPickup("copper", mon.tx, mon.ty, 1);
-      else spawnPickup("mushroom", mon.tx, mon.ty, 1);
+      if (u < (deep ? 0.50 : 0.18)) spawnGroundLoot("iron", mon.tx, mon.ty, 1);
+      else if (u < (deep ? 0.80 : 0.62)) spawnGroundLoot("copper", mon.tx, mon.ty, 1);
+      else spawnGroundLoot("mushroom", mon.tx, mon.ty, 1);
       return;
     }
     v = Math.random();
     goldAmt = 5 + ((Math.random() * 4) | 0);
     if (deep) {
-      if (v < 0.40) spawnPickup("sapphire", mon.tx, mon.ty, 20);
-      else spawnPickup("gold", mon.tx, mon.ty, goldAmt);
+      if (v < 0.40) spawnGroundLoot("sapphire", mon.tx, mon.ty, 20);
+      else spawnGroundLoot("gold", mon.tx, mon.ty, goldAmt);
     } else if (v < 0.35) {
-      spawnPickup("gem", mon.tx, mon.ty, 8);
+      spawnGroundLoot("gem", mon.tx, mon.ty, 8);
     } else {
-      spawnPickup("gold", mon.tx, mon.ty, goldAmt);
+      spawnGroundLoot("gold", mon.tx, mon.ty, goldAmt);
     }
   }
 
@@ -6393,9 +6628,10 @@
       p = PROPS[i];
       if (isCollectible(p) && p.tx === player.tx && p.ty === player.ty) {
         pickupCollectible(p);
-        return;
+        break;
       }
     }
+    if (lootAtTile(player.tx, player.ty).length) collectLootAt(player.tx, player.ty);
   }
 
   function goCollect(prop) {
@@ -6572,6 +6808,10 @@
     } else if (act.type === "collect") {
       if (isCollectible(act.prop) && (player.tx === act.prop.tx && player.ty === act.prop.ty || isNear(player.tx, player.ty, act.prop.tx, act.prop.ty))) {
         pickupCollectible(act.prop);
+      }
+    } else if (act.type === "loot") {
+      if (player.tx === act.tx && player.ty === act.ty || isNear(player.tx, player.ty, act.tx, act.ty)) {
+        collectLootAt(act.tx, act.ty);
       }
     } else if (act.type === "enter") {
       enterMine();
@@ -7562,16 +7802,17 @@
   }
 
   function drawPickups(g) {
-    var i, pk, id;
+    var i, pk, L, bob, scene;
+    scene = lootScene();
+    for (i = 0; i < groundLoot.length; i++) {
+      L = groundLoot[i];
+      if (L.scene !== scene) continue;
+      bob = L.popAge >= LOOT_POP_MS ? Math.round(Math.sin(tick / 280) * 1) : 0;
+      Assets.draw(g, pickupSprite(L.kind), Math.round(L.x - 8), Math.round(L.y - 8 + bob));
+    }
     for (i = 0; i < pickups.length; i++) {
       pk = pickups[i];
-      if (pk.kind === "wood") id = "wood";
-      else if (pk.kind === "stone") id = "stoneItem";
-      else if (pk.kind === "gold") id = "goldCoin";
-      else if (pk.kind === "goldPile") id = "goldPile";
-      else if (pk.kind === "flower") id = "townFlower";
-      else id = pk.kind;
-      Assets.draw(g, id, Math.round(pk.x - 8), Math.round(pk.y - 8));
+      Assets.draw(g, pickupSprite(pk.kind), Math.round(pk.x - 8), Math.round(pk.y - 8));
     }
   }
 
@@ -8653,6 +8894,10 @@
       goCollect(hitProp);
       return;
     }
+    if (inBounds(tx, ty) && lootAtTile(tx, ty).length) {
+      goCollectLootAt(tx, ty);
+      return;
+    }
     if (hitProp && hitProp.kind === "swordPedestal") {
       goTakeSword(hitProp);
       return;
@@ -8760,6 +9005,7 @@
       updateMonsters(dt);
       if (iFrames > 0) iFrames -= dt;
       updatePickups(dt);
+      updateGroundLoot(dt);
       updateFx(dt);
       tick += dt;
     }
