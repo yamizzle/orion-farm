@@ -235,16 +235,54 @@ def load_palette():
 # --- tiles (16x16, slight 3/4 south lip) ------------------------------------
 
 def gen_grass(v):
-    """One mid-green turf. Tufts all lean the same way. No checkerboard lip."""
     g = Pix(16, 16)
     g.fill(0, 0, 16, 16, C["grassMid"])
-    blades = [(3, 4), (8, 3), (12, 7), (5, 10), (11, 12)]
-    extra = {0: [], 1: [(14, 5)], 2: [(1, 8)], 3: [(7, 13)]}
-    for bx, by in blades + extra.get(v, []):
-        g.px(bx, by, C["grassHi"])
-        g.px(bx, by + 1, C["grassSh"])
+    for i in range(22):
+        r = hash01(v, i, 11)
+        x = int(hash01(v, i, 3) * 16)
+        y = int(hash01(v, i, 7) * 14)
+        if r < 0.38:
+            g.px(x, y, C["grassHi"])
+        elif r < 0.62:
+            g.px(x, y, C["grassSh"])
+        elif r < 0.72:
+            g.px(x, y, C["grassDp"])
+    blades = [(2, 4), (7, 2), (12, 6), (4, 10), (10, 12), (14, 3), (1, 12), (8, 8)]
+    for i, (bx, by) in enumerate(blades):
+        if hash01(v, i, 21) < 0.55 + v * 0.08:
+            x = (bx + v) & 15
+            y = by
+            g.px(x, y, C["grassHi"])
+            g.px(x, y + 1, C["grassSh"])
+
+    def tuft(x, y):
+        g.px(x, y, C["grassHi"])
+        g.px(x + 1, y, C["grassMid"])
+        g.px(x, y + 1, C["grassSh"])
+        g.px(x - 1, y + 1, C["grassSh"])
+        g.px(x + 1, y + 1, C["grassDp"])
+
+    if v == 0:
+        tuft(3, 3)
+        tuft(11, 9)
+    elif v == 1:
+        tuft(6, 5)
+        tuft(12, 11)
+        g.px(5, 6, C["flower"])
+        g.px(13, 10, C["blossom"])
+    elif v == 2:
+        tuft(2, 10)
+        tuft(9, 2)
+    else:
+        tuft(8, 8)
+        tuft(14, 4)
+        g.px(9, 4, C["flower"])
+    # 3/4 lip: north catch-light, south shade so the grid has depth
     for x in range(16):
-        g.px(x, 15, C["grassSh"])
+        if hash01(v, x, 90) < 0.35:
+            g.px(x, 0, C["grassHi"])
+        g.px(x, 14, C["grassSh"] if (x + v) % 3 else C["grassMid"])
+        g.px(x, 15, C["grassDp"] if (x + v) % 2 else C["grassSh"])
     return g
 
 
