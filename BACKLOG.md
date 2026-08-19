@@ -2,31 +2,36 @@
 
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
-Captured **2026-08-17 evening** and **2026-08-18 2am PT**. Latest `main` may already have started some of these (trees are supposed to take three hits, Start over asks to confirm, the shop still has Buy/Sell in code). Treat the table as *what a player felt*, then verify.
+Last live pass: **2026-08-19 2am PT** (also 2026-08-17 evening, 2026-08-18 2am). Treat the table as *what a player felt*.
 
-Highest-leverage theme: make chop, smash, and the sword *feel* like they hit, then make sure Orion can get to his bed.
+Highest-leverage theme: make chop, smash, and the sword *feel* like they hit.
 
 | Pri | Status | Issue | Where | Notes |
 | --- | --- | --- | --- | --- |
-| Critical | Open | Sword never lands; no swing, hit flash, or death | Mine | 2am: enemies now chase and chew hearts with no flash or sound. Combat is one-sided. |
-| Critical | Open | No heal path; farmhouse door opened the shop | House / shop | Soft-lock at 1 heart. Bed was unreachable in both playtests. |
-| Critical | Open | Day clock races (morning to night in seconds) | Everywhere | README says ~2.5 min/day. Playtests felt much faster. |
-| High | Open | Chop and smash have no juice; one tap and the thing vanishes | Farm | README says three hits. Playtests felt like one tap, no shake or chips. |
-| High | Open | START OVER sits in the Jobs book | Jobs | Easy for Orion to tap. Confirm dialog exists; still too close to the job list. |
-| High | Open | “Say hi to Junie” never completes | Town | Walk-through, no talk. Later pass: tap-talk works on others; Junie job still failed. |
-| High | Verify | Shop Buy/Sell broken or missing | Shop | Evening: silent no-op at 0G. 2am: buttons gone. Code on `main` still draws BUY / SELL. |
-| High | Open | Stone selected steals taps / can dump a rock on the wrong tile | Farm roads | Not reproduced on the 2am pass. |
-| Medium | Partial | Night wash too blue; some people stay daylit | Farm / town | 2am: lamps and most NPC tint better; one villager still daylit; mountain night is a different teal. |
-| Medium | Open | Mine looks like a flat tan room | Mine | Still bright and even at night. |
+| Critical | Open | Sword never lands; swing button is silent | Mine / HUD | 8/19: Cave Sword exists and equips; the round swing button never shows an arc or hit. Enemies still chew hearts with no flash. |
+| Critical | Done 8/19 | Farmhouse door opened the shop; bed unreachable | House | 8/19: door opens Home, bed sleeps, hearts refill. |
+| Critical | Worse | Day clock races | Everywhere | 8/19: Morning→Night in ~15s each; Day 1→8 in ~12 min. One bed tap skipped Day 6→8. |
+| High | Open | Orion vanishes under tree canopies | Farm / forest | 8/19 new. Drawn under the crown; easy to lose him. |
+| High | Partial | Chop and smash have no juice | Farm | 8/19: rocks take multiple taps (better). Still no shake, chips, or sound. |
+| High | Open | START OVER sits in the Jobs book | Jobs | Still the biggest button. Confirm exists. |
+| High | Done 8/19 | “Say hi to Junie” never completes | Town | 8/19: job advanced to bring Junie a mushroom. |
+| High | Open | Moon shard never shows in the bag | Mine / hotbar | 8/19 new. Star fires (“FOUND A SHARD”) but the moon slot stays 0. All hotbar counts stayed 0. |
+| High | Open | Shop / economy not reachable; gold stuck at 0G | Town | 8/19: no shop door found; stall by the house is scenery. Can’t check Buy/Sell. |
+| High | Open | Star popup covers an open dialog | Mine / house | 8/19 new. “A STAR!” hides NIM'S NOTE / ORION text. |
+| High | Open | Stone selected steals taps / wrong tile | Farm roads | Not reproduced 8/18 2am. |
+| Medium | Open | Sword button is a permanent overlay on the world | HUD | 8/19 new. Blocks the bottom-right on every map. |
+| Medium | Partial | Night wash too blue; some people stay daylit | Farm / town | Lamps better; chicken / some NPCs still daylit. |
+| Medium | Open | Mine looks like a flat tan room | Mine | Still bright; only a global night tint. |
 | Medium | Open | Stars list clips, names only | Stars | No kid-language hint, no paging. |
-| Medium | Open | Header swaps season for place (“NIGHT · SHOP”) | Interiors | Lose the when/where anchor. |
+| Medium | Open | Header swaps season for place (“NIGHT · MINE 1”) | Interiors | Still. |
 | Low | Open | HUD overlap; FX / MU / FS labels | HUD | Cryptic for a 7-year-old. |
-| Low | Open | Player hides behind the hotbar at the bottom of the map | Camera | New on the 2am pass. |
-| Low | Open | Taps hit the facing tile, not the thing you tapped | Town | Fountain opened instead of the girl. |
+| Low | Open | Player hides behind the hotbar | Camera | Still. |
+| Low | Open | Taps in the top HUD band are swallowed | HUD | 8/19 new. Can’t walk north by tapping the top of the screen. |
+| Low | Open | Taps hit the facing tile, not the thing you tapped | Town | Fountain vs girl. First bed tap from across the room walked to the door. |
 
 ## Strengths to keep
 
-Warm wooden HUD, lamp pools at night, tap + WASD, walk-behind trees, fullscreen.
+Warm wooden HUD, lamp pools at night, tap + WASD, house interior and bed, Junie talk, fullscreen.
 
 ## How to use this
 
