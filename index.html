@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260818j";
+  var BUILD = "20260819a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -5282,7 +5282,7 @@
     var w = 280, h = 158;
     var x = ((VIEW_W - w) / 2) | 0;
     var y = 14;
-    return { x: x, y: y, w: w, h: h, listY: y + 22, rowH: 16, buyX: x + 16, buyY: y + 132, buyW: 44, sellX: x + 70, sellW: 88, byeX: x + 220, byeW: 40, btnH: 14 };
+    return { x: x, y: y, w: w, h: h, listY: y + 22, rowH: 16, buyX: x + 16, buyY: y + 132, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14 };
   }
 
   function buyShopItem(item) {
@@ -5358,17 +5358,6 @@
     persistSave();
   }
 
-  function shopSellCrop() {
-    if (!hasVeggieToSell()) {
-      shopMsg = "NO CARROT TO SELL.";
-      shopMsgT = 1200;
-      return;
-    }
-    sellVeggie();
-    shopMsg = "SOLD FOR " + CROP_PRICE + "G.";
-    shopMsgT = 1400;
-  }
-
   function tapShop(p) {
     var L = shopLayout();
     var i, rowY;
@@ -5378,10 +5367,6 @@
     }
     if (hitPad(p.x, p.y, L.buyX, L.buyY, L.buyW, L.btnH, 6)) {
       buyShopItem(SHOP_ITEMS[shopSel]);
-      return true;
-    }
-    if (hitPad(p.x, p.y, L.sellX, L.buyY, L.sellW, L.btnH, 6)) {
-      shopSellCrop();
       return true;
     }
     for (i = 0; i < SHOP_ITEMS.length; i++) {
@@ -5422,8 +5407,6 @@
     }
     woodPanel(g, L.buyX, L.buyY, L.buyW, L.btnH);
     drawText(g, "BUY", L.buyX + ((L.buyW - textWidth("BUY")) / 2) | 0, L.buyY + 3, C.parch);
-    woodPanel(g, L.sellX, L.buyY, L.sellW, L.btnH);
-    drawText(g, "SELL 10G", L.sellX + ((L.sellW - textWidth("SELL 10G")) / 2) | 0, L.buyY + 3, C.parch);
     woodPanel(g, L.byeX, L.buyY, L.byeW, L.btnH);
     drawText(g, "BYE", L.byeX + ((L.byeW - textWidth("BYE")) / 2) | 0, L.buyY + 3, C.parch);
     if (shopMsg && shopMsgT > 0) {
