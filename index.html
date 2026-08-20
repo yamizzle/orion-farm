@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260819a";
+  var BUILD = "20260820a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -493,6 +493,7 @@
     { id: "bow", name: "BOW", wood: 8, stone: 1, icon: "bow", made: "YOU MADE A BOW!" }
   ];
   var iFrames = 0;
+  var hurtFlash = 0;
   var faintFx = null;
   var monsters = [];
   var monsterCache = { 1: null, 2: null, 3: null, 4: null, 5: null, 6: null };
@@ -4339,7 +4340,7 @@
   }
 
   function timePaused() {
-    return !!(uiPaused() || document.hidden);
+    return !!(uiPaused() || document.hidden || currentScene !== "overworld");
   }
 
   function updateClock(dt) {
@@ -5572,9 +5573,13 @@
     }
   }
 
+  function showStrikeBtn() {
+    return hasActionTool() || currentScene === "mine";
+  }
+
   function hitSwordBtn(p) {
     var b, pad, cx, cy, dx, dy;
-    if (!hasActionTool()) return false;
+    if (!showStrikeBtn()) return false;
     b = swordBtnRect();
     pad = 4;
     cx = b.x + b.s * 0.5;
@@ -5640,6 +5645,15 @@
     return false;
   }
 
+  function swingReachHits(m) {
+    var dx, dy, reach;
+    if (!m) return false;
+    dx = m.x - player.x;
+    dy = m.y - player.y;
+    reach = 26 + (m.scale > 1.2 ? 10 : 0);
+    return (dx * dx + dy * dy) <= reach * reach;
+  }
+
   function applySwingHits() {
     var origin = entityTile(player);
     var tiles = swingArcTiles();
@@ -5659,7 +5673,7 @@
         t = tiles[j];
         if (monsterOccupies(m, t.tx, t.ty)) { hit = true; break; }
       }
-      if (hit) targets.push(m);
+      if (hit || swingReachHits(m)) targets.push(m);
     }
     for (i = 0; i < targets.length; i++) hitMonsterOnce(targets[i]);
     var cut = 0, p, seen = {};
@@ -5674,6 +5688,10 @@
       if (sliceGrass(p)) cut += 1;
     }
     if (targets.length || cut) spendEnergy(ENERGY_SWING);
+    else {
+      t = facingTile();
+      spawnSparks(t.tx * TILE + 8, t.ty * TILE + 6);
+    }
   }
 
   function updateSwordArc(dt) {
@@ -5687,7 +5705,8 @@
   }
 
   function startSwordSwing() {
-    if (!hasActionTool() || uiPaused() || faintFx) return false;
+    var t;
+    if (uiPaused() || faintFx) return false;
     if (player.arc > 0 || arrowBusy()) return false;
     player.path = [];
     player.queuedWalk = null;
@@ -5695,6 +5714,14 @@
     player.stepT = 0;
     player.frame = 0;
     cancelHit();
+    if (!swordOwned && !bowOwned) {
+      t = facingTile();
+      spawnSparks(t.tx * TILE + 8, t.ty * TILE + 6);
+      showLineNote("GET THE CAVE SWORD.");
+      playSfx("swing");
+      player.swing = 180;
+      return true;
+    }
     if (currentScene !== "overworld" && bowOwned && !(swordOwned && adjacentFoe())) return shootArrow();
     if (!swordOwned) return false;
     player.arc = SWING_MS;
@@ -5936,6 +5963,8 @@
     hp -= amt | 0;
     if (hp < 0) hp = 0;
     iFrames = 800;
+    hurtFlash = 420;
+    playSfx("hit");
     persistSave();
     if (hp <= 0) beginFaint();
   }
@@ -6223,6 +6252,10 @@
     player.stepT = 0;
     player.frame = 0;
     faceToward(player, mon.tx, mon.ty);
+    if (swordOwned && currentScene === "mine") {
+      startSwordSwing();
+      return;
+    }
     if (swordOwned && !toolEquipped("axe") && !toolEquipped("pick") && !toolEquipped("shovel")) {
       startSwordSwing();
       return;
@@ -7132,6 +7165,10 @@
       if (hatOn) {
         Assets.draw(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 34 + bob + sy));
       }
+    }
+    if (hurtFlash > 0) {
+      g.fillStyle = "rgba(232,72,72," + (0.25 + 0.35 * (hurtFlash / 420)).toFixed(3) + ")";
+      g.fillRect(Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy), 16, 32);
     }
     if (player.arc > 0 && swordOwned && player.face !== "up") {
       drawSwordArc(g, sx, sy, bob);
@@ -8070,7 +8107,7 @@
 
   function drawSwordBtn(g) {
     var b, cx, cy, r, pressed;
-    if (!hasActionTool()) return;
+    if (!showStrikeBtn()) return;
     b = swordBtnRect();
     cx = b.x + (b.s >> 1);
     cy = b.y + (b.s >> 1);
@@ -8981,6 +9018,10 @@
       updateCar(dt);
       updateMonsters(dt);
       if (iFrames > 0) iFrames -= dt;
+      if (hurtFlash > 0) {
+        hurtFlash -= dt;
+        if (hurtFlash < 0) hurtFlash = 0;
+      }
       updatePickups(dt);
       updateGroundLoot(dt);
       updateFx(dt);

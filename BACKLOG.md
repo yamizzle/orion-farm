@@ -8,9 +8,9 @@ Highest-leverage theme: make chop, smash, and the sword *feel* like they hit.
 
 | Pri | Status | Issue | Where | Notes |
 | --- | --- | --- | --- | --- |
-| Critical | Open | Sword never lands; swing button is silent | Mine / HUD | 8/20: slime chewed 5→3 hearts in ~10s, no flash. Sword never landed from any facing. |
+| Critical | Verify | Sword never lands; swing button is silent | Mine / HUD | 8/20 felt silent, no flash. Fix on `main` 8/20: swing button in the mine always; nearby slimes take a reach hit; misses spark; bump flashes red and plays hit. Needs a live playtest. |
 | Critical | Done 8/19 | Farmhouse door opened the shop; bed unreachable | House | Still good 8/20: sleep 362 afternoon → 363 morning, exactly +1 day. |
-| Critical | Worse | Day clock races | Everywhere | 8/20: ~15s/phase; Day 359→367 in ~13 min. Time seemed to stall while indoors (stayed MORNING). |
+| Critical | Verify | Day clock races | Everywhere | 8/20: ~15s/phase; days jumped while in the mine. Fix on `main` 8/20: farm clock only runs on the overworld; house, shop, and mine freeze the phase. Needs a live playtest. |
 | High | Open | Orion vanishes under tree canopies | Farm / forest | Still 8/20. |
 | High | Open | Enemies draw on top of the hearts HUD | Mine / HUD | 8/20 new. Slime sat on the health bar. |
 | High | Open | Night can flip to full daylight while the clock says NIGHT | Overworld | 8/20 new. Hard rectangular seam; tint vanished after a camera scroll. |
