@@ -13,9 +13,9 @@ Highest-leverage theme: make tap-to-move, chop/smash, and the sword *feel* like 
 | Critical | Open | Sword never lands; no swing or hitbox | Mine / HUD | 8/21 am: button and Space, no arc/damage. Slug shares the player tile, no contact hit. |
 | Critical | Verify | Farmhouse door / bed | House | 8/21 am: did not enter a bed; town houses knock-only. Shop *is* enterable. Recheck the farmhouse door. |
 | Critical | Worse | Day clock races | Everywhere | 8/21 am: Day 366→369 in ~13 min; ~3–4 min/day; rolls with no sleep. |
-| Critical | Verify | Camera loses Orion south of the hotbar | Farm | 8/21 pm: camera keeps a 36px pad above the hotbar and can pan a little past the south edge. Needs a live walk-south playtest. |
+| Critical | Done 8/21 | Camera loses Orion south of the hotbar | Farm | Live walk-south: Orion stays fully above the hotbar. Small empty green strip under the last grass row. |
 | High | Open | Rocks vanish with no stone | Farm / mine | Still. Repeat taps, count stays 0; one rock vanished silently. |
-| High | Open | Two Pips at once | Shop + town | 8/21 am new. Counter Pip and plaza Pip, same honey-bun line. |
+| High | Verify | Two Pips at once | Shop + town | 8/21 pm: plaza Pip removed. Pip lives in the shop only. |
 | High | Open | Shop has no buy/sell UI | Shop | 8/21 am: enterable, Pip talks, still 0G, no prices. |
 | High | Open | Enemies draw on top of the hearts HUD | Mine / HUD | Not re-shot 8/21. Collision itself is gone (see sword). |
 | High | Open | Star + Nim note stack; note has no OK | Mine | 8/21: note still dismiss-only by tapping the world. |
@@ -30,7 +30,7 @@ Highest-leverage theme: make tap-to-move, chop/smash, and the sword *feel* like 
 | Medium | Partial | Mine look | Mine | Still uniformly lit, no torch falloff. |
 | Medium | Open | Header swaps season for place | Interiors | Still (“EVENING · MINE 1”, “EVENING · SHOP”). |
 | Low | Open | HUD overlap; FX / MU / FS labels | HUD | Still. |
-| Low | Verify | Player hides behind the hotbar | Camera | Same camera pad as the Critical row. |
+| Low | Done 8/21 | Player hides behind the hotbar | Camera | Same as the camera pad fix. |
 | Low | Open | Closing a panel by tapping the world also walks | HUD | 8/21 new. Swallow the closing tap. |
 
 ## Strengths to keep
