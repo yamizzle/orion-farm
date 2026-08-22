@@ -9,7 +9,7 @@ Highest-leverage theme: the mine is unreachable (blocks sword, shards, slugs, Mi
 | Pri | Status | Issue | Where | Notes |
 | --- | --- | --- | --- | --- |
 | Critical | Done 8/21 | Tap-to-move often no-ops | Overworld | 8/21 am: walks to reachable tiles. Residual: long tap to a blocked tile silently does nothing. Far-target no-ops are a new Low row. |
-| Critical | Worse | Tree canopy hides Orion completely | Forest N/W + town | 8/22 3pm: still worst remaining. N forest, W forest, and the town approach hide him completely — multiple frames where the player is unfindable. WASD freeze from 8/21 is still gone. Draw player above canopy / punch a hole. |
+| Critical | Open | Tree canopy hides Orion completely | Forest N/W + town | Local 8/22 4:10pm: draw-order only — player+shadow sort 64px later so Orion stays above canopy (no sprite edits). Needs live refresh under N/W forest trees to close. Was: 8/22 3pm fully hidden. |
 | Critical | Open | Sword never lands; no swing or hitbox | Mine / HUD | 8/22 midnight: mine Space/button always plays a visible arc; hitbox covers current, adjacent, and walk-destination tiles. Button stays mine-only. 8/22 3pm playtest: mine entrance not found, untested. |
 | Critical | Done 8/22 | Farmhouse door / bed | House | 8/22 3pm: door and bed both work. Bed now dims the screen with a "YOU SLEEP..." banner, then Day+1 morning. Town houses knock-only. Shop is enterable. |
 | Critical | Worse | Day clock races | Everywhere | Still. 8/22 3pm: ~30–60 s per phase; DAY 1→5 in ~15 min with one bed use. Rolls with no sleep. |

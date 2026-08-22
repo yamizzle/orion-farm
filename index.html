@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260822e";
+  var BUILD = "20260822f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -7661,7 +7661,7 @@
   function collectCreatureActors() {
     var list = [];
     var i;
-    list.push({ foot: player.y, kind: "player" });
+    list.push({ foot: player.y + 64, kind: "player" });
     if (currentScene === "mine") {
       for (i = 0; i < monsters.length; i++) {
         if (monsters[i].hp > 0) list.push({ foot: monsters[i].y, kind: "mon", m: monsters[i] });
