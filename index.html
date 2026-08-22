@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260822d";
+  var BUILD = "20260822e";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2222,7 +2222,10 @@
     nx = player.tx + dir.dx;
     ny = player.ty + dir.dy;
     player.face = dir.face;
-    if (!walkable(nx, ny)) return;
+    if (!walkable(nx, ny)) {
+      trySmashRockAt(nx, ny);
+      return;
+    }
     applyWalk(player, [{ tx: nx, ty: ny }], 3.5);
   }
 
@@ -2698,11 +2701,7 @@
 
   function nodeMaxHp(prop) {
     if (prop && prop.kind === "tree") return HIT_COUNT;
-    if (prop && prop.kind === "rock") {
-      if (currentScene === "mine" && mineFloor >= 4) return HIT_DEEP_ROCK;
-      if (currentScene === "mine") return HIT_MINE_ROCK;
-      return HIT_COUNT;
-    }
+    if (prop && prop.kind === "rock") return 1;
     return 1;
   }
 
@@ -2722,6 +2721,10 @@
     key = nodeKey(liveHarvestScene(), prop.tx, prop.ty);
     rec = harvestNodes[key];
     max = nodeMaxHp(prop);
+    if (rec && rec.state === "hurt" && prop.kind === "rock" && rec.maxHp !== max) {
+      rec.hp = max;
+      rec.maxHp = max;
+    }
     if (!rec || rec.state !== "hurt") {
       rec = {
         scene: liveHarvestScene(),
@@ -2821,7 +2824,8 @@
       var i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
       buildSolid();
-      spawnGroundLoot("stone", prop.tx, prop.ty, harvestDropFor(prop));
+      addItem("stone", harvestDropFor(prop));
+      spawnPickup("stone", prop.tx, prop.ty, 0);
       if (currentScene === "mine" && mineFloor >= 5 && Math.random() < 0.45) {
         spawnGroundLoot("iron", prop.tx, prop.ty, 1);
       } else if (currentScene === "mine" && mineFloor === 4 && Math.random() < 0.22) {
@@ -5454,6 +5458,29 @@
       showLineNote(pickaxeOwned ? "SELECT THE PICK." : "A PICKAXE WOULD BE FASTER.");
       persistSave();
     }
+  }
+
+  function smashableRockAt(tx, ty) {
+    var p = harvestableAtTile(tx, ty);
+    return (p && p.kind === "rock") ? p : null;
+  }
+
+  function trySmashRockAt(tx, ty) {
+    var prop = smashableRockAt(tx, ty);
+    if (!prop) return false;
+    beginHit(prop);
+    return true;
+  }
+
+  function trySmashFacing() {
+    var t, prop;
+    if (uiPaused() || faintFx) return false;
+    if (player.swing > 0) return false;
+    t = facingTile();
+    prop = smashableRockAt(t.tx, t.ty);
+    if (!prop) return false;
+    beginHit(prop);
+    return true;
   }
 
   function facingTile() {
@@ -9140,10 +9167,11 @@
       takeKeyboard();
       return;
     }
-    if (currentScene === "mine" && !e.repeat && (e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J")) {
+    if (!e.repeat && (e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J")) {
       if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
       e.preventDefault();
-      startSwordSwing();
+      if (trySmashFacing()) return;
+      if (currentScene === "mine") startSwordSwing();
       return;
     }
     if ((e.key === "Escape" || e.key === "Esc") && fillMode) {
