@@ -2,40 +2,44 @@
 
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
-Last live pass: **2026-08-21 5:02am PT** (also 8/20 5pm, 8/20 1:43pm, 8/20 2am). Treat the table as *what a player felt*.
+Last live pass: **2026-08-22 midnight PT** (also 8/21 5:02am, 8/20 5pm, 8/20 1:43pm, 8/20 2am). Treat the table as *what a player felt*. Saved intact (never START OVER); day advanced 191→195 via bed/clock.
 
-Highest-leverage theme: make tap-to-move, chop/smash, and the sword *feel* like they work.
+Highest-leverage theme: make tap-to-move, chop/smash, and the sword *feel* like they work. Next camera pass: north-edge pad (same class as the south fix).
 
 | Pri | Status | Issue | Where | Notes |
 | --- | --- | --- | --- | --- |
 | Critical | Done 8/21 | Tap-to-move often no-ops | Overworld | 8/21 am: walks to reachable tiles. Residual: long tap to a blocked tile silently does nothing. |
-| Critical | Partial | Tree tiles hide Orion and freeze WASD | Farm / woods | 8/21 am: WASD no longer freezes. Still fully hidden under the canopy. |
-| Critical | Open | Sword never lands; no swing or hitbox | Mine / HUD | 8/21 am: button and Space, no arc/damage. Slug shares the player tile, no contact hit. |
-| Critical | Verify | Farmhouse door / bed | House | 8/21 am: did not enter a bed; town houses knock-only. Shop *is* enterable. Recheck the farmhouse door. |
-| Critical | Worse | Day clock races | Everywhere | 8/21 am: Day 366→369 in ~13 min; ~3–4 min/day; rolls with no sleep. |
-| Critical | Done 8/21 | Camera loses Orion south of the hotbar | Farm | Live walk-south: Orion stays fully above the hotbar. Small empty green strip under the last grass row. |
-| High | Open | Rocks vanish with no stone | Farm / mine | Still. Repeat taps, count stays 0; one rock vanished silently. |
-| High | Verify | Two Pips at once | Shop + town | 8/21 pm: plaza Pip removed. Pip lives in the shop only. |
-| High | Open | Shop has no buy/sell UI | Shop | 8/21 am: enterable, Pip talks, still 0G, no prices. |
-| High | Open | Enemies draw on top of the hearts HUD | Mine / HUD | Not re-shot 8/21. Collision itself is gone (see sword). |
-| High | Open | Star + Nim note stack; note has no OK | Mine | 8/21: note still dismiss-only by tapping the world. |
-| High | Open | In-mine ladder exits; no Mine 2 | Mine | Still. |
-| High | Open | “Say hi to Junie” stays after greetings | Town | 8/21: still SAY HI TO JUNIE after Lila/Pip. Junie not found. |
+| Critical | Worse | Tree canopy hides Orion completely | Forest N/W | 8/22 midnight: escalated. North/west forest canopies hide him *completely* — multiple frames where the player is unfindable, not just partially. WASD freeze from 8/21 is still gone. Draw player above canopy / punch a hole. |
+| Critical | Open | Sword never lands; no swing or hitbox | Mine / HUD | Still. 8/22: no swing, no hitbox, slug unharmed. Button and Space, no arc/damage. |
+| Critical | Partial | Farmhouse door / bed | House | 8/22: door and bed both work. Bed advances the day instantly with no sleep prompt, fade, or confirm (see Low row). Town houses knock-only. Shop is enterable. |
+| Critical | Worse | Day clock races | Everywhere | Still. 8/22: ~30–60 s per phase; 4 in-game days (191→195) in ~12 min. Rolls with no sleep. |
+| Critical | Done 8/21 | Camera loses Orion south of the hotbar | Farm | 8/22 reconfirm: walking south keeps Orion fully visible above the hotbar; expected green strip under the last grass row. |
+| Critical | Open | Camera loses Orion under the DAY/season header | Forest N | 8/22 new P1. Walking north until the camera clamps puts Orion behind the header — completely invisible. S does not visibly move him (camera clamped, no scroll) until several tiles down. Same class as the south pad: apply the same camera padding/clamp inset to the top edge, and/or reserve a HUD-safe margin (header height) in the camera follow rect. |
+| High | Open | Rocks vanish with no stone | Farm / mine | Still. Repeat taps, count stays 0. |
+| High | Done 8/22 | Two Pips at once | Shop + town | 8/22: town square has only Lila (fountain) and Reed. Pip appears solely behind the shop counter. |
+| High | Open | Shop has no buy/sell UI | Shop | Still. Enterable, 0G, no prices. |
+| High | Open | Enemies draw on top of the hearts HUD | Mine / HUD | Not re-shot 8/22. Collision itself is gone (see sword). |
+| High | Open | Star + Nim note stack; popups inconsistent | Mine | Still stack on entry. 8/22: cave-door “A STAR!” now has an OK button (was missing). “MOON PIECE / FOUND A SHARD” has none (dismiss only by clicking anywhere). Nim’s Note still has no OK and ignores Esc. One dialog component with a mandatory OK/X and Esc binding. |
+| High | Open | In-mine ladder exits; no Mine 2 | Mine | Still. Ladder exits to surface. |
+| High | Open | “Say hi to Junie” stays after greetings | Town | Still SAY HI TO JUNIE. Plaza NPCs are Lila and Reed (Pip is shop-only). Junie not found. |
 | High | Partial | Shop / town buildings | Town | Shop enterable. Other houses still knock-only. Still 0G. |
 | High | Done 8/21 | Mine regenerates on every re-entry | Mine | 8/21: same rocks/sign/ladder on re-enter. Enemies still wander, not chase. |
 | High | Open | START OVER sits in the Jobs book | Jobs | Still the primary button. No Esc/X. |
-| High | Open | Stars list clips; no close | Stars | 8/21: MOONDROP NIGHT cut off. First tap on the star button no-op’d. |
-| Medium | Partial | Night wash | Overworld | 8/21: Orion night-tinted; lamps cast warm pools on farm and town. Mine still fully lit. |
-| Medium | Open | Sword button stays after the mine | HUD | Still; floats outside the play area in interiors. |
-| Medium | Partial | Mine look | Mine | Still uniformly lit, no torch falloff. |
-| Medium | Open | Header swaps season for place | Interiors | Still (“EVENING · MINE 1”, “EVENING · SHOP”). |
+| High | Open | Stars list clips; no close | Stars | Still. MOONDROP NIGHT cut off, no scroll. |
+| Medium | Worse | Night wash / tint inconsistent | Overworld | 8/22: at NIGHT, plaza and near-farm render fully blue-tinted, while north forest and mine-entrance screens render in full daylight with the header still reading NIGHT. Drive tint from one global time value applied per-scene, not per-region. Mine still fully lit (lamps do glow); player not night-tinted in mine. |
+| Medium | Done 8/22 | Sword button stays after the mine | HUD | 8/22: sword button only renders inside MINE 1; absent on farm, forest, town, shop. |
+| Medium | Partial | Mine look | Mine | Still uniformly lit, no torch falloff. Lamps glow. |
+| Medium | Open | Header swaps season for place | Interiors | Still (“AFTERNOON · SHOP”, “EVENING · HOME”, “MORNING · MINE 1”). |
+| Medium | Open | Slug contact drains hearts; no i-frames / heal | Mine | 8/22 new P3. Contact 5→3 hearts, no i-frames feedback, no way to heal or fight back (sword does nothing). Mine is a pure health sink. Gate damage behind a working attack, or add a heal source. |
 | Low | Open | HUD overlap; FX / MU / FS labels | HUD | Still. |
-| Low | Done 8/21 | Player hides behind the hotbar | Camera | Same as the camera pad fix. |
+| Low | Done 8/21 | Player hides behind the hotbar | Camera | Same as the south camera pad fix. 8/22 reconfirm. |
 | Low | Open | Closing a panel by tapping the world also walks | HUD | 8/21 new. Swallow the closing tap. |
+| Low | Open | Moon shard hotbar count stays 0 | Mine | 8/22 new P3. After pickup, a moon slot appears in the hotbar but its quantity badge still reads 0. Increment/display stack count on pickup. |
+| Low | Open | Bed advances the day with no prompt | House | 8/22 new P3. Instant, no fade or confirmation; easy to trigger by tapping near it. |
 
 ## Strengths to keep
 
-Tap-to-move is back, night lamps tint Orion, shop interior exists, mine layout stays put, warm wooden HUD, fullscreen.
+Tap-to-move is back, south camera pad holds, Pip lives only in the shop, sword button is mine-only, cave-door star has OK, night lamps on plaza/farm, shop interior exists, mine layout stays put, warm wooden HUD, fullscreen.
 
 ## How to use this
 
