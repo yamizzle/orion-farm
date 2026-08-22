@@ -34,7 +34,7 @@ Highest-leverage theme: make tap-to-move, chop/smash, and the sword *feel* like 
 | Low | Open | HUD overlap; FX / MU / FS labels | HUD | Still. |
 | Low | Done 8/21 | Player hides behind the hotbar | Camera | Same as the south camera pad fix. 8/22 reconfirm. |
 | Low | Open | Closing a panel by tapping the world also walks | HUD | 8/21 new. Swallow the closing tap. |
-| Low | Open | Moon shard hotbar count stays 0 | Mine | 8/22 new P3. After pickup, a moon slot appears in the hotbar but its quantity badge still reads 0. Increment/display stack count on pickup. |
+| Low | Done 8/22 | Moon shard hotbar count stays 0 | Mine | 8/22: pickup credits the bag immediately so the hotbar badge reads 1 (was 0 until the fly-in finished, and the MOON PIECE toast paused that). |
 | Low | Open | Bed advances the day with no prompt | House | 8/22 new P3. Instant, no fade or confirmation; easy to trigger by tapping near it. |
 
 ## Strengths to keep

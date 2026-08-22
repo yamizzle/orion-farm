@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260822b";
+  var BUILD = "20260822c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -6577,7 +6577,8 @@
     i = PROPS.indexOf(prop);
     if (i >= 0) PROPS.splice(i, 1);
     found[prop.kind] = true;
-    spawnPickup(prop.kind, prop.tx, prop.ty, 1);
+    addItem(prop.kind, 1);
+    spawnPickup(prop.kind, prop.tx, prop.ty, 0);
     spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
     unlockAch(COLLECT_ACH[prop.kind]);
     if (allFound()) {
