@@ -4,7 +4,7 @@ Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yami
 
 Last live pass: **2026-08-22 midnight PT** (also 8/21 5:02am, 8/20 5pm, 8/20 1:43pm, 8/20 2am). Treat the table as *what a player felt*. Saved intact (never START OVER); day advanced 191→195 via bed/clock.
 
-Highest-leverage theme: make tap-to-move, chop/smash, and the sword *feel* like they work. Next camera pass: north-edge pad (same class as the south fix).
+Highest-leverage theme: make tap-to-move, chop/smash, and the sword *feel* like they work. North camera pad shipped 8/22 (pair with the south hotbar pad).
 
 | Pri | Status | Issue | Where | Notes |
 | --- | --- | --- | --- | --- |
@@ -14,7 +14,7 @@ Highest-leverage theme: make tap-to-move, chop/smash, and the sword *feel* like 
 | Critical | Partial | Farmhouse door / bed | House | 8/22: door and bed both work. Bed advances the day instantly with no sleep prompt, fade, or confirm (see Low row). Town houses knock-only. Shop is enterable. |
 | Critical | Worse | Day clock races | Everywhere | Still. 8/22: ~30–60 s per phase; 4 in-game days (191→195) in ~12 min. Rolls with no sleep. |
 | Critical | Done 8/21 | Camera loses Orion south of the hotbar | Farm | 8/22 reconfirm: walking south keeps Orion fully visible above the hotbar; expected green strip under the last grass row. |
-| Critical | Open | Camera loses Orion under the DAY/season header | Forest N | 8/22 new P1. Walking north until the camera clamps puts Orion behind the header — completely invisible. S does not visibly move him (camera clamped, no scroll) until several tiles down. Same class as the south pad: apply the same camera padding/clamp inset to the top edge, and/or reserve a HUD-safe margin (header height) in the camera follow rect. |
+| Critical | Done 8/22 | Camera loses Orion under the DAY/season header | Forest N | 8/22: north clamp insets by header + sprite height so Orion stays fully below the DAY/season panel; south hotbar pad unchanged. |
 | High | Open | Rocks vanish with no stone | Farm / mine | Still. Repeat taps, count stays 0. |
 | High | Done 8/22 | Two Pips at once | Shop + town | 8/22: town square has only Lila (fountain) and Reed. Pip appears solely behind the shop counter. |
 | High | Open | Shop has no buy/sell UI | Shop | Still. Enterable, 0G, no prices. |
@@ -39,7 +39,7 @@ Highest-leverage theme: make tap-to-move, chop/smash, and the sword *feel* like 
 
 ## Strengths to keep
 
-Tap-to-move is back, south camera pad holds, Pip lives only in the shop, sword button is mine-only, cave-door star has OK, night lamps on plaza/farm, shop interior exists, mine layout stays put, warm wooden HUD, fullscreen.
+Tap-to-move is back, south camera pad holds, north header pad keeps Orion below DAY/season, Pip lives only in the shop, sword button is mine-only, cave-door star has OK, night lamps on plaza/farm, shop interior exists, mine layout stays put, warm wooden HUD, fullscreen.
 
 ## How to use this
 

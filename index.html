@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260820a";
+  var BUILD = "20260822a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2019,18 +2019,22 @@
   function tileFootY(ty) { return ty * TILE + 14; }
 
   var CAM_PAD_BOTTOM = 36;
+  var CAM_PAD_TOP = 26;
+  var CAM_PLAYER_H = 32;
   function updateCamera() {
     var worldW = COLS * TILE;
     var worldH = ROWS * TILE;
-    var viewH = VIEW_H - CAM_PAD_BOTTOM;
+    var topInset = CAM_PAD_TOP + CAM_PLAYER_H;
+    var viewH = VIEW_H - topInset - CAM_PAD_BOTTOM;
     var targetX = player.x - (VIEW_W >> 1);
-    var targetY = player.y - (viewH >> 1);
+    var targetY = player.y - topInset - (viewH >> 1);
     var maxX = worldW - VIEW_W;
-    var maxY = worldH - viewH;
+    var maxY = worldH - VIEW_H + CAM_PAD_BOTTOM;
+    var minY = -topInset;
     if (maxX < 0) maxX = 0;
-    if (maxY < 0) maxY = 0;
+    if (maxY < minY) maxY = minY;
     camX = Math.round(Math.max(0, Math.min(maxX, targetX)));
-    camY = Math.round(Math.max(0, Math.min(maxY, targetY)));
+    camY = Math.round(Math.max(minY, Math.min(maxY, targetY)));
     camera.x = camX;
     camera.y = camY;
   }
