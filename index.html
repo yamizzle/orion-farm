@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260822a";
+  var BUILD = "20260822b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -872,6 +872,7 @@
     workTool: "",
     arc: 0,
     arcHit: false,
+    swingDest: null,
     hitting: null
   };
   var chicken = {
@@ -5576,7 +5577,7 @@
   }
 
   function showStrikeBtn() {
-    return hasActionTool() || currentScene === "mine";
+    return currentScene === "mine";
   }
 
   function hitSwordBtn(p) {
@@ -5614,7 +5615,7 @@
       if (m && (m.kind === "bat" || m.kind === "crystalbat")) return 3;
       return 1;
     }
-    if (player.arc > 0 && swordOwned) return ironSwordOwned ? 4 : 2;
+    if (player.arc > 0 && (swordOwned || currentScene === "mine")) return ironSwordOwned ? 4 : 2;
     if (toolEquipped("pick") && m && (m.kind === "grub" || m.kind === "toughgrub")) return 3;
     if (swordEquipped()) return ironSwordOwned ? 4 : 2;
     return 1;
@@ -5667,6 +5668,7 @@
       { tx: origin.tx, ty: origin.ty - 1 },
       { tx: origin.tx, ty: origin.ty + 1 }
     ]);
+    if (player.swingDest) tiles = tiles.concat([{ tx: player.swingDest.tx, ty: player.swingDest.ty }]);
     for (i = 0; i < monsters.length; i++) {
       m = monsters[i];
       if (!m || m.hp <= 0) continue;
@@ -5707,25 +5709,18 @@
   }
 
   function startSwordSwing() {
-    var t;
+    var dest;
     if (uiPaused() || faintFx) return false;
-    if (player.arc > 0 || arrowBusy()) return false;
+    if (currentScene !== "mine") return false;
+    if (player.arc > 0) return false;
+    dest = player.path && player.path.length ? player.path[0] : player.queuedWalk;
+    player.swingDest = dest ? { tx: dest.tx, ty: dest.ty } : null;
     player.path = [];
     player.queuedWalk = null;
     player.moving = false;
     player.stepT = 0;
     player.frame = 0;
     cancelHit();
-    if (!swordOwned && !bowOwned) {
-      t = facingTile();
-      spawnSparks(t.tx * TILE + 8, t.ty * TILE + 6);
-      showLineNote("GET THE CAVE SWORD.");
-      playSfx("swing");
-      player.swing = 180;
-      return true;
-    }
-    if (currentScene !== "overworld" && bowOwned && !(swordOwned && adjacentFoe())) return shootArrow();
-    if (!swordOwned) return false;
     player.arc = SWING_MS;
     player.arcHit = false;
     playSfx("swing");
@@ -6254,7 +6249,7 @@
     player.stepT = 0;
     player.frame = 0;
     faceToward(player, mon.tx, mon.ty);
-    if (swordOwned && currentScene === "mine") {
+    if (currentScene === "mine") {
       startSwordSwing();
       return;
     }
@@ -7156,7 +7151,7 @@
       else sy = amp;
       bob -= 1;
     }
-    if (player.arc > 0 && swordOwned && player.face === "up") {
+    if (player.arc > 0 && player.face === "up") {
       drawSwordArc(g, sx, sy, bob);
     } else if (player.swing > 0 && player.workTool && player.face === "up") {
       drawWorkTool(g, sx, sy, bob);
@@ -7172,7 +7167,7 @@
       g.fillStyle = "rgba(232,72,72," + (0.25 + 0.35 * (hurtFlash / 420)).toFixed(3) + ")";
       g.fillRect(Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy), 16, 32);
     }
-    if (player.arc > 0 && swordOwned && player.face !== "up") {
+    if (player.arc > 0 && player.face !== "up") {
       drawSwordArc(g, sx, sy, bob);
     } else if (player.swing > 0 && player.workTool && player.face !== "up") {
       drawWorkTool(g, sx, sy, bob);
@@ -9120,7 +9115,7 @@
       takeKeyboard();
       return;
     }
-    if (hasActionTool() && !e.repeat && (e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J")) {
+    if (currentScene === "mine" && !e.repeat && (e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J")) {
       if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
       e.preventDefault();
       startSwordSwing();
