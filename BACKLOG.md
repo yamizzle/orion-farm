@@ -4,7 +4,7 @@ Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yami
 
 Last live pass: **2026-08-23 midnight PT** (also 8/22 3:10–3:22pm, 8/22 midnight, 8/21 5:02am, 8/20 5pm, 8/20 1:43pm, 8/20 2am). Treat the table as *what a player felt*. Saved intact (never START OVER); landed DAY 5 in SHOP, ended DAY 8 after sleep. No BUILD stamp visible (hard-refreshed). Expected build 20260822f+.
 
-Highest-leverage theme: START OVER in Jobs, the racing day clock, and the MINE 1 ladder that never goes down to MINE 2. Sword swing shipped localhost 8/23 3am (needs live refresh).
+Highest-leverage theme: START OVER in Jobs and the racing day clock. Sword, dialog keys, Space-to-talk, and MINE 2 hole shipped localhost 8/23 3am (need live refresh).
 
 | Pri | Status | Issue | Where | Notes |
 | --- | --- | --- | --- | --- |
@@ -21,7 +21,7 @@ Highest-leverage theme: START OVER in Jobs, the racing day clock, and the MINE 1
 | High | Open | Shop has no buy/sell UI | Shop | Still. 8/23 midnight: Pip "bring me one copper", no buy/sell, 0G. 8/22 3pm: enterable, Pip talks ("bring me one copper for a shop lantern"), no buy/sell, 0G. |
 | High | Open | Enemies draw on top of the hearts HUD | Mine / HUD | 8/23 midnight: mine entered; this HUD overlap not specifically re-checked. Collision itself is gone (see sword). |
 | High | Partial | Star + Nim note stack; popups inconsistent | Mine | 8/23 midnight: star popup with OK over Nim's note; OK dismissed star, note on next tap. Notes more consistent, still click-to-dismiss for the note. 8/22 midnight: cave-door “A STAR!” now has an OK button. “MOON PIECE / FOUND A SHARD” has none (dismiss only by clicking anywhere). Nim’s Note still has no OK and ignores Esc. Esc/Space now dismiss Stars/Jobs/dialogue/star toasts (8/23 3am localhost). Dialogue is click-to-dismiss; panels only via toolbar button. One dialog component with a mandatory OK/X and Esc binding. |
-| High | Open | In-mine ladder exits; no Mine 2 | Mine | STILL. 8/23 midnight: MINE 1 ladder is return-only — exits to farm, no down-hole to MINE 2. 8/22 3pm playtest: mine entrance not found, untested. |
+| High | Done 8/23 | In-mine ladder exits; no Mine 2 | Mine | Local 8/23 3am: MINE 1 already had a down-hole at (16,4) wired to existing Mine 2. A lamp sat in the center aisle so kids never walked to it. Lamp moved aside; hole glows and reads DOWN, south ladder reads OUT. Walking onto the hole loads MINE 2. |
 | High | Done 8/23 | “Say hi to Junie” stays after greetings | Farm | 8/23 midnight: Jobs now "BRING A MUSHROOM TO JUNIE" after greeting. Job-clear after mushroom still unverified. 8/22 3pm: Junie found on the farm near the house ("I'm Junie, can you find a cave mushroom for my garden?"). Plaza is Lila/Reed. |
 | High | Partial | Shop / town buildings | Town | Shop enterable. Other houses still knock-only. Still 0G. |
 | High | Done 8/21 | Mine regenerates on every re-entry | Mine | 8/21: same rocks/sign/ladder on re-enter. Enemies still wander, not chase. 8/23 midnight: mine entered; regen not re-checked. |

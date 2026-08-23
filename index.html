@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260823c";
+  var BUILD = "20260823d";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -1338,7 +1338,7 @@
       { kind: "lantern", tx: 23, ty: 3 },
       { kind: "lantern", tx: 8, ty: 20 },
       { kind: "lantern", tx: 24, ty: 12 },
-      { kind: "lantern", tx: 16, ty: 8 },
+      { kind: "lantern", tx: 14, ty: 8 },
       { kind: "rock", tx: 8, ty: 6 },
       { kind: "rock", tx: 22, ty: 4 },
       { kind: "rock", tx: 28, ty: 10 },
@@ -1849,10 +1849,23 @@
     if (name === "mine") {
       if (monsterCache[mineFloor]) monsters = monsterCache[mineFloor];
       else spawnMineMonsters();
+      openMineAisle();
     } else {
       monsters = [];
     }
     buildSolid();
+  }
+
+  function openMineAisle() {
+    var i, p;
+    if (mineFloor !== 1) return;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "lantern" && p.tx === 16 && p.ty === 8) {
+        p.tx = 14;
+        p.ty = 8;
+      }
+    }
   }
 
   function px(g, x, y, color) {
@@ -7634,6 +7647,16 @@
     drawText(g, "MINE", sx, y - 3, C.parch);
   }
 
+  function drawShaftLabel(g, p, word) {
+    var tw, lx, ly;
+    if (!word) return;
+    tw = textWidth(word);
+    lx = p.tx * TILE + ((TILE - tw) / 2) | 0;
+    ly = p.ty * TILE - 8;
+    fill(g, lx - 2, ly - 1, tw + 4, 9, "rgba(42,26,16,0.78)");
+    drawText(g, word, lx, ly, C.parch || "#F3D2A3");
+  }
+
   function drawProp(g, p) {
     var x = p.tx * TILE;
     var y = p.ty * TILE;
@@ -7732,8 +7755,14 @@
       else Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
     } else if (p.kind === "ladder") {
       Assets.draw(g, "ladder", x, y);
+      if (currentScene === "mine") drawShaftLabel(g, p, mineFloor === 1 ? "OUT" : "UP");
     } else if (p.kind === "hole") {
+      if (currentScene === "mine") {
+        g.fillStyle = "rgba(232,200,74," + (0.16 + 0.12 * (0.5 + 0.5 * Math.sin(tick / 180))).toFixed(3) + ")";
+        g.fillRect(x - 3, y - 3, 22, 22);
+      }
       Assets.draw(g, "hole", x, y);
+      if (currentScene === "mine") drawShaftLabel(g, p, "DOWN");
     } else if (p.kind === "moonAltar") {
       if (found.peakLight) {
         var peakGlow = 0.12 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 160));
