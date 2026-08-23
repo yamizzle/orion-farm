@@ -4,13 +4,13 @@ Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yami
 
 Last live pass: **2026-08-23 midnight PT** (also 8/22 3:10–3:22pm, 8/22 midnight, 8/21 5:02am, 8/20 5pm, 8/20 1:43pm, 8/20 2am). Treat the table as *what a player felt*. Saved intact (never START OVER); landed DAY 5 in SHOP, ended DAY 8 after sleep. No BUILD stamp visible (hard-refreshed). Expected build 20260822f+.
 
-Highest-leverage theme: sword still dead on live (kids cannot fight slugs). Then START OVER in Jobs, the racing day clock, and the MINE 1 ladder that never goes down to MINE 2.
+Highest-leverage theme: START OVER in Jobs, the racing day clock, and the MINE 1 ladder that never goes down to MINE 2. Sword swing shipped localhost 8/23 3am (needs live refresh).
 
 | Pri | Status | Issue | Where | Notes |
 | --- | --- | --- | --- | --- |
 | Critical | Done 8/21 | Tap-to-move often no-ops | Overworld | 8/21 am: walks to reachable tiles. Residual: long tap to a blocked tile silently does nothing. Far-target no-ops are a new Low row. |
 | Critical | Done 8/23 | Tree canopy hides Orion completely | Forest N/W + town | 8/23 midnight: Orion fully visible under N/W forest and town-approach canopies. Local 8/22 4:10pm: draw-order only — player+shadow sort 64px later so Orion stays above canopy (no sprite edits). Was: 8/22 3pm fully hidden. |
-| Critical | Open | Sword never lands; no swing or hitbox | Mine / HUD | STILL BROKEN. 8/23 midnight: picked up CAVE SWORD (hotbar slot 7). No visible swing animation. ~6 swings, slug orthogonally adjacent (E and S), zero hits. Slugs skitter each tick. One swing highlighted a lamp tile two tiles away (wrong target). 3am localhost ship claimed a white arc — live does not show it. Kids cannot fight slugs. 8/22 midnight: mine Space/button always plays a visible arc; hitbox covers current, adjacent, and walk-destination tiles. Button stays mine-only. 8/22 3pm: mine entrance not found, untested. |
+| Critical | Done 8/23 | Sword never lands; no swing or hitbox | Mine / HUD | Local 8/23 3am: MINE 1 adjacent slime took a hit (hp 4→2) with freeze+knockback; 520ms white/gold crescent covers current tile + facing + four orthogonals + walk dest. Space and the mine sword button both call the same swing. Button stays mine-only. Live 8/23 midnight was still dead (tiny 300ms sprite, no freeze). Hard-refresh for 20260823a. |
 | Critical | Done 8/22 | Farmhouse door / bed | House | 8/22 3pm: door and bed both work. Bed now dims the screen with a "YOU SLEEP..." banner, then Day+1 morning. Town houses knock-only. Shop is enterable. 8/23 midnight: fade not captured, may have flashed. Jumped to DAY 8 MORNING, hearts restored. |
 | Critical | Worse | Day clock races | Everywhere | STILL/WORSE. 8/23 midnight: full day in ~2 min real; DAY 5→8. 8/22 3pm: ~30–60 s per phase; DAY 1→5 in ~15 min with one bed use. Rolls with no sleep. |
 | Critical | Done 8/21 | Camera loses Orion south of the hotbar | Farm | 8/22 3pm reconfirm: walking south keeps Orion ~80px above the hotbar. Void-band overscroll below the map edge is a new Medium row. |
@@ -45,7 +45,7 @@ Highest-leverage theme: sword still dead on live (kids cannot fight slugs). Then
 
 ## Strengths to keep
 
-Tap-to-move is back (mid-distance), south camera pad holds (~80px above hotbar), north header pad keeps Orion below DAY/season, mine entrance is findable (MINE sign + walk-in hole), rocks smash and credit stone, Orion stays above canopy, moon shards count on pickup and consume at HOME GLOW, Jobs updates after greeting Junie, Pip lives only in the shop, sword button is mine-only, slug contact has i-frames and sleep heals, shop interior exists, warm wooden HUD, fullscreen. Sword swing/hit still dead on live.
+Tap-to-move is back (mid-distance), south camera pad holds (~80px above hotbar), north header pad keeps Orion below DAY/season, mine entrance is findable (MINE sign + walk-in hole), rocks smash and credit stone, Orion stays above canopy, moon shards count on pickup and consume at HOME GLOW, Jobs updates after greeting Junie, Pip lives only in the shop, sword button is mine-only, slug contact has i-frames and sleep heals, shop interior exists, warm wooden HUD, fullscreen. Sword swing/hit shipped localhost 8/23 3am (visible arc + slug hit); live refresh pending.
 
 ## How to use this
 

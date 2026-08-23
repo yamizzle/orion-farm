@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260822f";
+  var BUILD = "20260823a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -352,8 +352,8 @@
   var MAX_ENERGY = 100;
   var ENERGY_HIT = 1;
   var ENERGY_SWING = 1;
-  var SWING_MS = 300;
-  var SWING_HIT_AT = 0.42;
+  var SWING_MS = 520;
+  var SWING_HIT_AT = 0.05;
   var ENERGY_WALK_TILES = 0;
   var SNACK_ENERGY = 25;
   var VEGGIE_HEAL = 10;
@@ -5616,18 +5616,32 @@
     return player.arc > 0;
   }
 
+  function swingHitTiles() {
+    var tiles = [];
+    var seen = {};
+    function add(tx, ty) {
+      var k = tx + "," + ty;
+      if (seen[k]) return;
+      seen[k] = true;
+      tiles.push({ tx: tx, ty: ty });
+    }
+    var ox = player.tx;
+    var oy = player.ty;
+    var pix = entityTile(player);
+    var face = facingTile();
+    add(ox, oy);
+    add(ox - 1, oy);
+    add(ox + 1, oy);
+    add(ox, oy - 1);
+    add(ox, oy + 1);
+    add(face.tx, face.ty);
+    if (pix.tx !== ox || pix.ty !== oy) add(pix.tx, pix.ty);
+    if (player.swingDest) add(player.swingDest.tx, player.swingDest.ty);
+    return tiles;
+  }
+
   function swingArcTiles() {
-    var fx = 0, fy = 0, sx = 0, sy = 0;
-    var o = entityTile(player);
-    if (player.face === "left") { fx = -1; sy = 1; }
-    else if (player.face === "right") { fx = 1; sy = 1; }
-    else if (player.face === "up") { fy = -1; sx = 1; }
-    else { fy = 1; sx = 1; }
-    return [
-      { tx: o.tx + fx, ty: o.ty + fy },
-      { tx: o.tx + fx + sx, ty: o.ty + fy + sy },
-      { tx: o.tx + fx - sx, ty: o.ty + fy - sy }
-    ];
+    return swingHitTiles();
   }
 
   function strikeDamage(m, via) {
@@ -5644,7 +5658,7 @@
   function hitMonsterOnce(m, via) {
     if (!m || m.hp <= 0) return;
     m.hp -= strikeDamage(m, via);
-    m.shake = 200;
+    stunMonster(m);
     spawnSparks(m.x, m.y - 4);
     playSfx("hit");
     if (m.hp <= 0) defeatMonster(m);
@@ -5673,22 +5687,45 @@
     if (!m) return false;
     dx = m.x - player.x;
     dy = m.y - player.y;
-    reach = 26 + (m.scale > 1.2 ? 10 : 0);
+    reach = 34 + (m.scale > 1.2 ? 10 : 0);
     return (dx * dx + dy * dy) <= reach * reach;
   }
 
+  function stunMonster(m) {
+    var dx, dy, nx, ny, occ;
+    if (!m) return;
+    m.path = [];
+    m.queuedWalk = null;
+    m.moving = false;
+    m.stepFrom = null;
+    m.stepT = 0;
+    m.stun = 560;
+    m.idle = 900;
+    m.shake = 280;
+    dx = 0;
+    dy = 0;
+    if (m.tx < player.tx) dx = -1;
+    else if (m.tx > player.tx) dx = 1;
+    else if (m.ty < player.ty) dy = -1;
+    else if (m.ty > player.ty) dy = 1;
+    else if (player.face === "left") dx = -1;
+    else if (player.face === "right") dx = 1;
+    else if (player.face === "up") dy = -1;
+    else dy = 1;
+    nx = m.tx + dx;
+    ny = m.ty + dy;
+    occ = monsterAt(nx, ny);
+    if ((!occ || occ === m) && monsterOk(m, nx, ny) && !playerOccupies(nx, ny)) {
+      m.tx = nx;
+      m.ty = ny;
+    }
+    m.x = tileCenterX(m.tx);
+    m.y = tileFootY(m.ty);
+  }
+
   function applySwingHits() {
-    var origin = entityTile(player);
-    var tiles = swingArcTiles();
+    var tiles = swingHitTiles();
     var i, j, m, t, hit, targets = [];
-    tiles = tiles.concat([
-      { tx: origin.tx, ty: origin.ty },
-      { tx: origin.tx - 1, ty: origin.ty },
-      { tx: origin.tx + 1, ty: origin.ty },
-      { tx: origin.tx, ty: origin.ty - 1 },
-      { tx: origin.tx, ty: origin.ty + 1 }
-    ]);
-    if (player.swingDest) tiles = tiles.concat([{ tx: player.swingDest.tx, ty: player.swingDest.ty }]);
     for (i = 0; i < monsters.length; i++) {
       m = monsters[i];
       if (!m || m.hp <= 0) continue;
@@ -5729,7 +5766,7 @@
   }
 
   function startSwordSwing() {
-    var dest;
+    var dest, foe;
     if (uiPaused() || faintFx) return false;
     if (currentScene !== "mine") return false;
     if (player.arc > 0) return false;
@@ -5740,9 +5777,15 @@
     player.moving = false;
     player.stepT = 0;
     player.frame = 0;
+    player.x = tileCenterX(player.tx);
+    player.y = tileFootY(player.ty);
+    highlight = null;
+    foe = adjacentFoe();
+    if (foe) faceToward(player, foe.tx, foe.ty);
     cancelHit();
     player.arc = SWING_MS;
-    player.arcHit = false;
+    player.arcHit = true;
+    applySwingHits();
     playSfx("swing");
     return true;
   }
@@ -5777,7 +5820,8 @@
       dmg: spec.dmg,
       gold: spec.gold,
       scale: spec.scale || 1,
-      shake: 0
+      shake: 0,
+      stun: 0
     };
   }
 
@@ -5923,6 +5967,16 @@
     for (i = 0; i < monsters.length; i++) {
       m = monsters[i];
       if (m.hp <= 0) continue;
+      if (m.stun > 0) {
+        m.stun -= dt;
+        if (m.shake > 0) m.shake -= dt;
+        m.anim += dt;
+        if (m.anim > 220) {
+          m.anim = 0;
+          m.frame = m.frame ? 0 : 1;
+        }
+        continue;
+      }
       if (m.shake > 0) m.shake -= dt;
       m.anim += dt;
       if (m.anim > 220) {
@@ -7239,8 +7293,8 @@
     if (u < 0) u = 0;
     if (u > 1) u = 1;
     u = u * u * (3 - 2 * u);
-    step = Math.round(u * 4) / 4;
-    span = 110 * Math.PI / 180;
+    step = Math.round(u * 5) / 5;
+    span = 120 * Math.PI / 180;
     if (player.face === "down") mid = Math.PI;
     else if (player.face === "right") mid = Math.PI * 0.5;
     else if (player.face === "up") mid = 0;
@@ -7248,29 +7302,87 @@
     return mid - span * 0.5 + span * step;
   }
 
+  function faceMidAngle() {
+    if (player.face === "right") return 0;
+    if (player.face === "down") return Math.PI * 0.5;
+    if (player.face === "left") return Math.PI;
+    return -Math.PI * 0.5;
+  }
+
+  function angWrap(a) {
+    while (a <= -Math.PI) a += Math.PI * 2;
+    while (a > Math.PI) a -= Math.PI * 2;
+    return a;
+  }
+
+  function angInSweep(a, a0, a1) {
+    a = angWrap(a);
+    a0 = angWrap(a0);
+    a1 = angWrap(a1);
+    if (a0 <= a1) return a >= a0 && a <= a1;
+    return a >= a0 || a <= a1;
+  }
+
+  function drawSwingFx(g) {
+    var u, cx, cy, mid, span, a0, a1, x, y, d2, a, rInner, rOuter, alpha, tiles, i, t, flash;
+    if (player.arc <= 0) return;
+    u = 1 - player.arc / SWING_MS;
+    if (u < 0) u = 0;
+    if (u > 1) u = 1;
+    cx = Math.round(player.x);
+    cy = Math.round(player.y - 12);
+    mid = faceMidAngle();
+    span = 1.28;
+    a0 = mid - span;
+    a1 = mid - span + (span * 2) * Math.min(1, 0.2 + u * 1.2);
+    alpha = 1;
+    if (u < 0.12) alpha = u / 0.12;
+    else if (u > 0.72) alpha = (1 - u) / 0.28;
+    if (alpha < 0.12) alpha = 0.12;
+    flash = 0.32 * (1 - Math.min(1, u / 0.42));
+    if (flash > 0.05) {
+      tiles = swingHitTiles();
+      g.fillStyle = "rgba(255,244,180," + flash.toFixed(3) + ")";
+      for (i = 0; i < tiles.length; i++) {
+        t = tiles[i];
+        g.fillRect(t.tx * TILE, t.ty * TILE, TILE, TILE);
+      }
+    }
+    g.fillStyle = "rgba(255,252,236," + (0.96 * alpha).toFixed(3) + ")";
+    rInner = 6;
+    rOuter = 26;
+    for (y = -rOuter; y <= rOuter; y++) {
+      for (x = -rOuter; x <= rOuter; x++) {
+        d2 = x * x + y * y;
+        if (d2 < rInner * rInner || d2 > rOuter * rOuter) continue;
+        a = Math.atan2(y, x);
+        if (!angInSweep(a, a0, a1)) continue;
+        g.fillRect(cx + x, cy + y, 1, 1);
+      }
+    }
+    g.fillStyle = "rgba(232,200,74," + (0.9 * alpha).toFixed(3) + ")";
+    rInner = 11;
+    rOuter = 18;
+    for (y = -rOuter; y <= rOuter; y++) {
+      for (x = -rOuter; x <= rOuter; x++) {
+        d2 = x * x + y * y;
+        if (d2 < rInner * rInner || d2 > rOuter * rOuter) continue;
+        a = Math.atan2(y, x);
+        if (!angInSweep(a, a0, a1)) continue;
+        g.fillRect(cx + x, cy + y, 1, 1);
+      }
+    }
+  }
+
   function drawSwordArc(g, sx, sy, bob) {
     var hand = swordHand(sx, sy, bob);
     var ang = swingAngle();
-    var u = 1 - player.arc / SWING_MS;
-    var tipX, tipY, fr;
     g.save();
     g.imageSmoothingEnabled = false;
     g.translate(Math.round(hand.x), Math.round(hand.y));
     g.rotate(ang);
     Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", -8, -13);
     g.restore();
-    if (u > 0.22 && u < 0.82 && Assets.spr.slash) {
-      tipX = hand.x + Math.sin(ang) * 13;
-      tipY = hand.y - Math.cos(ang) * 13;
-      fr = u > 0.5 ? 1 : 0;
-      g.save();
-      g.imageSmoothingEnabled = false;
-      g.globalAlpha = u < 0.35 || u > 0.7 ? 0.7 : 1;
-      g.translate(Math.round(tipX), Math.round(tipY));
-      g.rotate(ang);
-      Assets.draw(g, "slash", 0, 0, fr);
-      g.restore();
-    }
   }
 
   function drawNpc(g) {
@@ -8469,6 +8581,7 @@
       g.save();
       g.translate(-camX, -camY);
       drawActors(g);
+      drawSwingFx(g);
       drawPickups(g);
       drawArrows(g);
       drawSparks(g);
@@ -8477,6 +8590,7 @@
       drawFestivalStar(g);
     } else {
       drawActors(g);
+      drawSwingFx(g);
       drawPickups(g);
       drawArrows(g);
       drawSparks(g);
@@ -9170,8 +9284,11 @@
     if (!e.repeat && (e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J")) {
       if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
       e.preventDefault();
+      if (currentScene === "mine") {
+        startSwordSwing();
+        return;
+      }
       if (trySmashFacing()) return;
-      if (currentScene === "mine") startSwordSwing();
       return;
     }
     if ((e.key === "Escape" || e.key === "Esc") && fillMode) {
