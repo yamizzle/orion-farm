@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260823a";
+  var BUILD = "20260823b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -4337,6 +4337,43 @@
 
   function uiPaused() {
     return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || toast || shopOpen || craftOpen || chestOpen);
+  }
+
+  function dismissTopDialog() {
+    if (toast) {
+      dismissUnlock();
+      return true;
+    }
+    if (dialogue) {
+      dialogue = null;
+      return true;
+    }
+    if (wipeAsk) {
+      wipeAsk = false;
+      return true;
+    }
+    if (sleepFx || faintFx) return true;
+    if (achieveOpen) {
+      achieveOpen = false;
+      return true;
+    }
+    if (questOpen) {
+      questOpen = false;
+      return true;
+    }
+    if (shopOpen) {
+      shopOpen = false;
+      return true;
+    }
+    if (craftOpen) {
+      craftOpen = false;
+      return true;
+    }
+    if (chestOpen) {
+      chestOpen = false;
+      return true;
+    }
+    return false;
   }
 
   function timePaused() {
@@ -9272,7 +9309,19 @@
   });
   document.addEventListener("keydown", function (e) {
     unlockAudio();
-    var mk = moveKey(e);
+    var mk, dismissKey, actionKey;
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    dismissKey = e.code === "Escape" || e.code === "Space" || e.code === "Enter" ||
+      e.key === "Escape" || e.key === "Esc" || e.key === " " || e.key === "Enter";
+    if (!e.repeat && dismissKey) {
+      e.preventDefault();
+      if (dismissTopDialog()) return;
+      if (e.code === "Escape" || e.key === "Escape" || e.key === "Esc") {
+        if (fillMode) leaveFill();
+        return;
+      }
+    }
+    mk = moveKey(e);
     if (mk) {
       e.preventDefault();
       if (e.repeat) return;
@@ -9281,8 +9330,8 @@
       takeKeyboard();
       return;
     }
-    if (!e.repeat && (e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J")) {
-      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    actionKey = e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J";
+    if (!e.repeat && actionKey) {
       e.preventDefault();
       if (currentScene === "mine") {
         startSwordSwing();
@@ -9290,10 +9339,6 @@
       }
       if (trySmashFacing()) return;
       return;
-    }
-    if ((e.key === "Escape" || e.key === "Esc") && fillMode) {
-      e.preventDefault();
-      leaveFill();
     }
   });
   document.addEventListener("keyup", function (e) {
