@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260823b";
+  var BUILD = "20260823c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -6977,6 +6977,39 @@
     }
   }
 
+  function tryTalkAdjacent() {
+    var spots, i, t, f, fi;
+    if (uiPaused() || faintFx) return false;
+    spots = [
+      facingTile(),
+      { tx: player.tx, ty: player.ty },
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    function here(who, tile) {
+      if (!who) return false;
+      if (who.tx === tile.tx && who.ty === tile.ty) return true;
+      if (who.path && who.path.length && who.path[0].tx === tile.tx && who.path[0].ty === tile.ty) return true;
+      return false;
+    }
+    for (i = 0; i < spots.length; i++) {
+      t = spots[i];
+      if (currentScene === "overworld") {
+        if (here(npc, t)) { goTalk(); return true; }
+        if (nimVisible() && here(nim, t)) { goTalkNim(); return true; }
+        for (fi = 0; fi < townFolk.length; fi++) {
+          f = townFolk[fi];
+          if (here(f, t)) { goTalkFolk(f); return true; }
+        }
+      } else if (currentScene === "shop") {
+        if (t.tx === 8 && t.ty === 4) { talkPip(); return true; }
+      }
+    }
+    return false;
+  }
+
   function goTalk() {
     if (currentScene !== "overworld") return;
     highlight = { tx: npc.tx, ty: npc.ty };
@@ -9337,6 +9370,7 @@
         startSwordSwing();
         return;
       }
+      if (tryTalkAdjacent()) return;
       if (trySmashFacing()) return;
       return;
     }
