@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260823g";
+  var BUILD = "20260823h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2048,8 +2048,21 @@
     camera.y = camY;
   }
 
+  function rebuildPath(came, sx, sy, ex, ey) {
+    var path = [];
+    var k = ex + "," + ey;
+    var node;
+    if (ex === sx && ey === sy) return path;
+    while (came[k]) {
+      node = came[k];
+      path.push({ tx: node[2], ty: node[3] });
+      k = node[0] + "," + node[1];
+    }
+    path.reverse();
+    return path;
+  }
+
   function findPath(sx, sy, ex, ey) {
-    if (!walkable(ex, ey)) return [];
     if (sx === ex && sy === ey) return [];
     var q = [[sx, sy]];
     var came = {};
@@ -2057,19 +2070,15 @@
     came[key(sx, sy)] = null;
     var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
     var head = 0;
-    var i, cur, nx, ny, nk, path, node, k;
+    var i, cur, nx, ny, nk;
+    var goalOk = walkable(ex, ey);
+    var bestX = sx, bestY = sy;
+    var bestD = Math.abs(sx - ex) + Math.abs(sy - ey);
+    var d;
     while (head < q.length) {
       cur = q[head++];
-      if (cur[0] === ex && cur[1] === ey) {
-        path = [];
-        k = key(ex, ey);
-        while (came[k]) {
-          node = came[k];
-          path.push({ tx: node[2], ty: node[3] });
-          k = node[0] + "," + node[1];
-        }
-        path.reverse();
-        return path;
+      if (goalOk && cur[0] === ex && cur[1] === ey) {
+        return rebuildPath(came, sx, sy, ex, ey);
       }
       for (i = 0; i < 4; i++) {
         nx = cur[0] + dirs[i][0];
@@ -2079,9 +2088,16 @@
         if (!walkable(nx, ny)) continue;
         came[nk] = [cur[0], cur[1], nx, ny];
         q.push([nx, ny]);
+        d = Math.abs(nx - ex) + Math.abs(ny - ey);
+        if (d < bestD) {
+          bestD = d;
+          bestX = nx;
+          bestY = ny;
+        }
       }
     }
-    return [];
+    if (bestX === sx && bestY === sy) return [];
+    return rebuildPath(came, sx, sy, bestX, bestY);
   }
 
   function faceToward(who, tx, ty) {
@@ -7057,7 +7073,10 @@
 
   function goWalk(tx, ty) {
     pending = null;
-    if (!walkable(tx, ty)) return;
+    if (tx < 0) tx = 0;
+    if (ty < 0) ty = 0;
+    if (tx >= COLS) tx = COLS - 1;
+    if (ty >= ROWS) ty = ROWS - 1;
     startWalk(player, findPath(player.tx, player.ty, tx, ty), 3.5);
   }
 
@@ -7100,12 +7119,17 @@
   }
 
   function goEnterHouse() {
+    var dest, path;
     highlight = { tx: houseIn.tx, ty: houseIn.ty };
-    if (player.tx === houseIn.tx && player.ty === houseIn.ty) {
+    dest = walkable(houseIn.tx, houseIn.ty) ? houseIn : nearestAdjacent(houseIn.tx, houseIn.ty);
+    if (!dest) dest = houseIn;
+    if ((player.tx === dest.tx && player.ty === dest.ty) ||
+        isNear(player.tx, player.ty, houseIn.tx, houseIn.ty) ||
+        (player.tx === houseIn.tx && player.ty === houseIn.ty)) {
       enterHouse();
       return;
     }
-    var path = findPath(player.tx, player.ty, houseIn.tx, houseIn.ty);
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
     pending = { type: "enterHouse" };
     startWalk(player, path, 3.5);
@@ -9123,7 +9147,15 @@
       }
     }
 
-    if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return;
+    if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) {
+      if (tx < 0) tx = 0;
+      if (ty < 0) ty = 0;
+      if (tx >= COLS) tx = COLS - 1;
+      if (ty >= ROWS) ty = ROWS - 1;
+      highlight = { tx: tx, ty: ty };
+      goWalk(tx, ty);
+      return;
+    }
     highlight = { tx: tx, ty: ty };
     ripples.push({
       x: tx * TILE + 8,
