@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260823h";
+  var BUILD = "20260823i";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -4359,11 +4359,7 @@
   }
 
   function clockHudLine() {
-    var phase = clockPhaseName();
-    if (currentScene === "mine") return phase + " · MINE " + clampMineFloor(mineFloor);
-    if (currentScene === "house") return phase + " · HOME";
-    if (currentScene === "shop") return phase + " · SHOP";
-    return "SPRING · " + phase;
+    return "SPRING · " + clockPhaseName();
   }
 
   function uiPaused() {
