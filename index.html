@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260823f";
+  var BUILD = "20260823g";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -8976,6 +8976,11 @@
     };
   }
 
+  function inHud(p, x, y, w, h, inset) {
+    var pad = inset || 0;
+    return p.x >= x + pad && p.x < x + w - pad && p.y >= y + pad && p.y < y + h - pad;
+  }
+
   function tapHud(p) {
     var vis = visibleSlots();
     var slots = vis.length;
@@ -8989,7 +8994,7 @@
       startSwordSwing();
       return true;
     }
-    if (p.y >= by - 3 && p.y <= by + 18 && p.x >= bx && p.x <= bx + barW) {
+    if (p.y >= by && p.y <= by + 18 && p.x >= bx && p.x <= bx + barW) {
       idx = ((p.x - bx) / (slot + gap)) | 0;
       if (idx >= 0 && idx < slots) {
         id = vis[idx];
@@ -9005,8 +9010,8 @@
       }
       return true;
     }
-    if (p.x >= 46 && p.x <= 112 && p.y >= 3 && p.y <= 21) return true;
-    if (p.x >= 4 && p.x <= 22 && p.y >= 3 && p.y <= 21) {
+    if (inHud(p, 46, 3, 68, 18, 2)) return true;
+    if (inHud(p, 4, 3, 18, 18, 3)) {
       playSfx("ui");
       achieveOpen = !achieveOpen;
       questOpen = false;
@@ -9014,14 +9019,13 @@
       achieveDrag = null;
       return true;
     }
-    if (p.x >= 24 && p.x <= 42 && p.y >= 3 && p.y <= 21) {
+    if (inHud(p, 24, 3, 18, 18, 3)) {
       playSfx("ui");
       questOpen = !questOpen;
       achieveOpen = false;
       return true;
     }
-    if (p.x >= 206 && p.x <= 316 && p.y >= 4 && p.y <= 25) return true;
-    if (p.x >= VIEW_W - 18 && p.x <= VIEW_W - 2 && p.y >= VIEW_H - 80 && p.y <= VIEW_H - 14) return true;
+    if (inHud(p, 206, 4, 114, 21, 2)) return true;
     return false;
   }
 
