@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260823i";
+  var BUILD = "20260824a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -388,7 +388,7 @@
   var camX = 0;
   var camY = 0;
   var camera = { x: 0, y: 0 };
-  var portalIn = { tx: 13, ty: 24 };
+  var portalIn = { tx: 37, ty: 6 };
   var portalOut = { tx: 16, ty: 20 };
   var FARM = { x0: 2, y0: 24, x1: 22, y1: 35 };
   var MINE_COLS = 32;
@@ -1166,7 +1166,7 @@
     rect(12, 33, 14, 33, "d");
     rect(11, 34, 13, 34, "d");
     rect(10, 35, 11, 35, "d");
-    /* path north, west of the house; mine hole sits on this path */
+    /* path north, west of the house, then east to the NE mine hole */
     for (y = 10; y <= 29; y++) {
       set(13, y, "d");
       set(14, y, "d");
@@ -1234,8 +1234,8 @@
       { kind: "fenceR", tx: 9, ty: 30 },
       { kind: "fenceR", tx: 9, ty: 31 },
       { kind: "fenceR", tx: 9, ty: 32 },
-      { kind: "cave", tx: 13, ty: 24 },
-      { kind: "mineSign", tx: 14, ty: 24 },
+      { kind: "cave", tx: 37, ty: 6 },
+      { kind: "mineSign", tx: 36, ty: 6 },
       { kind: "pond", tx: 24, ty: 13 },
       { kind: "tree", tx: 8, ty: 12 },
       { kind: "tree", tx: 5, ty: 18 },
@@ -6833,7 +6833,7 @@
 
   function exitMine() {
     applyScene("overworld");
-    placePlayer(13, 25, "down");
+    placePlayer(37, 7, "down");
     persistSave();
   }
 
