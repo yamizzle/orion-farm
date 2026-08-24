@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260823e";
+  var BUILD = "20260823f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -4369,9 +4369,7 @@
     }
     if (sleepFx || faintFx) return true;
     if (achieveOpen) {
-      achieveOpen = false;
-      achieveScroll = 0;
-      achieveDrag = null;
+      closeAchieveList();
       return true;
     }
     if (questOpen) {
@@ -8224,15 +8222,15 @@
     var x = 24, y = 28, w = 272, h = 140;
     var rowH = 11;
     var listX = x + 6;
-    var listY = y + 10;
+    var listY = y + 16;
     var listW = w - 20;
-    var listH = h - 18;
+    var listH = h - 24;
     var contentH = ACH.length * rowH;
     var maxScroll = contentH - listH;
     if (maxScroll < 0) maxScroll = 0;
     var closeW = 14, closeH = 12;
-    var closeX = x + w - closeW - 4;
-    var closeY = y - 6;
+    var closeX = x + w - closeW - 6;
+    var closeY = y + 4;
     return {
       x: x, y: y, w: w, h: h,
       listX: listX, listY: listY, listW: listW, listH: listH,
