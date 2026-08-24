@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260823d";
+  var BUILD = "20260823e";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -438,6 +438,8 @@
   var toast = null;
   var toastQueue = [];
   var achieveOpen = false;
+  var achieveScroll = 0;
+  var achieveDrag = null;
   var questOpen = false;
   var sleepFx = null;
   var wipeAsk = false;
@@ -4368,6 +4370,8 @@
     if (sleepFx || faintFx) return true;
     if (achieveOpen) {
       achieveOpen = false;
+      achieveScroll = 0;
+      achieveDrag = null;
       return true;
     }
     if (questOpen) {
@@ -6145,7 +6149,7 @@
     shopOpen = false;
     craftOpen = false;
     chestOpen = false;
-    achieveOpen = false;
+    closeAchieveList();
     questOpen = false;
     cancelHit();
     player.path = [];
@@ -8216,24 +8220,92 @@
     g.restore();
   }
 
+  function achieveLayout() {
+    var x = 24, y = 28, w = 272, h = 140;
+    var rowH = 11;
+    var listX = x + 6;
+    var listY = y + 10;
+    var listW = w - 20;
+    var listH = h - 18;
+    var contentH = ACH.length * rowH;
+    var maxScroll = contentH - listH;
+    if (maxScroll < 0) maxScroll = 0;
+    var closeW = 14, closeH = 12;
+    var closeX = x + w - closeW - 4;
+    var closeY = y - 6;
+    return {
+      x: x, y: y, w: w, h: h,
+      listX: listX, listY: listY, listW: listW, listH: listH,
+      rowH: rowH, contentH: contentH, maxScroll: maxScroll,
+      closeX: closeX, closeY: closeY, closeW: closeW, closeH: closeH
+    };
+  }
+
+  function clampAchieveScroll() {
+    var L = achieveLayout();
+    if (achieveScroll < 0) achieveScroll = 0;
+    if (achieveScroll > L.maxScroll) achieveScroll = L.maxScroll;
+  }
+
+  function closeAchieveList() {
+    achieveOpen = false;
+    achieveScroll = 0;
+    achieveDrag = null;
+  }
+
+  function tapAchieve(p, e) {
+    var L = achieveLayout();
+    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 4)) {
+      playSfx("ui");
+      closeAchieveList();
+      return;
+    }
+    if (p.x >= L.listX && p.x < L.x + L.w - 4 && p.y >= L.listY && p.y < L.listY + L.listH) {
+      achieveDrag = { y: p.y, scroll: achieveScroll, id: e ? e.pointerId : 0 };
+      if (e && canvas.setPointerCapture) {
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      return;
+    }
+    if (p.x >= L.x && p.x < L.x + L.w && p.y >= L.y - 8 && p.y < L.y + L.h) return;
+    closeAchieveList();
+  }
+
   function drawAchieveList(g) {
+    var L, i, a, ly, barH, barY, barX;
     if (!achieveOpen) return;
-    var x = 24, y = 16, w = 272, h = 176;
-    woodPanel(g, x, y, w, h);
-    fill(g, x + 4, y + 4, w - 8, h - 8, C.parch);
-    woodPanel(g, x + 8, y - 6, 50, 11);
-    drawText(g, "STARS", x + 12, y - 3, C.parch);
-    var i, a, ly;
+    L = achieveLayout();
+    clampAchieveScroll();
+    woodPanel(g, L.x, L.y, L.w, L.h);
+    fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
+    woodPanel(g, L.x + 8, L.y - 6, 50, 11);
+    drawText(g, "STARS", L.x + 12, L.y - 3, C.parch);
+    woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
+    drawText(g, "X", L.closeX + 4, L.closeY + 2, C.parch);
+    g.save();
+    g.beginPath();
+    g.rect(L.listX, L.listY, L.listW, L.listH);
+    g.clip();
     for (i = 0; i < ACH.length; i++) {
       a = ACH[i];
-      ly = y + 10 + i * 11;
+      ly = L.listY + i * L.rowH - achieveScroll;
+      if (ly + L.rowH < L.listY || ly > L.listY + L.listH) continue;
       if (unlocked[a.id]) {
-        Assets.draw(g, "trophy", x + 8, ly - 3);
-        drawText(g, a.name, x + 28, ly + 1, C.uiText);
+        Assets.draw(g, "trophy", L.listX, ly - 3);
+        drawText(g, a.name, L.listX + 20, ly + 1, C.uiText);
       } else {
-        drawText(g, "....", x + 10, ly + 1, C.woodSh);
-        drawText(g, a.name, x + 28, ly + 1, C.woodSh);
+        drawText(g, "....", L.listX + 2, ly + 1, C.woodSh);
+        drawText(g, a.name, L.listX + 20, ly + 1, C.woodSh);
       }
+    }
+    g.restore();
+    if (L.maxScroll > 0) {
+      barX = L.x + L.w - 10;
+      barH = (L.listH * L.listH / L.contentH) | 0;
+      if (barH < 12) barH = 12;
+      barY = L.listY + ((L.listH - barH) * achieveScroll / L.maxScroll) | 0;
+      fill(g, barX, L.listY, 3, L.listH, C.woodSh);
+      fill(g, barX, barY, 3, barH, C.woodMid);
     }
   }
 
@@ -8940,6 +9012,8 @@
       playSfx("ui");
       achieveOpen = !achieveOpen;
       questOpen = false;
+      achieveScroll = 0;
+      achieveDrag = null;
       return true;
     }
     if (p.x >= 24 && p.x <= 42 && p.y >= 3 && p.y <= 21) {
@@ -8971,7 +9045,7 @@
     }
     if (sleepFx || faintFx) return;
     if (achieveOpen) {
-      achieveOpen = false;
+      tapAchieve(p, e);
       return;
     }
     if (questOpen) {
@@ -9436,6 +9510,24 @@
   document.addEventListener("pointerdown", unlockFromGesture, true);
   document.addEventListener("touchstart", unlockFromGesture, true);
   canvas.addEventListener("pointerdown", tap, { passive: true });
+  canvas.addEventListener("pointermove", function (e) {
+    var p, dy;
+    if (!achieveOpen || !achieveDrag) return;
+    if (achieveDrag.id && e.pointerId !== achieveDrag.id) return;
+    p = pointFromEvent(e);
+    dy = achieveDrag.y - p.y;
+    achieveScroll = achieveDrag.scroll + dy;
+    clampAchieveScroll();
+  }, { passive: true });
+  function endAchieveDrag() { achieveDrag = null; }
+  canvas.addEventListener("pointerup", endAchieveDrag, { passive: true });
+  canvas.addEventListener("pointercancel", endAchieveDrag, { passive: true });
+  canvas.addEventListener("wheel", function (e) {
+    if (!achieveOpen) return;
+    e.preventDefault();
+    achieveScroll += e.deltaY > 0 ? 11 : -11;
+    clampAchieveScroll();
+  }, { passive: false });
   document.addEventListener("touchmove", function (e) {
     e.preventDefault();
   }, { passive: false });
