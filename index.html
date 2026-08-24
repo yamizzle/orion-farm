@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260824a";
+  var BUILD = "20260824b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -352,7 +352,7 @@
   var MAX_ENERGY = 100;
   var ENERGY_HIT = 1;
   var ENERGY_SWING = 1;
-  var SWING_MS = 520;
+  var SWING_MS = 300;
   var SWING_HIT_AT = 0.05;
   var ENERGY_WALK_TILES = 0;
   var SNACK_ENERGY = 25;
@@ -2253,10 +2253,7 @@
     nx = player.tx + dir.dx;
     ny = player.ty + dir.dy;
     player.face = dir.face;
-    if (!walkable(nx, ny)) {
-      trySmashRockAt(nx, ny);
-      return;
-    }
+    if (!walkable(nx, ny)) return;
     applyWalk(player, [{ tx: nx, ty: ny }], 3.5);
   }
 
@@ -7398,8 +7395,8 @@
     if (u < 0) u = 0;
     if (u > 1) u = 1;
     u = u * u * (3 - 2 * u);
-    step = Math.round(u * 5) / 5;
-    span = 120 * Math.PI / 180;
+    step = Math.round(u * 4) / 4;
+    span = 110 * Math.PI / 180;
     if (player.face === "down") mid = Math.PI;
     else if (player.face === "right") mid = Math.PI * 0.5;
     else if (player.face === "up") mid = 0;
@@ -7407,87 +7404,29 @@
     return mid - span * 0.5 + span * step;
   }
 
-  function faceMidAngle() {
-    if (player.face === "right") return 0;
-    if (player.face === "down") return Math.PI * 0.5;
-    if (player.face === "left") return Math.PI;
-    return -Math.PI * 0.5;
-  }
-
-  function angWrap(a) {
-    while (a <= -Math.PI) a += Math.PI * 2;
-    while (a > Math.PI) a -= Math.PI * 2;
-    return a;
-  }
-
-  function angInSweep(a, a0, a1) {
-    a = angWrap(a);
-    a0 = angWrap(a0);
-    a1 = angWrap(a1);
-    if (a0 <= a1) return a >= a0 && a <= a1;
-    return a >= a0 || a <= a1;
-  }
-
-  function drawSwingFx(g) {
-    var u, cx, cy, mid, span, a0, a1, x, y, d2, a, rInner, rOuter, alpha, tiles, i, t, flash;
-    if (player.arc <= 0) return;
-    u = 1 - player.arc / SWING_MS;
-    if (u < 0) u = 0;
-    if (u > 1) u = 1;
-    cx = Math.round(player.x);
-    cy = Math.round(player.y - 12);
-    mid = faceMidAngle();
-    span = 1.28;
-    a0 = mid - span;
-    a1 = mid - span + (span * 2) * Math.min(1, 0.2 + u * 1.2);
-    alpha = 1;
-    if (u < 0.12) alpha = u / 0.12;
-    else if (u > 0.72) alpha = (1 - u) / 0.28;
-    if (alpha < 0.12) alpha = 0.12;
-    flash = 0.32 * (1 - Math.min(1, u / 0.42));
-    if (flash > 0.05) {
-      tiles = swingHitTiles();
-      g.fillStyle = "rgba(255,244,180," + flash.toFixed(3) + ")";
-      for (i = 0; i < tiles.length; i++) {
-        t = tiles[i];
-        g.fillRect(t.tx * TILE, t.ty * TILE, TILE, TILE);
-      }
-    }
-    g.fillStyle = "rgba(255,252,236," + (0.96 * alpha).toFixed(3) + ")";
-    rInner = 6;
-    rOuter = 26;
-    for (y = -rOuter; y <= rOuter; y++) {
-      for (x = -rOuter; x <= rOuter; x++) {
-        d2 = x * x + y * y;
-        if (d2 < rInner * rInner || d2 > rOuter * rOuter) continue;
-        a = Math.atan2(y, x);
-        if (!angInSweep(a, a0, a1)) continue;
-        g.fillRect(cx + x, cy + y, 1, 1);
-      }
-    }
-    g.fillStyle = "rgba(232,200,74," + (0.9 * alpha).toFixed(3) + ")";
-    rInner = 11;
-    rOuter = 18;
-    for (y = -rOuter; y <= rOuter; y++) {
-      for (x = -rOuter; x <= rOuter; x++) {
-        d2 = x * x + y * y;
-        if (d2 < rInner * rInner || d2 > rOuter * rOuter) continue;
-        a = Math.atan2(y, x);
-        if (!angInSweep(a, a0, a1)) continue;
-        g.fillRect(cx + x, cy + y, 1, 1);
-      }
-    }
-  }
-
   function drawSwordArc(g, sx, sy, bob) {
     var hand = swordHand(sx, sy, bob);
     var ang = swingAngle();
+    var u = 1 - player.arc / SWING_MS;
+    var tipX, tipY, fr;
     g.save();
     g.imageSmoothingEnabled = false;
     g.translate(Math.round(hand.x), Math.round(hand.y));
     g.rotate(ang);
     Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", -8, -13);
     g.restore();
+    if (u > 0.22 && u < 0.82 && Assets.spr.slash) {
+      tipX = hand.x + Math.sin(ang) * 13;
+      tipY = hand.y - Math.cos(ang) * 13;
+      fr = u > 0.5 ? 1 : 0;
+      g.save();
+      g.imageSmoothingEnabled = false;
+      g.globalAlpha = u < 0.35 || u > 0.7 ? 0.7 : 1;
+      g.translate(Math.round(tipX), Math.round(tipY));
+      g.rotate(ang);
+      Assets.draw(g, "slash", 0, 0, fr);
+      g.restore();
+    }
   }
 
   function drawNpc(g) {
@@ -8770,7 +8709,6 @@
       g.save();
       g.translate(-camX, -camY);
       drawActors(g);
-      drawSwingFx(g);
       drawPickups(g);
       drawArrows(g);
       drawSparks(g);
@@ -8779,7 +8717,6 @@
       drawFestivalStar(g);
     } else {
       drawActors(g);
-      drawSwingFx(g);
       drawPickups(g);
       drawArrows(g);
       drawSparks(g);
