@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260824e";
+  var BUILD = "20260824f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -328,7 +328,7 @@
   var lootSeq = 1;
   var LOOT_POP_MS = 280;
   var selectedSlot = 0;
-  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0 };
   var slotShake = 0;
   var SLOT_SEED = 0;
   var SLOT_WOOD = 1;
@@ -346,10 +346,16 @@
   var SLOT_PICK = 13;
   var SLOT_IRON = 14;
   var SLOT_BOW = 15;
-  var HUD_SLOTS = 16;
+  var SLOT_SILVER = 16;
+  var SLOT_GOLDORE = 17;
+  var SLOT_POTATO = 18;
+  var SLOT_BERRY = 19;
+  var SLOT_POTATO_SEED = 20;
+  var SLOT_BERRY_SEED = 21;
+  var HUD_SLOTS = 22;
   var SLOT_ORDER = [
-    SLOT_SEED, SLOT_WOOD, SLOT_STONE, SLOT_IRON, SLOT_COPPER, SLOT_MUSH, SLOT_MOON,
-    SLOT_VEGGIE, SLOT_FLOWER, SLOT_SNACK, SLOT_HAT, SLOT_SWORD, SLOT_BOW, SLOT_SHOVEL, SLOT_AXE, SLOT_PICK
+    SLOT_SEED, SLOT_POTATO_SEED, SLOT_BERRY_SEED, SLOT_WOOD, SLOT_STONE, SLOT_IRON, SLOT_COPPER, SLOT_SILVER, SLOT_GOLDORE, SLOT_MUSH, SLOT_MOON,
+    SLOT_VEGGIE, SLOT_POTATO, SLOT_BERRY, SLOT_FLOWER, SLOT_SNACK, SLOT_HAT, SLOT_SWORD, SLOT_BOW, SLOT_SHOVEL, SLOT_AXE, SLOT_PICK
   ];
   var MAX_HP = 50;
   var HEARTS = 5;
@@ -381,7 +387,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null };
   var tick = 0;
   var lastTs = 0;
   var dialogue = null;
@@ -407,6 +413,10 @@
   var houseOut = { tx: 10, ty: 10 };
   var shopIn = { tx: 44, ty: 26 };
   var shopOut = { tx: 8, ty: 8 };
+  var FOREST_COLS = 28;
+  var FOREST_ROWS = 22;
+  var forestIn = { tx: 5, ty: 8 };
+  var forestOut = { tx: 14, ty: 21 };
   var pipLanternAt = { tx: 43, ty: 25 };
   var TOWN_GREEN = { x0: 43, y0: 29, x1: 55, y1: 32 };
   var SAVE_KEY = "moondrop-mountain-v1";
@@ -474,7 +484,7 @@
   var craftMsgT = 0;
   var BAG_STACK = 150;
   var CHEST_STACK = 500;
-  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0 };
+  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0 };
   var chestOpen = false;
   var chestSel = 0;
   var chestMsg = "";
@@ -488,7 +498,11 @@
     { key: "copper", name: "COPPER", icon: "copper" },
     { key: "iron", name: "IRON", icon: "iron" },
     { key: "mushroom", name: "MUSHROOM", icon: "mushroom" },
-    { key: "moonshard", name: "SHARD", icon: "moonshard" }
+    { key: "moonshard", name: "SHARD", icon: "moonshard" },
+    { key: "silver", name: "SILVER", icon: "silver" },
+    { key: "goldore", name: "GOLD", icon: "goldore" },
+    { key: "potato", name: "POTATO", icon: "potato" },
+    { key: "berry", name: "BERRY", icon: "berry" }
   ];
   var shieldSkip = false;
   var arrows = [];
@@ -815,6 +829,7 @@
   function wantedTune() {
     if (currentScene === "house" || currentScene === "shop") return "house";
     if (currentScene === "mine") return "mine";
+    if (currentScene === "forest") return clockPhaseName() === "NIGHT" ? "farmNight" : "farmDay";
     if (festivalOn && clockPhaseName() === "NIGHT") return "festival";
     if (clockPhaseName() === "NIGHT") return "farmNight";
     return "farmDay";
@@ -1019,7 +1034,10 @@
     var x, y, x1, y1;
     x1 = p.tx;
     y1 = p.ty;
-    if (p.kind === "house") {
+    if (p.kind === "log") {
+      x1 = p.tx + 1;
+      y1 = p.ty;
+    } else if (p.kind === "house") {
       x1 = p.tx + 4;
       y1 = p.ty + 3;
     } else if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
@@ -1063,6 +1081,8 @@
     reserveRect(taken, 38, 20, 63, 38);
     reserveRect(taken, portalIn.tx, portalIn.ty, portalIn.tx, portalIn.ty + 1);
     reserveRect(taken, houseIn.tx, houseIn.ty, houseIn.tx, houseIn.ty + 1);
+    reserveRect(taken, 4, 8, 7, 16);
+    reserveRect(taken, 5, 15, 13, 16);
     markTile(taken, npc.tx, npc.ty);
     for (y = 0; y < rows; y++) {
       for (x = 0; x < cols; x++) {
@@ -1184,6 +1204,15 @@
     for (y = 6; y <= 9; y++) set(37, y, "d");
     /* spur to the second pond */
     for (x = 15; x <= 25; x++) set(x, 16, "d");
+    /* northwest woods path: west from the north road, then north */
+    for (x = 5; x <= 13; x++) {
+      set(x, 15, "d");
+      set(x, 16, "d");
+    }
+    for (y = 8; y <= 16; y++) {
+      set(5, y, "d");
+      set(6, y, "d");
+    }
     /* rocky hill around the mine */
     for (y = 2; y <= 8; y++) {
       for (x = 32; x <= 43; x++) {
@@ -1296,7 +1325,8 @@
       { kind: "lantern", tx: 48, ty: 27 },
       { kind: "lantern", tx: 56, ty: 27 },
       { kind: "lantern", tx: 58, ty: 32 },
-      { kind: "lantern", tx: 48, ty: 35 }
+      { kind: "lantern", tx: 48, ty: 35 },
+      { kind: "woodsSign", tx: 4, ty: 8 }
     ];
     return list.concat(scatterOverworldExtras(GROUND, list));
   }
@@ -1709,11 +1739,20 @@
         changed = true;
         continue;
       }
-      if (rec.kind === "tree") {
+      if (rec.kind === "tree" || rec.kind === "pine" || rec.kind === "oak" || rec.kind === "birch") {
         for (i = 0; i < props.length; i++) {
           p = props[i];
-          if (p.tx === rec.tx && p.ty === rec.ty && (p.kind === "tree" || p.kind === "stump")) {
+          if (p.tx === rec.tx && p.ty === rec.ty && (p.kind === rec.kind || p.kind === "tree" || p.kind === "stump")) {
             p.kind = "stump";
+            p.was = rec.kind;
+            break;
+          }
+        }
+      } else if (rec.kind === "berryBush") {
+        for (i = 0; i < props.length; i++) {
+          p = props[i];
+          if (p.tx === rec.tx && p.ty === rec.ty && p.kind === "berryBush") {
+            p.picked = true;
             break;
           }
         }
@@ -1748,18 +1787,18 @@
       props = sceneProps(rec.scene);
       if (!props) continue;
       if (tileBlockedForRespawn(rec.scene, rec.tx, rec.ty)) continue;
-      if (rec.kind === "tree") {
+      if (rec.kind === "tree" || rec.kind === "pine" || rec.kind === "oak" || rec.kind === "birch") {
         found = false;
         for (i = 0; i < props.length; i++) {
           p = props[i];
-          if (p.tx === rec.tx && p.ty === rec.ty && (p.kind === "stump" || p.kind === "tree")) {
-            p.kind = "tree";
+          if (p.tx === rec.tx && p.ty === rec.ty && (p.kind === "stump" || p.kind === rec.kind || p.kind === "tree")) {
+            p.kind = rec.kind;
             p.shake = 0;
             found = true;
             break;
           }
         }
-        if (!found) props.push({ kind: "tree", tx: rec.tx, ty: rec.ty });
+        if (!found) props.push({ kind: rec.kind, tx: rec.tx, ty: rec.ty });
       } else if (rec.kind === "rock") {
         found = false;
         for (i = 0; i < props.length; i++) {
@@ -1778,6 +1817,16 @@
           }
         }
         if (!found) props.push({ kind: "tallGrass", tx: rec.tx, ty: rec.ty, regrow: true });
+      } else if (rec.kind === "berryBush") {
+        found = false;
+        for (i = 0; i < props.length; i++) {
+          if (props[i].kind === "berryBush" && props[i].tx === rec.tx && props[i].ty === rec.ty) {
+            props[i].picked = false;
+            found = true;
+            break;
+          }
+        }
+        if (!found) props.push({ kind: "berryBush", tx: rec.tx, ty: rec.ty });
       }
       delete harvestNodes[key];
       changed = true;
@@ -1842,6 +1891,11 @@
       ROWS = SHOP_ROWS;
       GROUND = buildShopGround();
       PROPS = buildShopProps();
+    } else if (name === "forest") {
+      COLS = FOREST_COLS;
+      ROWS = FOREST_ROWS;
+      GROUND = buildForestGround();
+      PROPS = buildForestProps();
     } else {
       COLS = OVER_COLS;
       ROWS = OVER_ROWS;
@@ -1875,6 +1929,544 @@
       }
     }
   }
+
+  function isForestEntrance(tx, ty) {
+    return currentScene === "overworld" && tx === forestIn.tx && ty === forestIn.ty;
+  }
+
+  function isForestExit(tx, ty) {
+    return currentScene === "forest" && ty >= FOREST_ROWS - 1 && tx >= 13 && tx <= 15;
+  }
+
+  function enterForest() {
+    applyScene("forest");
+    placePlayer(14, 19, "up");
+    persistSave();
+  }
+
+  function exitForest() {
+    applyScene("overworld");
+    placePlayer(5, 9, "down");
+    persistSave();
+  }
+
+  function goEnterForest() {
+    highlight = { tx: forestIn.tx, ty: forestIn.ty };
+    if (isForestEntrance(player.tx, player.ty)) {
+      enterForest();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, forestIn.tx, forestIn.ty);
+    if (!path.length) return;
+    pending = { type: "enterForest" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitForest() {
+    highlight = { tx: forestOut.tx, ty: forestOut.ty };
+    if (isForestExit(player.tx, player.ty)) {
+      exitForest();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, forestOut.tx, forestOut.ty);
+    if (!path.length) return;
+    pending = { type: "exitForest" };
+    startWalk(player, path, 3.5);
+  }
+
+  function buildForestGround() {
+    var cols = FOREST_COLS, rows = FOREST_ROWS;
+    var g = [], y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) row[x] = "o";
+      g[y] = row;
+    }
+    function set(tx, ty, ch) {
+      if (tx >= 0 && ty >= 0 && tx < cols && ty < rows) g[ty][tx] = ch;
+    }
+    function rect(x0, y0, x1, y1, ch) {
+      var xx, yy;
+      for (yy = y0; yy <= y1; yy++) {
+        for (xx = x0; xx <= x1; xx++) set(xx, yy, ch);
+      }
+    }
+    rect(11, 9, 17, 15, "l");
+    set(10, 11, "l"); set(18, 12, "l"); set(13, 8, "l");
+    for (y = 12; y <= 21; y++) {
+      set(13, y, "d"); set(14, y, "d"); set(15, y, "d");
+    }
+    for (x = 10; x <= 16; x++) set(x, 13, "d");
+    set(8, 14, "p"); set(9, 14, "p");
+    return g;
+  }
+
+  function buildForestProps() {
+    return [
+      { kind: "pine", tx: 3, ty: 3 }, { kind: "pine", tx: 6, ty: 4 },
+      { kind: "pine", tx: 2, ty: 7 }, { kind: "pine", tx: 8, ty: 2 },
+      { kind: "pine", tx: 4, ty: 10 }, { kind: "pine", tx: 10, ty: 5 },
+      { kind: "pine", tx: 1, ty: 12 }, { kind: "pine", tx: 7, ty: 8 },
+      { kind: "oak", tx: 22, ty: 6 }, { kind: "oak", tx: 25, ty: 8 },
+      { kind: "oak", tx: 20, ty: 10 }, { kind: "oak", tx: 24, ty: 13 },
+      { kind: "oak", tx: 18, ty: 4 },
+      { kind: "birch", tx: 21, ty: 16 }, { kind: "birch", tx: 24, ty: 18 },
+      { kind: "birch", tx: 18, ty: 17 }, { kind: "birch", tx: 26, ty: 15 },
+      { kind: "birch", tx: 22, ty: 20 },
+      { kind: "stump", tx: 12, ty: 11 }, { kind: "stump", tx: 16, ty: 8 },
+      { kind: "log", tx: 8, ty: 13 }, { kind: "log", tx: 19, ty: 12 },
+      { kind: "fern", tx: 4, ty: 6 }, { kind: "fern", tx: 9, ty: 7 },
+      { kind: "fern", tx: 11, ty: 12 }, { kind: "fern", tx: 17, ty: 9 },
+      { kind: "fern", tx: 3, ty: 14 }, { kind: "fern", tx: 20, ty: 14 },
+      { kind: "fern", tx: 6, ty: 16 }, { kind: "fern", tx: 23, ty: 11 },
+      { kind: "wildflower", tx: 13, ty: 10 }, { kind: "wildflower", tx: 15, ty: 11 },
+      { kind: "wildflower", tx: 10, ty: 15 }, { kind: "wildflower", tx: 16, ty: 14 },
+      { kind: "wildflower", tx: 7, ty: 11 },
+      { kind: "toadstool", tx: 5, ty: 11 }, { kind: "toadstool", tx: 17, ty: 15 },
+      { kind: "toadstool", tx: 21, ty: 9 }, { kind: "toadstool", tx: 9, ty: 16 },
+      { kind: "berryBush", tx: 9, ty: 9 }, { kind: "berryBush", tx: 11, ty: 8 },
+      { kind: "berryBush", tx: 8, ty: 10 },
+      { kind: "houseChest", tx: 12, ty: 13 },
+      { kind: "copper", tx: 16, ty: 7, loose: true },
+      { kind: "silver", tx: 7, ty: 6 },
+      { kind: "goldore", tx: 23, ty: 5 },
+      { kind: "silver", tx: 20, ty: 7 },
+      { kind: "lantern", tx: 14, ty: 18 },
+      { kind: "lantern", tx: 12, ty: 12 },
+      { kind: "woodsSign", tx: 16, ty: 20 }
+    ];
+  }
+
+  var forestFolk = [
+    makeFolk("hazel", "HAZEL", "npc", 10, 9, 8, 8, 12, 11, [
+      ["I PICK BERRIES HERE.", "THE BUSHES LIKE", "QUIET FEET."],
+      ["NIM LEFT SHINY MOON", "BITS IN THE CAVES.", "I SAW A GLINT."],
+      ["SMELL THE PINES!", "SPRING IS SOFT UNDER", "THE LEAVES."]
+    ]),
+    makeFolk("rowan", "ROWAN", "npc", 17, 12, 16, 11, 19, 14, [
+      ["I'M ROWAN. I LIVE", "BY THE BIG OAKS."],
+      ["WALK AROUND THE TRUNKS.", "THE TOPS ARE A", "GREEN ROOF."],
+      ["THE CHEST BY THE STUMP", "KEEPS RAIN OFF", "YOUR THINGS."]
+    ])
+  ];
+
+  function makeCritter(kind, tx, ty, x0, y0, x1, y1) {
+    return {
+      kind: kind, tx: tx, ty: ty,
+      x: tx * 16 + 8, y: ty * 16 + 14,
+      face: "right", frame: 0,
+      path: [], stepFrom: null, stepT: 0, queuedWalk: null,
+      idle: 500 + Math.random() * 900, anim: 0, react: 0,
+      patio: { x0: x0, y0: y0, x1: x1, y1: y1 }
+    };
+  }
+
+  var forestCritters = [
+    makeCritter("rabbit", 14, 14, 10, 12, 18, 18),
+    makeCritter("deer", 20, 8, 17, 5, 25, 12),
+    makeCritter("squirrel", 6, 9, 3, 6, 10, 13)
+  ];
+
+  function critterOk(c, tx, ty) {
+    if (currentScene !== "forest") return false;
+    if (!walkable(tx, ty) && !(tx === c.tx && ty === c.ty)) return false;
+    if (tx < c.patio.x0 || tx > c.patio.x1 || ty < c.patio.y0 || ty > c.patio.y1) return false;
+    if (playerOccupies(tx, ty)) return false;
+    return true;
+  }
+
+  function critterYield(c) {
+    var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    var i, j, tmp, d, nx, ny;
+    for (i = 3; i > 0; i--) {
+      j = (Math.random() * (i + 1)) | 0;
+      tmp = dirs[i]; dirs[i] = dirs[j]; dirs[j] = tmp;
+    }
+    for (i = 0; i < 4; i++) {
+      d = dirs[i];
+      nx = c.tx + d[0];
+      ny = c.ty + d[1];
+      if (critterOk(c, nx, ny)) {
+        startWalk(c, [{ tx: nx, ty: ny }], c.kind === "deer" ? 1.1 : 1.6);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function updateForestCritters(dt) {
+    var i, c, dest;
+    if (currentScene !== "forest") return;
+    for (i = 0; i < forestCritters.length; i++) {
+      c = forestCritters[i];
+      if (c.react > 0) c.react -= dt;
+      c.anim += dt;
+      if (c.anim > 240) {
+        c.anim = 0;
+        c.frame = c.frame ? 0 : 1;
+      }
+      dest = c.path && c.path.length ? c.path[0] : null;
+      if (dest && playerOccupies(dest.tx, dest.ty)) {
+        c.path = [];
+        c.queuedWalk = null;
+        c.stepFrom = null;
+        c.stepT = 0;
+        c.x = tileCenterX(c.tx);
+        c.y = tileFootY(c.ty);
+        if (!critterYield(c)) c.idle = 400;
+        continue;
+      }
+      if (dest) {
+        advanceWalk(c, dt);
+        continue;
+      }
+      if (playerOccupies(c.tx, c.ty)) {
+        if (!critterYield(c)) c.idle = 200;
+        continue;
+      }
+      c.idle -= dt;
+      if (c.idle > 0) continue;
+      c.idle = 800 + Math.random() * 2000;
+      critterYield(c);
+    }
+  }
+
+  function eatPotato() {
+    if ((inventory.potato || 0) < 1) return false;
+    inventory.potato -= 1;
+    hp += VEGGIE_HEAL;
+    energy += VEGGIE_ENERGY;
+    if (hp > MAX_HP) hp = MAX_HP;
+    if (energy > MAX_ENERGY) energy = MAX_ENERGY;
+    persistSave();
+    playSfx("eat");
+    openDialogue("ORION", ["YUM! A POTATO."]);
+    ensureSelectedSlot();
+    return true;
+  }
+
+  function eatBerry() {
+    if ((inventory.berry || 0) < 1) return false;
+    inventory.berry -= 1;
+    hp += 8;
+    energy += 7;
+    if (hp > MAX_HP) hp = MAX_HP;
+    if (energy > MAX_ENERGY) energy = MAX_ENERGY;
+    persistSave();
+    playSfx("eat");
+    openDialogue("ORION", ["SWEET BERRIES!"]);
+    ensureSelectedSlot();
+    return true;
+  }
+
+  function pickBerryBush(prop) {
+    if (!prop || prop.kind !== "berryBush" || prop.picked) return false;
+    prop.picked = true;
+    spawnGroundLoot("berry", prop.tx, prop.ty, 1);
+    rememberHarvest(prop, "berryBush", "gone");
+    persistSave();
+    return true;
+  }
+
+  function goPickBerry(prop) {
+    if (!prop) return;
+    highlight = { tx: prop.tx, ty: prop.ty };
+    if (isNear(player.tx, player.ty, prop.tx, prop.ty) || (player.tx === prop.tx && player.ty === prop.ty)) {
+      pending = null;
+      startWalk(player, [], 3.5);
+      pickBerryBush(prop);
+      return;
+    }
+    var dest = nearestAdjacent(prop.tx, prop.ty);
+    if (!dest) return;
+    var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) return;
+    pending = { type: "pickBerry", prop: prop };
+    startWalk(player, path, 3.5);
+  }
+
+  function drawMossTile(g, tx, ty, dx, dy) {
+    var i, h;
+    fill(g, dx, dy, 16, 16, "#2A681C");
+    fill(g, dx, dy, 16, 3, "#35821F");
+    fill(g, dx, dy + 13, 16, 3, "#1E4E14");
+    for (i = 0; i < 5; i++) {
+      h = hash(tx, ty, i + 3);
+      px(g, dx + ((h * 13) | 0) + 1, dy + 3 + ((hash(ty, tx, i + 9) * 10) | 0), h < 0.5 ? "#3E8A28" : "#245816");
+    }
+  }
+
+  function drawLightTile(g, tx, ty, dx, dy) {
+    var i, h;
+    fill(g, dx, dy, 16, 16, "#4A9A2C");
+    fill(g, dx, dy, 16, 3, "#6CBC3A");
+    fill(g, dx, dy + 13, 16, 3, "#3A7A22");
+    for (i = 0; i < 4; i++) {
+      h = hash(tx, ty, i + 21);
+      px(g, dx + ((h * 12) | 0) + 2, dy + 4 + ((hash(ty, i, 5) * 8) | 0), h < 0.4 ? "#E8E070" : "#8FD44A");
+    }
+  }
+
+  function drawCropSprite(g, crop, x, y) {
+    var id = cropSprite(crop);
+    if (id === "potatoReady") { paintPotatoReady(g, x, y); return; }
+    if (id === "potatoYoung") { paintPotatoYoung(g, x, y); return; }
+    if (id === "berryReady") { paintBerryReady(g, x, y); return; }
+    if (id === "berryYoung") { paintBerryYoung(g, x, y); return; }
+    if (Assets.spr[id]) Assets.draw(g, id, x, y);
+    else paintSprout(g, x, y);
+  }
+
+  function drawItemIcon(g, id, x, y) {
+    if (id === "silver") { paintSilver(g, x, y); return; }
+    if (id === "goldore") { paintGoldore(g, x, y); return; }
+    if (id === "potato") { paintPotato(g, x, y); return; }
+    if (id === "berry") { paintBerry(g, x, y); return; }
+    if (Assets.spr[id]) Assets.draw(g, id, x, y);
+  }
+
+  function paintSprout(g, x, y) {
+    fill(g, x + 7, y + 10, 2, 5, "#3A7A14");
+    fill(g, x + 5, y + 8, 3, 2, "#5FBF22");
+    fill(g, x + 8, y + 7, 3, 2, "#5FBF22");
+  }
+
+  function paintPotatoSeed(g, x, y) {
+    fill(g, x + 3, y + 3, 10, 11, "#8B5A28");
+    fill(g, x + 4, y + 4, 8, 9, "#C47A38");
+    fill(g, x + 5, y + 7, 6, 4, "#D4A060");
+    px(g, x + 7, y + 8, "#6D4427");
+  }
+
+  function paintBerrySeed(g, x, y) {
+    fill(g, x + 3, y + 3, 10, 11, "#5A3A22");
+    fill(g, x + 4, y + 4, 8, 9, "#8B2E1C");
+    fill(g, x + 6, y + 7, 2, 2, "#E84A4A");
+    fill(g, x + 9, y + 8, 2, 2, "#C83030");
+    fill(g, x + 7, y + 10, 2, 2, "#E84A4A");
+  }
+
+  function paintPotato(g, x, y) {
+    fill(g, x + 3, y + 6, 10, 7, "#8A6A38");
+    fill(g, x + 4, y + 5, 8, 8, "#C4A060");
+    fill(g, x + 5, y + 6, 6, 3, "#E0C888");
+    px(g, x + 6, y + 8, "#6D4427");
+    px(g, x + 9, y + 9, "#6D4427");
+  }
+
+  function paintBerry(g, x, y) {
+    fill(g, x + 7, y + 10, 2, 4, "#3A7A14");
+    fill(g, x + 5, y + 5, 3, 3, "#E84A4A");
+    fill(g, x + 8, y + 4, 3, 3, "#C83030");
+    fill(g, x + 7, y + 7, 3, 3, "#E84A4A");
+    px(g, x + 6, y + 6, "#FFF0E0");
+  }
+
+  function paintSilver(g, x, y) {
+    fill(g, x + 4, y + 6, 8, 6, "#6A6A72");
+    fill(g, x + 5, y + 5, 6, 7, "#C8C8D4");
+    fill(g, x + 6, y + 6, 3, 3, "#F0F0F8");
+    px(g, x + 10, y + 9, "#4A4A52");
+  }
+
+  function paintGoldore(g, x, y) {
+    fill(g, x + 4, y + 6, 8, 6, "#A86C14");
+    fill(g, x + 5, y + 5, 6, 7, "#E8B028");
+    fill(g, x + 6, y + 6, 3, 3, "#F8E070");
+    px(g, x + 10, y + 9, "#8B5A00");
+  }
+
+  function paintPotatoYoung(g, x, y) {
+    fill(g, x + 7, y + 8, 2, 6, "#3A7A14");
+    fill(g, x + 4, y + 6, 4, 3, "#5FBF22");
+    fill(g, x + 8, y + 5, 4, 3, "#5FBF22");
+  }
+
+  function paintPotatoReady(g, x, y) {
+    fill(g, x + 7, y + 6, 2, 8, "#2F7A14");
+    fill(g, x + 3, y + 4, 5, 4, "#4A9A28");
+    fill(g, x + 8, y + 3, 5, 4, "#4A9A28");
+    fill(g, x + 4, y + 10, 8, 5, "#C4A060");
+    fill(g, x + 5, y + 11, 6, 3, "#E0C888");
+  }
+
+  function paintBerryYoung(g, x, y) {
+    fill(g, x + 7, y + 8, 2, 6, "#3A7A14");
+    fill(g, x + 5, y + 5, 6, 5, "#4A9A28");
+  }
+
+  function paintBerryReady(g, x, y) {
+    fill(g, x + 7, y + 8, 2, 7, "#2F7A14");
+    fill(g, x + 4, y + 4, 8, 7, "#4A9A28");
+    fill(g, x + 5, y + 6, 2, 2, "#E84A4A");
+    fill(g, x + 8, y + 5, 2, 2, "#C83030");
+    fill(g, x + 7, y + 8, 2, 2, "#E84A4A");
+  }
+
+  function drawForestProp(g, p, x, y) {
+    var bob;
+    if (p.kind === "pine") drawPine(g, x, y, nodeHurtStage(p));
+    else if (p.kind === "oak") drawOak(g, x, y, nodeHurtStage(p));
+    else if (p.kind === "birch") drawBirch(g, x, y, nodeHurtStage(p));
+    else if (p.kind === "log") drawLog(g, x, y);
+    else if (p.kind === "fern") drawFern(g, x, y);
+    else if (p.kind === "wildflower") drawWildflower(g, x, y);
+    else if (p.kind === "toadstool") drawToadstool(g, x, y);
+    else if (p.kind === "berryBush") drawBerryBush(g, x, y, !!p.picked);
+    else if (p.kind === "woodsSign") drawWoodsSign(g, x, y);
+    else if (p.kind === "silver" || p.kind === "goldore") {
+      bob = Math.round(Math.sin(tick / 280) * 1);
+      if (p.kind === "silver") paintSilver(g, x, y + bob);
+      else paintGoldore(g, x, y + bob);
+    }
+  }
+
+  function drawPine(g, x, y, hurt) {
+    var leaf = hurt >= 2 ? "#3A5A20" : (hurt === 1 ? "#3E7A28" : "#2A6A22");
+    var leafHi = hurt ? "#5A8A38" : "#3E8A2C";
+    fill(g, x + 6, y + 2, 4, 14, "#5A3A18");
+    fill(g, x + 7, y + 2, 1, 14, "#8B5A28");
+    fill(g, x + 2, y - 8, 12, 10, leaf);
+    fill(g, x + 3, y - 16, 10, 10, leaf);
+    fill(g, x + 4, y - 24, 8, 10, leaf);
+    fill(g, x + 5, y - 32, 6, 10, leaf);
+    fill(g, x + 6, y - 40, 4, 9, leaf);
+    fill(g, x + 7, y - 48, 2, 8, leaf);
+    fill(g, x + 3, y - 10, 4, 2, leafHi);
+    fill(g, x + 5, y - 20, 3, 2, leafHi);
+    fill(g, x + 6, y - 30, 2, 2, leafHi);
+  }
+
+  function drawOak(g, x, y, hurt) {
+    var leaf = hurt >= 2 ? "#4A6A20" : (hurt === 1 ? "#4A8A28" : "#3A8A24");
+    var leafHi = hurt ? "#6A9A38" : "#5FBF22";
+    fill(g, x + 5, y + 2, 6, 14, "#6D4427");
+    fill(g, x + 6, y + 2, 2, 14, "#C47A38");
+    fill(g, x - 16, y - 18, 48, 22, leaf);
+    fill(g, x - 12, y - 28, 40, 14, leaf);
+    fill(g, x - 6, y - 36, 28, 10, leaf);
+    fill(g, x - 10, y - 20, 10, 4, leafHi);
+    fill(g, x + 8, y - 26, 8, 3, leafHi);
+  }
+
+  function drawBirch(g, x, y, hurt) {
+    var leaf = hurt >= 2 ? "#6A8A40" : (hurt === 1 ? "#7AAA50" : "#8FBF5A");
+    fill(g, x + 6, y + 2, 4, 14, "#E8E0D0");
+    fill(g, x + 7, y + 2, 1, 14, "#F8F4E8");
+    px(g, x + 6, y + 5, "#3A2210");
+    px(g, x + 8, y + 8, "#3A2210");
+    px(g, x + 6, y + 12, "#3A2210");
+    fill(g, x - 2, y - 20, 20, 16, leaf);
+    fill(g, x + 0, y - 30, 16, 12, leaf);
+    fill(g, x + 2, y - 38, 12, 10, leaf);
+    fill(g, x + 2, y - 22, 5, 3, "#C8E080");
+  }
+
+  function drawLog(g, x, y) {
+    fill(g, x + 1, y + 8, 30, 6, "#5A3A18");
+    fill(g, x + 2, y + 7, 28, 5, "#8B5A28");
+    fill(g, x + 3, y + 8, 26, 2, "#C47A38");
+    fill(g, x + 1, y + 9, 3, 4, "#D4A060");
+    fill(g, x + 28, y + 9, 3, 4, "#D4A060");
+  }
+
+  function drawFern(g, x, y) {
+    fill(g, x + 7, y + 10, 2, 5, "#2F7A14");
+    fill(g, x + 3, y + 6, 5, 3, "#3E8A28");
+    fill(g, x + 8, y + 5, 5, 3, "#4A9A28");
+    fill(g, x + 2, y + 8, 4, 2, "#2A6A22");
+    fill(g, x + 9, y + 8, 4, 2, "#2A6A22");
+  }
+
+  function drawWildflower(g, x, y) {
+    var pink = ((x + y) & 16) === 0;
+    fill(g, x + 7, y + 9, 2, 6, "#2F7A14");
+    fill(g, x + 5, y + 6, 6, 4, pink ? "#E8A0A8" : "#E8C84A");
+    px(g, x + 7, y + 7, pink ? "#E8C84A" : "#E8A0A8");
+  }
+
+  function drawToadstool(g, x, y) {
+    var red = ((x / 16 + y / 16) & 1) === 0;
+    fill(g, x + 7, y + 10, 2, 4, "#F3D2A3");
+    fill(g, x + 4, y + 6, 8, 5, red ? "#C45A38" : "#C47A38");
+    fill(g, x + 5, y + 5, 6, 3, red ? "#E07850" : "#E8B060");
+    px(g, x + 6, y + 7, "#F3D2A3");
+    px(g, x + 9, y + 6, "#F3D2A3");
+  }
+
+  function drawBerryBush(g, x, y, picked) {
+    fill(g, x + 2, y + 6, 12, 9, "#2F7A14");
+    fill(g, x + 3, y + 4, 10, 6, "#4A9A28");
+    fill(g, x + 5, y + 3, 6, 4, "#5FBF22");
+    if (!picked) {
+      px(g, x + 5, y + 7, "#C83030");
+      px(g, x + 8, y + 6, "#E84A4A");
+      px(g, x + 10, y + 8, "#C83030");
+      px(g, x + 6, y + 10, "#E84A4A");
+    }
+  }
+
+  function drawWoodsSign(g, x, y) {
+    var word = currentScene === "forest" ? "FARM" : "WOODS";
+    var tw, sx;
+    fill(g, x + 7, y + 6, 2, 10, C.woodOut);
+    fill(g, x + 8, y + 6, 1, 10, C.woodMid);
+    tw = textWidth(word);
+    sx = x + ((TILE - tw) / 2 | 0);
+    woodPanel(g, sx - 4, y - 6, tw + 8, 13);
+    drawText(g, word, sx, y - 3, C.parch);
+  }
+
+  function drawForestFolk(g, f) {
+    var x = Math.round(f.x);
+    var y = Math.round(f.y);
+    var bob = f.frame ? -1 : 0;
+    drawShadow(g, f.x, f.y, 5);
+    if (f.id === "hazel") {
+      fill(g, x - 3, y - 26 + bob, 7, 6, "#6D4427");
+      fill(g, x - 2, y - 22 + bob, 5, 5, C.skin);
+      fill(g, x - 4, y - 16 + bob, 9, 10, "#3E8A28");
+      fill(g, x - 3, y - 15 + bob, 7, 4, "#5FBF22");
+      fill(g, x - 3, y - 6 + bob, 3, 6, "#5A3A22");
+      fill(g, x + 1, y - 6 + bob, 3, 6, "#5A3A22");
+    } else {
+      fill(g, x - 3, y - 26 + bob, 7, 5, "#3A2210");
+      fill(g, x - 2, y - 22 + bob, 5, 5, C.skin);
+      fill(g, x - 4, y - 16 + bob, 9, 10, "#A86C14");
+      fill(g, x - 3, y - 15 + bob, 7, 4, "#C47A38");
+      fill(g, x - 3, y - 6 + bob, 3, 6, "#3D1A0C");
+      fill(g, x + 1, y - 6 + bob, 3, 6, "#3D1A0C");
+    }
+  }
+
+  function drawForestCritter(g, c) {
+    var x, y, hop, bob;
+    if (!c) return;
+    x = Math.round(c.x);
+    y = Math.round(c.y);
+    hop = c.react > 0 ? -3 : 0;
+    bob = c.frame ? -1 : 0;
+    drawShadow(g, c.x, c.y, c.kind === "deer" ? 6 : 4);
+    if (c.kind === "rabbit") {
+      fill(g, x - 4, y - 8 + bob + hop, 8, 6, "#E8D0B0");
+      fill(g, x - 3, y - 6 + bob + hop, 6, 4, "#F3D2A3");
+      fill(g, x - 4, y - 14 + bob + hop, 2, 6, "#E8D0B0");
+      fill(g, x - 1, y - 14 + bob + hop, 2, 6, "#E8D0B0");
+      px(g, x + 2, y - 6 + bob + hop, "#3A2210");
+    } else if (c.kind === "deer") {
+      fill(g, x - 6, y - 14 + bob + hop, 12, 8, "#C4A060");
+      fill(g, x - 5, y - 12 + bob + hop, 6, 5, "#E0C888");
+      fill(g, x - 6, y - 6 + bob + hop, 2, 6, "#8A6A38");
+      fill(g, x + 3, y - 6 + bob + hop, 2, 6, "#8A6A38");
+      fill(g, x + 4, y - 18 + bob + hop, 3, 5, "#C4A060");
+      px(g, x + 6, y - 16 + bob + hop, "#3A2210");
+    } else {
+      fill(g, x - 3, y - 8 + bob + hop, 6, 5, "#C47A38");
+      fill(g, x + 2, y - 12 + bob + hop, 4, 7, "#A86C14");
+      px(g, x + 2, y - 6 + bob + hop, "#3A2210");
+    }
+  }
+
 
   function px(g, x, y, color) {
     g.fillStyle = color;
@@ -1924,6 +2516,8 @@
       } else if (p.kind === "fountain") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
+      } else if (p.kind === "log") {
+        block(p.tx, p.ty); block(p.tx + 1, p.ty);
       } else if (p.kind === "statue") {
         block(p.tx, p.ty);
       } else if (p.kind === "counter") {
@@ -1944,7 +2538,8 @@
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
       } else if (
-        p.kind === "tree" || p.kind === "well" || p.kind === "rock" ||
+        p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" ||
+        p.kind === "berryBush" || p.kind === "well" || p.kind === "rock" ||
         p.kind === "lantern" || p.kind === "fenceH" || p.kind === "fenceL" ||
         p.kind === "fenceR" || p.kind === "swordPedestal" || p.kind === "moonAltar"
       ) {
@@ -1967,9 +2562,10 @@
 
   function folkOccupies(tx, ty) {
     var i, f;
-    if (currentScene !== "overworld") return false;
-    for (i = 0; i < townFolk.length; i++) {
-      f = townFolk[i];
+    if (currentScene !== "overworld" && currentScene !== "forest") return false;
+    var list = liveFolk();
+    for (i = 0; i < list.length; i++) {
+      f = list[i];
       if (f.tx === tx && f.ty === ty) return true;
       if (f.path && f.path.length && f.path[0].tx === tx && f.path[0].ty === ty) return true;
     }
@@ -2297,8 +2893,31 @@
     return cropStage(c) === "ready";
   }
 
+  function cropKindOf(c) {
+    if (c && c.crop === "potato") return "potato";
+    if (c && c.crop === "berry") return "berry";
+    return "carrot";
+  }
+
+  function selectedCropKind() {
+    if (selectedSlot === SLOT_POTATO_SEED) return "potato";
+    if (selectedSlot === SLOT_BERRY_SEED) return "berry";
+    return "carrot";
+  }
+
   function cropSprite(c) {
     var st = cropStage(c);
+    var kind = cropKindOf(c);
+    if (kind === "potato") {
+      if (st === "ready") return "potatoReady";
+      if (st === "young") return "potatoYoung";
+      return "sprout";
+    }
+    if (kind === "berry") {
+      if (st === "ready") return "berryReady";
+      if (st === "young") return "berryYoung";
+      return "sprout";
+    }
     if (st === "ready") return "cropReady";
     if (st === "young") return "cropYoung";
     return "sprout";
@@ -2334,15 +2953,18 @@
     var k = tx + "," + ty;
     if (cell(tx, ty) !== "p") return;
     if (crops[k]) return;
-    crops[k] = { stage: "sprout", plantTime: worldTime() };
+    crops[k] = { stage: "sprout", plantTime: worldTime(), crop: selectedCropKind() };
     persistSave();
   }
 
   function harvestCropAt(tx, ty) {
     var k = tx + "," + ty;
     if (!cropIsReady(crops[k])) return;
+    var kind = cropKindOf(crops[k]);
     delete crops[k];
-    spawnGroundLoot("veggie", tx, ty, 1);
+    if (kind === "potato") spawnGroundLoot("potato", tx, ty, 1);
+    else if (kind === "berry") spawnGroundLoot("berry", tx, ty, 1);
+    else spawnGroundLoot("veggie", tx, ty, 1);
     persistSave();
   }
 
@@ -2351,7 +2973,7 @@
   }
 
   function isHarvestable(p) {
-    return p && (p.kind === "tree" || p.kind === "rock");
+    return p && (p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "rock");
   }
 
   function isSoftStrike(p) {
@@ -2380,6 +3002,7 @@
     if (p.kind === "fireplace") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "rug") return tx >= p.tx && tx < p.tx + 3 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "pond") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
+    if (p.kind === "log") return ty === p.ty && tx >= p.tx && tx < p.tx + 2;
     if (p.kind === "cave") return tx === p.tx && ty === p.ty;
     return p.tx === tx && p.ty === ty;
   }
@@ -2498,7 +3121,8 @@
     return kind === "wood" || kind === "stone" || kind === "pebble" || kind === "veggie" ||
       kind === "flower" || kind === "gold" || kind === "goldPile" || kind === "iron" ||
       kind === "copper" || kind === "mushroom" || kind === "sapphire" || kind === "gem" ||
-      kind === "mooncrystal" ? kind : "";
+      kind === "mooncrystal" || kind === "silver" || kind === "goldore" ||
+      kind === "potato" || kind === "berry" ? kind : "";
   }
 
   function lootIsCash(kind) {
@@ -2512,6 +3136,7 @@
     if (kind === "gold") return "goldCoin";
     if (kind === "goldPile") return "goldPile";
     if (kind === "flower") return "townFlower";
+    if (kind === "goldore") return "goldore";
     return kind;
   }
 
@@ -2625,7 +3250,8 @@
   function stackKey(kind) {
     if (kind === "pebble") return "stone";
     if (kind === "wood" || kind === "stone" || kind === "veggie" || kind === "flower" ||
-        kind === "snack" || kind === "copper" || kind === "mushroom" || kind === "moonshard" || kind === "iron") {
+        kind === "snack" || kind === "copper" || kind === "mushroom" || kind === "moonshard" || kind === "iron" ||
+        kind === "silver" || kind === "goldore" || kind === "potato" || kind === "berry") {
       return kind;
     }
     return "";
@@ -2728,13 +3354,13 @@
 
   function workToolFor(prop) {
     if (!prop) return "";
-    if (prop.kind === "tree" && toolEquipped("axe")) return "axe";
+    if ((prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch") && toolEquipped("axe")) return "axe";
     if (prop.kind === "rock" && toolEquipped("pick")) return "pickaxe";
     return "";
   }
 
   function nodeMaxHp(prop) {
-    if (prop && prop.kind === "tree") return HIT_COUNT;
+    if (prop && (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch")) return HIT_COUNT;
     if (prop && prop.kind === "rock") {
       if (currentScene === "mine" && mineFloor >= 4) return HIT_DEEP_ROCK;
       if (currentScene === "mine") return HIT_MINE_ROCK;
@@ -2744,7 +3370,7 @@
   }
 
   function nodeStrikeDmg(prop) {
-    if (prop && prop.kind === "tree" && toolEquipped("axe")) return 3;
+    if (prop && (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch") && toolEquipped("axe")) return 3;
     if (prop && prop.kind === "rock" && toolEquipped("pick")) {
       if (currentScene === "mine" && mineFloor >= 4) return 3;
       if (currentScene === "mine") return HIT_MINE_ROCK;
@@ -2785,7 +3411,7 @@
 
   function nodeHurtStage(p) {
     var rec, max, hp;
-    if (!p || (p.kind !== "tree" && p.kind !== "rock")) return 0;
+    if (!p || (p.kind !== "tree" && p.kind !== "pine" && p.kind !== "oak" && p.kind !== "birch" && p.kind !== "rock")) return 0;
     rec = harvestNodes[nodeKey(liveHarvestScene(), p.tx, p.ty)];
     if (!rec || rec.state !== "hurt") return 0;
     max = rec.maxHp || nodeMaxHp(p);
@@ -2797,7 +3423,7 @@
   }
 
   function harvestHitsFor(prop) {
-    if (prop && prop.kind === "tree") return toolEquipped("axe") ? HIT_TREE_AXE : HIT_COUNT;
+    if (prop && (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch")) return toolEquipped("axe") ? HIT_TREE_AXE : HIT_COUNT;
     if (prop && prop.kind === "rock") {
       if (!toolEquipped("pick")) {
         if (currentScene === "mine" && mineFloor >= 4) return HIT_DEEP_ROCK;
@@ -2813,7 +3439,7 @@
   }
 
   function harvestDropFor(prop) {
-    if (prop && prop.kind === "tree") return toolEquipped("axe") ? 3 : WOOD_PER_TREE;
+    if (prop && (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch")) return toolEquipped("axe") ? 3 : WOOD_PER_TREE;
     if (prop && prop.kind === "rock") return toolEquipped("pick") ? 2 : STONE_PER_ROCK;
     return 1;
   }
@@ -2852,12 +3478,14 @@
   }
 
   function finishHarvest(prop) {
-    if (prop.kind === "tree") {
+    if (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch") {
+      var treeKind = prop.kind;
       prop.kind = "stump";
+      prop.was = treeKind;
       prop.shake = 0;
       buildSolid();
       spawnGroundLoot("wood", prop.tx, prop.ty, harvestDropFor(prop));
-      rememberHarvest(prop, "tree", "stump");
+      rememberHarvest(prop, treeKind, "stump");
     } else if (prop.kind === "rock") {
       var i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
@@ -2867,6 +3495,12 @@
         spawnGroundLoot("iron", prop.tx, prop.ty, 1);
       } else if (currentScene === "mine" && mineFloor === 4 && Math.random() < 0.22) {
         spawnGroundLoot("iron", prop.tx, prop.ty, 1);
+      }
+      if (currentScene === "mine" && mineFloor >= 5 && Math.random() < 0.14) {
+        spawnGroundLoot("silver", prop.tx, prop.ty, 1);
+      }
+      if (currentScene === "mine" && mineFloor >= 6 && Math.random() < 0.10) {
+        spawnGroundLoot("goldore", prop.tx, prop.ty, 1);
       }
       rememberHarvest(prop, "rock", "gone");
       if (currentScene === "mine") unlockAch("stoneTap");
@@ -3039,7 +3673,7 @@
   }
 
   function isEntrance(tx, ty) {
-    return isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || isShopEntrance(tx, ty);
+    return isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || isShopEntrance(tx, ty) || isForestEntrance(tx, ty);
   }
 
   function isMineExit(tx, ty) {
@@ -3250,6 +3884,10 @@
         inventory.veggie = clampCount(data.inventory.veggie);
         inventory.flower = clampCount(data.inventory.flower);
         inventory.snack = clampCount(data.inventory.snack);
+        inventory.silver = clampCount(data.inventory.silver);
+        inventory.goldore = clampCount(data.inventory.goldore);
+        inventory.potato = clampCount(data.inventory.potato);
+        inventory.berry = clampCount(data.inventory.berry);
       } else {
         if (typeof data.veggie === "number" && data.veggie > 0) inventory.veggie = clampCount(data.veggie);
         if (found.copper) inventory.copper = 1;
@@ -3266,6 +3904,10 @@
         chest.veggie = clampCount(data.chest.veggie);
         chest.flower = clampCount(data.chest.flower);
         chest.snack = clampCount(data.chest.snack);
+        chest.silver = clampCount(data.chest.silver);
+        chest.goldore = clampCount(data.chest.goldore);
+        chest.potato = clampCount(data.chest.potato);
+        chest.berry = clampCount(data.chest.berry);
       }
       overflowBagToChest();
       if (data.crops && typeof data.crops === "object") {
@@ -3275,11 +3917,11 @@
           if (!Object.prototype.hasOwnProperty.call(data.crops, ck)) continue;
           cv = data.crops[ck];
           if (typeof cv === "string") {
-            crops[ck] = { stage: cv, plantTime: worldTime() };
+            crops[ck] = { stage: cv, plantTime: worldTime(), crop: "carrot" };
           } else if (cv && typeof cv === "object") {
             stage = cv.stage === "ready" || cv.stage === "young" ? cv.stage : "sprout";
             plantTime = typeof cv.plantTime === "number" ? cv.plantTime : worldTime();
-            crops[ck] = { stage: stage, plantTime: plantTime };
+            crops[ck] = { stage: stage, plantTime: plantTime, crop: (cv.crop === "potato" || cv.crop === "berry") ? cv.crop : "carrot" };
           }
         }
       }
@@ -3293,8 +3935,8 @@
           nState = nv.state === "gone" || nv.state === "stump" || nv.state === "hurt" ? nv.state : "";
           if (!nState) continue;
           harvestNodes[nk] = {
-            scene: (nv.scene === "mine" || nv.scene === "mine2" || nv.scene === "mine3" || nv.scene === "mine4" || nv.scene === "mine5" || nv.scene === "mine6") ? nv.scene : "overworld",
-            kind: nv.kind === "rock" ? "rock" : (nv.kind === "tallGrass" ? "tallGrass" : "tree"),
+            scene: (nv.scene === "mine" || nv.scene === "mine2" || nv.scene === "mine3" || nv.scene === "mine4" || nv.scene === "mine5" || nv.scene === "mine6" || nv.scene === "forest") ? nv.scene : "overworld",
+            kind: nv.kind === "rock" ? "rock" : (nv.kind === "tallGrass" ? "tallGrass" : (nv.kind === "pine" || nv.kind === "oak" || nv.kind === "birch" || nv.kind === "berryBush") ? nv.kind : "tree"),
             state: nState,
             tx: nv.tx | 0,
             ty: nv.ty | 0,
@@ -3318,10 +3960,10 @@
         }
       }
       syncLilaFlowers();
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down"
@@ -3341,12 +3983,12 @@
       var i, p, k;
       for (i = 0; i < props.length; i++) {
         p = props[i];
-        if (p.kind !== "tree" && p.kind !== "rock" && p.kind !== "stump" && p.kind !== "tallGrass") continue;
+        if (p.kind !== "tree" && p.kind !== "pine" && p.kind !== "oak" && p.kind !== "birch" && p.kind !== "rock" && p.kind !== "stump" && p.kind !== "tallGrass" && p.kind !== "berryBush") continue;
         k = nodeKey(scene, p.tx, p.ty);
         rec = harvestNodes[k];
         out[k] = {
           scene: scene,
-          kind: p.kind === "stump" ? "tree" : p.kind,
+          kind: p.kind === "stump" ? (p.was || "tree") : p.kind,
           state: rec && rec.state ? rec.state : p.kind,
           tx: p.tx,
           ty: p.ty,
@@ -3361,6 +4003,7 @@
     if (sceneCache.mine && liveHarvestScene() !== "mine") addLive("mine", sceneCache.mine.props);
     if (sceneCache.mine2 && liveHarvestScene() !== "mine2") addLive("mine2", sceneCache.mine2.props);
     if (sceneCache.mine3 && liveHarvestScene() !== "mine3") addLive("mine3", sceneCache.mine3.props);
+    if (sceneCache.forest && liveHarvestScene() !== "forest") addLive("forest", sceneCache.forest.props);
     for (key in harvestNodes) {
       if (!Object.prototype.hasOwnProperty.call(harvestNodes, key)) continue;
       rec = harvestNodes[key];
@@ -3463,7 +4106,11 @@
           moonshard: inventory.moonshard | 0,
           veggie: inventory.veggie | 0,
           flower: inventory.flower | 0,
-          snack: inventory.snack | 0
+          snack: inventory.snack | 0,
+          silver: inventory.silver | 0,
+          goldore: inventory.goldore | 0,
+          potato: inventory.potato | 0,
+          berry: inventory.berry | 0
         },
         chest: {
           wood: chest.wood | 0,
@@ -3474,7 +4121,11 @@
           moonshard: chest.moonshard | 0,
           veggie: chest.veggie | 0,
           flower: chest.flower | 0,
-          snack: chest.snack | 0
+          snack: chest.snack | 0,
+          silver: chest.silver | 0,
+          goldore: chest.goldore | 0,
+          potato: chest.potato | 0,
+          berry: chest.berry | 0
         },
         hatOwned: !!hatOwned,
         hatOn: !!hatOn,
@@ -3569,6 +4220,7 @@
     if (!inBounds(tx, ty) || !walkable(tx, ty)) {
       if (scene === "house") { tx = 10; ty = 9; face = "up"; }
       else if (scene === "shop") { tx = 8; ty = 7; face = "up"; }
+      else if (scene === "forest") { tx = 14; ty = 19; face = "up"; }
       else if (scene === "mine") {
         if (mineFloor === 2) { tx = 5; ty = 10; face = "down"; }
         else if (mineFloor === 3) { tx = 11; ty = 11; face = "up"; }
@@ -3812,7 +4464,7 @@
       rowY = L.listY + i * L.rowH;
       if (craftOwned(rec)) fill(g, L.x + 8, rowY, L.w - 16, L.rowH - 1, "#D8C8A0");
       else if (craftCanMake(rec)) fill(g, L.x + 8, rowY, L.w - 16, L.rowH - 1, "#E8C888");
-      Assets.draw(g, rec.icon, L.x + 10, rowY + 1);
+      drawItemIcon(g, rec.icon, L.x + 10, rowY + 1);
       col = (craftOwned(rec) || craftCanMake(rec)) ? C.uiText : "#8A7A62";
       label = rec.name;
       drawText(g, label, L.x + 30, rowY + 6, col);
@@ -3893,7 +4545,7 @@
 
   function houseChestHit(tx, ty, world) {
     var box, b;
-    if (currentScene !== "house") return false;
+    if (currentScene !== "house" && currentScene !== "forest") return false;
     box = findHouseChest();
     if (!box) return false;
     if (propOccupies(box, tx, ty)) return true;
@@ -3916,10 +4568,10 @@
   }
 
   function chestLayout() {
-    var w = 280, h = 176;
+    var w = 280, h = 186;
     var x = ((VIEW_W - w) / 2) | 0;
-    var y = 8;
-    return { x: x, y: y, w: w, h: h, listY: y + 22, rowH: 14, backX: x + w - 46, backY: y + 6, backW: 36, backH: 12, putX: x + 12, takeX: x + 88, allY: y + h - 18, btnW: 70, btnH: 12 };
+    var y = 2;
+    return { x: x, y: y, w: w, h: h, listY: y + 18, rowH: 11, backX: x + w - 46, backY: y + 4, backW: 36, backH: 12, putX: x + 12, takeX: x + 88, allY: y + h - 16, btnW: 70, btnH: 12 };
   }
 
   function putInChest(key, amount) {
@@ -4035,7 +4687,7 @@
       rec = CHEST_ROWS[i];
       rowY = L.listY + i * L.rowH;
       if (i === chestSel) fill(g, L.x + 8, rowY, L.w - 16, L.rowH - 1, "#E8C888");
-      Assets.draw(g, rec.icon, L.x + 10, rowY - 1);
+      drawItemIcon(g, rec.icon, L.x + 10, rowY - 1);
       col = C.uiText;
       drawText(g, rec.name, L.x + 28, rowY + 3, col);
       bagN = String(bagCount(rec.key));
@@ -4056,7 +4708,7 @@
 
   function goChest() {
     var box, dest, path;
-    if (currentScene !== "house") return;
+    if (currentScene !== "house" && currentScene !== "forest") return;
     box = findHouseChest();
     highlight = box ? { tx: box.tx, ty: box.ty } : null;
     if (!box || nearHouseChest()) {
@@ -4473,7 +5125,7 @@
 
   function lanternGlowAmt() {
     if (currentScene === "mine") return 0.55;
-    if (currentScene !== "overworld") return 0;
+    if (currentScene !== "overworld" && currentScene !== "forest") return 0;
     var t = dayMs / DAY_MS;
     if (t < 0.75) return 0;
     if (t < 0.768) return 0.22 + 0.78 * (t - 0.75) / 0.018;
@@ -4852,11 +5504,17 @@
     openDialogue("JUNIE", neighborLines());
   }
 
+  function liveFolk() {
+    if (currentScene === "forest") return forestFolk;
+    if (currentScene === "overworld") return townFolk;
+    return [];
+  }
+
   function folkAt(tx, ty) {
-    var i, f;
-    if (currentScene !== "overworld") return null;
-    for (i = 0; i < townFolk.length; i++) {
-      f = townFolk[i];
+    var i, f, list;
+    list = liveFolk();
+    for (i = 0; i < list.length; i++) {
+      f = list[i];
       if (f.tx === tx && f.ty === ty) return f;
     }
     return null;
@@ -4864,13 +5522,14 @@
 
   function folkOk(f, tx, ty) {
     var p;
-    if (currentScene !== "overworld") return false;
+    if (currentScene !== "overworld" && currentScene !== "forest") return false;
     if (!walkable(tx, ty) && !(tx === f.tx && ty === f.ty)) return false;
     if (tx < f.patio.x0 || tx > f.patio.x1 || ty < f.patio.y0 || ty > f.patio.y1) return false;
     if (playerOccupies(tx, ty)) return false;
     if (carOccupies(tx, ty)) return false;
-    for (p = 0; p < townFolk.length; p++) {
-      if (townFolk[p] !== f && townFolk[p].tx === tx && townFolk[p].ty === ty) return false;
+    var list = liveFolk();
+    for (p = 0; p < list.length; p++) {
+      if (list[p] !== f && list[p].tx === tx && list[p].ty === ty) return false;
     }
     return true;
   }
@@ -4906,9 +5565,11 @@
 
   function updateTownFolk(dt) {
     var i, f, dest;
-    if (currentScene !== "overworld") return;
-    for (i = 0; i < townFolk.length; i++) {
-      f = townFolk[i];
+    var list;
+    if (currentScene !== "overworld" && currentScene !== "forest") return;
+    list = liveFolk();
+    for (i = 0; i < list.length; i++) {
+      f = list[i];
       f.anim += dt;
       if (f.anim > 220) {
         f.anim = 0;
@@ -5520,7 +6181,7 @@
 
   function maybeToolHint(prop) {
     if (!prop) return;
-    if (prop.kind === "tree" && !toolEquipped("axe") && !axeHintSeen) {
+    if ((prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch") && !toolEquipped("axe") && !axeHintSeen) {
       axeHintSeen = true;
       showLineNote(axeOwned ? "SELECT THE AXE." : "AN AXE WOULD BE FASTER.");
       persistSave();
@@ -6647,7 +7308,7 @@
   function isCollectible(p) {
     return p && (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
       p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
-      p.kind === "iron" || p.kind === "sapphire");
+      p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore");
   }
 
   function findNote() {
@@ -6718,6 +7379,15 @@
       takeDeepFind(prop);
       return;
     }
+    if (prop.kind === "silver" || prop.kind === "goldore" || prop.loose) {
+      i = PROPS.indexOf(prop);
+      if (i >= 0) PROPS.splice(i, 1);
+      addItem(prop.kind, 1);
+      spawnPickup(prop.kind, prop.tx, prop.ty, 0);
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      persistSave();
+      return;
+    }
     if (found[prop.kind]) return;
     i = PROPS.indexOf(prop);
     if (i >= 0) PROPS.splice(i, 1);
@@ -6760,7 +7430,8 @@
     if (prop.kind === "chest" && mineFloor === 6 && found.peakChest) return;
     if ((prop.kind === "chest" || prop.kind === "mooncrystal") && mineFloor !== 6 && found.mooncrystal) return;
     if (prop.kind !== "gem" && prop.kind !== "chest" && prop.kind !== "mooncrystal" &&
-        prop.kind !== "iron" && prop.kind !== "sapphire" && found[prop.kind]) return;
+        prop.kind !== "iron" && prop.kind !== "sapphire" && prop.kind !== "silver" &&
+        prop.kind !== "goldore" && !prop.loose && found[prop.kind]) return;
     highlight = { tx: prop.tx, ty: prop.ty };
     if (player.tx === prop.tx && player.ty === prop.ty) {
       pending = null;
@@ -6907,6 +7578,16 @@
       exitShop();
       return;
     }
+    if (isForestEntrance(player.tx, player.ty)) {
+      pending = null;
+      enterForest();
+      return;
+    }
+    if (isForestExit(player.tx, player.ty)) {
+      pending = null;
+      exitForest();
+      return;
+    }
     tryPickupHere();
     if (!pending) return;
     var act = pending;
@@ -6953,6 +7634,11 @@
         startWalk(player, [], 3.5);
         beginHit(act.prop);
       }
+    } else if (act.type === "pickBerry") {
+      if (act.prop && act.prop.kind === "berryBush" && (isNear(player.tx, player.ty, act.prop.tx, act.prop.ty) || (player.tx === act.prop.tx && player.ty === act.prop.ty))) {
+        startWalk(player, [], 3.5);
+        pickBerryBush(act.prop);
+      }
     } else if (act.type === "pickPlant") {
       if (act.prop && isPickablePlant(act.prop) && (isNear(player.tx, player.ty, act.prop.tx, act.prop.ty) || (player.tx === act.prop.tx && player.ty === act.prop.ty))) {
         startWalk(player, [], 3.5);
@@ -6995,6 +7681,10 @@
       enterShop();
     } else if (act.type === "exitShop") {
       exitShop();
+    } else if (act.type === "enterForest") {
+      enterForest();
+    } else if (act.type === "exitForest") {
+      exitForest();
     } else if (act.type === "shop") {
       openShop();
     } else if (act.type === "plantFlower") {
@@ -7039,6 +7729,11 @@
         }
       } else if (currentScene === "shop") {
         if (t.tx === 8 && t.ty === 4) { talkPip(); return true; }
+      } else if (currentScene === "forest") {
+        for (fi = 0; fi < forestFolk.length; fi++) {
+          f = forestFolk[fi];
+          if (here(f, t)) { goTalkFolk(f); return true; }
+        }
       }
     }
     return false;
@@ -7507,11 +8202,11 @@
     if (p.kind === "rug" || p.kind === "doormat") return p.ty * TILE + 4;
     if (p.kind === "window") return p.ty * TILE + (currentScene === "house" ? 36 : 8);
     if (p.kind === "inndoor") return p.ty * TILE + 20;
-    if (p.kind === "tree") return p.ty * TILE + 24;
+    if (p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch") return p.ty * TILE + 24;
     if (p.kind === "well") return p.ty * TILE + 28;
     if (p.kind === "mailbox") return p.ty * TILE + 20;
     if (p.kind === "pond") return p.ty * TILE + 20;
-    if (p.kind === "crate" || p.kind === "stump" || p.kind === "tallGrass") return p.ty * TILE + 14;
+    if (p.kind === "crate" || p.kind === "stump" || p.kind === "tallGrass" || p.kind === "log" || p.kind === "berryBush" || p.kind === "fern" || p.kind === "wildflower" || p.kind === "toadstool") return p.ty * TILE + 14;
     if (p.kind === "cave") return p.ty * TILE + 2;
     if (p.kind === "mineSign") return p.ty * TILE + 8;
     if (p.kind === "lantern") return p.ty * TILE + (currentScene === "house" ? 24 : 20);
@@ -7519,9 +8214,10 @@
     if (p.kind === "hole") return p.ty * TILE + 2;
     if (p.kind === "ladder") return p.ty * TILE + 20;
     if (p.kind === "swordPedestal") return p.ty * TILE + 20;
+    if (p.kind === "woodsSign") return p.ty * TILE + 8;
     if (p.kind === "note" || p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
         p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
-        p.kind === "iron" || p.kind === "sapphire") {
+        p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore") {
       return p.ty * TILE + 14;
     }
     return p.ty * TILE + TILE;
@@ -7552,6 +8248,11 @@
       return { x: p.tx * TILE, y: p.ty * TILE - (p.kind === "inndoor" ? 8 : 0), w: 16, h: 24 };
     }
     if (p.kind === "tree") return { x: p.tx * TILE - 16, y: p.ty * TILE - 48, w: 48, h: 64 };
+    if (p.kind === "pine") return { x: p.tx * TILE - 12, y: p.ty * TILE - 56, w: 40, h: 72 };
+    if (p.kind === "oak") return { x: p.tx * TILE - 24, y: p.ty * TILE - 40, w: 64, h: 56 };
+    if (p.kind === "birch") return { x: p.tx * TILE - 10, y: p.ty * TILE - 48, w: 36, h: 64 };
+    if (p.kind === "log") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 16 };
+    if (p.kind === "woodsSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
     if (p.kind === "cave") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "mineSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
     if (p.kind === "pond") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 36, h: 32 };
@@ -7678,6 +8379,10 @@
       Assets.draw(g, "inndoor", x, y);
     } else if (p.kind === "tree") {
       Assets.draw(g, harvestSprite(p), x, y);
+    } else if (p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "log" ||
+               p.kind === "fern" || p.kind === "wildflower" || p.kind === "toadstool" ||
+               p.kind === "berryBush" || p.kind === "woodsSign" || p.kind === "silver" || p.kind === "goldore") {
+      drawForestProp(g, p, x, y);
     } else if (p.kind === "stump") {
       Assets.draw(g, "stump", x, y);
     } else if (p.kind === "well") {
@@ -7747,7 +8452,7 @@
       Assets.draw(g, "note", x, y);
     } else if (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
                p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
-               p.kind === "iron" || p.kind === "sapphire") {
+               p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore") {
       var bob = Math.round(Math.sin(tick / 280) * 1);
       if (p.kind === "moonshard" || p.kind === "mooncrystal" || p.kind === "gem" || p.kind === "sapphire") {
         g.fillStyle = p.kind === "sapphire" ? "rgba(60,90,200,0.22)" : (p.kind === "gem" ? "rgba(92,188,154,0.20)" : "rgba(232,240,255,0.22)");
@@ -7802,7 +8507,7 @@
     var t = dayMs / DAY_MS;
     var amt = lanternGlowAmt();
     var gr, pop, a;
-    if (currentScene !== "overworld") return null;
+    if (currentScene !== "overworld" && currentScene !== "forest") return null;
     gr = currentGrade();
     if (amt >= 0.02) {
       pop = lanternPopAt(wx, wy);
@@ -7825,6 +8530,7 @@
     if (item.kind === "npc") return { x: npc.x, y: npc.y };
     if (item.kind === "car") return { x: car.x, y: car.y };
     if (item.kind === "folk" && item.f) return { x: item.f.x, y: item.f.y };
+    if (item.kind === "critter" && item.c) return { x: item.c.x, y: item.c.y };
     if (item.kind === "mon" && item.m) return { x: item.m.x, y: item.m.y };
     return { x: 0, y: 0 };
   }
@@ -7858,6 +8564,14 @@
       }
       if (nimVisible()) list.push({ foot: nim.y, kind: "nim" });
     }
+    if (currentScene === "forest") {
+      for (i = 0; i < forestFolk.length; i++) {
+        list.push({ foot: forestFolk[i].y, kind: "folk", f: forestFolk[i] });
+      }
+      for (i = 0; i < forestCritters.length; i++) {
+        list.push({ foot: forestCritters[i].y, kind: "critter", c: forestCritters[i] });
+      }
+    }
     if (currentScene === "shop") {
       list.push({ foot: tileFootY(4), kind: "shopPip" });
     }
@@ -7869,7 +8583,11 @@
     else if (item.kind === "player") drawPlayer(g);
     else if (item.kind === "chicken") drawChickenSpr(g);
     else if (item.kind === "car") drawCarSpr(g);
-    else if (item.kind === "folk") drawFolk(g, item.f);
+    else if (item.kind === "folk") {
+      if (item.f && (item.f.id === "hazel" || item.f.id === "rowan")) drawForestFolk(g, item.f);
+      else drawFolk(g, item.f);
+    }
+    else if (item.kind === "critter") drawForestCritter(g, item.c);
     else if (item.kind === "nim") drawNim(g);
     else if (item.kind === "mon") drawMonster(g, item.m);
     else if (item.kind === "shopPip") {
@@ -7986,7 +8704,7 @@
     sortActors(list);
     for (i = 0; i < list.length; i++) {
       item = list[i];
-      if (currentScene === "overworld") {
+      if (currentScene === "overworld" || currentScene === "forest") {
         if (item.kind === "prop") drawGradedProp(g, item);
         else drawWashedActor(g, item);
       } else {
@@ -8022,11 +8740,11 @@
       L = groundLoot[i];
       if (L.scene !== scene) continue;
       bob = L.popAge >= LOOT_POP_MS ? Math.round(Math.sin(tick / 280) * 1) : 0;
-      Assets.draw(g, pickupSprite(L.kind), Math.round(L.x - 8), Math.round(L.y - 8 + bob));
+      drawItemIcon(g, pickupSprite(L.kind), Math.round(L.x - 8), Math.round(L.y - 8 + bob));
     }
     for (i = 0; i < pickups.length; i++) {
       pk = pickups[i];
-      Assets.draw(g, pickupSprite(pk.kind), Math.round(pk.x - 8), Math.round(pk.y - 8));
+      drawItemIcon(g, pickupSprite(pk.kind), Math.round(pk.x - 8), Math.round(pk.y - 8));
     }
   }
 
@@ -8425,9 +9143,13 @@
     if (i === SLOT_STONE) return bagCount("stone");
     if (i === SLOT_IRON) return bagCount("iron");
     if (i === SLOT_COPPER) return bagCount("copper");
+    if (i === SLOT_SILVER) return bagCount("silver");
+    if (i === SLOT_GOLDORE) return bagCount("goldore");
     if (i === SLOT_MUSH) return bagCount("mushroom");
     if (i === SLOT_MOON) return bagCount("moonshard");
     if (i === SLOT_VEGGIE) return bagCount("veggie");
+    if (i === SLOT_POTATO) return bagCount("potato");
+    if (i === SLOT_BERRY) return bagCount("berry");
     if (i === SLOT_FLOWER) return bagCount("flower");
     if (i === SLOT_SNACK) return bagCount("snack");
     return -1;
@@ -8441,7 +9163,7 @@
       if (i === SLOT_MOON && homeLightOn()) return false;
       return true;
     }
-    if (i === SLOT_SEED) return true;
+    if (i === SLOT_SEED || i === SLOT_POTATO_SEED || i === SLOT_BERRY_SEED) return true;
     if (i === SLOT_HAT) return !!hatOwned;
     if (i === SLOT_SWORD) return !!swordOwned;
     if (i === SLOT_BOW) return !!bowOwned;
@@ -8528,6 +9250,10 @@
       }
       if (i === SLOT_SEED) {
         Assets.draw(g, "seed", sx + 1, sy + 1);
+      } else if (i === SLOT_POTATO_SEED) {
+        paintPotatoSeed(g, sx + 1, sy + 1);
+      } else if (i === SLOT_BERRY_SEED) {
+        paintBerrySeed(g, sx + 1, sy + 1);
       } else if (i === SLOT_WOOD) {
         Assets.draw(g, "wood", sx + 1, sy + 1);
         count = inventory.wood;
@@ -8540,6 +9266,12 @@
       } else if (i === SLOT_COPPER) {
         Assets.draw(g, "copper", sx + 1, sy + 1);
         count = inventory.copper;
+      } else if (i === SLOT_SILVER) {
+        paintSilver(g, sx + 1, sy + 1);
+        count = inventory.silver;
+      } else if (i === SLOT_GOLDORE) {
+        paintGoldore(g, sx + 1, sy + 1);
+        count = inventory.goldore;
       } else if (i === SLOT_MUSH) {
         Assets.draw(g, "mushroom", sx + 1, sy + 1);
         count = inventory.mushroom;
@@ -8549,6 +9281,12 @@
       } else if (i === SLOT_VEGGIE) {
         Assets.draw(g, "veggie", sx + 1, sy + 1);
         count = inventory.veggie;
+      } else if (i === SLOT_POTATO) {
+        paintPotato(g, sx + 1, sy + 1);
+        count = inventory.potato;
+      } else if (i === SLOT_BERRY) {
+        paintBerry(g, sx + 1, sy + 1);
+        count = inventory.berry;
       } else if (i === SLOT_FLOWER) {
         Assets.draw(g, "townFlower", sx + 1, sy + 1);
         count = inventory.flower;
@@ -8647,7 +9385,7 @@
 
   function drawWorld(g, dt) {
     updateCamera();
-    g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : C.grassMid;
+    g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : (currentScene === "forest" ? "#2F6A22" : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -8669,7 +9407,7 @@
           var crop = crops[tx + "," + ty];
           if (crop) {
             var bob = cropIsReady(crop) ? Math.round(Math.sin(tick / 280) * 1) : 0;
-            Assets.draw(g, cropSprite(crop), dx, dy + bob);
+            drawCropSprite(g, crop, dx, dy + bob);
           }
         } else if (ch === "s") {
           if (currentScene === "mine") {
@@ -8689,6 +9427,10 @@
           Assets.draw(g, "cobble", dx, dy);
         } else if (ch === "m") {
           Assets.draw(g, "meadow", dx, dy);
+        } else if (ch === "o") {
+          drawMossTile(g, tx, ty, dx, dy);
+        } else if (ch === "l") {
+          drawLightTile(g, tx, ty, dx, dy);
         } else if (ch === "f") {
           Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
         } else if (ch === "#") {
@@ -8739,7 +9481,7 @@
       }
     }
 
-    if (currentScene === "overworld") {
+    if (currentScene === "overworld" || currentScene === "forest") {
       g.restore();
       drawDayTint(g);
       g.save();
@@ -8995,6 +9737,8 @@
         playSfx("ui");
         if (id === SLOT_SNACK && (inventory.snack || 0) > 0) eatSnack();
         if (id === SLOT_VEGGIE && (inventory.veggie || 0) > 0) eatCarrot();
+        if (id === SLOT_POTATO && (inventory.potato || 0) > 0) eatPotato();
+        if (id === SLOT_BERRY && (inventory.berry || 0) > 0) eatBerry();
         if (id === SLOT_MUSH && (inventory.mushroom || 0) > 0) eatMushroom();
         if (id === SLOT_HAT && hatOwned) {
           hatOn = !hatOn;
@@ -9104,6 +9848,24 @@
         return;
       }
     }
+    if (currentScene === "forest") {
+      var ffi, ff, ci, cr;
+      for (ffi = 0; ffi < forestFolk.length; ffi++) {
+        ff = forestFolk[ffi];
+        if (hitSprite(world, ff.x, ff.y, 16, 32, 8, 28)) {
+          goTalkFolk(ff);
+          return;
+        }
+      }
+      for (ci = 0; ci < forestCritters.length; ci++) {
+        cr = forestCritters[ci];
+        if (hitSprite(world, cr.x, cr.y, cr.kind === "deer" ? 20 : 14, cr.kind === "deer" ? 22 : 14, 8, cr.kind === "deer" ? 18 : 12)) {
+          cr.react = 420;
+          cr.idle = 500;
+          return;
+        }
+      }
+    }
     if (currentScene === "mine") {
       var mi, monHit;
       for (mi = 0; mi < monsters.length; mi++) {
@@ -9144,6 +9906,10 @@
       goEnter();
       return;
     }
+    if (isForestEntrance(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsSign")) {
+      goEnterForest();
+      return;
+    }
     if (mailboxHit(tx, ty, world)) {
       goMail();
       return;
@@ -9177,6 +9943,10 @@
       goExitShop();
       return;
     }
+    if (isForestExit(tx, ty)) {
+      goExitForest();
+      return;
+    }
     var hitProp = propAt(tx, ty);
     if (!hitProp) {
       var hi;
@@ -9198,7 +9968,7 @@
       goCraft();
       return;
     }
-    if (currentScene === "house" && (houseChestHit(tx, ty, world) || (hitProp && hitProp.kind === "houseChest"))) {
+    if ((currentScene === "house" || currentScene === "forest") && (houseChestHit(tx, ty, world) || (hitProp && hitProp.kind === "houseChest"))) {
       goChest();
       return;
     }
@@ -9223,7 +9993,7 @@
       goTalkNim();
       return;
     }
-    if (currentScene === "overworld" && folkAt(tx, ty)) {
+    if ((currentScene === "overworld" || currentScene === "forest") && folkAt(tx, ty)) {
       goTalkFolk(folkAt(tx, ty));
       return;
     }
@@ -9266,6 +10036,10 @@
         return;
       }
     }
+    if (hitProp && hitProp.kind === "berryBush") {
+      goPickBerry(hitProp);
+      return;
+    }
     if (hitProp && isPickablePlant(hitProp)) {
       goPickPlant(hitProp);
       return;
@@ -9282,7 +10056,7 @@
       goPickCrop(tx, ty);
       return;
     }
-    if (selectedSlot === SLOT_SEED && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
+    if ((selectedSlot === SLOT_SEED || selectedSlot === SLOT_POTATO_SEED || selectedSlot === SLOT_BERRY_SEED) && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
       goPlant(tx, ty);
       return;
     }
@@ -9353,6 +10127,7 @@
       }
       updateChicken(dt);
       updateTownFolk(dt);
+      updateForestCritters(dt);
       updateNim(dt);
       updateCar(dt);
       updateMonsters(dt);
