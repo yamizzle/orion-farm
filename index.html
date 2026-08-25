@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825d";
+  var BUILD = "20260825e";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -9422,6 +9422,14 @@
     if (!slotVisible(selectedSlot)) selectedSlot = SLOT_SEED;
   }
 
+  function selectHotbarIndex(n) {
+    var vis = visibleSlots();
+    if (n < 0 || n >= vis.length) return false;
+    selectedSlot = vis[n];
+    playSfx("ui");
+    return true;
+  }
+
   function drawHUD(g) {
     woodPanel(g, 4, 3, 18, 18);
     Assets.draw(g, "trophy", 5, 4);
@@ -10492,6 +10500,15 @@
       dropMoveKey(mk.id);
       kbHeld.push(mk);
       takeKeyboard();
+      return;
+    }
+    var slotN = 0;
+    if (e.code && e.code.indexOf("Digit") === 0) slotN = e.code.charAt(5) | 0;
+    else if (e.code && e.code.indexOf("Numpad") === 0) slotN = e.code.charAt(6) | 0;
+    else if (e.key && e.key.length === 1 && e.key >= "1" && e.key <= "8") slotN = e.key | 0;
+    if (slotN >= 1 && slotN <= 8) {
+      e.preventDefault();
+      if (!e.repeat) selectHotbarIndex(slotN - 1);
       return;
     }
     actionKey = e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J";
