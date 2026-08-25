@@ -21,6 +21,8 @@ Hurt look: Imagine sprites `treeHurt` / `treeHurt2` and `rock0Hurt` / `rock0Hurt
 
 Walking **into** a rock bumps; it does not smash. Smash is tap-on-rock or Space while adjacent/facing.
 
+Fences are **not** harvest nodes. Adjacent Space, tap, or a tool on a fence is one-shot: the tile goes away and `FENCE_COST` wood (currently 2, same as place) credits **the bag immediately**. Walking into a fence bumps; it does not break. Place from the wood slot still works so the loop is break → wood → place somewhere else.
+
 Trees occupy **one tile** for clicks and collision (the trunk). The canopy is draw-only. Do not hit-test the 48×64 sprite box.
 
 ## Drops

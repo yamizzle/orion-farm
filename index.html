@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260824f";
+  var BUILD = "20260824g";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3026,12 +3026,111 @@
   }
 
   function hasFence(tx, ty) {
+    return !!fenceAt(tx, ty);
+  }
+
+  function fenceAt(tx, ty) {
     var i, p;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
-      if (isFenceKind(p.kind) && p.tx === tx && p.ty === ty) return true;
+      if (isFenceKind(p.kind) && p.tx === tx && p.ty === ty) return p;
+    }
+    return null;
+  }
+
+  function forgetFenceBuild(tx, ty) {
+    var j, removed;
+    removed = false;
+    for (j = builds.length - 1; j >= 0; j--) {
+      if (!builds[j]) continue;
+      if (isFenceKind(builds[j].kind) && builds[j].tx === tx && builds[j].ty === ty) {
+        builds.splice(j, 1);
+        removed = true;
+      }
+    }
+    return removed;
+  }
+
+  function rememberGoneFence(tx, ty) {
+    var j;
+    if (forgetFenceBuild(tx, ty)) return;
+    for (j = 0; j < builds.length; j++) {
+      if (builds[j] && builds[j].kind === "goneFence" && builds[j].tx === tx && builds[j].ty === ty) return;
+    }
+    builds.push({ kind: "goneFence", tx: tx, ty: ty });
+  }
+
+  function clearGoneFence(tx, ty) {
+    var j;
+    for (j = builds.length - 1; j >= 0; j--) {
+      if (builds[j] && builds[j].kind === "goneFence" && builds[j].tx === tx && builds[j].ty === ty) {
+        builds.splice(j, 1);
+      }
+    }
+  }
+
+  function breakFence(prop) {
+    var i, took;
+    if (!prop || !isFenceKind(prop.kind)) return false;
+    i = PROPS.indexOf(prop);
+    if (i >= 0) PROPS.splice(i, 1);
+    rememberGoneFence(prop.tx, prop.ty);
+    buildSolid();
+    faceToward(player, prop.tx, prop.ty);
+    player.workTool = toolEquipped("axe") ? "axe" : "";
+    player.swing = 220;
+    spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+    playSfx("chop");
+    spendEnergy(ENERGY_HIT);
+    took = addItem("wood", FENCE_COST);
+    if (took < FENCE_COST) spawnGroundLoot("wood", prop.tx, prop.ty, FENCE_COST - took);
+    persistSave();
+    return true;
+  }
+
+  function tryBreakFenceAt(tx, ty) {
+    var prop = fenceAt(tx, ty);
+    if (!prop) return false;
+    return breakFence(prop);
+  }
+
+  function tryBreakFenceFacing() {
+    var spots, i, prop;
+    if (uiPaused() || faintFx) return false;
+    if (player.swing > 0) return false;
+    spots = [
+      facingTile(),
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      prop = fenceAt(spots[i].tx, spots[i].ty);
+      if (prop) {
+        breakFence(prop);
+        return true;
+      }
     }
     return false;
+  }
+
+  function goBreakFence(prop) {
+    var dest, path;
+    if (!prop || !isFenceKind(prop.kind)) return;
+    highlight = { tx: prop.tx, ty: prop.ty };
+    if (isNear(player.tx, player.ty, prop.tx, prop.ty)) {
+      pending = null;
+      startWalk(player, [], 3.5);
+      breakFence(prop);
+      return;
+    }
+    dest = nearestAdjacent(prop.tx, prop.ty);
+    if (!dest) return;
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) return;
+    pending = { type: "breakFence", prop: prop };
+    startWalk(player, path, 3.5);
   }
 
   function fenceKindFor(tx, ty) {
@@ -3643,6 +3742,7 @@
     if (placingFence) {
       inventory.wood -= FENCE_COST;
       var fk = fenceKindFor(tx, ty);
+      clearGoneFence(tx, ty);
       PROPS.push({ kind: fk, tx: tx, ty: ty });
       builds.push({ kind: fk, tx: tx, ty: ty });
       buildSolid();
@@ -3955,7 +4055,7 @@
           item = src[bi];
           if (!item || typeof item !== "object") continue;
           bk = item.kind;
-          if (bk !== "path" && bk !== "hole" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR" && bk !== "townFlower") continue;
+          if (bk !== "path" && bk !== "hole" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR" && bk !== "townFlower" && bk !== "goneFence") continue;
           builds.push({ kind: bk, tx: item.tx | 0, ty: item.ty | 0 });
         }
       }
@@ -4158,7 +4258,18 @@
     if (!builds || !builds.length || !ground || !props) return;
     for (i = 0; i < builds.length; i++) {
       b = builds[i];
-      if (!b) continue;
+      if (!b || b.kind !== "goneFence") continue;
+      if (b.ty < 0 || b.ty >= ground.length || !ground[b.ty]) continue;
+      if (b.tx < 0 || b.tx >= ground[b.ty].length) continue;
+      for (j = props.length - 1; j >= 0; j--) {
+        if (props[j].tx === b.tx && props[j].ty === b.ty && isFenceKind(props[j].kind)) {
+          props.splice(j, 1);
+        }
+      }
+    }
+    for (i = 0; i < builds.length; i++) {
+      b = builds[i];
+      if (!b || b.kind === "goneFence") continue;
       if (b.ty < 0 || b.ty >= ground.length || !ground[b.ty]) continue;
       if (b.tx < 0 || b.tx >= ground[b.ty].length) continue;
       if (b.kind === "path") {
@@ -7649,6 +7760,11 @@
         startWalk(player, [], 3.5);
         beginHit({ kind: "crop", tx: act.tx, ty: act.ty });
       }
+    } else if (act.type === "breakFence") {
+      if (act.prop && isFenceKind(act.prop.kind) && isNear(player.tx, player.ty, act.prop.tx, act.prop.ty)) {
+        startWalk(player, [], 3.5);
+        breakFence(act.prop);
+      }
     } else if (act.type === "build") {
       if (isNear(player.tx, player.ty, act.tx, act.ty) || (player.tx === act.tx && player.ty === act.ty)) {
         faceToward(player, act.tx, act.ty);
@@ -10052,6 +10168,10 @@
       goHarvest(harvest);
       return;
     }
+    if (hitProp && isFenceKind(hitProp.kind)) {
+      goBreakFence(hitProp);
+      return;
+    }
     if (cell(tx, ty) === "p" && cropIsReady(crops[tx + "," + ty])) {
       goPickCrop(tx, ty);
       return;
@@ -10252,6 +10372,7 @@
         return;
       }
       if (tryTalkAdjacent()) return;
+      if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
       return;
     }
