@@ -2,6 +2,12 @@
 
 Two harnesses work on this repo, usually not at the same time: **Grok Build** and **Grok Bot**. Production is GitHub Pages from `main` (`https://yamizzle.github.io/orion-farm/`). The household hard-refreshes. Player save is browser-side — do not rewrite it to “fix” art.
 
+Pull `origin/main` at the start of every turn before you edit.
+
+## Gameplay canon
+
+Before changing harvest, drops, tools, the hotbar, the shop, or combat equipment, read **`GAMEPLAY.md`**. It is the human’s locked rules (hit counts, ground loot, tree draw order, economy). Do not “simplify” smash to one hit, auto-bag stone, or force Orion above every canopy.
+
 ## Art
 
 Before any graphic work, read `assets/ART.md`.
