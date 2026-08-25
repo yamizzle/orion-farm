@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825k";
+  var BUILD = "20260825l";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -300,9 +300,15 @@
       }).then(function (img) {
         Assets.img = img;
         Assets.ready = true;
-        return loadImage("assets/props/giantTree.png").then(function (gt) {
-          Assets.giantTree = gt;
-        }).catch(function () {});
+        return Promise.all([
+          loadImage("assets/props/giantTree.png").then(function (gt) { Assets.giantTree = gt; }).catch(function () {}),
+          loadImage("assets/props/pine.png").then(function (im) { Assets.pine = im; }).catch(function () {}),
+          loadImage("assets/props/pine2.png").then(function (im) { Assets.pine2 = im; }).catch(function () {}),
+          loadImage("assets/props/oak.png").then(function (im) { Assets.oak = im; }).catch(function () {}),
+          loadImage("assets/props/oak2.png").then(function (im) { Assets.oak2 = im; }).catch(function () {}),
+          loadImage("assets/props/birch.png").then(function (im) { Assets.birch = im; }).catch(function () {}),
+          loadImage("assets/props/birch2.png").then(function (im) { Assets.birch2 = im; }).catch(function () {})
+        ]);
       });
     },
     draw: function (ctx, id, x, y, frame) {
@@ -2523,9 +2529,9 @@
 
   function drawForestProp(g, p, x, y) {
     var bob;
-    if (p.kind === "pine") drawPine(g, x, y, nodeHurtStage(p));
-    else if (p.kind === "oak") drawOak(g, x, y, nodeHurtStage(p));
-    else if (p.kind === "birch") drawBirch(g, x, y, nodeHurtStage(p));
+    if (p.kind === "pine") drawPine(g, x, y, nodeHurtStage(p), p);
+    else if (p.kind === "oak") drawOak(g, x, y, nodeHurtStage(p), p);
+    else if (p.kind === "birch") drawBirch(g, x, y, nodeHurtStage(p), p);
     else if (p.kind === "log") drawLog(g, x, y);
     else if (p.kind === "fern") drawFern(g, x, y);
     else if (p.kind === "wildflower") drawWildflower(g, x, y);
@@ -2543,9 +2549,31 @@
     }
   }
 
-  function drawPine(g, x, y, hurt) {
-    var leaf = hurt >= 2 ? "#3A5A20" : (hurt === 1 ? "#3E7A28" : "#2A6A22");
-    var leafHi = hurt ? "#5A8A38" : "#3E8A2C";
+  function woodsTreeImg(kind, p, x, y) {
+    var alt, a, b;
+    alt = p ? ((p.tx + p.ty) & 1) : (((x / TILE + y / TILE) | 0) & 1);
+    a = Assets[kind];
+    b = Assets[kind + "2"];
+    return alt ? (b || a) : (a || b);
+  }
+
+  function drawWoodsTreeImg(g, img, x, y, hurt, ox, oy, dw, dh) {
+    var prev = g.globalAlpha;
+    if (hurt >= 2) g.globalAlpha = prev * 0.52;
+    else if (hurt) g.globalAlpha = prev * 0.74;
+    g.drawImage(img, x + ox, y + oy, dw, dh);
+    g.globalAlpha = prev;
+  }
+
+  function drawPine(g, x, y, hurt, p) {
+    var img = woodsTreeImg("pine", p, x, y);
+    var leaf, leafHi;
+    if (img) {
+      drawWoodsTreeImg(g, img, x, y, hurt, -12, -56, 40, 72);
+      return;
+    }
+    leaf = hurt >= 2 ? "#3A5A20" : (hurt === 1 ? "#3E7A28" : "#2A6A22");
+    leafHi = hurt ? "#5A8A38" : "#3E8A2C";
     fill(g, x + 6, y + 2, 4, 14, "#5A3A18");
     fill(g, x + 7, y + 2, 1, 14, "#8B5A28");
     fill(g, x + 2, y - 8, 12, 10, leaf);
@@ -2559,9 +2587,15 @@
     fill(g, x + 6, y - 30, 2, 2, leafHi);
   }
 
-  function drawOak(g, x, y, hurt) {
-    var leaf = hurt >= 2 ? "#4A6A20" : (hurt === 1 ? "#4A8A28" : "#3A8A24");
-    var leafHi = hurt ? "#6A9A38" : "#5FBF22";
+  function drawOak(g, x, y, hurt, p) {
+    var img = woodsTreeImg("oak", p, x, y);
+    var leaf, leafHi;
+    if (img) {
+      drawWoodsTreeImg(g, img, x, y, hurt, -20, -48, 56, 64);
+      return;
+    }
+    leaf = hurt >= 2 ? "#4A6A20" : (hurt === 1 ? "#4A8A28" : "#3A8A24");
+    leafHi = hurt ? "#6A9A38" : "#5FBF22";
     fill(g, x + 5, y + 2, 6, 14, "#6D4427");
     fill(g, x + 6, y + 2, 2, 14, "#C47A38");
     fill(g, x - 16, y - 18, 48, 22, leaf);
@@ -2571,8 +2605,14 @@
     fill(g, x + 8, y - 26, 8, 3, leafHi);
   }
 
-  function drawBirch(g, x, y, hurt) {
-    var leaf = hurt >= 2 ? "#6A8A40" : (hurt === 1 ? "#7AAA50" : "#8FBF5A");
+  function drawBirch(g, x, y, hurt, p) {
+    var img = woodsTreeImg("birch", p, x, y);
+    var leaf;
+    if (img) {
+      drawWoodsTreeImg(g, img, x, y, hurt, -12, -48, 40, 64);
+      return;
+    }
+    leaf = hurt >= 2 ? "#6A8A40" : (hurt === 1 ? "#7AAA50" : "#8FBF5A");
     fill(g, x + 6, y + 2, 4, 14, "#E8E0D0");
     fill(g, x + 7, y + 2, 1, 14, "#F8F4E8");
     px(g, x + 6, y + 5, "#3A2210");
@@ -8837,8 +8877,8 @@
     }
     if (p.kind === "tree") return { x: p.tx * TILE - 16, y: p.ty * TILE - 48, w: 48, h: 64 };
     if (p.kind === "pine") return { x: p.tx * TILE - 12, y: p.ty * TILE - 56, w: 40, h: 72 };
-    if (p.kind === "oak") return { x: p.tx * TILE - 24, y: p.ty * TILE - 40, w: 64, h: 56 };
-    if (p.kind === "birch") return { x: p.tx * TILE - 10, y: p.ty * TILE - 48, w: 36, h: 64 };
+    if (p.kind === "oak") return { x: p.tx * TILE - 20, y: p.ty * TILE - 48, w: 56, h: 64 };
+    if (p.kind === "birch") return { x: p.tx * TILE - 12, y: p.ty * TILE - 48, w: 40, h: 64 };
     if (p.kind === "log") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 16 };
     if (p.kind === "giantTree") return { x: p.tx * TILE - 56, y: p.ty * TILE - 96, w: 128, h: 120 };
     if (p.kind === "woodsDown") return { x: p.tx * TILE - 4, y: p.ty * TILE - 10, w: 24, h: 28 };
