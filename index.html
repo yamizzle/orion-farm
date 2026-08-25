@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825a";
+  var BUILD = "20260825b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -5180,7 +5180,7 @@
   }
 
   function timePaused() {
-    return !!(uiPaused() || document.hidden || currentScene !== "overworld");
+    return !!(uiPaused() || document.hidden);
   }
 
   function updateClock(dt) {
