@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825b";
+  var BUILD = "20260825c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2026,7 +2026,7 @@
       { kind: "toadstool", tx: 21, ty: 9 }, { kind: "toadstool", tx: 9, ty: 16 },
       { kind: "berryBush", tx: 9, ty: 9 }, { kind: "berryBush", tx: 11, ty: 8 },
       { kind: "berryBush", tx: 8, ty: 10 },
-      { kind: "houseChest", tx: 12, ty: 13 },
+      { kind: "houseChest", tx: 13, ty: 11 },
       { kind: "copper", tx: 16, ty: 7, loose: true },
       { kind: "silver", tx: 7, ty: 6 },
       { kind: "goldore", tx: 23, ty: 5 },
@@ -2408,6 +2408,23 @@
       px(g, x + 10, y + 8, "#C83030");
       px(g, x + 6, y + 10, "#E84A4A");
     }
+  }
+
+  function drawForestChest(g, x, y) {
+    var word, tw, sx;
+    fill(g, x + 1, y + 5, 14, 10, "#3D1A0C");
+    fill(g, x + 2, y + 6, 12, 8, "#8B5A28");
+    fill(g, x + 2, y + 6, 12, 3, "#E8B060");
+    fill(g, x + 2, y + 9, 12, 1, "#3D1A0C");
+    fill(g, x + 1, y + 10, 14, 1, "#C47A38");
+    fill(g, x + 7, y + 8, 2, 5, "#F0B428");
+    fill(g, x + 6, y + 10, 4, 2, "#E8C84A");
+    px(g, x + 7, y + 11, "#3D1A0C");
+    word = "CHEST";
+    tw = textWidth(word);
+    sx = x + ((TILE - tw) / 2 | 0);
+    woodPanel(g, sx - 3, y - 8, tw + 6, 11);
+    drawText(g, word, sx, y - 5, C.parch);
   }
 
   function drawWoodsSign(g, x, y) {
@@ -7844,6 +7861,15 @@
     }
   }
 
+  function tryOpenChestAdjacent() {
+    if (currentScene !== "house" && currentScene !== "forest") return false;
+    if (nearHouseChest()) {
+      openChest();
+      return true;
+    }
+    return false;
+  }
+
   function tryTalkAdjacent() {
     var spots, i, t, f, fi;
     if (uiPaused() || faintFx) return false;
@@ -8376,6 +8402,7 @@
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
     if (p.kind === "bed") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 48, h: 48 };
     if (p.kind === "table") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 32 };
+    if (p.kind === "houseChest") return { x: p.tx * TILE - 6, y: p.ty * TILE - 10, w: 28, h: 28 };
     if (p.kind === "workbench") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 40 };
     if (p.kind === "desk") return { x: p.tx * TILE, y: p.ty * TILE, w: 64, h: 48 };
     if (p.kind === "fireplace") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 48, h: 64 };
@@ -8485,7 +8512,8 @@
     } else if (p.kind === "workbench") {
       Assets.draw(g, "workbench", x, y);
     } else if (p.kind === "houseChest") {
-      Assets.draw(g, "chest", x, y);
+      if (currentScene === "forest") drawForestChest(g, x, y);
+      else Assets.draw(g, "chest", x, y);
     } else if (p.kind === "table") {
       Assets.draw(g, "table", x, y);
       if (homeLightOn() || found.mooncrystal || found.gem || found.sapphire) {
@@ -10448,6 +10476,7 @@
         return;
       }
       if (tryTalkAdjacent()) return;
+      if (tryOpenChestAdjacent()) return;
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
       return;
