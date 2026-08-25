@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825f";
+  var BUILD = "20260825g";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2909,6 +2909,7 @@
     nx = player.tx + dir.dx;
     ny = player.ty + dir.dy;
     player.face = dir.face;
+    if (tryBumpChest(nx, ny)) return;
     if (!walkable(nx, ny)) return;
     applyWalk(player, [{ tx: nx, ty: ny }], 3.5);
   }
@@ -4708,6 +4709,20 @@
     if (!box) return false;
     if (isNear(player.tx, player.ty, box.tx, box.ty)) return true;
     return player.tx === box.tx && player.ty === box.ty;
+  }
+
+  function standingOnHouseChest() {
+    var box = findHouseChest();
+    if (!box) return false;
+    return player.tx === box.tx && player.ty === box.ty;
+  }
+
+  function tryBumpChest(tx, ty) {
+    if (currentScene !== "house" && currentScene !== "forest") return false;
+    if (!houseChestHit(tx, ty, null)) return false;
+    pending = null;
+    openChest();
+    return true;
   }
 
   function houseChestHit(tx, ty, world) {
@@ -7777,6 +7792,11 @@
       return;
     }
     tryPickupHere();
+    if ((currentScene === "house" || currentScene === "forest") && standingOnHouseChest()) {
+      pending = null;
+      openChest();
+      return;
+    }
     if (!pending) return;
     var act = pending;
     pending = null;
@@ -7895,8 +7915,11 @@
   }
 
   function tryOpenChestAdjacent() {
+    var face;
     if (currentScene !== "house" && currentScene !== "forest") return false;
-    if (nearHouseChest()) {
+    face = facingTile();
+    if (nearHouseChest() || houseChestHit(face.tx, face.ty, null)) {
+      pending = null;
       openChest();
       return true;
     }
@@ -8396,7 +8419,7 @@
     if (p.kind === "bed") return p.ty * TILE + 30;
     if (p.kind === "table") return p.ty * TILE + 20;
     if (p.kind === "workbench") return p.ty * TILE + 20;
-    if (p.kind === "houseChest") return p.ty * TILE + 14;
+    if (p.kind === "houseChest") return p.ty * TILE + 36;
     if (p.kind === "desk") return p.ty * TILE + 46;
     if (p.kind === "fireplace") return p.ty * TILE + 46;
     if (p.kind === "chair" || p.kind === "housePlant") return p.ty * TILE + 20;
@@ -10119,6 +10142,10 @@
         return;
       }
     }
+    if ((currentScene === "house" || currentScene === "forest") && houseChestHit(tx, ty, world)) {
+      goChest();
+      return;
+    }
     if (currentScene === "forest") {
       var ffi, ff, ci, cr;
       for (ffi = 0; ffi < forestFolk.length; ffi++) {
@@ -10528,15 +10555,16 @@
       if (!e.repeat) selectHotbarIndex(slotN - 1);
       return;
     }
-    actionKey = e.code === "Space" || e.code === "KeyJ" || e.key === " " || e.key === "j" || e.key === "J";
+    actionKey = e.code === "Space" || e.code === "KeyJ" || e.code === "KeyE" ||
+      e.key === " " || e.key === "j" || e.key === "J" || e.key === "e" || e.key === "E";
     if (!e.repeat && actionKey) {
       e.preventDefault();
       if (currentScene === "mine") {
         startSwordSwing();
         return;
       }
-      if (tryTalkAdjacent()) return;
       if (tryOpenChestAdjacent()) return;
+      if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
       return;
