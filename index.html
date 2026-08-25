@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825e";
+  var BUILD = "20260825f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -1931,7 +1931,13 @@
   }
 
   function isForestEntrance(tx, ty) {
-    return currentScene === "overworld" && tx === forestIn.tx && ty === forestIn.ty;
+    var dx, dy;
+    if (currentScene !== "overworld") return false;
+    dx = tx - forestIn.tx;
+    dy = ty - forestIn.ty;
+    /* Door, WOODS sign (one west), other path column, and one step north
+       so a walk past the sign still loads FOREST instead of open meadow. */
+    return dy <= 0 && dy >= -1 && dx >= -1 && dx <= 1;
   }
 
   function isForestExit(tx, ty) {
@@ -2674,12 +2680,16 @@
     }
     camX = Math.round(Math.max(minX, Math.min(maxX, targetX)));
     camY = Math.round(Math.max(minY, Math.min(maxY, targetY)));
-    if (currentScene === "forest") {
+    if (currentScene === "forest" || currentScene === "overworld") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
+        if (currentScene === "forest") {
+          if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
+        } else if (camY < minY) {
+          camY = minY;
+        }
       }
-      if (player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
+      if (currentScene === "forest" && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
         camY = Math.round(player.y - (VIEW_H - CAM_PAD_BOTTOM));
       }
     }
@@ -2810,6 +2820,13 @@
       who.stepT = 0;
       if (who === player) {
         tryPickupHere();
+        if (isForestEntrance(who.tx, who.ty) || isForestExit(who.tx, who.ty)) {
+          who.path = [];
+          who.queuedWalk = null;
+          who.moving = false;
+          who.frame = 0;
+          return true;
+        }
       }
       if (who.queuedWalk) {
         var q = who.queuedWalk;
