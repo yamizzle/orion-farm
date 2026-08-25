@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825g";
+  var BUILD = "20260825h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -603,6 +603,7 @@
   var audioStep = 0;
   var audioNext = 0;
   var overworldBgm = null;
+  var forestBgm = null;
   var TUNES = {
     farmDay: {
       bpm: 72, leadV: 0.28, bassV: 0.30, hatV: 0.12,
@@ -675,6 +676,7 @@
     if (audioCtx.state === "suspended") audioCtx.resume();
     audioUnlocked = true;
     ensureOverworldBgm();
+    ensureForestBgm();
     tickOverworldBgm(wantedTune());
   }
 
@@ -687,8 +689,38 @@
     return overworldBgm;
   }
 
+  function ensureForestBgm() {
+    if (forestBgm) return forestBgm;
+    forestBgm = new Audio(bustUrl("assets/music/forest.mp3?m=1"));
+    forestBgm.loop = true;
+    forestBgm.preload = "auto";
+    forestBgm.volume = 0.27;
+    return forestBgm;
+  }
+
   function usesOverworldFile(tune) {
     return tune === "farmDay" || tune === "farmNight" || tune === "house";
+  }
+
+  function usesForestFile(tune) {
+    return tune === "forest" || tune === "forestNight";
+  }
+
+  function tickForestBgm(want) {
+    var a, on, vol, playP;
+    a = ensureForestBgm();
+    on = !!(audioUnlocked && !musicMuted && !document.hidden && usesForestFile(want));
+    if (want === "forestNight") vol = 0.22;
+    else vol = 0.27;
+    if (on) {
+      a.volume = vol;
+      if (a.paused) {
+        playP = a.play();
+        if (playP && playP.catch) playP.catch(function () {});
+      }
+    } else if (!a.paused) {
+      a.pause();
+    }
   }
 
   function tickOverworldBgm(want) {
@@ -707,6 +739,7 @@
     } else if (!a.paused) {
       a.pause();
     }
+    tickForestBgm(want);
   }
 
   function envGain(vol, dur, t) {
@@ -829,7 +862,7 @@
   function wantedTune() {
     if (currentScene === "house" || currentScene === "shop") return "house";
     if (currentScene === "mine") return "mine";
-    if (currentScene === "forest") return clockPhaseName() === "NIGHT" ? "farmNight" : "farmDay";
+    if (currentScene === "forest") return clockPhaseName() === "NIGHT" ? "forestNight" : "forest";
     if (festivalOn && clockPhaseName() === "NIGHT") return "festival";
     if (clockPhaseName() === "NIGHT") return "farmNight";
     return "farmDay";
@@ -855,7 +888,7 @@
       audioMusic.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.04);
       return;
     }
-    if (usesOverworldFile(want)) {
+    if (usesOverworldFile(want) || usesForestFile(want)) {
       audioTune = want;
       audioMusic.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.04);
       return;
@@ -10593,6 +10626,7 @@
       clearMoveKeys();
       audioTune = "";
       if (overworldBgm && !overworldBgm.paused) overworldBgm.pause();
+      if (forestBgm && !forestBgm.paused) forestBgm.pause();
     } else if (audioUnlocked && audioCtx && audioCtx.state === "suspended" && (!sfxMuted || !musicMuted)) {
       audioCtx.resume();
     }
