@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825i";
+  var BUILD = "20260825j";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -1999,7 +1999,9 @@
 
   function exitForest() {
     applyScene("overworld");
-    placePlayer(5, 9, "down");
+    /* Land two+ tiles south of WOODS door (5,8) so a casual north tap
+       does not instantly re-enter (door is dy 0/-1 only). */
+    placePlayer(5, 11, "down");
     persistSave();
   }
 
@@ -2176,7 +2178,7 @@
       { kind: "toadstool", tx: 8, ty: 40 }, { kind: "toadstool", tx: 23, ty: 7 },
       { kind: "berryBush", tx: 11, ty: 14 }, { kind: "berryBush", tx: 16, ty: 18 },
       { kind: "berryBush", tx: 10, ty: 30 }, { kind: "berryBush", tx: 17, ty: 36 },
-      { kind: "lantern", tx: 14, ty: 20 }, { kind: "lantern", tx: 14, ty: 40 },
+      { kind: "lantern", tx: 12, ty: 20 }, { kind: "lantern", tx: 16, ty: 40 },
       { kind: "lantern", tx: 22, ty: 4 },
       { kind: "pine", tx: 3, ty: 47 }, { kind: "pine", tx: 6, ty: 48 },
       { kind: "pine", tx: 2, ty: 51 }, { kind: "pine", tx: 8, ty: 46 },
@@ -2206,7 +2208,7 @@
       { kind: "silver", tx: 7, ty: 50 },
       { kind: "goldore", tx: 23, ty: 49 },
       { kind: "silver", tx: 20, ty: 51 },
-      { kind: "lantern", tx: 14, ty: 62 },
+      { kind: "lantern", tx: 16, ty: 62 },
       { kind: "lantern", tx: 12, ty: 56 },
       { kind: "lantern", tx: 6, ty: 50 },
       { kind: "lantern", tx: 21, ty: 55 },
@@ -4993,7 +4995,11 @@
     var box = findHouseChest();
     if (!box) return false;
     if (isNear(player.tx, player.ty, box.tx, box.ty)) return true;
-    return player.tx === box.tx && player.ty === box.ty;
+    if (player.tx === box.tx && player.ty === box.ty) return true;
+    /* Forest chest art hangs into the south tile; standing one more step
+       south still counts as adjacent so Space/E open the UI. */
+    if (currentScene === "forest" && player.tx === box.tx && player.ty === box.ty + 2) return true;
+    return false;
   }
 
   function standingOnHouseChest() {
@@ -5035,10 +5041,23 @@
   }
 
   function chestLayout() {
-    var w = 280, h = 186;
+    var w = 280, h = 196;
     var x = ((VIEW_W - w) / 2) | 0;
-    var y = 2;
-    return { x: x, y: y, w: w, h: h, listY: y + 18, rowH: 11, backX: x + w - 46, backY: y + 4, backW: 36, backH: 12, putX: x + 12, takeX: x + 88, allY: y + h - 16, btnW: 70, btnH: 12 };
+    var y = 10;
+    return {
+      x: x, y: y, w: w, h: h,
+      headY: y + 6,
+      listY: y + 20,
+      rowH: 11,
+      backX: x + w - 46,
+      backY: y - 8,
+      backW: 36, backH: 12,
+      putX: x + 12, takeX: x + 88,
+      allY: y + h - 16,
+      btnW: 70, btnH: 12,
+      bagX: x + 112,
+      chestX: x + w - 16
+    };
   }
 
   function putInChest(key, amount) {
@@ -5137,32 +5156,34 @@
   }
 
   function drawChest(g) {
-    var L, i, rec, rowY, bagN, boxN, col;
+    var L, i, rec, rowY, bagN, boxN, col, name;
     if (!chestOpen) return;
     g.fillStyle = "rgba(20,12,8,0.40)";
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     L = chestLayout();
     woodPanel(g, L.x, L.y, L.w, L.h);
     fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
-    woodPanel(g, L.x + 8, L.y - 6, 72, 11);
-    drawText(g, "CHEST", L.x + 16, L.y - 3, C.parch);
+    woodPanel(g, L.x + 8, L.y - 8, 72, 11);
+    drawText(g, "CHEST", L.x + 16, L.y - 5, C.parch);
     woodPanel(g, L.backX, L.backY, L.backW, L.backH);
     drawText(g, "BACK", L.backX + ((L.backW - textWidth("BACK")) / 2) | 0, L.backY + 2, C.parch);
-    drawText(g, "BAG", L.x + 88, L.y + 12, C.woodSh);
-    drawText(g, "CHEST", L.x + L.w - textWidth("CHEST") - 16, L.y + 12, C.woodSh);
+    drawText(g, "BAG", L.bagX, L.headY, C.woodSh);
+    drawText(g, "BOX", L.chestX - textWidth("BOX"), L.headY, C.woodSh);
     for (i = 0; i < CHEST_ROWS.length; i++) {
       rec = CHEST_ROWS[i];
       rowY = L.listY + i * L.rowH;
       if (i === chestSel) fill(g, L.x + 8, rowY, L.w - 16, L.rowH - 1, "#E8C888");
       drawItemIcon(g, rec.icon, L.x + 10, rowY - 1);
       col = C.uiText;
-      drawText(g, rec.name, L.x + 28, rowY + 3, col);
+      name = rec.name;
+      if (textWidth(name) > 78) name = name.slice(0, 10);
+      drawText(g, name, L.x + 28, rowY + 3, col);
       bagN = String(bagCount(rec.key));
       boxN = String(chestCount(rec.key));
-      drawText(g, bagN, L.x + 88, rowY + 3, col);
-      drawText(g, ">", L.x + 128, rowY + 3, C.woodSh);
-      drawText(g, "<", L.x + 140, rowY + 3, C.woodSh);
-      drawText(g, boxN, L.x + L.w - textWidth(boxN) - 16, rowY + 3, col);
+      drawText(g, bagN, L.bagX, rowY + 3, col);
+      drawText(g, ">", L.bagX + 28, rowY + 3, C.woodSh);
+      drawText(g, "<", L.bagX + 40, rowY + 3, C.woodSh);
+      drawText(g, boxN, L.chestX - textWidth(boxN), rowY + 3, col);
     }
     woodPanel(g, L.putX, L.allY, L.btnW, L.btnH);
     drawText(g, "PUT ALL", L.putX + ((L.btnW - textWidth("PUT ALL")) / 2) | 0, L.allY + 2, C.parch);
@@ -8214,13 +8235,24 @@
   }
 
   function tryOpenChestAdjacent() {
-    var face;
+    var face, box, dx, dy;
     if (currentScene !== "house" && currentScene !== "forest") return false;
     face = facingTile();
+    box = findHouseChest();
     if (nearHouseChest() || houseChestHit(face.tx, face.ty, null)) {
       pending = null;
       openChest();
       return true;
+    }
+    /* Orthogonal adjacent (N/S/E/W) always opens, even if facing away. */
+    if (box) {
+      dx = Math.abs(player.tx - box.tx);
+      dy = Math.abs(player.ty - box.ty);
+      if ((dx + dy) === 1 || (currentScene === "forest" && dx === 0 && player.ty === box.ty + 2)) {
+        pending = null;
+        openChest();
+        return true;
+      }
     }
     return false;
   }
@@ -8299,6 +8331,10 @@
     if (ty < 0) ty = 0;
     if (tx >= COLS) tx = COLS - 1;
     if (ty >= ROWS) ty = ROWS - 1;
+    if ((currentScene === "house" || currentScene === "forest") && houseChestHit(tx, ty, null)) {
+      goChest();
+      return;
+    }
     startWalk(player, findPath(player.tx, player.ty, tx, ty), 3.5);
   }
 
@@ -8760,7 +8796,7 @@
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
     if (p.kind === "bed") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 48, h: 48 };
     if (p.kind === "table") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 32 };
-    if (p.kind === "houseChest") return { x: p.tx * TILE - 6, y: p.ty * TILE - 10, w: 28, h: 28 };
+    if (p.kind === "houseChest") return { x: p.tx * TILE - 6, y: p.ty * TILE - 10, w: 28, h: currentScene === "forest" ? 40 : 28 };
     if (p.kind === "workbench") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 40 };
     if (p.kind === "desk") return { x: p.tx * TILE, y: p.ty * TILE, w: 64, h: 48 };
     if (p.kind === "fireplace") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 48, h: 64 };
@@ -9810,6 +9846,8 @@
     var gLabel = (gold | 0) + "G";
     drawText(g, gLabel, 310 - textWidth(gLabel), 8, C.flower);
     drawText(g, clockHudLine(), 210, 16, C.parch);
+    /* Tiny live BUILD stamp for playtests (near FX/MU/FS). */
+    drawText(g, BUILD, 4, 24, C.woodSh);
 
     ensureSelectedSlot();
     var vis = visibleSlots();
@@ -10990,7 +11028,14 @@
       props: function () { return PROPS; },
       harvestNodes: function () { return harvestNodes; },
       walkable: walkable,
-      findPath: findPath
+      findPath: findPath,
+      nearHouseChest: nearHouseChest,
+      tryOpenChestAdjacent: tryOpenChestAdjacent,
+      tryBumpChest: tryBumpChest,
+      openChest: openChest,
+      chestIsOpen: function () { return chestOpen; },
+      closeChest: closeChest,
+      findHouseChest: findHouseChest
     };
   }
   checkFreshBuild();
