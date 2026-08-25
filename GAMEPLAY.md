@@ -21,7 +21,7 @@ Hurt look: Imagine sprites `treeHurt` / `treeHurt2` and `rock0Hurt` / `rock0Hurt
 
 Walking **into** a rock bumps; it does not smash. Smash is tap-on-rock or Space while adjacent/facing.
 
-Fences are **not** harvest nodes. Adjacent Space, tap, or a tool on a fence is one-shot: the tile goes away and `FENCE_COST` wood (currently 2, same as place) credits **the bag immediately**. Walking into a fence bumps; it does not break. Place from the wood slot still works so the loop is break → wood → place somewhere else.
+Fences chop like farm trees: 5 HP, 1 dmg per tap; axe 3 dmg (two hits). Same chop shake / sparks / SFX per strike. When the last hit lands, wood **pops onto the fence tile** via `spawnGroundLoot` (1, same as a felled tree). Walk onto the pile to pick up — do **not** credit the bag on break. Walking into a fence bumps; it does not break. Place from the wood slot still works so the loop is break → pick up wood → place somewhere else.
 
 Trees occupy **one tile** for clicks and collision (the trunk). The canopy is draw-only. Do not hit-test the 48×64 sprite box.
 

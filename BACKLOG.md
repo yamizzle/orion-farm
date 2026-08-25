@@ -48,7 +48,7 @@ Highest-leverage theme: combat still one-sided / no juice (no slash frame, no hi
 | High | Open | House stoop enters the interior | House | NEW 8/24 Darren. Walking onto the tile just south of the door (the box below it) goes inside. Should walk up to the door tile first, then enter. |
 | Medium | Open | Car is tiny | Town | NEW 8/24 Darren. Reed's car should be closer to a real car vs people, not a tiny 16×16 sprite. |
 | Medium | Open | Pickaxe can mine placed paths | Farm | NEW 8/24 Darren. Paths Orion paved should be pickaxe-breakable so the stone can come back. |
-| Medium | Local 8/24 | Fences cannot be moved | Farm / town | Local 8/24 BUILD 20260824g: smash (adjacent Space / tap / tool) refunds 2 wood to the bag (same as place cost). Walk-into still bumps. Place-from-wood loop kept. Do not mark Done until live playtest. |
+| Medium | Local 8/24 | Fences cannot be moved | Farm / town | Local 8/24 BUILD 20260824h: fence smash matches trees — 5 hits (axe 2), chop juice/SFX per strike, wood `spawnGroundLoot` on the tile (1, same as a felled tree). Walk-into still bumps. Place-from-wood kept. Do not mark Done until live playtest. Was 20260824g one-shot +2 bag refund. |
 | Medium | Open | Only one weapon equipped | Combat / HUD | NEW 8/24 Darren. Sword, bow, and any other weapon: one at a time. Can't load a bow while holding a sword. |
 | Medium | Open | Ability to dig holes | Farm | Tool/hoe, dirt patches you can plant in or fall into — leave design loose. Not claimed built. |
 | Medium | Open | Ability to upgrade the house | House | Bigger rooms, furniture — leave design loose. Not claimed built. |

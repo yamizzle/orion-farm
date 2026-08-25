@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260824g";
+  var BUILD = "20260824h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2972,8 +2972,12 @@
     return kind === "fenceH" || kind === "fenceL" || kind === "fenceR";
   }
 
+  function isWoodChop(p) {
+    return p && (p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || isFenceKind(p.kind));
+  }
+
   function isHarvestable(p) {
-    return p && (p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "rock");
+    return p && (isWoodChop(p) || p.kind === "rock");
   }
 
   function isSoftStrike(p) {
@@ -3070,21 +3074,8 @@
   }
 
   function breakFence(prop) {
-    var i, took;
     if (!prop || !isFenceKind(prop.kind)) return false;
-    i = PROPS.indexOf(prop);
-    if (i >= 0) PROPS.splice(i, 1);
-    rememberGoneFence(prop.tx, prop.ty);
-    buildSolid();
-    faceToward(player, prop.tx, prop.ty);
-    player.workTool = toolEquipped("axe") ? "axe" : "";
-    player.swing = 220;
-    spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
-    playSfx("chop");
-    spendEnergy(ENERGY_HIT);
-    took = addItem("wood", FENCE_COST);
-    if (took < FENCE_COST) spawnGroundLoot("wood", prop.tx, prop.ty, FENCE_COST - took);
-    persistSave();
+    beginHit(prop);
     return true;
   }
 
@@ -3453,13 +3444,13 @@
 
   function workToolFor(prop) {
     if (!prop) return "";
-    if ((prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch") && toolEquipped("axe")) return "axe";
+    if (isWoodChop(prop) && toolEquipped("axe")) return "axe";
     if (prop.kind === "rock" && toolEquipped("pick")) return "pickaxe";
     return "";
   }
 
   function nodeMaxHp(prop) {
-    if (prop && (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch")) return HIT_COUNT;
+    if (isWoodChop(prop)) return HIT_COUNT;
     if (prop && prop.kind === "rock") {
       if (currentScene === "mine" && mineFloor >= 4) return HIT_DEEP_ROCK;
       if (currentScene === "mine") return HIT_MINE_ROCK;
@@ -3469,7 +3460,7 @@
   }
 
   function nodeStrikeDmg(prop) {
-    if (prop && (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch") && toolEquipped("axe")) return 3;
+    if (isWoodChop(prop) && toolEquipped("axe")) return 3;
     if (prop && prop.kind === "rock" && toolEquipped("pick")) {
       if (currentScene === "mine" && mineFloor >= 4) return 3;
       if (currentScene === "mine") return HIT_MINE_ROCK;
@@ -3522,7 +3513,7 @@
   }
 
   function harvestHitsFor(prop) {
-    if (prop && (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch")) return toolEquipped("axe") ? HIT_TREE_AXE : HIT_COUNT;
+    if (isWoodChop(prop)) return toolEquipped("axe") ? HIT_TREE_AXE : HIT_COUNT;
     if (prop && prop.kind === "rock") {
       if (!toolEquipped("pick")) {
         if (currentScene === "mine" && mineFloor >= 4) return HIT_DEEP_ROCK;
@@ -3538,7 +3529,7 @@
   }
 
   function harvestDropFor(prop) {
-    if (prop && (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch")) return toolEquipped("axe") ? 3 : WOOD_PER_TREE;
+    if (isWoodChop(prop)) return toolEquipped("axe") ? 3 : WOOD_PER_TREE;
     if (prop && prop.kind === "rock") return toolEquipped("pick") ? 2 : STONE_PER_ROCK;
     return 1;
   }
@@ -3577,6 +3568,16 @@
   }
 
   function finishHarvest(prop) {
+    if (isFenceKind(prop.kind)) {
+      var fi = PROPS.indexOf(prop);
+      if (fi >= 0) PROPS.splice(fi, 1);
+      rememberGoneFence(prop.tx, prop.ty);
+      buildSolid();
+      spawnGroundLoot("wood", prop.tx, prop.ty, 1);
+      delete harvestNodes[nodeKey(liveHarvestScene(), prop.tx, prop.ty)];
+      persistSave();
+      return;
+    }
     if (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch") {
       var treeKind = prop.kind;
       prop.kind = "stump";
@@ -3743,6 +3744,7 @@
       inventory.wood -= FENCE_COST;
       var fk = fenceKindFor(tx, ty);
       clearGoneFence(tx, ty);
+      delete harvestNodes[nodeKey(liveHarvestScene(), tx, ty)];
       PROPS.push({ kind: fk, tx: tx, ty: ty });
       builds.push({ kind: fk, tx: tx, ty: ty });
       buildSolid();
@@ -6292,7 +6294,7 @@
 
   function maybeToolHint(prop) {
     if (!prop) return;
-    if ((prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch") && !toolEquipped("axe") && !axeHintSeen) {
+    if (isWoodChop(prop) && !toolEquipped("axe") && !axeHintSeen) {
       axeHintSeen = true;
       showLineNote(axeOwned ? "SELECT THE AXE." : "AN AXE WOULD BE FASTER.");
       persistSave();
