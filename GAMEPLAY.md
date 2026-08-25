@@ -53,7 +53,7 @@ Fuel stacks. Tools unlock once. Errands convert. Wonders stay in the world.
 - **Copper** drops stop after Pip’s lantern. Slot hides when that job is done.
 - **Gem, sapphire, mountain heart** are finds / table trophies, not gold.
 - **Gold loop:** grow carrots → Junie pays 10G. Pip **sells** (buns, seeds, flowers, hat, kits). Pip does **not** buy carrots or buns.
-- **Hotbar is verbs:** seed, wood, stone, carrot, flower, bun always. Tools/hat only when owned. Copper only during Pip’s job. Shard only until it goes home. Mushroom only while you hold one.
+- **Hotbar is verbs:** seed always. Stack items (wood, stone, iron, carrot, flower, bun, copper, mushroom, shard) only while the bag count is above 0. Tools/hat/bow only when owned. Copper hides after Pip’s job. Shard hides once it is home.
 
 ## Storage
 

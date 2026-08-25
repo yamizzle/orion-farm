@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260824d";
+  var BUILD = "20260824e";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -344,7 +344,13 @@
   var SLOT_SHOVEL = 11;
   var SLOT_AXE = 12;
   var SLOT_PICK = 13;
-  var HUD_SLOTS = 14;
+  var SLOT_IRON = 14;
+  var SLOT_BOW = 15;
+  var HUD_SLOTS = 16;
+  var SLOT_ORDER = [
+    SLOT_SEED, SLOT_WOOD, SLOT_STONE, SLOT_IRON, SLOT_COPPER, SLOT_MUSH, SLOT_MOON,
+    SLOT_VEGGIE, SLOT_FLOWER, SLOT_SNACK, SLOT_HAT, SLOT_SWORD, SLOT_BOW, SLOT_SHOVEL, SLOT_AXE, SLOT_PICK
+  ];
   var MAX_HP = 50;
   var HEARTS = 5;
   var HP_PER_HEART = 10;
@@ -3750,6 +3756,7 @@
     if (rec.id === "shovel") selectedSlot = SLOT_SHOVEL;
     if (rec.id === "axe") selectedSlot = SLOT_AXE;
     if (rec.id === "pickaxe") selectedSlot = SLOT_PICK;
+    if (rec.id === "bow") selectedSlot = SLOT_BOW;
     persistSave();
     playSfx("craft");
     craftMsg = rec.made;
@@ -5507,7 +5514,7 @@
     if (id === "pick") return !!(pickaxeOwned && selectedSlot === SLOT_PICK);
     if (id === "shovel") return !!(shovelOwned && selectedSlot === SLOT_SHOVEL);
     if (id === "sword") return swordEquipped();
-    if (id === "bow") return !!(bowOwned && selectedSlot !== SLOT_SWORD && selectedSlot !== SLOT_AXE && selectedSlot !== SLOT_PICK && selectedSlot !== SLOT_SHOVEL);
+    if (id === "bow") return !!(bowOwned && selectedSlot === SLOT_BOW);
     return false;
   }
 
@@ -5582,7 +5589,7 @@
   }
 
   function actionIcon() {
-    if (bowOwned && !(swordOwned && adjacentFoe())) return "bow";
+    if (toolEquipped("bow")) return "bow";
     if (ironSwordOwned) return "ironSword";
     return "sword";
   }
@@ -8413,22 +8420,42 @@
     Assets.draw(g, actionIcon(), cx - 8, cy - 9 + (pressed ? 1 : 0));
   }
 
+  function slotCount(i) {
+    if (i === SLOT_WOOD) return bagCount("wood");
+    if (i === SLOT_STONE) return bagCount("stone");
+    if (i === SLOT_IRON) return bagCount("iron");
+    if (i === SLOT_COPPER) return bagCount("copper");
+    if (i === SLOT_MUSH) return bagCount("mushroom");
+    if (i === SLOT_MOON) return bagCount("moonshard");
+    if (i === SLOT_VEGGIE) return bagCount("veggie");
+    if (i === SLOT_FLOWER) return bagCount("flower");
+    if (i === SLOT_SNACK) return bagCount("snack");
+    return -1;
+  }
+
   function slotVisible(i) {
-    if (i === SLOT_COPPER) return !pipDone && ((inventory.copper || 0) > 0 || found.copper);
-    if (i === SLOT_MUSH) return (inventory.mushroom || 0) > 0;
-    if (i === SLOT_MOON) return !homeLightOn() && ((inventory.moonshard || 0) > 0 || found.moonshard);
+    var n = slotCount(i);
+    if (n >= 0) {
+      if (n < 1) return false;
+      if (i === SLOT_COPPER && pipDone) return false;
+      if (i === SLOT_MOON && homeLightOn()) return false;
+      return true;
+    }
+    if (i === SLOT_SEED) return true;
     if (i === SLOT_HAT) return !!hatOwned;
     if (i === SLOT_SWORD) return !!swordOwned;
+    if (i === SLOT_BOW) return !!bowOwned;
     if (i === SLOT_SHOVEL) return !!shovelOwned;
     if (i === SLOT_AXE) return !!axeOwned;
     if (i === SLOT_PICK) return !!pickaxeOwned;
-    return true;
+    return false;
   }
 
   function visibleSlots() {
-    var i, out = [];
-    for (i = 0; i < HUD_SLOTS; i++) {
-      if (slotVisible(i)) out.push(i);
+    var i, id, out = [];
+    for (i = 0; i < SLOT_ORDER.length; i++) {
+      id = SLOT_ORDER[i];
+      if (slotVisible(id)) out.push(id);
     }
     return out;
   }
@@ -8507,6 +8534,9 @@
       } else if (i === SLOT_STONE) {
         Assets.draw(g, "stoneItem", sx + 1, sy + 1);
         count = inventory.stone;
+      } else if (i === SLOT_IRON) {
+        Assets.draw(g, "iron", sx + 1, sy + 1);
+        count = inventory.iron;
       } else if (i === SLOT_COPPER) {
         Assets.draw(g, "copper", sx + 1, sy + 1);
         count = inventory.copper;
@@ -8539,6 +8569,9 @@
         count = 1;
       } else if (i === SLOT_PICK && pickaxeOwned) {
         Assets.draw(g, "pickaxe", sx + 1, sy + 1);
+        count = 1;
+      } else if (i === SLOT_BOW && bowOwned) {
+        Assets.draw(g, "bow", sx + 1, sy + 1);
         count = 1;
       } else {
         count = -1;
