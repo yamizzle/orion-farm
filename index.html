@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825c";
+  var BUILD = "20260825d";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2663,10 +2663,26 @@
     var maxX = worldW - VIEW_W;
     var maxY = worldH - VIEW_H + CAM_PAD_BOTTOM;
     var minY = -topInset;
+    var minX = 0;
     if (maxX < 0) maxX = 0;
     if (maxY < minY) maxY = minY;
-    camX = Math.round(Math.max(0, Math.min(maxX, targetX)));
+    if (currentScene === "forest") {
+      minX = 0;
+      maxX = Math.max(0, worldW - VIEW_W);
+      minY = 0;
+      maxY = Math.max(0, worldH - VIEW_H);
+    }
+    camX = Math.round(Math.max(minX, Math.min(maxX, targetX)));
     camY = Math.round(Math.max(minY, Math.min(maxY, targetY)));
+    if (currentScene === "forest") {
+      if (player.y - camY < topInset) {
+        camY = Math.round(player.y - topInset);
+        if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
+      }
+      if (player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
+        camY = Math.round(player.y - (VIEW_H - CAM_PAD_BOTTOM));
+      }
+    }
     camera.x = camX;
     camera.y = camY;
   }
@@ -9615,12 +9631,22 @@
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
+    if (currentScene === "forest") {
+      x0 = Math.floor(camX / TILE);
+      y0 = Math.floor(camY / TILE);
+      x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
+      y1 = Math.floor((camY + VIEW_H) / TILE) + 2;
+    }
 
     for (ty = y0; ty < y1; ty++) {
       for (tx = x0; tx < x1; tx++) {
-        ch = cell(tx, ty);
         dx = tx * TILE;
         dy = ty * TILE;
+        if (currentScene === "forest" && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+          drawMossTile(g, tx, ty, dx, dy);
+          continue;
+        }
+        ch = cell(tx, ty);
         if (ch === "d") drawDirtTile(g, tx, ty, dx, dy);
         else if (ch === "p") {
           Assets.draw(g, "till", dx, dy);
