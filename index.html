@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825l";
+  var BUILD = "20260825m";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -307,7 +307,18 @@
           loadImage("assets/props/oak.png").then(function (im) { Assets.oak = im; }).catch(function () {}),
           loadImage("assets/props/oak2.png").then(function (im) { Assets.oak2 = im; }).catch(function () {}),
           loadImage("assets/props/birch.png").then(function (im) { Assets.birch = im; }).catch(function () {}),
-          loadImage("assets/props/birch2.png").then(function (im) { Assets.birch2 = im; }).catch(function () {})
+          loadImage("assets/props/birch2.png").then(function (im) { Assets.birch2 = im; }).catch(function () {}),
+          loadImage("assets/tiles/forestFloor.png").then(function (im) { Assets.forestFloor = im; }).catch(function () {}),
+          loadImage("assets/tiles/forestFloor2.png").then(function (im) { Assets.forestFloor2 = im; }).catch(function () {}),
+          loadImage("assets/tiles/forestClearing.png").then(function (im) { Assets.forestClearing = im; }).catch(function () {}),
+          loadImage("assets/props/fern.png").then(function (im) { Assets.fern = im; }).catch(function () {}),
+          loadImage("assets/props/wildflower.png").then(function (im) { Assets.wildflower = im; }).catch(function () {}),
+          loadImage("assets/props/toadstool.png").then(function (im) { Assets.toadstool = im; }).catch(function () {}),
+          loadImage("assets/props/berryBush.png").then(function (im) { Assets.berryBush = im; }).catch(function () {}),
+          loadImage("assets/props/log.png").then(function (im) { Assets.log = im; }).catch(function () {}),
+          loadImage("assets/actors/rabbit.png").then(function (im) { Assets.rabbit = im; }).catch(function () {}),
+          loadImage("assets/actors/deer.png").then(function (im) { Assets.deer = im; }).catch(function () {}),
+          loadImage("assets/actors/squirrel.png").then(function (im) { Assets.squirrel = im; }).catch(function () {})
         ]);
       });
     },
@@ -2395,8 +2406,17 @@
   }
 
   function drawMossTile(g, tx, ty, dx, dy) {
-    var i, h, night;
+    var i, h, night, img;
     night = forestNightFlora();
+    img = ((tx + ty) & 1) ? (Assets.forestFloor2 || Assets.forestFloor) : (Assets.forestFloor || Assets.forestFloor2);
+    if (img) {
+      g.drawImage(img, dx, dy, 16, 16);
+      if (night) {
+        g.fillStyle = "rgba(8, 20, 8, 0.28)";
+        g.fillRect(dx, dy, 16, 16);
+      }
+      return;
+    }
     fill(g, dx, dy, 16, 16, night ? "#3A7A28" : "#2A681C");
     fill(g, dx, dy, 16, 3, night ? "#4A9A32" : "#35821F");
     fill(g, dx, dy + 13, 16, 3, night ? "#2A681C" : "#1E4E14");
@@ -2407,8 +2427,17 @@
   }
 
   function drawLightTile(g, tx, ty, dx, dy) {
-    var i, h, night;
+    var i, h, night, img;
     night = forestNightFlora();
+    img = Assets.forestClearing;
+    if (img) {
+      g.drawImage(img, dx, dy, 16, 16);
+      if (night) {
+        g.fillStyle = "rgba(8, 20, 8, 0.22)";
+        g.fillRect(dx, dy, 16, 16);
+      }
+      return;
+    }
     fill(g, dx, dy, 16, 16, night ? "#5AAA38" : "#4A9A2C");
     fill(g, dx, dy, 16, 3, night ? "#7CCC48" : "#6CBC3A");
     fill(g, dx, dy + 13, 16, 3, night ? "#4A8A28" : "#3A7A22");
@@ -2625,6 +2654,10 @@
   }
 
   function drawLog(g, x, y) {
+    if (Assets.log) {
+      g.drawImage(Assets.log, x, y, 32, 16);
+      return;
+    }
     fill(g, x + 1, y + 8, 30, 6, "#5A3A18");
     fill(g, x + 2, y + 7, 28, 5, "#8B5A28");
     fill(g, x + 3, y + 8, 26, 2, "#C47A38");
@@ -2633,6 +2666,11 @@
   }
 
   function drawFern(g, x, y) {
+    var img = Assets.fern;
+    if (img) {
+      g.drawImage(img, x, y - (img.height > 16 ? 8 : 0), img.width, img.height);
+      return;
+    }
     fill(g, x + 7, y + 10, 2, 5, "#2F7A14");
     fill(g, x + 3, y + 6, 5, 3, "#3E8A28");
     fill(g, x + 8, y + 5, 5, 3, "#4A9A28");
@@ -2641,14 +2679,24 @@
   }
 
   function drawWildflower(g, x, y) {
-    var pink = ((x + y) & 16) === 0;
+    var pink;
+    if (Assets.wildflower) {
+      g.drawImage(Assets.wildflower, x, y, 16, 16);
+      return;
+    }
+    pink = ((x + y) & 16) === 0;
     fill(g, x + 7, y + 9, 2, 6, "#2F7A14");
     fill(g, x + 5, y + 6, 6, 4, pink ? "#E8A0A8" : "#E8C84A");
     px(g, x + 7, y + 7, pink ? "#E8C84A" : "#E8A0A8");
   }
 
   function drawToadstool(g, x, y) {
-    var red = ((x / 16 + y / 16) & 1) === 0;
+    var red;
+    if (Assets.toadstool) {
+      g.drawImage(Assets.toadstool, x, y, 16, 16);
+      return;
+    }
+    red = ((x / 16 + y / 16) & 1) === 0;
     fill(g, x + 7, y + 10, 2, 4, "#F3D2A3");
     fill(g, x + 4, y + 6, 8, 5, red ? "#C45A38" : "#C47A38");
     fill(g, x + 5, y + 5, 6, 3, red ? "#E07850" : "#E8B060");
@@ -2657,6 +2705,14 @@
   }
 
   function drawBerryBush(g, x, y, picked) {
+    var prev;
+    if (Assets.berryBush) {
+      prev = g.globalAlpha;
+      if (picked) g.globalAlpha = prev * 0.58;
+      g.drawImage(Assets.berryBush, x, y, 16, 16);
+      g.globalAlpha = prev;
+      return;
+    }
     fill(g, x + 2, y + 6, 12, 9, "#2F7A14");
     fill(g, x + 3, y + 4, 10, 6, "#4A9A28");
     fill(g, x + 5, y + 3, 6, 4, "#5FBF22");
@@ -2773,13 +2829,24 @@
   }
 
   function drawForestCritter(g, c) {
-    var x, y, hop, bob;
+    var x, y, hop, bob, img, iw, ih;
     if (!c) return;
     x = Math.round(c.x);
     y = Math.round(c.y);
     hop = c.react > 0 ? -3 : 0;
     bob = c.frame ? -1 : 0;
     drawShadow(g, c.x, c.y, c.kind === "deer" ? 6 : 4);
+    img = c.kind === "rabbit" ? Assets.rabbit : (c.kind === "deer" ? Assets.deer : Assets.squirrel);
+    if (img) {
+      iw = img.width;
+      ih = img.height;
+      g.save();
+      g.translate(x, y + bob + hop);
+      if (c.face === "left") g.scale(-1, 1);
+      g.drawImage(img, -((iw / 2) | 0), -ih, iw, ih);
+      g.restore();
+      return;
+    }
     if (c.kind === "rabbit") {
       fill(g, x - 4, y - 8 + bob + hop, 8, 6, "#E8D0B0");
       fill(g, x - 3, y - 6 + bob + hop, 6, 4, "#F3D2A3");
@@ -8890,6 +8957,7 @@
     if (p.kind === "pond") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 36, h: 32 };
     if (p.kind === "well") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "moonAltar") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
+    if (p.kind === "fern") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "tallGrass") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "ladder" || p.kind === "hole" || p.kind === "swordPedestal") {
       if (p.kind === "lantern" && currentScene === "house") {
