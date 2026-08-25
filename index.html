@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260824c";
+  var BUILD = "20260824d";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -466,8 +466,8 @@
   var craftOpen = false;
   var craftMsg = "";
   var craftMsgT = 0;
-  var BAG_STACK = 99;
-  var CHEST_STACK = 999;
+  var BAG_STACK = 150;
+  var CHEST_STACK = 500;
   var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0 };
   var chestOpen = false;
   var chestSel = 0;
@@ -8544,7 +8544,7 @@
         count = -1;
       }
       if (count >= 0) {
-        if (count > 99) count = 99;
+        if (count > 999) count = 999;
         label = String(count);
         drawText(g, label, sx + slot - textWidth(label) - 2, sy + slot - 9, C.woodOut);
         drawText(g, label, sx + slot - textWidth(label) - 3, sy + slot - 10, C.parch);

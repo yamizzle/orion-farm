@@ -55,6 +55,18 @@ Fuel stacks. Tools unlock once. Errands convert. Wonders stay in the world.
 - **Gold loop:** grow carrots → Junie pays 10G. Pip **sells** (buns, seeds, flowers, hat, kits). Pip does **not** buy carrots or buns.
 - **Hotbar is verbs:** seed, wood, stone, carrot, flower, bun always. Tools/hat only when owned. Copper only during Pip’s job. Shard only until it goes home. Mushroom only while you hold one.
 
+## Storage
+
+Not endless. Pockets are a work outing; the house chest is the warehouse. Ground piles stay on the tile when the bag is full.
+
+| Place | Cap per kind | Role |
+|---|---|---|
+| Bag (pockets) | 150 | What Orion carries on the farm and in the mine |
+| House chest | 500 | Home warehouse. Same UI later for shop crates / mine lockers, each with its own cap |
+| Ground loot | until picked | Overflow that did not fit the bag |
+
+Do not auto-move new pickups into the chest. `overflowBagToChest` is only for old saves that already exceeded the bag cap. Future storage is another chest object with a cap, not a bigger bag.
+
 ## Do not
 
 - Mix a key graphic promote with a gameplay commit.
