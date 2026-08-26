@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825m";
+  var BUILD = "20260825n";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -429,7 +429,7 @@
   var HOUSE_ROWS = 12;
   var SHOP_COLS = 16;
   var SHOP_ROWS = 10;
-  var houseIn = { tx: 17, ty: 29 };
+  var houseIn = { tx: 17, ty: 28 };
   var houseOut = { tx: 10, ty: 10 };
   var shopIn = { tx: 44, ty: 26 };
   var shopOut = { tx: 8, ty: 8 };
@@ -2907,7 +2907,10 @@
       p = PROPS[i];
       if (p.kind === "house") {
         for (y = 0; y < 4; y++) {
-          for (x = 0; x < 5; x++) block(p.tx + x, p.ty + y);
+          for (x = 0; x < 5; x++) {
+            if (p.tx + x === houseIn.tx && p.ty + y === houseIn.ty) continue;
+            block(p.tx + x, p.ty + y);
+          }
         }
       } else if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
         for (y = 0; y < 3; y++) {
@@ -4284,7 +4287,9 @@
   function houseDoorHit(tx, ty, world) {
     var hx, hy;
     if (currentScene !== "overworld") return false;
-    if (tx === houseIn.tx && (ty === houseIn.ty || ty === houseIn.ty - 1)) return true;
+    /* Door, one north (fat-finger on the sprite), left/right of door, and stoop south.
+       Stoop is a tap target that paths to the door — it is not isHouseEntrance. */
+    if (tx === houseIn.tx && (ty === houseIn.ty || ty === houseIn.ty - 1 || ty === houseIn.ty + 1)) return true;
     if ((tx === houseIn.tx - 1 || tx === houseIn.tx + 1) && ty === houseIn.ty) return true;
     if (!world) return false;
     hx = 15 * TILE;
@@ -6850,9 +6855,66 @@
     if (player.swing > 0) return false;
     t = facingTile();
     prop = smashableRockAt(t.tx, t.ty);
-    if (!prop) return false;
-    beginHit(prop);
+    if (prop) {
+      beginHit(prop);
+      if (toolEquipped("pick")) breakPlayerPathAt(t.tx, t.ty);
+      return true;
+    }
+    if (toolEquipped("pick")) {
+      if (breakPlayerPathAt(t.tx, t.ty)) return true;
+      if (breakPlayerPathAt(player.tx, player.ty)) return true;
+    }
+    return false;
+  }
+
+  function playerPathAt(tx, ty) {
+    var i, b;
+    for (i = 0; i < builds.length; i++) {
+      b = builds[i];
+      if (b && b.kind === "path" && b.tx === tx && b.ty === ty) return b;
+    }
+    return null;
+  }
+
+  function breakPlayerPathAt(tx, ty) {
+    var i, b, found;
+    if (!toolEquipped("pick")) return false;
+    if (!inBounds(tx, ty)) return false;
+    found = false;
+    for (i = builds.length - 1; i >= 0; i--) {
+      b = builds[i];
+      if (b && b.kind === "path" && b.tx === tx && b.ty === ty) {
+        builds.splice(i, 1);
+        found = true;
+      }
+    }
+    if (!found) return false;
+    setCell(tx, ty, "g");
+    inventory.stone = (inventory.stone | 0) + PATH_COST;
+    player.workTool = "pickaxe";
+    player.swing = 220;
+    spawnSparks(tx * TILE + 8, ty * TILE + 6);
+    playSfx("smash");
+    persistSave();
     return true;
+  }
+
+  function goBreakPath(tx, ty) {
+    var dest, path;
+    if (!playerPathAt(tx, ty)) return;
+    highlight = { tx: tx, ty: ty };
+    if ((player.tx === tx && player.ty === ty) || isNear(player.tx, player.ty, tx, ty)) {
+      pending = null;
+      startWalk(player, [], 3.5);
+      breakPlayerPathAt(tx, ty);
+      return;
+    }
+    dest = walkable(tx, ty) ? { tx: tx, ty: ty } : nearestAdjacent(tx, ty);
+    if (!dest) return;
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) return;
+    pending = { type: "breakPath", tx: tx, ty: ty };
+    startWalk(player, path, 3.5);
   }
 
   function facingTile() {
@@ -7119,6 +7181,11 @@
       if (seen[key]) continue;
       seen[key] = true;
       if (sliceGrass(p)) cut += 1;
+    }
+    if (toolEquipped("pick")) {
+      t = facingTile();
+      breakPlayerPathAt(t.tx, t.ty);
+      breakPlayerPathAt(player.tx, player.ty);
     }
     if (targets.length || cut) spendEnergy(ENERGY_SWING);
     else {
@@ -8173,7 +8240,7 @@
 
   function exitHouse() {
     applyScene("overworld");
-    placePlayer(17, 30, "down");
+    placePlayer(17, 29, "down");
     persistSave();
   }
 
@@ -8277,7 +8344,11 @@
     } else if (act.type === "exit") {
       exitMine();
     } else if (act.type === "enterHouse") {
-      enterHouse();
+      if (player.tx === houseIn.tx && player.ty === houseIn.ty) enterHouse();
+    } else if (act.type === "breakPath") {
+      if ((player.tx === act.tx && player.ty === act.ty) || isNear(player.tx, player.ty, act.tx, act.ty)) {
+        breakPlayerPathAt(act.tx, act.ty);
+      }
     } else if (act.type === "exitHouse") {
       exitHouse();
     } else if (act.type === "harvest") {
@@ -8508,17 +8579,13 @@
   }
 
   function goEnterHouse() {
-    var dest, path;
+    var path;
     highlight = { tx: houseIn.tx, ty: houseIn.ty };
-    dest = walkable(houseIn.tx, houseIn.ty) ? houseIn : nearestAdjacent(houseIn.tx, houseIn.ty);
-    if (!dest) dest = houseIn;
-    if ((player.tx === dest.tx && player.ty === dest.ty) ||
-        isNear(player.tx, player.ty, houseIn.tx, houseIn.ty) ||
-        (player.tx === houseIn.tx && player.ty === houseIn.ty)) {
+    if (player.tx === houseIn.tx && player.ty === houseIn.ty) {
       enterHouse();
       return;
     }
-    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    path = findPath(player.tx, player.ty, houseIn.tx, houseIn.ty);
     if (!path.length) return;
     pending = { type: "enterHouse" };
     startWalk(player, path, 3.5);
@@ -10846,6 +10913,10 @@
       goBreakFence(hitProp);
       return;
     }
+    if (toolEquipped("pick") && playerPathAt(tx, ty)) {
+      goBreakPath(tx, ty);
+      return;
+    }
     if (cell(tx, ty) === "p" && cropIsReady(crops[tx + "," + ty])) {
       goPickCrop(tx, ty);
       return;
@@ -11135,6 +11206,24 @@
       BUILD: BUILD,
       FOREST_ROWS: FOREST_ROWS,
       FOREST_COLS: FOREST_COLS,
+      houseIn: houseIn,
+      isHouseEntrance: isHouseEntrance,
+      houseDoorHit: houseDoorHit,
+      goEnterHouse: goEnterHouse,
+      exitHouse: exitHouse,
+      enterHouse: enterHouse,
+      buildSolid: buildSolid,
+      solidAt: function (tx, ty) { return !!(solid && solid[ty] && solid[ty][tx]); },
+      cell: cell,
+      setCell: setCell,
+      builds: function () { return builds; },
+      inventory: function () { return inventory; },
+      PATH_COST: PATH_COST,
+      equipPick: function () { pickaxeOwned = true; selectedSlot = SLOT_PICK; },
+      breakPlayerPathAt: breakPlayerPathAt,
+      playerPathAt: playerPathAt,
+      trySmashFacing: trySmashFacing,
+      pending: function () { return pending; },
       forestIn: forestIn,
       forestOut: forestOut,
       treetopDoor: treetopDoor,
