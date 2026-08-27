@@ -11,6 +11,7 @@ Stand **beside** the tile (do not walk onto a live tree or rock). **One tap = on
 | Node | Hands | Right tool |
 |---|---|---|
 | Farm tree | 5 HP, 1 dmg | Axe: 3 dmg (two hits), extra wood |
+| Fallen log (woods) | 2 HP, 1 dmg | Axe: 2 dmg (one hit), wood on the tile |
 | Farm rock | 5 HP, 1 dmg | Pick: 3 dmg (two hits), extra stone |
 | Mine rock (floors 1–3) | 4 HP, 1 dmg | Pick: 4 dmg (one hit) |
 | Deep mine rock (floor 4+) | 6 HP, 1 dmg | Pick: 3 dmg (two hits) |

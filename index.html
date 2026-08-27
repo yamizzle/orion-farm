@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260826h";
+  var BUILD = "20260827a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -646,7 +646,7 @@
     { id: "caveDoor", name: "CAVE DOOR", blurb: "FIRST STEP IN" },
     { id: "stoneTap", name: "STONE TAP", blurb: "SMASHED A ROCK" },
     { id: "copperGlow", name: "COPPER GLOW", blurb: "FOUND COPPER" },
-    { id: "caveSnack", name: "CAVE SNACK", blurb: "FOUND A MUSHROOM" },
+    { id: "caveSnack", name: "MUSHROOM FIND", blurb: "FOUND A MUSHROOM" },
     { id: "moonPiece", name: "MOON PIECE", blurb: "FOUND A SHARD" },
     { id: "moonlightPocket", name: "MOONLIGHT POCKET", blurb: "FOUND ALL THREE" },
     { id: "kindHeart", name: "KIND HEART", blurb: "GAVE A MUSHROOM" },
@@ -4168,6 +4168,7 @@
   }
 
   function nodeMaxHp(prop) {
+    if (prop && prop.kind === "log") return 2;
     if (isWoodChop(prop)) return HIT_COUNT;
     if (prop && prop.kind === "rock") {
       if (currentScene === "mine" && mineFloor >= 4) return HIT_DEEP_ROCK;
@@ -4178,6 +4179,7 @@
   }
 
   function nodeStrikeDmg(prop) {
+    if (prop && prop.kind === "log" && toolEquipped("axe")) return 2;
     if (isWoodChop(prop) && toolEquipped("axe")) return 3;
     if (prop && prop.kind === "rock" && toolEquipped("pick")) {
       if (currentScene === "mine" && mineFloor >= 4) return 3;
@@ -4231,6 +4233,7 @@
   }
 
   function harvestHitsFor(prop) {
+    if (prop && prop.kind === "log") return toolEquipped("axe") ? 1 : 2;
     if (isWoodChop(prop)) return toolEquipped("axe") ? HIT_TREE_AXE : HIT_COUNT;
     if (prop && prop.kind === "rock") {
       if (!toolEquipped("pick")) {
@@ -8088,7 +8091,7 @@
   function finishFaintWake() {
     var spot, toll;
     applyScene("house");
-    dayNumber += 1;
+    // Keep the same day (kids already lose progress to the racing clock).
     dayMs = 0;
     refillVitals();
     monsterCache[1] = null;
@@ -9221,6 +9224,12 @@
       return;
     }
     var dest = nearestAdjacent(prop.tx, prop.ty);
+    if (prop.kind === "log") {
+      var destR = nearestAdjacent(prop.tx + 1, prop.ty);
+      if (destR && (!dest || Math.abs(destR.tx - player.tx) + Math.abs(destR.ty - player.ty) < Math.abs(dest.tx - player.tx) + Math.abs(dest.ty - player.ty))) {
+        dest = destR;
+      }
+    }
     if (!dest) return;
     var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
