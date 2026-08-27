@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260826e";
+  var BUILD = "20260826f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -1797,6 +1797,7 @@
     if (tx < 0 || tx >= ground[ty].length) return true;
     if (ground[ty][tx] === "k" || ground[ty][tx] === "p" || ground[ty][tx] === "c") return true;
     if (!ignorePlayer && scene === currentScene && playerOccupies(tx, ty)) return true;
+    if (lootAtTile(tx, ty, scene).length) return true;
     for (i = 0; i < props.length; i++) {
       p = props[i];
       if ((p.kind === "stump" || p.kind === "tree" || p.kind === "rock" || p.kind === "tallGrass") && p.tx === tx && p.ty === ty) continue;
@@ -3846,7 +3847,7 @@
   }
 
   function goCollectLootAt(tx, ty) {
-    var path;
+    var path, dest;
     if (!lootAtTile(tx, ty).length) return;
     highlight = { tx: tx, ty: ty };
     if (player.tx === tx && player.ty === ty) {
@@ -3854,8 +3855,21 @@
       collectLootAt(tx, ty);
       return;
     }
-    if (!walkable(tx, ty)) return;
-    path = findPath(player.tx, player.ty, tx, ty);
+    if (walkable(tx, ty)) {
+      path = findPath(player.tx, player.ty, tx, ty);
+      if (!path.length) return;
+      pending = { type: "loot", tx: tx, ty: ty };
+      startWalk(player, path, 3.5);
+      return;
+    }
+    if (isNear(player.tx, player.ty, tx, ty)) {
+      pending = null;
+      collectLootAt(tx, ty);
+      return;
+    }
+    dest = nearestAdjacent(tx, ty);
+    if (!dest) return;
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
     pending = { type: "loot", tx: tx, ty: ty };
     startWalk(player, path, 3.5);
@@ -4060,6 +4074,10 @@
   }
 
   function beginHit(prop) {
+    if (prop && prop.kind === "berryBush") {
+      pickBerryBush(prop);
+      return;
+    }
     if (!isHarvestable(prop) && !isSoftStrike(prop)) return;
     if (prop.kind === "crop" && !cropIsReady(crops[prop.tx + "," + prop.ty])) return;
     if (player.swing > 0) return;
@@ -7123,6 +7141,11 @@
       beginHit(prop);
       return true;
     }
+    prop = propAt(t.tx, t.ty);
+    if (prop && prop.kind === "berryBush") {
+      pickBerryBush(prop);
+      return true;
+    }
     if (toolEquipped("pick")) {
       if (breakPlayerPathAt(t.tx, t.ty)) return true;
       if (breakPlayerPathAt(player.tx, player.ty)) return true;
@@ -8395,6 +8418,10 @@
   function tryPickupHere() {
     var i, p, got;
     got = false;
+    if (lootAtTile(player.tx, player.ty).length) {
+      if (collectLootAt(player.tx, player.ty)) got = true;
+    }
+    if (got) return true;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
       if (isCollectible(p) && p.tx === player.tx && p.ty === player.ty) {
@@ -8403,15 +8430,16 @@
         break;
       }
     }
-    if (lootAtTile(player.tx, player.ty).length) {
-      if (collectLootAt(player.tx, player.ty)) got = true;
-    }
     return got;
   }
 
   function tryPickupFacing() {
     var t, p;
     t = facingTile();
+    if (lootAtTile(t.tx, t.ty).length) {
+      collectLootAt(t.tx, t.ty);
+      return true;
+    }
     p = propAt(t.tx, t.ty);
     if (p && isCollectible(p)) {
       pickupCollectible(p);
@@ -8419,10 +8447,6 @@
     }
     if (p && p.kind === "berryBush") {
       pickBerryBush(p);
-      return true;
-    }
-    if (lootAtTile(t.tx, t.ty).length) {
-      collectLootAt(t.tx, t.ty);
       return true;
     }
     return false;
@@ -8631,7 +8655,7 @@
         pickupCollectible(act.prop);
       }
     } else if (act.type === "loot") {
-      if (player.tx === act.tx && player.ty === act.ty) {
+      if ((player.tx === act.tx && player.ty === act.ty) || isNear(player.tx, player.ty, act.tx, act.ty)) {
         collectLootAt(act.tx, act.ty);
       }
     } else if (act.type === "enter") {
@@ -11625,6 +11649,9 @@
       groundLoot: function () { return groundLoot; },
       tryPickupHere: tryPickupHere,
       tryPickupFacing: tryPickupFacing,
+      goCollectLootAt: goCollectLootAt,
+      tileBlockedForRespawn: tileBlockedForRespawn,
+      updateHarvestNodes: updateHarvestNodes,
       beginHit: beginHit,
       finishHarvest: finishHarvest,
       pickPlant: pickPlant,
