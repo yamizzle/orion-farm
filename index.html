@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260826d";
+  var BUILD = "20260826e";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -5854,6 +5854,40 @@
     drawText(g, no, L.noX + ((L.noW - textWidth(no)) / 2) | 0, L.by + 4, C.parch);
   }
 
+  function houseWindowPane() {
+    var ph = clockPhase();
+    if (ph === 0) return { fill: "#C8E4F6", lite: "#E8F6FF", stars: false };
+    if (ph === 1) return { fill: "#6EB8E8", lite: "#A8D8F8", stars: false };
+    if (ph === 2) return { fill: "#E09038", lite: "#F0C060", stars: false };
+    return { fill: "#182858", lite: "#2A3A78", stars: true };
+  }
+
+  function drawHouseWindow(g, x, y) {
+    var spec, ox, panes, i, r, sx, sy;
+    Assets.draw(g, "windowNight", x, y);
+    spec = houseWindowPane();
+    ox = x - 8;
+    panes = [
+      [ox + 5, y + 6, 9, 11],
+      [ox + 18, y + 6, 9, 11],
+      [ox + 5, y + 21, 9, 12],
+      [ox + 18, y + 21, 9, 12]
+    ];
+    for (i = 0; i < panes.length; i++) {
+      r = panes[i];
+      fill(g, r[0], r[1], r[2], r[3], spec.fill);
+      fill(g, r[0], r[1], r[2], 3, spec.lite);
+    }
+    if (spec.stars) {
+      sx = ox + 7;
+      sy = y + 8;
+      px(g, sx, sy, "#F4F4FF");
+      px(g, sx + 14, sy + 3, "#E8E8F8");
+      px(g, sx + 4, sy + 16, "#D0D0F0");
+      px(g, sx + 16, sy + 18, "#F0F0FF");
+    }
+  }
+
   function clockPhase() {
     var i = (dayMs / PHASE_MS) | 0;
     if (i < 0) i = 0;
@@ -9454,7 +9488,8 @@
     } else if (p.kind === "rug") {
       Assets.draw(g, "rug", x, y);
     } else if (p.kind === "window") {
-      Assets.draw(g, currentScene === "house" ? "windowNight" : "window", x, y);
+      if (currentScene === "house") drawHouseWindow(g, x, y);
+      else Assets.draw(g, "window", x, y);
     } else if (p.kind === "doormat") {
       Assets.draw(g, "doormat", x, y);
     } else if (p.kind === "inndoor") {
@@ -11612,6 +11647,13 @@
       updateTiredZs: updateTiredZs,
       tiredZs: function () { return tiredZs; },
       spendWalkEnergy: spendWalkEnergy,
+      clockPhase: clockPhase,
+      clockPhaseName: clockPhaseName,
+      houseWindowPane: houseWindowPane,
+      PHASES: PHASES,
+      PHASE_MS: PHASE_MS,
+      setDayMs: function (n) { dayMs = n; },
+      dayMs: function () { return dayMs; },
       flushPickups: flushPickups,
       pickups: function () { return pickups; },
       propAt: propAt,
