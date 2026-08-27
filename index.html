@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260826c";
+  var BUILD = "20260826d";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -411,6 +411,9 @@
   var HP_PER_HEART = 10;
   var SNACK_HEAL = 20;
   var MAX_ENERGY = 100;
+  var TIRED_ENERGY = 25;
+  var tiredZs = [];
+  var tiredSpawn = 0;
   var ENERGY_HIT = 1;
   var ENERGY_SWING = 1;
   var SWING_MS = 300;
@@ -9076,6 +9079,53 @@
     } else if (player.swing > 0 && player.workTool && player.face !== "up") {
       drawWorkTool(g, sx, sy, bob);
     }
+    drawTiredZs(g);
+  }
+
+  function isTired() {
+    return energy <= TIRED_ENERGY;
+  }
+
+  function updateTiredZs(dt) {
+    var i, z, want, gap;
+    if (energy > TIRED_ENERGY) {
+      tiredZs = [];
+      tiredSpawn = 0;
+      return;
+    }
+    want = energy <= 0 ? 3 : (energy <= 12 ? 3 : 2);
+    gap = energy <= 0 ? 380 : 620;
+    for (i = tiredZs.length - 1; i >= 0; i--) {
+      z = tiredZs[i];
+      z.age += dt;
+      z.y -= dt * 0.012;
+      z.x += Math.sin((z.age + z.wob) * 0.008) * 0.018 * dt;
+      if (z.age >= z.life) tiredZs.splice(i, 1);
+    }
+    tiredSpawn += dt;
+    if (tiredZs.length < want && tiredSpawn >= gap) {
+      tiredSpawn = 0;
+      tiredZs.push({
+        x: player.x - 3 + (tiredZs.length % 3) * 4,
+        y: player.y - 36,
+        age: 0,
+        life: energy <= 0 ? 1500 : 1100,
+        wob: tick + tiredZs.length * 90
+      });
+    }
+  }
+
+  function drawTiredZs(g) {
+    var i, z, a, col;
+    for (i = 0; i < tiredZs.length; i++) {
+      z = tiredZs[i];
+      a = 1;
+      if (z.age < 140) a = z.age / 140;
+      else if (z.age > z.life - 300) a = (z.life - z.age) / 300;
+      if (a < 0) a = 0;
+      col = "rgba(236,228,200," + (0.40 + 0.50 * a).toFixed(3) + ")";
+      drawText(g, "Z", Math.round(z.x), Math.round(z.y), col);
+    }
   }
 
   function swordHand(sx, sy, bob) {
@@ -11301,6 +11351,7 @@
       updatePickups(dt);
       updateGroundLoot(dt);
       updateFx(dt);
+      updateTiredZs(dt);
       tick += dt;
     }
     if (shopMsgT > 0) shopMsgT -= dt;
@@ -11553,6 +11604,14 @@
       SLOT_WOOD: SLOT_WOOD,
       selectSlot: function (id) { selectedSlot = id; },
       selectedSlot: function () { return selectedSlot; },
+      energy: function () { return energy; },
+      setEnergy: function (n) { energy = n; },
+      MAX_ENERGY: MAX_ENERGY,
+      TIRED_ENERGY: TIRED_ENERGY,
+      isTired: isTired,
+      updateTiredZs: updateTiredZs,
+      tiredZs: function () { return tiredZs; },
+      spendWalkEnergy: spendWalkEnergy,
       flushPickups: flushPickups,
       pickups: function () { return pickups; },
       propAt: propAt,
