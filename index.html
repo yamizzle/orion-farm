@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260825o";
+  var BUILD = "20260826a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -4311,16 +4311,19 @@
   }
 
   function houseDoorHit(tx, ty, world) {
-    var hx, hy;
+    var hx, hy, stoopY;
     if (currentScene !== "overworld") return false;
-    /* Door, one north (fat-finger on the sprite), left/right of door, and stoop south.
-       Stoop is a tap target that paths to the door — it is not isHouseEntrance. */
-    if (tx === houseIn.tx && (ty === houseIn.ty || ty === houseIn.ty - 1 || ty === houseIn.ty + 1)) return true;
+    /* Door tile, one north (fat-finger on the sprite), left/right of door.
+       Stoop south (ty 29) is NOT a door hit — tap there walks outside only. */
+    if (tx === houseIn.tx && ty === houseIn.ty + 1) return false;
+    if (tx === houseIn.tx && (ty === houseIn.ty || ty === houseIn.ty - 1)) return true;
     if ((tx === houseIn.tx - 1 || tx === houseIn.tx + 1) && ty === houseIn.ty) return true;
     if (!world) return false;
     hx = 15 * TILE;
     hy = 25 * TILE - 16;
-    return world.x >= hx + 31 && world.x < hx + 49 && world.y >= hy + 50 && world.y < hy + 80;
+    stoopY = (houseIn.ty + 1) * TILE;
+    /* Pixel rect stops above the stoop row so door-sprite overhang cannot enterHouse. */
+    return world.x >= hx + 31 && world.x < hx + 49 && world.y >= hy + 50 && world.y < stoopY;
   }
 
   function placePlayer(tx, ty, face) {
@@ -10800,6 +10803,10 @@
     }
     if (mailboxHit(tx, ty, world)) {
       goMail();
+      return;
+    }
+    if (currentScene === "overworld" && tx === houseIn.tx && ty === houseIn.ty + 1) {
+      goWalk(tx, ty);
       return;
     }
     if (houseDoorHit(tx, ty, world)) {
