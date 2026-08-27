@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260826f";
+  var BUILD = "20260826g";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -344,7 +344,14 @@
           loadImage("assets/props/log.png").then(function (im) { Assets.log = im; }).catch(function () {}),
           loadImage("assets/actors/rabbit.png").then(function (im) { Assets.rabbit = im; }).catch(function () {}),
           loadImage("assets/actors/deer.png").then(function (im) { Assets.deer = im; }).catch(function () {}),
-          loadImage("assets/actors/squirrel.png").then(function (im) { Assets.squirrel = im; }).catch(function () {})
+          loadImage("assets/actors/squirrel.png").then(function (im) { Assets.squirrel = im; }).catch(function () {}),
+          loadImage("assets/actors/hazel.png").then(function (im) { Assets.hazel = im; }).catch(function () {}),
+          loadImage("assets/actors/rowan.png").then(function (im) { Assets.rowan = im; }).catch(function () {}),
+          loadImage("assets/props/forestChest.png").then(function (im) { Assets.forestChest = im; }).catch(function () {}),
+          loadImage("assets/props/woodsSign.png").then(function (im) { Assets.woodsSign = im; }).catch(function () {}),
+          loadImage("assets/props/nest.png").then(function (im) { Assets.nest = im; }).catch(function () {}),
+          loadImage("assets/actors/bird.png").then(function (im) { Assets.bird = im; }).catch(function () {}),
+          loadImage("assets/tiles/treetopSky.png").then(function (im) { Assets.treetopSky = im; }).catch(function () {})
         ]);
       });
     },
@@ -2503,7 +2510,12 @@
   }
 
   function drawSkyTile(g, tx, ty, dx, dy) {
-    var i, h;
+    var i, h, img;
+    img = Assets.treetopSky;
+    if (img) {
+      g.drawImage(img, dx, dy, 16, 16);
+      return;
+    }
     fill(g, dx, dy, 16, 16, C.sky || "#8EC8E8");
     if (((tx + ty * 3) & 7) === 0) {
       fill(g, dx + 3, dy + 5, 8, 3, "#B8DCF0");
@@ -2794,6 +2806,9 @@
 
   function drawForestChest(g, x, y) {
     var word, tw, sx;
+    if (Assets.forestChest) {
+      g.drawImage(Assets.forestChest, x, y, 16, 16);
+    } else {
     fill(g, x + 1, y + 5, 14, 10, "#3D1A0C");
     fill(g, x + 2, y + 6, 12, 8, "#8B5A28");
     fill(g, x + 2, y + 6, 12, 3, "#E8B060");
@@ -2802,6 +2817,7 @@
     fill(g, x + 7, y + 8, 2, 5, "#F0B428");
     fill(g, x + 6, y + 10, 4, 2, "#E8C84A");
     px(g, x + 7, y + 11, "#3D1A0C");
+    }
     word = "CHEST";
     tw = textWidth(word);
     sx = x + ((TILE - tw) / 2 | 0);
@@ -2812,8 +2828,12 @@
   function drawWoodsSign(g, x, y) {
     var word = currentScene === "forest" ? "FARM" : "WOODS";
     var tw, sx;
+    if (Assets.woodsSign) {
+      g.drawImage(Assets.woodsSign, x, y - 8, 16, 16);
+    } else {
     fill(g, x + 7, y + 6, 2, 10, C.woodOut);
     fill(g, x + 8, y + 6, 1, 10, C.woodMid);
+    }
     tw = textWidth(word);
     sx = x + ((TILE - tw) / 2 | 0);
     woodPanel(g, sx - 4, y - 6, tw + 8, 13);
@@ -2859,6 +2879,10 @@
   }
 
   function drawNest(g, x, y) {
+    if (Assets.nest) {
+      g.drawImage(Assets.nest, x, y, 16, 16);
+      return;
+    }
     fill(g, x + 1, y + 8, 14, 5, "#6D4427");
     fill(g, x + 2, y + 7, 12, 4, "#8B5A28");
     fill(g, x + 3, y + 9, 10, 3, "#5A3A18");
@@ -2868,6 +2892,10 @@
 
   function drawBird(g, x, y) {
     var bob = ((tick / 280) | 0) % 2 ? -1 : 0;
+    if (Assets.bird) {
+      g.drawImage(Assets.bird, x, y + bob, 16, 16);
+      return;
+    }
     fill(g, x + 4, y + 6 + bob, 8, 5, "#3A4A62");
     fill(g, x + 5, y + 5 + bob, 5, 3, "#8AB0C8");
     fill(g, x + 10, y + 7 + bob, 3, 2, "#E8A030");
@@ -2878,7 +2906,15 @@
     var x = Math.round(f.x);
     var y = Math.round(f.y);
     var bob = f.frame ? -1 : 0;
+    var img, iw, ih;
     drawShadow(g, f.x, f.y, 5);
+    img = f.id === "hazel" ? Assets.hazel : Assets.rowan;
+    if (img) {
+      iw = img.width;
+      ih = img.height;
+      g.drawImage(img, x - ((iw / 2) | 0), y - ih + bob, iw, ih);
+      return;
+    }
     if (f.id === "hazel") {
       fill(g, x - 3, y - 26 + bob, 7, 6, "#6D4427");
       fill(g, x - 2, y - 22 + bob, 5, 5, C.skin);
