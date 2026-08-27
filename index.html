@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260826b";
+  var BUILD = "20260826c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -374,7 +374,7 @@
   var lootSeq = 1;
   var LOOT_POP_MS = 280;
   var selectedSlot = 0;
-  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, copperBar: 0, silverBar: 0, goldBar: 0 };
   var slotShake = 0;
   var SLOT_SEED = 0;
   var SLOT_WOOD = 1;
@@ -398,9 +398,12 @@
   var SLOT_BERRY = 19;
   var SLOT_POTATO_SEED = 20;
   var SLOT_BERRY_SEED = 21;
+  var SLOT_COPPER_BAR = 22;
+  var SLOT_SILVER_BAR = 23;
+  var SLOT_GOLD_BAR = 24;
   var HUD_SLOTS = 22;
   var SLOT_ORDER = [
-    SLOT_SEED, SLOT_POTATO_SEED, SLOT_BERRY_SEED, SLOT_WOOD, SLOT_STONE, SLOT_IRON, SLOT_COPPER, SLOT_SILVER, SLOT_GOLDORE, SLOT_MUSH, SLOT_MOON,
+    SLOT_SEED, SLOT_POTATO_SEED, SLOT_BERRY_SEED, SLOT_WOOD, SLOT_STONE, SLOT_IRON, SLOT_COPPER, SLOT_SILVER, SLOT_GOLDORE, SLOT_COPPER_BAR, SLOT_SILVER_BAR, SLOT_GOLD_BAR, SLOT_MUSH, SLOT_MOON,
     SLOT_VEGGIE, SLOT_POTATO, SLOT_BERRY, SLOT_FLOWER, SLOT_SNACK, SLOT_HAT, SLOT_SWORD, SLOT_BOW, SLOT_SHOVEL, SLOT_AXE, SLOT_PICK
   ];
   var MAX_HP = 50;
@@ -536,7 +539,7 @@
   var craftMsgT = 0;
   var BAG_STACK = 150;
   var CHEST_STACK = 500;
-  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0 };
+  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, copperBar: 0, silverBar: 0, goldBar: 0 };
   var chestOpen = false;
   var chestSel = 0;
   var chestMsg = "";
@@ -553,6 +556,9 @@
     { key: "moonshard", name: "SHARD", icon: "moonshard" },
     { key: "silver", name: "SILVER", icon: "silver" },
     { key: "goldore", name: "GOLD", icon: "goldore" },
+    { key: "copperBar", name: "CU BAR", icon: "copperBar" },
+    { key: "silverBar", name: "AG BAR", icon: "silverBar" },
+    { key: "goldBar", name: "AU BAR", icon: "goldBar" },
     { key: "potato", name: "POTATO", icon: "potato" },
     { key: "berry", name: "BERRY", icon: "berry" }
   ];
@@ -2520,8 +2526,21 @@
     if (id === "goldore") { paintGoldore(g, x, y); return; }
     if (id === "potato") { paintPotato(g, x, y); return; }
     if (id === "berry") { paintBerry(g, x, y); return; }
+    if (id === "copperBar") { paintCopperBar(g, x, y); return; }
+    if (id === "silverBar") { paintSilverBar(g, x, y); return; }
+    if (id === "goldBar") { paintGoldBar(g, x, y); return; }
     if (Assets.spr[id]) Assets.draw(g, id, x, y);
   }
+
+  function paintBar(g, x, y, dark, mid, lite) {
+    fill(g, x + 2, y + 7, 12, 5, dark);
+    fill(g, x + 3, y + 6, 10, 5, mid);
+    fill(g, x + 4, y + 7, 8, 2, lite);
+  }
+
+  function paintCopperBar(g, x, y) { paintBar(g, x, y, "#8B4510", "#C47A38", "#E8B060"); }
+  function paintSilverBar(g, x, y) { paintBar(g, x, y, "#4A4A52", "#C8C8D4", "#F0F0F8"); }
+  function paintGoldBar(g, x, y) { paintBar(g, x, y, "#8B5A00", "#E8B028", "#F8E070"); }
 
   function paintSprout(g, x, y) {
     fill(g, x + 7, y + 10, 2, 5, "#3A7A14");
@@ -3843,7 +3862,8 @@
     if (kind === "pebble") return "stone";
     if (kind === "wood" || kind === "stone" || kind === "veggie" || kind === "flower" ||
         kind === "snack" || kind === "copper" || kind === "mushroom" || kind === "moonshard" || kind === "iron" ||
-        kind === "silver" || kind === "goldore" || kind === "potato" || kind === "berry") {
+        kind === "silver" || kind === "goldore" || kind === "potato" || kind === "berry" ||
+        kind === "copperBar" || kind === "silverBar" || kind === "goldBar") {
       return kind;
     }
     return "";
@@ -4526,6 +4546,9 @@
         inventory.goldore = clampCount(data.inventory.goldore);
         inventory.potato = clampCount(data.inventory.potato);
         inventory.berry = clampCount(data.inventory.berry);
+        inventory.copperBar = clampCount(data.inventory.copperBar);
+        inventory.silverBar = clampCount(data.inventory.silverBar);
+        inventory.goldBar = clampCount(data.inventory.goldBar);
       } else {
         if (typeof data.veggie === "number" && data.veggie > 0) inventory.veggie = clampCount(data.veggie);
         if (found.copper) inventory.copper = 1;
@@ -4546,6 +4569,9 @@
         chest.goldore = clampCount(data.chest.goldore);
         chest.potato = clampCount(data.chest.potato);
         chest.berry = clampCount(data.chest.berry);
+        chest.copperBar = clampCount(data.chest.copperBar);
+        chest.silverBar = clampCount(data.chest.silverBar);
+        chest.goldBar = clampCount(data.chest.goldBar);
       }
       overflowBagToChest();
       if (data.crops && typeof data.crops === "object") {
@@ -4753,7 +4779,10 @@
           silver: inventory.silver | 0,
           goldore: inventory.goldore | 0,
           potato: inventory.potato | 0,
-          berry: inventory.berry | 0
+          berry: inventory.berry | 0,
+          copperBar: inventory.copperBar | 0,
+          silverBar: inventory.silverBar | 0,
+          goldBar: inventory.goldBar | 0
         },
         chest: {
           wood: chest.wood | 0,
@@ -4768,7 +4797,10 @@
           silver: chest.silver | 0,
           goldore: chest.goldore | 0,
           potato: chest.potato | 0,
-          berry: chest.berry | 0
+          berry: chest.berry | 0,
+          copperBar: chest.copperBar | 0,
+          silverBar: chest.silverBar | 0,
+          goldBar: chest.goldBar | 0
         },
         hatOwned: !!hatOwned,
         hatOn: !!hatOn,
@@ -4953,6 +4985,131 @@
     if (!world) return false;
     b = propBounds(table);
     return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
+  }
+
+  function findFireplace() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "fireplace") return p;
+    }
+    return null;
+  }
+
+  function nearFireplace() {
+    var fire = findFireplace();
+    var x, y;
+    if (!fire) return false;
+    for (y = 0; y < 2; y++) {
+      for (x = 0; x < 2; x++) {
+        if (isNear(player.tx, player.ty, fire.tx + x, fire.ty + y)) return true;
+        if (player.tx === fire.tx + x && player.ty === fire.ty + y) return true;
+      }
+    }
+    return false;
+  }
+
+  function fireplaceHit(tx, ty, world) {
+    var fire, b;
+    if (currentScene !== "house") return false;
+    fire = findFireplace();
+    if (!fire) return false;
+    if (propOccupies(fire, tx, ty)) return true;
+    if (!world) return false;
+    b = propBounds(fire);
+    return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
+  }
+
+  function selectedSmeltOre() {
+    if (selectedSlot === SLOT_COPPER) return "copper";
+    if (selectedSlot === SLOT_SILVER) return "silver";
+    if (selectedSlot === SLOT_GOLDORE) return "goldore";
+    return "";
+  }
+
+  function smeltBarFor(ore) {
+    if (ore === "copper") return "copperBar";
+    if (ore === "silver") return "silverBar";
+    if (ore === "goldore") return "goldBar";
+    return "";
+  }
+
+  function smeltBarName(bar) {
+    if (bar === "copperBar") return "A COPPER BAR!";
+    if (bar === "silverBar") return "A SILVER BAR!";
+    if (bar === "goldBar") return "A GOLD BAR!";
+    return "A BAR!";
+  }
+
+  function doSmeltNow() {
+    var ore, bar, fire;
+    if (currentScene !== "house") return false;
+    ore = selectedSmeltOre();
+    if (!ore || bagCount(ore) < 1) {
+      showLineNote("THE FIRE WANTS ORE.");
+      return false;
+    }
+    bar = smeltBarFor(ore);
+    if (!bar) {
+      showLineNote("THE FIRE WANTS ORE.");
+      return false;
+    }
+    if (bagRoom(bar) < 1) {
+      showLineNote("BAG FULL. USE THE CHEST.");
+      return false;
+    }
+    inventory[ore] = bagCount(ore) - 1;
+    addToBag(bar, 1);
+    fire = findFireplace();
+    if (fire) spawnSparks(fire.tx * TILE + 16, fire.ty * TILE + 16);
+    playSfx("smash");
+    showLineNote(smeltBarName(bar));
+    ensureSelectedSlot();
+    persistSave();
+    return true;
+  }
+
+  function trySmeltHere() {
+    if (currentScene !== "house") return false;
+    if (!nearFireplace()) return false;
+    doSmeltNow();
+    return true;
+  }
+
+  function goSmelt() {
+    var fire, dest, path, x, y, best, d, cand;
+    if (currentScene !== "house") return;
+    fire = findFireplace();
+    highlight = fire ? { tx: fire.tx, ty: fire.ty } : null;
+    if (!fire || nearFireplace()) {
+      pending = null;
+      doSmeltNow();
+      return;
+    }
+    best = null;
+    d = 999;
+    for (y = 0; y < 2; y++) {
+      for (x = 0; x < 2; x++) {
+        cand = nearestAdjacent(fire.tx + x, fire.ty + y);
+        if (!cand) continue;
+        if (Math.abs(cand.tx - player.tx) + Math.abs(cand.ty - player.ty) < d) {
+          d = Math.abs(cand.tx - player.tx) + Math.abs(cand.ty - player.ty);
+          best = cand;
+        }
+      }
+    }
+    dest = best;
+    if (!dest) {
+      doSmeltNow();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      doSmeltNow();
+      return;
+    }
+    pending = { type: "smelt" };
+    startWalk(player, path, 3.5);
   }
 
   function findWorkbench() {
@@ -8501,6 +8658,8 @@
       talkHomeLight();
     } else if (act.type === "craft") {
       openCraft();
+    } else if (act.type === "smelt") {
+      if (nearFireplace()) doSmeltNow();
     } else if (act.type === "chest") {
       openChest();
     } else if (act.type === "talkFolk") {
@@ -10068,6 +10227,9 @@
     if (i === SLOT_COPPER) return bagCount("copper");
     if (i === SLOT_SILVER) return bagCount("silver");
     if (i === SLOT_GOLDORE) return bagCount("goldore");
+    if (i === SLOT_COPPER_BAR) return bagCount("copperBar");
+    if (i === SLOT_SILVER_BAR) return bagCount("silverBar");
+    if (i === SLOT_GOLD_BAR) return bagCount("goldBar");
     if (i === SLOT_MUSH) return bagCount("mushroom");
     if (i === SLOT_MOON) return bagCount("moonshard");
     if (i === SLOT_VEGGIE) return bagCount("veggie");
@@ -10218,6 +10380,15 @@
       } else if (i === SLOT_GOLDORE) {
         paintGoldore(g, sx + 1, sy + 1);
         count = inventory.goldore;
+      } else if (i === SLOT_COPPER_BAR) {
+        paintCopperBar(g, sx + 1, sy + 1);
+        count = inventory.copperBar;
+      } else if (i === SLOT_SILVER_BAR) {
+        paintSilverBar(g, sx + 1, sy + 1);
+        count = inventory.silverBar;
+      } else if (i === SLOT_GOLD_BAR) {
+        paintGoldBar(g, sx + 1, sy + 1);
+        count = inventory.goldBar;
       } else if (i === SLOT_MUSH) {
         Assets.draw(g, "mushroom", sx + 1, sy + 1);
         count = inventory.mushroom;
@@ -10943,6 +11114,10 @@
       goSleep();
       return;
     }
+    if (currentScene === "house" && (fireplaceHit(tx, ty, world) || (hitProp && hitProp.kind === "fireplace"))) {
+      goSmelt();
+      return;
+    }
     if (currentScene === "house" && (workbenchHit(tx, ty, world) || (hitProp && hitProp.kind === "workbench"))) {
       goCraft();
       return;
@@ -11256,6 +11431,7 @@
         exitTreetop();
         return;
       }
+      if (trySmeltHere()) return;
       if (tryPickupHere()) return;
       if (tryPickupFacing()) return;
       if (tryOpenChestAdjacent()) return;
@@ -11367,6 +11543,16 @@
       finishHarvest: finishHarvest,
       pickPlant: pickPlant,
       addItem: addItem,
+      doSmeltNow: doSmeltNow,
+      goSmelt: goSmelt,
+      trySmeltHere: trySmeltHere,
+      nearFireplace: nearFireplace,
+      fireplaceHit: fireplaceHit,
+      selectedSmeltOre: selectedSmeltOre,
+      SLOT_COPPER: SLOT_COPPER,
+      SLOT_WOOD: SLOT_WOOD,
+      selectSlot: function (id) { selectedSlot = id; },
+      selectedSlot: function () { return selectedSlot; },
       flushPickups: flushPickups,
       pickups: function () { return pickups; },
       propAt: propAt,
