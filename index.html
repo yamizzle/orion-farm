@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260826g";
+  var BUILD = "20260826h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -446,7 +446,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null };
   var tick = 0;
   var lastTs = 0;
   var dialogue = null;
@@ -482,6 +482,9 @@
   var treetopLand = { tx: 9, ty: 10 };
   var treetopExit = { tx: 9, ty: 11 };
   var giantTreeLand = { tx: 25, ty: 10 };
+  var TREE_COLS = 10;
+  var TREE_ROWS = 8;
+  var treeFloor = 1;
   var pipLanternAt = { tx: 43, ty: 25 };
   var TOWN_GREEN = { x0: 43, y0: 29, x1: 55, y1: 32 };
   var SAVE_KEY = "moondrop-mountain-v1";
@@ -930,7 +933,7 @@
   function wantedTune() {
     if (currentScene === "house" || currentScene === "shop") return "house";
     if (currentScene === "mine") return "mine";
-    if (currentScene === "forest" || currentScene === "treetop") return clockPhaseName() === "NIGHT" ? "forestNight" : "forest";
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") return clockPhaseName() === "NIGHT" ? "forestNight" : "forest";
     if (festivalOn && clockPhaseName() === "NIGHT") return "festival";
     if (clockPhaseName() === "NIGHT") return "farmNight";
     return "farmDay";
@@ -1084,13 +1087,17 @@
   }
 
   function harvestSceneName() {
+    if (currentScene === "tree") {
+      if (treeFloor >= 2 && treeFloor <= 4) return "tree" + treeFloor;
+      return "tree";
+    }
     if (currentScene !== "mine") return currentScene;
     if (mineFloor >= 2 && mineFloor <= 6) return "mine" + mineFloor;
     return "mine";
   }
 
   function liveHarvestScene() {
-    if (currentScene === "mine") return harvestSceneName();
+    if (currentScene === "mine" || currentScene === "tree") return harvestSceneName();
     return currentScene;
   }
 
@@ -1099,7 +1106,18 @@
       floor = floor || mineFloor;
       if (floor >= 2 && floor <= 6) return "mine" + floor;
     }
+    if (name === "tree") {
+      floor = floor || treeFloor;
+      if (floor >= 2 && floor <= 4) return "tree" + floor;
+    }
     return name;
+  }
+
+  function clampTreeFloor(n) {
+    n = n | 0;
+    if (n < 1) return 1;
+    if (n > 4) return 4;
+    return n;
   }
 
   function clampMineFloor(n) {
@@ -1958,6 +1976,7 @@
     if (currentScene === "mine") monsterCache[mineFloor] = monsters;
     saveScene();
     if (name === "mine") mineFloor = floor ? clampMineFloor(floor) : clampMineFloor(mineFloor);
+    if (name === "tree") treeFloor = floor ? clampTreeFloor(floor) : clampTreeFloor(treeFloor);
     currentScene = name;
     key = sceneCacheKey(name);
     cached = sceneCache[key];
@@ -2019,6 +2038,11 @@
       ROWS = TREETOP_ROWS;
       GROUND = buildTreetopGround();
       PROPS = buildTreetopProps();
+    } else if (name === "tree") {
+      COLS = TREE_COLS;
+      ROWS = TREE_ROWS;
+      GROUND = buildTreeGround();
+      PROPS = buildTreeProps();
     } else {
       COLS = OVER_COLS;
       ROWS = OVER_ROWS;
@@ -2030,7 +2054,7 @@
       applyBuildsTo(GROUND, PROPS);
     }
     if (name === "overworld") applyPipLantern(PROPS);
-    if (fresh && name !== "house") applyHarvestState(name === "mine" ? harvestSceneName() : name, PROPS);
+    if (fresh && name !== "house") applyHarvestState((name === "mine" || name === "tree") ? harvestSceneName() : name, PROPS);
     if (name === "mine") {
       if (monsterCache[mineFloor]) monsters = monsterCache[mineFloor];
       else spawnMineMonsters();
@@ -2113,6 +2137,75 @@
     return currentScene === "treetop" && tx === treetopExit.tx && ty === treetopExit.ty;
   }
 
+  function treeDownSpot() {
+    if (currentScene !== "tree") return null;
+    if (treeFloor === 1) return { tx: 5, ty: 6 };
+    if (treeFloor === 2) return { tx: 4, ty: 6 };
+    if (treeFloor === 3) return { tx: 3, ty: 6 };
+    if (treeFloor === 4) return { tx: 6, ty: 6 };
+    return null;
+  }
+
+  function treeUpSpot() {
+    if (currentScene !== "tree") return null;
+    if (treeFloor === 1) return { tx: 5, ty: 2 };
+    if (treeFloor === 2) return { tx: 6, ty: 2 };
+    if (treeFloor === 3) return { tx: 7, ty: 2 };
+    if (treeFloor === 4) return { tx: 4, ty: 2 };
+    return null;
+  }
+
+  function isTreeDown(tx, ty) {
+    var d = treeDownSpot();
+    return !!(d && tx === d.tx && ty === d.ty);
+  }
+
+  function isTreeUp(tx, ty) {
+    var d = treeUpSpot();
+    return !!(d && tx === d.tx && ty === d.ty);
+  }
+
+  function enterTree() {
+    applyScene("tree", 1);
+    placePlayer(5, 5, "up");
+    persistSave();
+  }
+
+  function exitTree() {
+    applyScene("forest");
+    placePlayer(giantTreeLand.tx, giantTreeLand.ty, "down");
+    persistSave();
+  }
+
+  function enterTreeFloor(floor, via) {
+    var spot;
+    floor = clampTreeFloor(floor);
+    applyScene("tree", floor);
+    if (via === "down") {
+      if (floor === 1) spot = { tx: 5, ty: 3, face: "down" };
+      else if (floor === 2) spot = { tx: 6, ty: 3, face: "down" };
+      else if (floor === 3) spot = { tx: 7, ty: 3, face: "down" };
+      else spot = { tx: 4, ty: 3, face: "down" };
+    } else {
+      if (floor === 1) spot = { tx: 5, ty: 5, face: "up" };
+      else if (floor === 2) spot = { tx: 4, ty: 5, face: "up" };
+      else if (floor === 3) spot = { tx: 3, ty: 5, face: "up" };
+      else spot = { tx: 6, ty: 5, face: "up" };
+    }
+    placePlayer(spot.tx, spot.ty, spot.face);
+    persistSave();
+  }
+
+  function climbTree() {
+    if (treeFloor === 4) enterTreetop();
+    else enterTreeFloor(treeFloor + 1, "up");
+  }
+
+  function descendTree() {
+    if (treeFloor === 1) exitTree();
+    else enterTreeFloor(treeFloor - 1, "down");
+  }
+
   function enterTreetop() {
     applyScene("treetop");
     placePlayer(treetopLand.tx, treetopLand.ty, "up");
@@ -2120,20 +2213,20 @@
   }
 
   function exitTreetop() {
-    applyScene("forest");
-    placePlayer(giantTreeLand.tx, giantTreeLand.ty, "down");
+    applyScene("tree", 4);
+    placePlayer(4, 3, "down");
     persistSave();
   }
 
   function goEnterTreetop() {
     highlight = { tx: treetopDoor.tx, ty: treetopDoor.ty };
     if (isTreetopEntrance(player.tx, player.ty)) {
-      enterTreetop();
+      enterTree();
       return;
     }
     var path = findPath(player.tx, player.ty, treetopDoor.tx, treetopDoor.ty);
     if (!path.length) return;
-    pending = { type: "enterTreetop" };
+    pending = { type: "enterTree" };
     startWalk(player, path, 3.5);
   }
 
@@ -2146,6 +2239,21 @@
     var path = findPath(player.tx, player.ty, treetopExit.tx, treetopExit.ty);
     if (!path.length) return;
     pending = { type: "exitTreetop" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goTreeShaft(up) {
+    var d = up ? treeUpSpot() : treeDownSpot();
+    if (!d) return;
+    highlight = { tx: d.tx, ty: d.ty };
+    if (player.tx === d.tx && player.ty === d.ty) {
+      if (up) climbTree();
+      else descendTree();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, d.tx, d.ty);
+    if (!path.length) return;
+    pending = { type: up ? "treeUp" : "treeDown" };
     startWalk(player, path, 3.5);
   }
 
@@ -2187,6 +2295,32 @@
       { kind: "toadstool", tx: 10, ty: 5 },
       { kind: "woodsDown", tx: 9, ty: 11 }
     ];
+  }
+
+  function buildTreeGround() {
+    var cols = TREE_COLS, rows = TREE_ROWS;
+    var g = [], y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) {
+        row[x] = (x === 0 || y === 0 || x === cols - 1 || y === rows - 1) ? "#" : "f";
+      }
+      g[y] = row;
+    }
+    return g;
+  }
+
+  function buildTreeProps() {
+    var up = treeUpSpot();
+    var down = treeDownSpot();
+    var list = [];
+    if (down) list.push({ kind: "woodsDown", tx: down.tx, ty: down.ty });
+    if (up) list.push({ kind: "ladder", tx: up.tx, ty: up.ty });
+    if (treeFloor === 1) list.push({ kind: "nest", tx: 3, ty: 4, eggs: true });
+    else if (treeFloor === 2) list.push({ kind: "bird", tx: 3, ty: 4 });
+    else if (treeFloor === 3) list.push({ kind: "houseChest", tx: 5, ty: 4 });
+    else if (treeFloor === 4) list.push({ kind: "moonshard", tx: 7, ty: 4 });
+    return list;
   }
 
   function buildForestGround() {
@@ -2507,6 +2641,15 @@
       h = hash(tx, ty, i + 21);
       px(g, dx + ((h * 12) | 0) + 2, dy + 4 + ((hash(ty, i, 5) * 8) | 0), h < 0.4 ? "#E8E070" : "#8FD44A");
     }
+  }
+
+  function drawBarkWall(g, tx, ty, dx, dy) {
+    var h = hash(tx, ty, 3);
+    fill(g, dx, dy, 16, 16, "#5A3A18");
+    fill(g, dx, dy, 16, 3, "#8B5A28");
+    fill(g, dx, dy + 13, 16, 3, "#3D1A0C");
+    fill(g, dx + 1, dy + 4, 3, 8, h < 0.5 ? "#7A3E18" : "#6D4427");
+    fill(g, dx + 10, dy + 5, 4, 6, "#3D1A0C");
   }
 
   function drawSkyTile(g, tx, ty, dx, dy) {
@@ -3318,7 +3461,7 @@
       who.stepT = 0;
       if (who === player) {
         tryPickupHere();
-        if (isForestEntrance(who.tx, who.ty) || isForestExit(who.tx, who.ty) || isTreetopEntrance(who.tx, who.ty) || isTreetopExit(who.tx, who.ty)) {
+        if (isForestEntrance(who.tx, who.ty) || isForestExit(who.tx, who.ty) || isTreetopEntrance(who.tx, who.ty) || isTreetopExit(who.tx, who.ty) || isTreeDown(who.tx, who.ty) || isTreeUp(who.tx, who.ty)) {
           who.path = [];
           who.queuedWalk = null;
           who.moving = false;
@@ -4575,6 +4718,7 @@
       ironSwordOwned = !!data.ironSwordOwned;
       bowOwned = !!data.bowOwned;
       mineFloor = clampMineFloor(data.mineFloor);
+      treeFloor = clampTreeFloor(data.treeFloor);
       if (typeof data.hp === "number" && data.hp >= 0) {
         hp = data.hp | 0;
         if (hp > MAX_HP) hp = MAX_HP;
@@ -4656,7 +4800,7 @@
           nState = nv.state === "gone" || nv.state === "stump" || nv.state === "hurt" ? nv.state : "";
           if (!nState) continue;
           harvestNodes[nk] = {
-            scene: (nv.scene === "mine" || nv.scene === "mine2" || nv.scene === "mine3" || nv.scene === "mine4" || nv.scene === "mine5" || nv.scene === "mine6" || nv.scene === "forest" || nv.scene === "treetop") ? nv.scene : "overworld",
+            scene: (nv.scene === "mine" || nv.scene === "mine2" || nv.scene === "mine3" || nv.scene === "mine4" || nv.scene === "mine5" || nv.scene === "mine6" || nv.scene === "forest" || nv.scene === "treetop" || nv.scene === "tree" || nv.scene === "tree2" || nv.scene === "tree3" || nv.scene === "tree4") ? nv.scene : "overworld",
             kind: nv.kind === "rock" ? "rock" : (nv.kind === "tallGrass" ? "tallGrass" : (nv.kind === "pine" || nv.kind === "oak" || nv.kind === "birch" || nv.kind === "berryBush" || nv.kind === "log" || nv.kind === "toadstool") ? nv.kind : "tree"),
             state: nState,
             tx: nv.tx | 0,
@@ -4682,10 +4826,10 @@
         }
       }
       syncLilaFlowers();
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down"
@@ -4730,6 +4874,10 @@
     if (sceneCache.mine3 && liveHarvestScene() !== "mine3") addLive("mine3", sceneCache.mine3.props);
     if (sceneCache.forest && liveHarvestScene() !== "forest") addLive("forest", sceneCache.forest.props);
     if (sceneCache.treetop && liveHarvestScene() !== "treetop") addLive("treetop", sceneCache.treetop.props);
+    if (sceneCache.tree && liveHarvestScene() !== "tree") addLive("tree", sceneCache.tree.props);
+    if (sceneCache.tree2 && liveHarvestScene() !== "tree2") addLive("tree2", sceneCache.tree2.props);
+    if (sceneCache.tree3 && liveHarvestScene() !== "tree3") addLive("tree3", sceneCache.tree3.props);
+    if (sceneCache.tree4 && liveHarvestScene() !== "tree4") addLive("tree4", sceneCache.tree4.props);
     for (key in harvestNodes) {
       if (!Object.prototype.hasOwnProperty.call(harvestNodes, key)) continue;
       rec = harvestNodes[key];
@@ -4871,6 +5019,7 @@
         ironSwordOwned: !!ironSwordOwned,
         bowOwned: !!bowOwned,
         mineFloor: clampMineFloor(mineFloor),
+        treeFloor: clampTreeFloor(treeFloor),
         hp: hp | 0,
         energy: energy | 0,
         extraPlots: extraPlots | 0,
@@ -4965,6 +5114,7 @@
       else if (scene === "shop") { tx = 8; ty = 7; face = "up"; }
       else if (scene === "forest") { tx = 14; ty = 63; face = "up"; }
       else if (scene === "treetop") { tx = treetopLand.tx; ty = treetopLand.ty; face = "up"; }
+      else if (scene === "tree") { tx = 5; ty = 5; face = "up"; }
       else if (scene === "mine") {
         if (mineFloor === 2) { tx = 5; ty = 10; face = "down"; }
         else if (mineFloor === 3) { tx = 11; ty = 11; face = "up"; }
@@ -5423,7 +5573,7 @@
   }
 
   function tryBumpChest(tx, ty) {
-    if (currentScene !== "house" && currentScene !== "forest") return false;
+    if (currentScene !== "house" && currentScene !== "forest" && currentScene !== "tree") return false;
     if (!houseChestHit(tx, ty, null)) return false;
     pending = null;
     openChest();
@@ -5432,7 +5582,7 @@
 
   function houseChestHit(tx, ty, world) {
     var box, b;
-    if (currentScene !== "house" && currentScene !== "forest") return false;
+    if (currentScene !== "house" && currentScene !== "forest" && currentScene !== "tree") return false;
     box = findHouseChest();
     if (!box) return false;
     if (propOccupies(box, tx, ty)) return true;
@@ -5610,7 +5760,7 @@
 
   function goChest() {
     var box, dest, path;
-    if (currentScene !== "house" && currentScene !== "forest") return;
+    if (currentScene !== "house" && currentScene !== "forest" && currentScene !== "tree") return;
     box = findHouseChest();
     highlight = box ? { tx: box.tx, ty: box.ty } : null;
     if (!box || nearHouseChest()) {
@@ -5955,6 +6105,23 @@
 
   function clockHudLine() {
     return "SPRING · " + clockPhaseName();
+  }
+
+  function placeHudLabel() {
+    if (currentScene === "tree") return "TREE " + treeFloor;
+    if (currentScene === "treetop") return "TREETOP";
+    return "";
+  }
+
+  function drawPlaceStamp(g) {
+    var word = placeHudLabel();
+    var tw, x, y;
+    if (!word) return;
+    tw = textWidth(word);
+    y = 38;
+    x = VIEW_W - tw - 8;
+    woodPanel(g, x, y, tw + 6, 11);
+    drawText(g, word, x + 3, y + 2, C.parch);
   }
 
   function uiPaused() {
@@ -6781,6 +6948,43 @@
     }
     nim.x = tileCenterX(nim.tx);
     nim.y = tileFootY(nim.ty);
+  }
+
+  function findBird() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "bird") return p;
+    }
+    return null;
+  }
+
+  function talkBird() {
+    openDialogue("BIRD", ["THE SKY IS UP TOP."]);
+  }
+
+  function goTalkBird() {
+    var p, dest, path;
+    p = findBird();
+    if (!p) return;
+    highlight = { tx: p.tx, ty: p.ty };
+    if (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty)) {
+      pending = null;
+      talkBird();
+      return;
+    }
+    dest = nearestAdjacent(p.tx, p.ty);
+    if (!dest) {
+      talkBird();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkBird();
+      return;
+    }
+    pending = { type: "talkBird" };
+    startWalk(player, path, 3.5);
   }
 
   function talkFolk(f) {
@@ -8338,7 +8542,7 @@
     return p && (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
       p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
       p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore" ||
-      p.kind === "toadstool");
+      p.kind === "toadstool" || (p.kind === "nest" && p.eggs));
   }
 
   function findNote() {
@@ -8399,6 +8603,14 @@
   function pickupCollectible(prop) {
     var i;
     if (!isCollectible(prop)) return;
+    if (prop.kind === "nest" && prop.eggs) {
+      prop.eggs = false;
+      addItem("berry", 1);
+      spawnPickup("berry", prop.tx, prop.ty, 0);
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      persistSave();
+      return;
+    }
     if (prop.kind === "toadstool") {
       i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
@@ -8656,7 +8868,17 @@
     }
     if (isTreetopEntrance(player.tx, player.ty)) {
       pending = null;
-      enterTreetop();
+      enterTree();
+      return;
+    }
+    if (isTreeUp(player.tx, player.ty)) {
+      pending = null;
+      climbTree();
+      return;
+    }
+    if (isTreeDown(player.tx, player.ty)) {
+      pending = null;
+      descendTree();
       return;
     }
     if (isTreetopExit(player.tx, player.ty)) {
@@ -8665,7 +8887,7 @@
       return;
     }
     tryPickupHere();
-    if ((currentScene === "house" || currentScene === "forest") && standingOnHouseChest()) {
+    if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && standingOnHouseChest()) {
       pending = null;
       openChest();
       return;
@@ -8777,10 +8999,16 @@
       enterForest();
     } else if (act.type === "exitForest") {
       exitForest();
-    } else if (act.type === "enterTreetop") {
-      enterTreetop();
+    } else if (act.type === "enterTreetop" || act.type === "enterTree") {
+      enterTree();
     } else if (act.type === "exitTreetop") {
       exitTreetop();
+    } else if (act.type === "treeUp") {
+      climbTree();
+    } else if (act.type === "treeDown") {
+      descendTree();
+    } else if (act.type === "talkBird") {
+      talkBird();
     } else if (act.type === "shop") {
       openShop();
     } else if (act.type === "plantFlower") {
@@ -8799,7 +9027,7 @@
 
   function tryOpenChestAdjacent() {
     var face, box, dx, dy;
-    if (currentScene !== "house" && currentScene !== "forest") return false;
+    if (currentScene !== "house" && currentScene !== "forest" && currentScene !== "tree") return false;
     face = facingTile();
     box = findHouseChest();
     if (nearHouseChest() || houseChestHit(face.tx, face.ty, null)) {
@@ -8821,7 +9049,7 @@
   }
 
   function tryTalkAdjacent() {
-    var spots, i, t, f, fi;
+    var spots, i, t, f, fi, p;
     if (uiPaused() || faintFx) return false;
     spots = [
       facingTile(),
@@ -8853,6 +9081,9 @@
           f = forestFolk[fi];
           if (here(f, t)) { goTalkFolk(f); return true; }
         }
+      } else if (currentScene === "tree") {
+        p = propAt(t.tx, t.ty);
+        if (p && p.kind === "bird") { talkBird(); return true; }
       }
     }
     return false;
@@ -8894,7 +9125,7 @@
     if (ty < 0) ty = 0;
     if (tx >= COLS) tx = COLS - 1;
     if (ty >= ROWS) ty = ROWS - 1;
-    if ((currentScene === "house" || currentScene === "forest") && houseChestHit(tx, ty, null)) {
+    if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && houseChestHit(tx, ty, null)) {
       goChest();
       return;
     }
@@ -9517,7 +9748,7 @@
     } else if (p.kind === "workbench") {
       Assets.draw(g, "workbench", x, y);
     } else if (p.kind === "houseChest") {
-      if (currentScene === "forest") drawForestChest(g, x, y);
+      if (currentScene === "forest" || currentScene === "tree") drawForestChest(g, x, y);
       else Assets.draw(g, "chest", x, y);
     } else if (p.kind === "table") {
       Assets.draw(g, "table", x, y);
@@ -9610,6 +9841,7 @@
     } else if (p.kind === "ladder") {
       Assets.draw(g, "ladder", x, y);
       if (currentScene === "mine") drawShaftLabel(g, p, mineFloor === 1 ? "OUT" : "UP");
+      if (currentScene === "tree") drawShaftLabel(g, p, "UP");
     } else if (p.kind === "hole") {
       if (currentScene === "mine") {
         g.fillStyle = "rgba(232,200,74," + (0.16 + 0.12 * (0.5 + 0.5 * Math.sin(tick / 180))).toFixed(3) + ")";
@@ -10472,6 +10704,7 @@
     drawText(g, gLabel, 310 - textWidth(gLabel), 8, C.flower);
     drawText(g, clockHudLine(), 210, 16, C.parch);
     drawBuildStamp(g);
+    drawPlaceStamp(g);
 
     ensureSelectedSlot();
     var vis = visibleSlots();
@@ -10647,7 +10880,7 @@
 
   function drawWorld(g, dt) {
     updateCamera();
-    g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" ? (C.sky || "#8EC8E8") : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid));
+    g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop" || currentScene === "tree") ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" ? (C.sky || "#8EC8E8") : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid));
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -10657,7 +10890,7 @@
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -10668,8 +10901,9 @@
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
           if (currentScene === "treetop") drawSkyTile(g, tx, ty, dx, dy);
+          else if (currentScene === "tree") drawBarkWall(g, tx, ty, dx, dy);
           else drawMossTile(g, tx, ty, dx, dy);
           continue;
         }
@@ -10711,6 +10945,8 @@
         } else if (ch === "#") {
           if (currentScene === "mine") {
             Assets.draw(g, mineFloor >= 4 ? "deepWall" : "mineWall", dx, dy);
+          } else if (currentScene === "tree") {
+            drawBarkWall(g, tx, ty, dx, dy);
           } else {
             Assets.draw(g, houseShellTile(tx, ty), dx, dy);
           }
@@ -11123,7 +11359,7 @@
         return;
       }
     }
-    if ((currentScene === "house" || currentScene === "forest") && houseChestHit(tx, ty, world)) {
+    if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && houseChestHit(tx, ty, world)) {
       goChest();
       return;
     }
@@ -11209,8 +11445,20 @@
       goEnterShop();
       return;
     }
-    if (isTreetopExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsDown")) {
+    if (currentScene === "treetop" && (isTreetopExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsDown"))) {
       goExitTreetop();
+      return;
+    }
+    if (currentScene === "tree" && (isTreeDown(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsDown"))) {
+      goTreeShaft(false);
+      return;
+    }
+    if (currentScene === "tree" && (isTreeUp(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "ladder"))) {
+      goTreeShaft(true);
+      return;
+    }
+    if (currentScene === "tree" && propAt(tx, ty) && propAt(tx, ty).kind === "bird") {
+      goTalkBird();
       return;
     }
     var hitHole = holeHit(tx, ty, world);
@@ -11238,8 +11486,20 @@
       goExitForest();
       return;
     }
-    if (isTreetopExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsDown")) {
+    if (currentScene === "treetop" && (isTreetopExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsDown"))) {
       goExitTreetop();
+      return;
+    }
+    if (currentScene === "tree" && (isTreeDown(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsDown"))) {
+      goTreeShaft(false);
+      return;
+    }
+    if (currentScene === "tree" && (isTreeUp(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "ladder"))) {
+      goTreeShaft(true);
+      return;
+    }
+    if (currentScene === "tree" && propAt(tx, ty) && propAt(tx, ty).kind === "bird") {
+      goTalkBird();
       return;
     }
     var hitProp = propAt(tx, ty);
@@ -11267,7 +11527,7 @@
       goCraft();
       return;
     }
-    if ((currentScene === "house" || currentScene === "forest") && (houseChestHit(tx, ty, world) || (hitProp && hitProp.kind === "houseChest"))) {
+    if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && (houseChestHit(tx, ty, world) || (hitProp && hitProp.kind === "houseChest"))) {
       goChest();
       return;
     }
@@ -11727,12 +11987,25 @@
       treetopLand: treetopLand,
       treetopExit: treetopExit,
       giantTreeLand: giantTreeLand,
+      TREE_COLS: TREE_COLS,
+      TREE_ROWS: TREE_ROWS,
+      treeFloor: function () { return treeFloor; },
+      treeUpSpot: treeUpSpot,
+      treeDownSpot: treeDownSpot,
+      isTreeUp: isTreeUp,
+      isTreeDown: isTreeDown,
+      placeHudLabel: placeHudLabel,
       isForestEntrance: isForestEntrance,
       isForestExit: isForestExit,
       isTreetopEntrance: isTreetopEntrance,
       isTreetopExit: isTreetopExit,
       enterForest: enterForest,
       exitForest: exitForest,
+      enterTree: enterTree,
+      exitTree: exitTree,
+      enterTreeFloor: enterTreeFloor,
+      climbTree: climbTree,
+      descendTree: descendTree,
       enterTreetop: enterTreetop,
       exitTreetop: exitTreetop,
       wantedTune: wantedTune,
