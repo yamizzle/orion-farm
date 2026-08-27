@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260827a";
+  var BUILD = "20260827b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3304,6 +3304,12 @@
     if (maxX < 0) maxX = 0;
     if (maxY < minY) maxY = minY;
     if (currentScene === "forest") {
+      minX = 0;
+      maxX = Math.max(0, worldW - VIEW_W);
+      minY = 0;
+      maxY = Math.max(0, worldH - VIEW_H);
+    }
+    if (currentScene === "mine") {
       minX = 0;
       maxX = Math.max(0, worldW - VIEW_W);
       minY = 0;
@@ -6809,7 +6815,15 @@
   }
 
   function talkPip() {
-    openDialogue("PIP", pipLines());
+    if (!pipDone && hasCopperToGive()) {
+      openDialogue("PIP", pipLines());
+      return;
+    }
+    openShop();
+    if (!pipDone) {
+      shopMsg = "BRING ME ONE COPPER FOR A LANTERN.";
+      shopMsgT = 2800;
+    }
   }
 
   function nearCar() {
@@ -7456,7 +7470,7 @@
   }
 
   function swordBtnRect() {
-    return { x: 262, y: 122, s: 40 };
+    return { x: 268, y: 116, s: 48 };
   }
 
   function hasActionTool() {
@@ -7465,7 +7479,6 @@
 
   function adjacentFoe() {
     var i, m, spots;
-    if (currentScene !== "mine") return null;
     spots = [
       { tx: player.tx, ty: player.ty },
       { tx: player.tx - 1, ty: player.ty },
@@ -7560,6 +7573,8 @@
   }
 
   function showStrikeBtn() {
+    if (currentScene === "house" || currentScene === "shop") return false;
+    if (swordEquipped()) return true;
     return currentScene === "mine";
   }
 
@@ -7621,6 +7636,7 @@
   function hitMonsterOnce(m, via) {
     if (!m || m.hp <= 0) return;
     m.hp -= strikeDamage(m, via);
+    m.flash = 220;
     stunMonster(m);
     spawnSparks(m.x, m.y - 4);
     playSfx("hit");
@@ -7733,10 +7749,16 @@
     if (player.arc < 0) player.arc = 0;
   }
 
+  function canSwordSwing() {
+    if (uiPaused() || faintFx) return false;
+    if (currentScene === "house" || currentScene === "shop") return false;
+    if (swordEquipped()) return true;
+    return currentScene === "mine";
+  }
+
   function startSwordSwing() {
     var dest, foe;
-    if (uiPaused() || faintFx) return false;
-    if (currentScene !== "mine") return false;
+    if (!canSwordSwing()) return false;
     if (player.arc > 0) return false;
     dest = player.path && player.path.length ? player.path[0] : player.queuedWalk;
     player.swingDest = dest ? { tx: dest.tx, ty: dest.ty } : null;
@@ -7935,6 +7957,10 @@
     for (i = 0; i < monsters.length; i++) {
       m = monsters[i];
       if (m.hp <= 0) continue;
+      if (m.flash > 0) {
+        m.flash -= dt;
+        if (m.flash < 0) m.flash = 0;
+      }
       if (m.stun > 0) {
         m.stun -= dt;
         if (m.shake > 0) m.shake -= dt;
@@ -10199,6 +10225,13 @@
     } else {
       Assets.draw(g, m.sprite, m.x + sx, m.y + bob, m.frame);
     }
+    if (m.flash > 0) {
+      g.save();
+      g.globalAlpha = 0.35 + 0.45 * (m.flash / 220);
+      g.fillStyle = "#F4F0E0";
+      g.fillRect(Math.round(m.x + sx - 8 * sc), Math.round(m.y + bob - 16 * sc), Math.round(16 * sc), Math.round(16 * sc));
+      g.restore();
+    }
   }
 
   function drawPickups(g) {
@@ -11834,10 +11867,6 @@
       e.key === " " || e.key === "j" || e.key === "J" || e.key === "e" || e.key === "E";
     if (!e.repeat && actionKey) {
       e.preventDefault();
-      if (currentScene === "mine") {
-        startSwordSwing();
-        return;
-      }
       if (isTreetopEntrance(player.tx, player.ty)) {
         enterTreetop();
         return;
@@ -11853,6 +11882,10 @@
       if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
+      if (canSwordSwing()) {
+        startSwordSwing();
+        return;
+      }
       return;
     }
   });
@@ -12035,7 +12068,22 @@
       openChest: openChest,
       chestIsOpen: function () { return chestOpen; },
       closeChest: closeChest,
-      findHouseChest: findHouseChest
+      findHouseChest: findHouseChest,
+      talkPip: talkPip,
+      openShop: openShop,
+      closeShop: closeShop,
+      shopIsOpen: function () { return shopOpen; },
+      shopMsg: function () { return shopMsg; },
+      pipDone: function () { return pipDone; },
+      setPipDone: function (v) { pipDone = !!v; },
+      canSwordSwing: canSwordSwing,
+      startSwordSwing: startSwordSwing,
+      showStrikeBtn: showStrikeBtn,
+      swordBtnRect: swordBtnRect,
+      hitSwordBtn: hitSwordBtn,
+      swordEquipped: swordEquipped,
+      setSwordOwned: function (v) { swordOwned = !!v; },
+      SLOT_SWORD: SLOT_SWORD
     };
   }
   checkFreshBuild();
