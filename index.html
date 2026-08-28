@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260828a";
+  var BUILD = "20260828b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3433,6 +3433,20 @@
       minY = 0;
       maxY = Math.max(0, worldH - VIEW_H);
     }
+    if (currentScene === "house" || currentScene === "shop") {
+      if (worldW < VIEW_W) {
+        minX = maxX = (worldW - VIEW_W) >> 1;
+      } else {
+        minX = 0;
+        maxX = Math.max(0, worldW - VIEW_W);
+      }
+      if (worldH < VIEW_H) {
+        minY = maxY = (worldH - VIEW_H) >> 1;
+      } else {
+        minY = 0;
+        maxY = Math.max(0, worldH - VIEW_H);
+      }
+    }
     if (currentScene === "treetop" || currentScene === "tree") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
@@ -3586,7 +3600,7 @@
       who.stepT = 0;
       if (who === player) {
         tryPickupHere();
-        if (isForestEntrance(who.tx, who.ty) || isForestExit(who.tx, who.ty) || isTreetopEntrance(who.tx, who.ty) || isTreetopExit(who.tx, who.ty) || isTreeDown(who.tx, who.ty) || isTreeUp(who.tx, who.ty)) {
+        if (isPathDoor(who.tx, who.ty)) {
           who.path = [];
           who.queuedWalk = null;
           who.moving = false;
@@ -4641,6 +4655,28 @@
     return currentScene === "mine" && mineFloor === 1 && tx === portalOut.tx && ty === portalOut.ty;
   }
 
+  /* Fat-finger the OUT ladder / OUT label so one tap exits (label sits 8px north). */
+  function mineExitHit(tx, ty, world) {
+    var bx, by;
+    if (currentScene !== "mine" || mineFloor !== 1) return false;
+    if (tx === portalOut.tx && (ty === portalOut.ty || ty === portalOut.ty - 1)) return true;
+    if ((tx === portalOut.tx - 1 || tx === portalOut.tx + 1) && ty === portalOut.ty) return true;
+    if (!world) return false;
+    bx = portalOut.tx * TILE - 8;
+    by = portalOut.ty * TILE - 16;
+    return world.x >= bx && world.x < bx + 32 && world.y >= by && world.y < by + 32;
+  }
+
+  function isPathDoor(tx, ty) {
+    return isForestEntrance(tx, ty) || isForestExit(tx, ty) ||
+      isTreetopEntrance(tx, ty) || isTreetopExit(tx, ty) ||
+      isTreeDown(tx, ty) || isTreeUp(tx, ty) ||
+      isMineEntrance(tx, ty) || isMineExit(tx, ty) ||
+      isMineDown(tx, ty) || isMineUp(tx, ty) ||
+      isHouseEntrance(tx, ty) || isHouseExit(tx, ty) ||
+      isShopEntrance(tx, ty) || isShopExit(tx, ty);
+  }
+
   function mineDownSpot() {
     if (currentScene !== "mine") return null;
     if (mineFloor === 1) return { tx: 16, ty: 4 };
@@ -4676,7 +4712,7 @@
     if (currentScene !== "mine") return false;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
-      if (p.kind !== "hole" && !(p.kind === "ladder" && mineFloor > 1)) continue;
+      if (p.kind !== "hole" && p.kind !== "ladder") continue;
       if (tx === p.tx && (ty === p.ty || ty === p.ty - 1)) return p;
       if (!world) continue;
       b = propBounds(p);
@@ -11127,7 +11163,7 @@
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -11138,8 +11174,9 @@
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
           if (currentScene === "treetop" || currentScene === "tree") drawSkyTile(g, tx, ty, dx, dy);
+          else if (currentScene === "house" || currentScene === "shop") Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
           else drawMossTile(g, tx, ty, dx, dy);
           continue;
         }
@@ -11713,7 +11750,7 @@
       goMineShaft(false);
       return;
     }
-    if (isMineExit(tx, ty)) {
+    if (isMineExit(tx, ty) || mineExitHit(tx, ty, world) || (hitHole && hitHole.kind === "ladder" && mineFloor === 1)) {
       goExit();
       return;
     }
@@ -12068,6 +12105,18 @@
       e.key === " " || e.key === "j" || e.key === "J" || e.key === "e" || e.key === "E";
     if (!e.repeat && actionKey) {
       e.preventDefault();
+      if (isMineExit(player.tx, player.ty)) {
+        exitMine();
+        return;
+      }
+      if (isMineDown(player.tx, player.ty)) {
+        enterMineFloor(mineFloor + 1, "down");
+        return;
+      }
+      if (isMineUp(player.tx, player.ty)) {
+        enterMineFloor(mineFloor - 1, "up");
+        return;
+      }
       if (isTreetopEntrance(player.tx, player.ty)) {
         enterTreetop();
         return;
