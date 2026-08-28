@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260827e";
+  var BUILD = "20260827f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -476,11 +476,11 @@
   var FOREST_ROWS = 66;
   var forestIn = { tx: 5, ty: 8 };
   var forestOut = { tx: 14, ty: 65 };
-  var TREETOP_COLS = 18;
-  var TREETOP_ROWS = 13;
+  var TREETOP_COLS = 40;
+  var TREETOP_ROWS = 30;
   var treetopDoor = { tx: 25, ty: 8 };
-  var treetopLand = { tx: 9, ty: 10 };
-  var treetopExit = { tx: 9, ty: 11 };
+  var treetopLand = { tx: 20, ty: 22 };
+  var treetopExit = { tx: 20, ty: 23 };
   var giantTreeLand = { tx: 25, ty: 10 };
   var TREE_COLS = 10;
   var TREE_ROWS = 8;
@@ -2274,26 +2274,62 @@
         for (xx = x0; xx <= x1; xx++) set(xx, yy, ch);
       }
     }
-    rect(4, 3, 13, 10, "f");
-    rect(5, 4, 12, 9, "l");
-    rect(7, 10, 11, 11, "f");
-    set(3, 6, "f"); set(14, 6, "f");
-    set(3, 7, "f"); set(14, 7, "f");
-    set(6, 2, "f"); set(11, 2, "f");
-    set(9, 11, "f");
+    /* Canopy walk: branching wood among leaves, sky showing through. */
+    /* South trunk-top clearing (arrive / DOWN). */
+    rect(16, 20, 24, 25, "f");
+    rect(17, 21, 23, 24, "l");
+    /* North spine into the high canopy. */
+    rect(19, 8, 21, 20, "f");
+    rect(17, 12, 23, 16, "l");
+    /* North view perch. */
+    rect(16, 3, 24, 8, "f");
+    rect(17, 4, 23, 7, "l");
+    set(15, 5, "f"); set(25, 5, "f");
+    set(20, 2, "f");
+    /* West nest branch. */
+    rect(5, 14, 19, 16, "f");
+    rect(6, 13, 12, 17, "l");
+    rect(3, 13, 6, 17, "f");
+    set(2, 15, "f");
+    /* East view branch. */
+    rect(21, 11, 35, 13, "f");
+    rect(26, 10, 32, 14, "l");
+    rect(33, 9, 37, 15, "f");
+    set(38, 12, "f");
+    set(35, 8, "f"); set(36, 8, "f");
+    /* Northeast spur. */
+    rect(24, 6, 29, 11, "f");
+    rect(25, 7, 28, 10, "l");
+    /* Southwest spur. */
+    rect(9, 21, 16, 23, "f");
+    rect(10, 20, 14, 24, "l");
+    set(8, 23, "f"); set(8, 24, "f");
+    /* Southeast spur. */
+    rect(24, 21, 30, 23, "f");
+    rect(26, 20, 29, 24, "l");
+    /* Northwest high branch. */
+    rect(8, 7, 18, 9, "f");
+    rect(10, 6, 14, 10, "l");
+    set(9, 6, "f");
+    /* Sky gaps so the canopy is not a solid carpet. */
+    set(17, 12, "y"); set(23, 16, "y");
+    set(18, 14, "y");
+    set(16, 3, "y"); set(24, 3, "y");
+    set(27, 10, "y");
     return g;
   }
 
   function buildTreetopProps() {
     return [
-      { kind: "nest", tx: 5, ty: 4 },
-      { kind: "nest", tx: 13, ty: 5 },
-      { kind: "berryBush", tx: 7, ty: 6 },
-      { kind: "lantern", tx: 11, ty: 7 },
-      { kind: "bird", tx: 12, ty: 4 },
-      { kind: "wildflower", tx: 6, ty: 8 },
-      { kind: "toadstool", tx: 10, ty: 5 },
-      { kind: "woodsDown", tx: 9, ty: 11 }
+      { kind: "woodsDown", tx: 20, ty: 23 },
+      { kind: "lantern", tx: 23, ty: 20 },
+      { kind: "berryBush", tx: 16, ty: 25 },
+      { kind: "nest", tx: 7, ty: 14, eggs: true },
+      { kind: "nest", tx: 27, ty: 8 },
+      { kind: "wildflower", tx: 36, ty: 12 },
+      { kind: "silver", tx: 20, ty: 4 },
+      { kind: "toadstool", tx: 28, ty: 22 },
+      { kind: "wildflower", tx: 11, ty: 7 }
     ];
   }
 
@@ -2302,11 +2338,23 @@
     var g = [], y, x, row;
     for (y = 0; y < rows; y++) {
       row = [];
-      for (x = 0; x < cols; x++) {
-        row[x] = (x === 0 || y === 0 || x === cols - 1 || y === rows - 1) ? "#" : "f";
-      }
+      for (x = 0; x < cols; x++) row[x] = "y";
       g[y] = row;
     }
+    function set(tx, ty, ch) {
+      if (tx >= 0 && ty >= 0 && tx < cols && ty < rows) g[ty][tx] = ch;
+    }
+    function rect(x0, y0, x1, y1, ch) {
+      var xx, yy;
+      for (yy = y0; yy <= y1; yy++) {
+        for (xx = x0; xx <= x1; xx++) set(xx, yy, ch);
+      }
+    }
+    /* Same visual language as the old small TREETOP: sky, wood rim, leaf heart. */
+    rect(2, 2, 7, 6, "f");
+    rect(3, 3, 6, 5, "l");
+    set(1, 4, "f"); set(8, 4, "f");
+    set(4, 1, "f"); set(6, 1, "f");
     return g;
   }
 
@@ -3350,7 +3398,7 @@
       minY = 0;
       maxY = Math.max(0, worldH - VIEW_H);
     }
-    if (currentScene === "treetop") {
+    if (currentScene === "treetop" || currentScene === "tree") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
       } else {
@@ -3362,17 +3410,18 @@
     }
     camX = Math.round(Math.max(minX, Math.min(maxX, targetX)));
     camY = Math.round(Math.max(minY, Math.min(maxY, targetY)));
-    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop") {
+    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (currentScene === "forest" || currentScene === "treetop") {
+        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") {
           if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
         } else if (camY < minY) {
           camY = minY;
         }
       }
-      if ((currentScene === "forest" || currentScene === "treetop") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
+      if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
         camY = Math.round(player.y - (VIEW_H - CAM_PAD_BOTTOM));
+        if (camY > maxY) camY = maxY;
       }
     }
     camera.x = camX;
@@ -10276,7 +10325,7 @@
     sortActors(list);
     for (i = 0; i < list.length; i++) {
       item = list[i];
-      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop") {
+      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") {
         if (item.kind === "prop") drawGradedProp(g, item);
         else drawWashedActor(g, item);
       } else {
@@ -11000,7 +11049,7 @@
 
   function drawWorld(g, dt) {
     updateCamera();
-    g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop" || currentScene === "tree") ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" ? (C.sky || "#8EC8E8") : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid));
+    g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree") ? (C.sky || "#8EC8E8") : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -11022,8 +11071,7 @@
         dx = tx * TILE;
         dy = ty * TILE;
         if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
-          if (currentScene === "treetop") drawSkyTile(g, tx, ty, dx, dy);
-          else if (currentScene === "tree") drawBarkWall(g, tx, ty, dx, dy);
+          if (currentScene === "treetop" || currentScene === "tree") drawSkyTile(g, tx, ty, dx, dy);
           else drawMossTile(g, tx, ty, dx, dy);
           continue;
         }
@@ -11061,8 +11109,7 @@
         } else if (ch === "y") {
           drawSkyTile(g, tx, ty, dx, dy);
         } else if (ch === "f") {
-          if (currentScene === "tree") drawHollowFloor(g, tx, ty, dx, dy);
-          else Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
+          Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
         } else if (ch === "#") {
           if (currentScene === "mine") {
             Assets.draw(g, mineFloor >= 4 ? "deepWall" : "mineWall", dx, dy);
@@ -11113,7 +11160,7 @@
       }
     }
 
-    if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop") {
+    if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") {
       g.restore();
       drawDayTint(g);
       g.save();
@@ -12110,6 +12157,8 @@
       giantTreeLand: giantTreeLand,
       TREE_COLS: TREE_COLS,
       TREE_ROWS: TREE_ROWS,
+      TREETOP_COLS: TREETOP_COLS,
+      TREETOP_ROWS: TREETOP_ROWS,
       treeFloor: function () { return treeFloor; },
       setTreeFloor: function (n) { treeFloor = clampTreeFloor(n); },
       drawHollowFloor: drawHollowFloor,
