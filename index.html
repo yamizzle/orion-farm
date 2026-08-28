@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260828b";
+  var BUILD = "20260828c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -4672,9 +4672,7 @@
       isTreetopEntrance(tx, ty) || isTreetopExit(tx, ty) ||
       isTreeDown(tx, ty) || isTreeUp(tx, ty) ||
       isMineEntrance(tx, ty) || isMineExit(tx, ty) ||
-      isMineDown(tx, ty) || isMineUp(tx, ty) ||
-      isHouseEntrance(tx, ty) || isHouseExit(tx, ty) ||
-      isShopEntrance(tx, ty) || isShopExit(tx, ty);
+      isMineDown(tx, ty) || isMineUp(tx, ty);
   }
 
   function mineDownSpot() {
@@ -4730,11 +4728,23 @@
   }
 
   function houseDoorHit(tx, ty, world) {
-    var hx, hy, stoopY;
+    var hx, hy, stoopY, onStoop;
     if (currentScene !== "overworld") return false;
     /* Door tile, one north (fat-finger on the sprite), left/right of door.
        Stoop south (ty 29) is NOT a door hit — tap there walks outside only. */
     if (tx === houseIn.tx && ty === houseIn.ty + 1) return false;
+    onStoop = player.tx === houseIn.tx && player.ty === houseIn.ty + 1;
+    /* Standing on the stoop after exit: only the real door tile (or its
+       pixel opening) enters. Left/right fat-finger was catching east/west
+       path taps at Orion's chest height and bouncing kids back inside. */
+    if (onStoop) {
+      if (tx === houseIn.tx && ty === houseIn.ty) return true;
+      if (!world) return false;
+      hx = 15 * TILE;
+      hy = 25 * TILE - 16;
+      stoopY = (houseIn.ty + 1) * TILE;
+      return world.x >= hx + 31 && world.x < hx + 49 && world.y >= hy + 50 && world.y < stoopY;
+    }
     if (tx === houseIn.tx && (ty === houseIn.ty || ty === houseIn.ty - 1)) return true;
     if ((tx === houseIn.tx - 1 || tx === houseIn.tx + 1) && ty === houseIn.ty) return true;
     if (!world) return false;
