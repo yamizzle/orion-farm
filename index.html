@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260827b";
+  var BUILD = "20260827c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -5856,6 +5856,9 @@
     monsterCache[1] = null;
     monsterCache[2] = null;
     monsterCache[3] = null;
+    monsterCache[4] = null;
+    monsterCache[5] = null;
+    monsterCache[6] = null;
     if (currentScene === "mine") spawnMineMonsters();
     else monsters = [];
     spot = sleepWakeSpot();
@@ -7816,66 +7819,103 @@
   }
 
   function spawnMineMonsters() {
+    /* Keep landings roomy: no mobs within ~3 tiles of UP/DOWN pads. */
     if (mineFloor === 2) {
       monsters = [
         makeMon("slime", 8, 12),
-        makeMon("toughslime", 16, 10),
-        makeMon("bat", 23, 5),
-        makeMon("bat", 22, 15),
-        makeMon("grub", 7, 18),
-        makeMon("grub", 25, 12)
+        makeMon("bat", 22, 5),
+        makeMon("grub", 26, 17),
+        makeMon("toughslime", 6, 18)
       ];
     } else if (mineFloor === 3) {
       monsters = [
-        makeMon("bat", 5, 4),
-        makeMon("bat", 16, 4),
-        makeMon("bat", 4, 9),
-        makeMon("grub", 17, 9),
-        makeMon("grub", 7, 7),
-        makeMon("grub", 14, 7),
-        makeMon("bigslime", 11, 8)
+        makeMon("bat", 4, 4),
+        makeMon("bat", 17, 5),
+        makeMon("grub", 5, 12),
+        makeMon("slime", 8, 12)
       ];
     } else if (mineFloor === 4) {
       monsters = [
         makeMon("crystalbat", 22, 5),
-        makeMon("crystalbat", 26, 14),
-        makeMon("crystalbat", 10, 18),
-        makeMon("grub", 8, 13),
-        makeMon("grub", 20, 10),
-        makeMon("toughslime", 16, 16)
+        makeMon("crystalbat", 27, 18),
+        makeMon("grub", 10, 18),
+        makeMon("toughslime", 18, 6)
       ];
     } else if (mineFloor === 5) {
       monsters = [
-        makeMon("crystalbat", 22, 5),
-        makeMon("crystalbat", 10, 8),
-        makeMon("crystalbat", 20, 16),
-        makeMon("toughgrub", 8, 16),
-        makeMon("toughgrub", 16, 11),
-        makeMon("toughgrub", 25, 18),
-        makeMon("grub", 14, 18)
+        makeMon("crystalbat", 14, 18),
+        makeMon("toughgrub", 8, 18),
+        makeMon("toughgrub", 26, 11),
+        makeMon("grub", 20, 6)
       ];
     } else if (mineFloor === 6) {
       monsters = [
-        makeMon("crystalbat", 12, 12),
-        makeMon("crystalbat", 20, 12),
-        makeMon("crystalbat", 16, 18),
         makeMon("crystalbat", 24, 16),
-        makeMon("bigslime", 16, 10)
+        makeMon("crystalbat", 6, 16),
+        makeMon("bigslime", 25, 17),
+        makeMon("crystalbat", 22, 12)
       ];
     } else {
       monsters = [
         makeMon("slime", 8, 11),
-        makeMon("slime", 3, 16),
-        makeMon("bat", 22, 6),
-        makeMon("bat", 28, 11),
-        makeMon("grub", 12, 16),
-        makeMon("grub", 21, 18)
+        makeMon("bat", 22, 8),
+        makeMon("bat", 26, 12),
+        makeMon("grub", 4, 12)
       ];
     }
     monsterCache[mineFloor] = monsters;
   }
 
+  function mineLandingPads() {
+    if (mineFloor === 2) {
+      return [
+        { tx: 5, ty: 10 }, { tx: 5, ty: 9 }, { tx: 5, ty: 8 },
+        { tx: 24, ty: 14 }, { tx: 24, ty: 15 }, { tx: 24, ty: 16 },
+        { tx: 25, ty: 4 }
+      ];
+    }
+    if (mineFloor === 3) {
+      return [
+        { tx: 11, ty: 11 }, { tx: 11, ty: 12 }, { tx: 11, ty: 13 },
+        { tx: 11, ty: 3 }, { tx: 12, ty: 3 },
+        { tx: 16, ty: 9 }, { tx: 16, ty: 10 }, { tx: 16, ty: 11 }
+      ];
+    }
+    if (mineFloor === 4) {
+      return [
+        { tx: 6, ty: 10 }, { tx: 6, ty: 9 }, { tx: 6, ty: 8 },
+        { tx: 24, ty: 14 }, { tx: 24, ty: 15 }, { tx: 24, ty: 16 },
+        { tx: 26, ty: 4 }
+      ];
+    }
+    if (mineFloor === 5) {
+      return [
+        { tx: 24, ty: 14 }, { tx: 24, ty: 15 }, { tx: 24, ty: 16 },
+        { tx: 8, ty: 4 }, { tx: 8, ty: 5 }, { tx: 8, ty: 6 }, { tx: 8, ty: 7 },
+        { tx: 26, ty: 4 }
+      ];
+    }
+    if (mineFloor === 6) {
+      return [
+        { tx: 8, ty: 10 }, { tx: 8, ty: 11 }, { tx: 8, ty: 12 },
+        { tx: 16, ty: 4 }, { tx: 16, ty: 5 }, { tx: 16, ty: 6 },
+        { tx: 20, ty: 6 }, { tx: 11, ty: 11 }
+      ];
+    }
+    return [
+      { tx: 16, ty: 19 }, { tx: 16, ty: 20 }, { tx: 14, ty: 19 },
+      { tx: 16, ty: 4 }, { tx: 16, ty: 5 },
+      { tx: 4, ty: 5 }, { tx: 4, ty: 15 }, { tx: 27, ty: 5 }, { tx: 27, ty: 15 }
+    ];
+  }
+
   function mineKeepClear(tx, ty) {
+    var pads = mineLandingPads();
+    var i, p;
+    for (i = 0; i < pads.length; i++) {
+      p = pads[i];
+      if (Math.abs(tx - p.tx) + Math.abs(ty - p.ty) <= 2) return true;
+    }
     if (mineFloor === 2) {
       if (tx === 5 && (ty === 8 || ty === 9 || ty === 10)) return true;
       if (tx === 24 && (ty === 14 || ty === 15 || ty === 16)) return true;
@@ -8123,6 +8163,9 @@
     monsterCache[1] = null;
     monsterCache[2] = null;
     monsterCache[3] = null;
+    monsterCache[4] = null;
+    monsterCache[5] = null;
+    monsterCache[6] = null;
     monsters = [];
     toll = (gold / 10) | 0;
     if (toll > gold) toll = gold;
