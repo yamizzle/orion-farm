@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260827h";
+  var BUILD = "20260828a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -6255,8 +6255,12 @@
     drawText(g, word, x + 3, y + 2, C.parch);
   }
 
+  function modalOpen() {
+    return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || shopOpen || craftOpen || chestOpen);
+  }
+
   function uiPaused() {
-    return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || toast || shopOpen || craftOpen || chestOpen);
+    return !!(toast || modalOpen());
   }
 
   function dismissTopDialog() {
@@ -6265,7 +6269,7 @@
       return true;
     }
     if (dialogue) {
-      dialogue = null;
+      closeDialogue();
       return true;
     }
     if (wipeAsk) {
@@ -8700,7 +8704,7 @@
 
   function updateToasts(dt) {
     var def, i, b, ang;
-    if (!toast && toastQueue.length) {
+    if (!toast && toastQueue.length && !modalOpen()) {
       def = findAch(toastQueue.shift());
       if (def) beginUnlock(def);
     }
@@ -10424,25 +10428,50 @@
     }
   }
 
+  function dialogueLayout() {
+    var lines = (dialogue && dialogue.lines) || [];
+    var title = (dialogue && dialogue.title) || "";
+    var x = 16, w = 288;
+    var h = 30 + Math.max(2, lines.length) * 10;
+    if (h < 64) h = 64;
+    var y = 166 - h;
+    if (y < 78) y = 78;
+    var okW = 28, okH = 12;
+    var okX = x + ((w - okW) / 2) | 0;
+    var okY = y + h - 18;
+    var closeW = 14, closeH = 12;
+    var closeX = x + w - closeW - 6;
+    var closeY = y + 4;
+    return {
+      x: x, y: y, w: w, h: h, title: title, lines: lines,
+      okX: okX, okY: okY, okW: okW, okH: okH,
+      closeX: closeX, closeY: closeY, closeW: closeW, closeH: closeH
+    };
+  }
+
+  function closeDialogue() {
+    if (!dialogue) return false;
+    dialogue = null;
+    return true;
+  }
+
   function drawDialogue(g) {
     if (!dialogue) return;
-    var lines = dialogue.lines || [];
-    var title = dialogue.title || "";
-    var x = 16, w = 288;
-    var h = 16 + Math.max(2, lines.length) * 10;
-    if (h < 50) h = 50;
-    var y = 166 - h;
-    if (y < 88) y = 88;
-    woodPanel(g, x, y, w, h);
-    fill(g, x + 4, y + 4, w - 8, h - 8, C.parch);
-    var tw = textWidth(title) + 12;
+    var L = dialogueLayout();
+    var tw, i;
+    woodPanel(g, L.x, L.y, L.w, L.h);
+    fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
+    tw = textWidth(L.title) + 12;
     if (tw < 62) tw = 62;
-    woodPanel(g, x + 8, y - 6, tw, 11);
-    drawText(g, title, x + 12, y - 3, C.parch);
-    var i;
-    for (i = 0; i < lines.length; i++) {
-      drawText(g, lines[i], x + 10, y + 12 + i * 10, C.uiText);
+    woodPanel(g, L.x + 8, L.y - 6, tw, 11);
+    drawText(g, L.title, L.x + 12, L.y - 3, C.parch);
+    for (i = 0; i < L.lines.length; i++) {
+      drawText(g, L.lines[i], L.x + 10, L.y + 12 + i * 10, C.uiText);
     }
+    woodPanel(g, L.okX, L.okY, L.okW, L.okH);
+    drawText(g, "OK", L.okX + 8, L.okY + 3, C.parch);
+    woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
+    drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
   }
 
   function clamp01(t) {
@@ -11500,7 +11529,7 @@
       return;
     }
     if (dialogue) {
-      dialogue = null;
+      closeDialogue();
       return;
     }
     if (wipeAsk) {
@@ -12261,7 +12290,20 @@
       hitSwordBtn: hitSwordBtn,
       swordEquipped: swordEquipped,
       setSwordOwned: function (v) { swordOwned = !!v; },
-      SLOT_SWORD: SLOT_SWORD
+      SLOT_SWORD: SLOT_SWORD,
+      openDialogue: openDialogue,
+      closeDialogue: closeDialogue,
+      dialogueTitle: function () { return dialogue ? dialogue.title : ""; },
+      dialogueLayout: dialogueLayout,
+      modalOpen: modalOpen,
+      uiPaused: uiPaused,
+      updateToasts: updateToasts,
+      unlockAch: unlockAch,
+      clearAch: function (id) { delete unlocked[id]; },
+      toastName: function () { return toast ? toast.name : ""; },
+      toastQueued: function () { return toastQueue.slice(); },
+      dismissUnlock: dismissUnlock,
+      dismissTopDialog: dismissTopDialog
     };
   }
   checkFreshBuild();
