@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260827g";
+  var BUILD = "20260827h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -355,7 +355,11 @@
           loadImage("assets/tiles/canopySky.png").then(function (im) { Assets.canopySky = im; }).catch(function () {}),
           loadImage("assets/tiles/canopyLeaf.png").then(function (im) { Assets.canopyLeaf = im; }).catch(function () {}),
           loadImage("assets/tiles/canopyBranch.png").then(function (im) { Assets.canopyBranch = im; }).catch(function () {}),
-          loadImage("assets/props/canopyBough.png").then(function (im) { Assets.canopyBough = im; }).catch(function () {})
+          loadImage("assets/props/canopyBough.png").then(function (im) { Assets.canopyBough = im; }).catch(function () {}),
+          loadImage("assets/tiles/canopyMap.png").then(function (im) { Assets.canopyMap = im; }).catch(function () {}),
+          loadImage("assets/props/canopySpan.png").then(function (im) { Assets.canopySpan = im; }).catch(function () {}),
+          loadImage("assets/props/canopyClump.png").then(function (im) { Assets.canopyClump = im; }).catch(function () {}),
+          loadImage("assets/props/canopyHang.png").then(function (im) { Assets.canopyHang = im; }).catch(function () {})
         ]);
       });
     },
@@ -2334,18 +2338,14 @@
       { kind: "silver", tx: 20, ty: 4 },
       { kind: "toadstool", tx: 28, ty: 22 },
       { kind: "wildflower", tx: 11, ty: 7 },
-      { kind: "canopyBough", tx: 18, ty: 22 },
-      { kind: "canopyBough", tx: 22, ty: 21 },
-      { kind: "canopyBough", tx: 19, ty: 15 },
-      { kind: "canopyBough", tx: 21, ty: 13 },
-      { kind: "canopyBough", tx: 8, ty: 15 },
-      { kind: "canopyBough", tx: 12, ty: 14 },
-      { kind: "canopyBough", tx: 28, ty: 12 },
-      { kind: "canopyBough", tx: 33, ty: 11 },
-      { kind: "canopyBough", tx: 20, ty: 6 },
-      { kind: "canopyBough", tx: 17, ty: 5 },
-      { kind: "canopyBough", tx: 26, ty: 8 },
-      { kind: "canopyBough", tx: 11, ty: 22 }
+      { kind: "canopySpan", tx: 26, ty: 12 },
+      { kind: "canopySpan", tx: 10, ty: 15 },
+      { kind: "canopyClump", tx: 6, ty: 14 },
+      { kind: "canopyClump", tx: 30, ty: 11 },
+      { kind: "canopyClump", tx: 18, ty: 6 },
+      { kind: "canopyHang", tx: 19, ty: 21 },
+      { kind: "canopyHang", tx: 23, ty: 14 },
+      { kind: "canopyHang", tx: 15, ty: 8 }
     ];
   }
 
@@ -2894,6 +2894,9 @@
     else if (p.kind === "nest") drawNest(g, x, y);
     else if (p.kind === "bird") drawBird(g, x, y);
     else if (p.kind === "canopyBough") drawCanopyBough(g, x, y);
+    else if (p.kind === "canopySpan") drawCanopyDecal(g, Assets.canopySpan, x, y);
+    else if (p.kind === "canopyClump") drawCanopyDecal(g, Assets.canopyClump, x, y);
+    else if (p.kind === "canopyHang") drawCanopyDecal(g, Assets.canopyHang, x, y);
     else if (p.kind === "silver" || p.kind === "goldore") {
       bob = Math.round(Math.sin(tick / 280) * 1);
       if (p.kind === "silver") paintSilver(g, x, y + bob);
@@ -2986,6 +2989,11 @@
     fill(g, x + 3, y + 8, 26, 2, "#C47A38");
     fill(g, x + 1, y + 9, 3, 4, "#D4A060");
     fill(g, x + 28, y + 9, 3, 4, "#D4A060");
+  }
+
+  function drawCanopyDecal(g, img, x, y) {
+    if (!img) return;
+    g.drawImage(img, x - ((img.width - 16) / 2 | 0), y - (img.height - 16), img.width, img.height);
   }
 
   function drawCanopyBough(g, x, y) {
@@ -9792,7 +9800,7 @@
     if (p.kind === "well") return p.ty * TILE + 28;
     if (p.kind === "mailbox") return p.ty * TILE + 20;
     if (p.kind === "pond") return p.ty * TILE + 20;
-    if (p.kind === "crate" || p.kind === "stump" || p.kind === "tallGrass" || p.kind === "log" || p.kind === "berryBush" || p.kind === "fern" || p.kind === "wildflower" || p.kind === "toadstool" || p.kind === "canopyBough") return p.ty * TILE + 14;
+    if (p.kind === "crate" || p.kind === "stump" || p.kind === "tallGrass" || p.kind === "log" || p.kind === "berryBush" || p.kind === "fern" || p.kind === "wildflower" || p.kind === "toadstool" || p.kind === "canopyBough" || p.kind === "canopySpan" || p.kind === "canopyClump" || p.kind === "canopyHang") return p.ty * TILE + 14;
     if (p.kind === "cave") return p.ty * TILE + 2;
     if (p.kind === "mineSign") return p.ty * TILE + 8;
     if (p.kind === "lantern") return p.ty * TILE + (currentScene === "house" ? 24 : 20);
@@ -9980,7 +9988,7 @@
                p.kind === "fern" || p.kind === "wildflower" || p.kind === "toadstool" ||
                p.kind === "berryBush" || p.kind === "woodsSign" || p.kind === "silver" || p.kind === "goldore" ||
                p.kind === "giantTree" || p.kind === "woodsDown" || p.kind === "nest" || p.kind === "bird" ||
-               p.kind === "canopyBough") {
+               p.kind === "canopyBough" || p.kind === "canopySpan" || p.kind === "canopyClump" || p.kind === "canopyHang") {
       drawForestProp(g, p, x, y);
     } else if (p.kind === "stump") {
       Assets.draw(g, "stump", x, y);
@@ -11081,6 +11089,9 @@
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
+    if (currentScene === "treetop" && Assets.canopyMap) {
+      g.drawImage(Assets.canopyMap, 0, 0, TREETOP_COLS * TILE, TREETOP_ROWS * TILE);
+    }
 
     var x0 = Math.max(0, (camX / TILE) | 0);
     var y0 = Math.max(0, (camY / TILE) | 0);
@@ -11104,6 +11115,9 @@
           continue;
         }
         ch = cell(tx, ty);
+        if (currentScene === "treetop" && Assets.canopyMap && (ch === "y" || ch === "f" || ch === "l")) {
+          continue;
+        }
         if (ch === "d") drawDirtTile(g, tx, ty, dx, dy);
         else if (ch === "p") {
           Assets.draw(g, "till", dx, dy);

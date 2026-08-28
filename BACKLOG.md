@@ -98,6 +98,11 @@ Highest-leverage theme: 20260827f tree sky-floors + big TREETOP canopy are live;
 - Wander keep-clear now uses a 2-tile radius around every shaft pad; sleep/faint clears caches for floors 1–6.
 - Live 8pm: MINE 1 landing roomy FIXED (DOWN to 3 not re-walked this pass; spawn lists are 4/floor in bundle).
 
+## Local ship 8/27 late PT (BUILD 20260827h)
+
+- TREETOP no longer stamps 16×16 tiles. One Imagine canopy painting covers the map; unique branch/leaf pieces cut across tiles.
+- Walk grid unchanged. TREE 1–4 unchanged.
+
 ## Local ship 8/27 evening PT (BUILD 20260827g)
 
 - TREETOP Imagine tiles: canopySky / canopyLeaf / canopyBranch + hanging canopyBough props.
