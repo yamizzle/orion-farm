@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260827d";
+  var BUILD = "20260827e";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2665,76 +2665,25 @@
     }
   }
 
-  var treeRingCanvas = null;
-  var treeRingCanvasFloor = -1;
-
-  function treeRingColorAt(wx, wy, floor) {
-    var cx, cy, band, px, py, d, t, ring, frac, a, col, pith, kdx, kdy, h;
-    floor = clampTreeFloor(floor);
-    cx = (TREE_COLS * TILE) / 2;
-    cy = (TREE_ROWS * TILE) / 2;
-    band = 8 - floor;
-    px = wx + 0.5 - cx;
-    py = (wy + 0.5 - cy) * 1.18;
-    d = Math.sqrt(px * px + py * py);
-    pith = 3 + (4 - floor);
-    if (d < pith) return "#3D1A0C";
-    if (d < pith + 2) return "#5A2E10";
-    t = d / band;
-    ring = t | 0;
-    frac = t - ring;
-    if (frac < 0.18) return "#3D1A0C";
-    if (ring & 1) col = (ring % 4 === 1) ? "#C47A38" : "#E8B060";
-    else col = (ring % 4 === 0) ? "#7A3E18" : "#A86C14";
-    a = Math.atan2(py, px);
-    if (d > 10 && (Math.abs(a - 0.55) < 0.05 || Math.abs(a + 2.15) < 0.05)) return "#3D1A0C";
-    kdx = wx - (50 + floor * 4);
-    kdy = wy - (38 + floor * 3);
-    if (kdx * kdx + kdy * kdy < 9) return "#3D1A0C";
-    kdx = wx - (112 - floor * 5);
-    kdy = wy - (80 - floor * 2);
-    if (kdx * kdx + kdy * kdy < 7) return "#3D1A0C";
-    h = hash(wx, wy, floor + 3);
-    if (h > 0.965) return "#3D1A0C";
-    if (h < 0.035 && col !== "#3D1A0C") return "#E8B060";
-    if (d > 70) return "#5A2E10";
-    return col;
-  }
-
-  function ensureTreeRingSheet() {
-    var c, g, x, y, w, h;
-    if (treeRingCanvas && treeRingCanvasFloor === treeFloor) return treeRingCanvas;
-    w = TREE_COLS * TILE;
-    h = TREE_ROWS * TILE;
-    c = document.createElement("canvas");
-    c.width = w;
-    c.height = h;
-    g = c.getContext("2d");
-    for (y = 0; y < h; y++) {
-      for (x = 0; x < w; x++) {
-        g.fillStyle = treeRingColorAt(x, y, treeFloor);
-        g.fillRect(x, y, 1, 1);
-      }
-    }
-    treeRingCanvas = c;
-    treeRingCanvasFloor = treeFloor;
-    return c;
-  }
-
-  function drawTreeRingFloor(g, tx, ty, dx, dy) {
-    var sheet, x, y, wx, wy;
-    if (typeof document !== "undefined" && document.createElement) {
-      sheet = ensureTreeRingSheet();
-      g.drawImage(sheet, tx * TILE, ty * TILE, TILE, TILE, dx, dy, TILE, TILE);
-      return;
-    }
-    for (y = 0; y < TILE; y++) {
-      for (x = 0; x < TILE; x++) {
-        wx = tx * TILE + x;
-        wy = ty * TILE + y;
-        g.fillStyle = treeRingColorAt(wx, wy, treeFloor);
-        g.fillRect(dx + x, dy + y, 1, 1);
-      }
+  function drawHollowFloor(g, tx, ty, dx, dy) {
+    var i, h, gx, gy, edge, shaft;
+    /* Hollow-trunk cavity: dark wood-chip / dirt floor. Not growth rings. */
+    edge = (tx <= 1) || (tx >= TREE_COLS - 2) || (ty <= 1) || (ty >= TREE_ROWS - 2);
+    shaft = (ty <= 3) && (tx >= 3) && (tx <= TREE_COLS - 4);
+    fill(g, dx, dy, 16, 16, edge ? "#32200E" : "#3A2210");
+    /* Dim light from the canopy above — a warmer strip at the top, never rings. */
+    if (shaft) fill(g, dx, dy, 16, 4, "#4E3018");
+    else fill(g, dx, dy, 16, 2, "#4A2C16");
+    fill(g, dx, dy + 13, 16, 3, edge ? "#241408" : "#2A1608");
+    for (i = 0; i < 8; i++) {
+      h = hash(tx, ty, i + 13);
+      gx = 1 + ((h * 13) | 0);
+      gy = 3 + ((hash(ty, tx, i + 19) * 10) | 0);
+      if (h < 0.28) fill(g, dx + gx, dy + gy, 2, 1, "#2A1608");
+      else if (h < 0.48) px(g, dx + gx, dy + gy, "#5A2E10");
+      else if (h < 0.62) fill(g, dx + gx, dy + gy, 2, 1, "#3D1A0C");
+      else if (h < 0.74) px(g, dx + gx, dy + gy, "#6D4427");
+      else px(g, dx + gx, dy + gy, "#241408");
     }
   }
 
@@ -11112,7 +11061,7 @@
         } else if (ch === "y") {
           drawSkyTile(g, tx, ty, dx, dy);
         } else if (ch === "f") {
-          if (currentScene === "tree") drawTreeRingFloor(g, tx, ty, dx, dy);
+          if (currentScene === "tree") drawHollowFloor(g, tx, ty, dx, dy);
           else Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
         } else if (ch === "#") {
           if (currentScene === "mine") {
@@ -12162,9 +12111,8 @@
       TREE_COLS: TREE_COLS,
       TREE_ROWS: TREE_ROWS,
       treeFloor: function () { return treeFloor; },
-      setTreeFloor: function (n) { treeFloor = clampTreeFloor(n); treeRingCanvasFloor = -1; },
-      treeRingColorAt: treeRingColorAt,
-      drawTreeRingFloor: drawTreeRingFloor,
+      setTreeFloor: function (n) { treeFloor = clampTreeFloor(n); },
+      drawHollowFloor: drawHollowFloor,
       drawBarkWall: drawBarkWall,
       drawSkyTile: drawSkyTile,
       treeUpSpot: treeUpSpot,
