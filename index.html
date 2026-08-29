@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829e";
+  var BUILD = "20260829f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -391,6 +391,16 @@
   var selectedSlot = 0;
   var fenceBuildOn = false;
   var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0 };
+  var BAG_CELLS = 90;
+  var TRAY_CELLS = 10;
+  var BAG_COLS = 15;
+  var BAG_ROWS = 6;
+  var bagCells = [];
+  var trayCells = [];
+  var bagOpen = false;
+  var bagHeld = null;
+  var bagHeldFrom = null;
+  var bagPointer = { x: 160, y: 96 };
   var slotShake = 0;
   var SLOT_SEED = 0;
   var SLOT_WOOD = 1;
@@ -2683,8 +2693,7 @@
   }
 
   function eatPotato() {
-    if ((inventory.potato || 0) < 1) return false;
-    inventory.potato -= 1;
+    if (spendSelected("potato", 1) < 1) return false;
     hp += VEGGIE_HEAL;
     energy += VEGGIE_ENERGY;
     if (hp > MAX_HP) hp = MAX_HP;
@@ -2697,8 +2706,7 @@
   }
 
   function eatBerry() {
-    if ((inventory.berry || 0) < 1) return false;
-    inventory.berry -= 1;
+    if (spendSelected("berry", 1) < 1) return false;
     hp += 8;
     energy += 7;
     if (hp > MAX_HP) hp = MAX_HP;
@@ -3943,8 +3951,8 @@
   }
 
   function selectedCropKind() {
-    if (selectedSlot === SLOT_POTATO_SEED) return "potato";
-    if (selectedSlot === SLOT_BERRY_SEED) return "berry";
+    if (selectedIs("potatoSeed")) return "potato";
+    if (selectedIs("berrySeed")) return "berry";
     return "carrot";
   }
 
@@ -4451,8 +4459,96 @@
     return "";
   }
 
+  function isToolKey(key) {
+    return key === "seed" || key === "potatoSeed" || key === "berrySeed" ||
+      key === "hat" || key === "sword" || key === "shovel" || key === "axe" ||
+      key === "pick" || key === "pole" || key === "bow";
+  }
+
+  function isStackKey(key) {
+    return !!stackKey(key);
+  }
+
+  function emptyTray() {
+    var i;
+    trayCells = [];
+    for (i = 0; i < TRAY_CELLS; i++) trayCells.push(null);
+  }
+
+  function emptyBag() {
+    var i;
+    bagCells = [];
+    for (i = 0; i < BAG_CELLS; i++) bagCells.push(null);
+  }
+
+  function initFreshBag() {
+    emptyTray();
+    emptyBag();
+    trayCells[0] = { key: "seed", count: 1 };
+    trayCells[1] = { key: "potatoSeed", count: 1 };
+    trayCells[2] = { key: "berrySeed", count: 1 };
+    selectedSlot = 0;
+    syncBagCounts();
+  }
+
+  function pocketAt(place, i) {
+    if (place === "tray") return (i >= 0 && i < TRAY_CELLS) ? trayCells[i] : null;
+    return (i >= 0 && i < BAG_CELLS) ? bagCells[i] : null;
+  }
+
+  function setPocket(place, i, rec) {
+    if (!rec || !rec.key || (rec.count | 0) < 1) rec = null;
+    if (place === "tray") {
+      if (i >= 0 && i < TRAY_CELLS) trayCells[i] = rec;
+    } else if (i >= 0 && i < BAG_CELLS) {
+      bagCells[i] = rec;
+    }
+  }
+
+  function firstEmptyTray() {
+    var i;
+    for (i = 0; i < TRAY_CELLS; i++) if (!trayCells[i]) return i;
+    return -1;
+  }
+
+  function firstEmptyBag() {
+    var i;
+    for (i = 0; i < BAG_CELLS; i++) if (!bagCells[i]) return i;
+    return -1;
+  }
+
+  function selectedKey() {
+    var c = trayCells[selectedSlot];
+    return (c && c.key) ? c.key : "";
+  }
+
+  function selectedCount() {
+    var c = trayCells[selectedSlot];
+    return c ? (c.count | 0) : 0;
+  }
+
+  function selectedIs(key) {
+    return selectedKey() === key;
+  }
+
+  function selectedHas(key, n) {
+    var c = trayCells[selectedSlot];
+    n = n | 0;
+    return !!(c && c.key === key && (c.count | 0) >= n);
+  }
+
   function bagCount(key) {
-    return (inventory[key] || 0) | 0;
+    var n = 0, i, c;
+    if (!key) return 0;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      c = trayCells[i];
+      if (c && c.key === key) n += c.count | 0;
+    }
+    for (i = 0; i < BAG_CELLS; i++) {
+      c = bagCells[i];
+      if (c && c.key === key) n += c.count | 0;
+    }
+    return n;
   }
 
   function chestCount(key) {
@@ -4463,8 +4559,13 @@
     return key === "veggie" || key === "potato" || key === "berry";
   }
 
-  function bagCap(key) {
+  function stackCap(key) {
+    if (isToolKey(key)) return 1;
     return isCropKey(key) ? CROP_STACK : BAG_STACK;
+  }
+
+  function bagCap(key) {
+    return stackCap(key);
   }
 
   function chestCap(key) {
@@ -4472,21 +4573,184 @@
   }
 
   function bagRoom(key) {
-    return Math.max(0, bagCap(key) - bagCount(key));
+    var i, c, room, cap;
+    if (!key) return 0;
+    cap = stackCap(key);
+    room = 0;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      c = trayCells[i];
+      if (!c) room += cap;
+      else if (c.key === key) room += Math.max(0, cap - (c.count | 0));
+    }
+    for (i = 0; i < BAG_CELLS; i++) {
+      c = bagCells[i];
+      if (!c) room += cap;
+      else if (c.key === key) room += Math.max(0, cap - (c.count | 0));
+    }
+    return room;
   }
 
   function chestRoom(key) {
     return Math.max(0, chestCap(key) - chestCount(key));
   }
 
+  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin"];
+
+  function addInvCount(k, n) {
+    if (Object.prototype.hasOwnProperty.call(inventory, k)) inventory[k] = (inventory[k] | 0) + (n | 0);
+  }
+
+  function syncBagCounts() {
+    var i, k;
+    for (i = 0; i < INV_KEYS.length; i++) inventory[INV_KEYS[i]] = 0;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      if (!trayCells[i]) continue;
+      k = trayCells[i].key;
+      addInvCount(k, trayCells[i].count);
+    }
+    for (i = 0; i < BAG_CELLS; i++) {
+      if (!bagCells[i]) continue;
+      k = bagCells[i].key;
+      addInvCount(k, bagCells[i].count);
+    }
+  }
+
+  function fillStacksIn(arr, len, key, left, cap) {
+    var i, c, room, take;
+    for (i = 0; i < len && left > 0; i++) {
+      c = arr[i];
+      if (!c || c.key !== key) continue;
+      room = cap - (c.count | 0);
+      if (room <= 0) continue;
+      take = left < room ? left : room;
+      c.count += take;
+      left -= take;
+    }
+    return left;
+  }
+
   function addToBag(key, amount) {
-    var n, room, take;
+    var n, left, cap, take, idx;
     n = amount | 0;
     if (!key || n <= 0) return 0;
-    room = bagRoom(key);
-    take = n < room ? n : room;
-    if (take > 0) inventory[key] = bagCount(key) + take;
-    return take;
+    if (isToolKey(key)) {
+      if (bagCount(key) > 0) return 0;
+      idx = firstEmptyTray();
+      if (idx >= 0) {
+        trayCells[idx] = { key: key, count: 1 };
+        syncBagCounts();
+        return 1;
+      }
+      idx = firstEmptyBag();
+      if (idx < 0) return 0;
+      bagCells[idx] = { key: key, count: 1 };
+      syncBagCounts();
+      return 1;
+    }
+    cap = stackCap(key);
+    left = n;
+    left = fillStacksIn(trayCells, TRAY_CELLS, key, left, cap);
+    left = fillStacksIn(bagCells, BAG_CELLS, key, left, cap);
+    while (left > 0) {
+      take = left < cap ? left : cap;
+      idx = firstEmptyTray();
+      if (idx >= 0) {
+        trayCells[idx] = { key: key, count: take };
+        left -= take;
+        continue;
+      }
+      idx = firstEmptyBag();
+      if (idx < 0) break;
+      bagCells[idx] = { key: key, count: take };
+      left -= take;
+    }
+    syncBagCounts();
+    return n - left;
+  }
+
+  function takeFromBag(key, amount) {
+    var n, left, i, c, take;
+    n = amount | 0;
+    if (!key || n <= 0) return 0;
+    left = n;
+    for (i = BAG_CELLS - 1; i >= 0 && left > 0; i--) {
+      c = bagCells[i];
+      if (!c || c.key !== key) continue;
+      take = left < c.count ? left : c.count;
+      c.count -= take;
+      left -= take;
+      if (c.count < 1) bagCells[i] = null;
+    }
+    for (i = TRAY_CELLS - 1; i >= 0 && left > 0; i--) {
+      c = trayCells[i];
+      if (!c || c.key !== key) continue;
+      take = left < c.count ? left : c.count;
+      c.count -= take;
+      left -= take;
+      if (c.count < 1) trayCells[i] = null;
+    }
+    syncBagCounts();
+    return n - left;
+  }
+
+  function spendSelected(key, amount) {
+    var n, c;
+    n = amount | 0;
+    if (!key || n <= 0) return 0;
+    c = trayCells[selectedSlot];
+    if (!c || c.key !== key || (c.count | 0) < n) return 0;
+    c.count -= n;
+    if (c.count < 1) trayCells[selectedSlot] = null;
+    syncBagCounts();
+    return n;
+  }
+
+  function selectTool(key) {
+    var i;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      if (trayCells[i] && trayCells[i].key === key) {
+        selectedSlot = i;
+        setFenceBuildOn(false);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function giveTool(key) {
+    if (bagCount(key) < 1) addToBag(key, 1);
+    selectTool(key);
+  }
+
+  function keyFromOldSlot(id) {
+    if (id === SLOT_SEED) return "seed";
+    if (id === SLOT_POTATO_SEED) return "potatoSeed";
+    if (id === SLOT_BERRY_SEED) return "berrySeed";
+    if (id === SLOT_WOOD) return "wood";
+    if (id === SLOT_STONE) return "stone";
+    if (id === SLOT_IRON) return "iron";
+    if (id === SLOT_COPPER) return "copper";
+    if (id === SLOT_SILVER) return "silver";
+    if (id === SLOT_GOLDORE) return "goldore";
+    if (id === SLOT_COPPER_BAR) return "copperBar";
+    if (id === SLOT_SILVER_BAR) return "silverBar";
+    if (id === SLOT_GOLD_BAR) return "goldBar";
+    if (id === SLOT_MUSH) return "mushroom";
+    if (id === SLOT_MOON) return "moonshard";
+    if (id === SLOT_VEGGIE) return "veggie";
+    if (id === SLOT_POTATO) return "potato";
+    if (id === SLOT_BERRY) return "berry";
+    if (id === SLOT_FLOWER) return "flower";
+    if (id === SLOT_SNACK) return "snack";
+    if (id === SLOT_HAT) return "hat";
+    if (id === SLOT_SWORD) return "sword";
+    if (id === SLOT_SHOVEL) return "shovel";
+    if (id === SLOT_AXE) return "axe";
+    if (id === SLOT_PICK) return "pick";
+    if (id === SLOT_BOW) return "bow";
+    if (id === SLOT_POLE) return "pole";
+    var fk = fishKindBySlot(id);
+    return fk ? fk.id : "";
   }
 
   function addItem(kind, amount) {
@@ -4859,18 +5123,18 @@
   }
 
   function placingFenceNow() {
-    return selectedSlot === SLOT_WOOD && fenceBuildOn;
+    return selectedIs("wood") && fenceBuildOn;
   }
 
   function setFenceBuildOn(on) {
-    fenceBuildOn = !!(on && selectedSlot === SLOT_WOOD && slotVisible(SLOT_WOOD));
-    if (!fenceBuildOn && pending && pending.type === "build" && selectedSlot === SLOT_WOOD) {
+    fenceBuildOn = !!(on && selectedIs("wood") && selectedHas("wood", 1));
+    if (!fenceBuildOn && pending && pending.type === "build" && selectedIs("wood")) {
       pending = null;
     }
   }
 
   function toggleFenceBuild() {
-    if (selectedSlot !== SLOT_WOOD || !slotVisible(SLOT_WOOD)) {
+    if (!selectedIs("wood") || !selectedHas("wood", 1)) {
       setFenceBuildOn(false);
       return false;
     }
@@ -4881,31 +5145,32 @@
   }
 
   function pickHotbarSlot(id) {
-    if (id === SLOT_WOOD && selectedSlot === SLOT_WOOD) {
+    var key = (id >= 0 && id < TRAY_CELLS && trayCells[id]) ? trayCells[id].key : "";
+    if (key === "wood" && selectedSlot === id) {
       toggleFenceBuild();
       return;
     }
     selectedSlot = id;
     setFenceBuildOn(false);
-    if (fishing && id !== SLOT_POLE) cancelFishing();
+    if (fishing && key !== "pole") cancelFishing();
   }
 
   function tryBuild(tx, ty) {
     var placingFence = placingFenceNow();
-    var placingPath = selectedSlot === SLOT_STONE;
+    var placingPath = selectedIs("stone");
     if (!placingFence && !placingPath) return false;
     if (!canBuildOn(tx, ty)) return false;
     if (placingFence && player.tx === tx && player.ty === ty) return false;
-    if (placingFence && inventory.wood < FENCE_COST) {
+    if (placingFence && !selectedHas("wood", FENCE_COST)) {
       slotShake = 220;
       return true;
     }
-    if (placingPath && inventory.stone < PATH_COST) {
+    if (placingPath && !selectedHas("stone", PATH_COST)) {
       slotShake = 220;
       return true;
     }
     if (placingFence) {
-      inventory.wood -= FENCE_COST;
+      spendSelected("wood", FENCE_COST);
       var fk = fenceKindFor(tx, ty);
       clearGoneFence(tx, ty);
       delete harvestNodes[nodeKey(liveHarvestScene(), tx, ty)];
@@ -4913,7 +5178,7 @@
       builds.push({ kind: fk, tx: tx, ty: ty });
       buildSolid();
     } else {
-      inventory.stone -= PATH_COST;
+      spendSelected("stone", PATH_COST);
       setCell(tx, ty, "c");
       builds.push({ kind: "path", tx: tx, ty: ty });
     }
@@ -5302,6 +5567,7 @@
         chest.moonfish = clampCount(data.chest.moonfish);
         chest.starfin = clampCount(data.chest.starfin);
       }
+      loadPocketsFromSave(data);
       overflowBagToChest();
       if (data.crops && typeof data.crops === "object") {
         var ck, cv, stage, plantTime;
@@ -5526,6 +5792,9 @@
           moonfish: inventory.moonfish | 0,
           starfin: inventory.starfin | 0
         },
+        tray: serializePocket(trayCells, TRAY_CELLS),
+        bag: serializePocket(bagCells, BAG_CELLS),
+        selectedSlot: selectedSlot | 0,
         chest: {
           wood: chest.wood | 0,
           stone: chest.stone | 0,
@@ -5775,9 +6044,9 @@
   }
 
   function selectedSmeltOre() {
-    if (selectedSlot === SLOT_COPPER) return "copper";
-    if (selectedSlot === SLOT_SILVER) return "silver";
-    if (selectedSlot === SLOT_GOLDORE) return "goldore";
+    if (selectedIs("copper")) return "copper";
+    if (selectedIs("silver")) return "silver";
+    if (selectedIs("goldore")) return "goldore";
     return "";
   }
 
@@ -5812,7 +6081,10 @@
       showLineNote("BAG FULL. USE THE CHEST.");
       return false;
     }
-    inventory[ore] = bagCount(ore) - 1;
+    if (spendSelected(ore, 1) < 1) {
+      showLineNote("THE FIRE WANTS ORE.");
+      return false;
+    }
     addToBag(bar, 1);
     fire = findFireplace();
     if (fire) spawnSparks(fire.tx * TILE + 16, fire.ty * TILE + 16);
@@ -5932,9 +6204,9 @@
   function craftCanMake(rec) {
     if (!rec || craftOwned(rec)) return false;
     if (rec.needSword && !swordOwned) return false;
-    if ((inventory.wood | 0) < recWood(rec)) return false;
-    if ((inventory.stone | 0) < recStone(rec)) return false;
-    if ((inventory.iron | 0) < recIron(rec)) return false;
+    if (bagCount("wood") < recWood(rec)) return false;
+    if (bagCount("stone") < recStone(rec)) return false;
+    if (bagCount("iron") < recIron(rec)) return false;
     return true;
   }
 
@@ -5962,19 +6234,21 @@
     if (!craftCanMake(rec)) {
       if (craftOwned(rec)) craftMsg = "ALREADY MADE.";
       else if (rec.needSword && !swordOwned) craftMsg = "NEED THE MINE SWORD.";
-      else if (recIron(rec) && (inventory.iron | 0) < recIron(rec)) craftMsg = "NEED IRON FROM THE MINE.";
+      else if (recIron(rec) && bagCount("iron") < recIron(rec)) craftMsg = "NEED IRON FROM THE MINE.";
       else craftMsg = "NEED MORE STUFF.";
       craftMsgT = 1400;
       return;
     }
-    inventory.wood -= recWood(rec);
-    inventory.stone -= recStone(rec);
-    inventory.iron -= recIron(rec);
+    takeFromBag("wood", recWood(rec));
+    takeFromBag("stone", recStone(rec));
+    takeFromBag("iron", recIron(rec));
     setCraftOwned(rec);
-    if (rec.id === "shovel") selectedSlot = SLOT_SHOVEL;
-    if (rec.id === "axe") selectedSlot = SLOT_AXE;
-    if (rec.id === "pickaxe") selectedSlot = SLOT_PICK;
-    if (rec.id === "bow") selectedSlot = SLOT_BOW;
+    if (rec.id === "shovel") giveTool("shovel");
+    if (rec.id === "axe") giveTool("axe");
+    if (rec.id === "pickaxe") giveTool("pick");
+    if (rec.id === "bow") giveTool("bow");
+    if (rec.id === "shield") {}
+    if (rec.id === "ironSword") {}
     persistSave();
     playSfx("craft");
     craftMsg = rec.made;
@@ -5999,7 +6273,7 @@
         else {
           if (craftOwned(rec)) craftMsg = "ALREADY MADE.";
           else if (rec.needSword && !swordOwned) craftMsg = "NEED THE MINE SWORD.";
-          else if (recIron(rec) && (inventory.iron | 0) < recIron(rec)) craftMsg = "NEED IRON FROM THE MINE.";
+          else if (recIron(rec) && bagCount("iron") < recIron(rec)) craftMsg = "NEED IRON FROM THE MINE.";
           else craftMsg = "NEED MORE STUFF.";
           craftMsgT = 1200;
         }
@@ -6023,7 +6297,7 @@
     drawText(g, "WORKBENCH", L.x + 12, L.y - 3, C.parch);
     woodPanel(g, L.backX, L.backY, L.backW, L.backH);
     drawText(g, "BACK", L.backX + ((L.backW - textWidth("BACK")) / 2) | 0, L.backY + 2, C.parch);
-    woodLine = (inventory.wood | 0) + " WOOD  " + (inventory.stone | 0) + " STONE  " + (inventory.iron | 0) + " IRON";
+    woodLine = bagCount("wood") + " WOOD  " + bagCount("stone") + " STONE  " + bagCount("iron") + " IRON";
     drawText(g, woodLine, L.x + 10, L.y + 12, C.woodSh);
     for (i = 0; i < CRAFT_RECIPES.length; i++) {
       rec = CRAFT_RECIPES[i];
@@ -6080,17 +6354,132 @@
     startWalk(player, path, 3.5);
   }
 
-  function overflowBagToChest() {
-    var i, key, extra, room, move;
-    for (i = 0; i < CHEST_ROWS.length; i++) {
-      key = CHEST_ROWS[i].key;
-      extra = bagCount(key) - bagCap(key);
+  function trimPocketOver(arr, len) {
+    var i, c, extra, room, move, cap;
+    for (i = 0; i < len; i++) {
+      c = arr[i];
+      if (!c) continue;
+      cap = stackCap(c.key);
+      extra = (c.count | 0) - cap;
       if (extra <= 0) continue;
-      room = chestRoom(key);
+      c.count = cap;
+      room = chestRoom(c.key);
       move = extra < room ? extra : room;
-      inventory[key] = bagCount(key) - extra;
-      if (move > 0) chest[key] = chestCount(key) + move;
+      if (move > 0) chest[c.key] = chestCount(c.key) + move;
     }
+  }
+
+  function serializePocket(arr, len) {
+    var out = [], i, c;
+    for (i = 0; i < len; i++) {
+      c = arr[i];
+      if (c && c.key && (c.count | 0) > 0) out.push({ key: c.key, count: c.count | 0 });
+      else out.push(null);
+    }
+    return out;
+  }
+
+  function readPocketArr(src, len) {
+    var out = [], i, rec, key, cnt;
+    for (i = 0; i < len; i++) {
+      rec = src && src[i];
+      out.push(null);
+      if (!rec || typeof rec !== "object") continue;
+      key = rec.key || rec.k || "";
+      cnt = clampCount(rec.count != null ? rec.count : rec.n);
+      if (!key || cnt < 1) continue;
+      if (!isToolKey(key) && !stackKey(key)) continue;
+      out[i] = { key: key, count: isToolKey(key) ? 1 : cnt };
+    }
+    return out;
+  }
+
+  function pocketArrOk(arr, len) {
+    return !!(arr && typeof arr.length === "number" && arr.length === len);
+  }
+
+  function pourIntoBagOnly(key, n) {
+    var left, cap, take, idx;
+    left = n | 0;
+    if (!key || left <= 0) return;
+    cap = stackCap(key);
+    left = fillStacksIn(bagCells, BAG_CELLS, key, left, cap);
+    while (left > 0) {
+      idx = firstEmptyBag();
+      if (idx < 0) break;
+      take = left < cap ? left : cap;
+      bagCells[idx] = { key: key, count: take };
+      left -= take;
+    }
+  }
+
+  function placeToolInTrayFirst(key) {
+    var idx;
+    if (!key || bagCount(key) > 0) return;
+    idx = firstEmptyTray();
+    if (idx >= 0) {
+      trayCells[idx] = { key: key, count: 1 };
+      return;
+    }
+    idx = firstEmptyBag();
+    if (idx >= 0) bagCells[idx] = { key: key, count: 1 };
+  }
+
+  function migrateOldInventoryToPockets() {
+    var i, key, n;
+    emptyTray();
+    emptyBag();
+    placeToolInTrayFirst("seed");
+    if (hatOwned) placeToolInTrayFirst("hat");
+    if (swordOwned) placeToolInTrayFirst("sword");
+    if (shovelOwned) placeToolInTrayFirst("shovel");
+    if (axeOwned) placeToolInTrayFirst("axe");
+    if (pickaxeOwned) placeToolInTrayFirst("pick");
+    if (poleOwned) placeToolInTrayFirst("pole");
+    if (bowOwned) placeToolInTrayFirst("bow");
+    placeToolInTrayFirst("potatoSeed");
+    placeToolInTrayFirst("berrySeed");
+    for (i = 0; i < INV_KEYS.length; i++) {
+      key = INV_KEYS[i];
+      n = inventory[key] | 0;
+      if (n > 0) pourIntoBagOnly(key, n);
+    }
+    selectedSlot = 0;
+    syncBagCounts();
+  }
+
+  function ensureOwnedTools() {
+    if (hatOwned) placeToolInTrayFirst("hat");
+    if (swordOwned) placeToolInTrayFirst("sword");
+    if (shovelOwned) placeToolInTrayFirst("shovel");
+    if (axeOwned) placeToolInTrayFirst("axe");
+    if (pickaxeOwned) placeToolInTrayFirst("pick");
+    if (poleOwned) placeToolInTrayFirst("pole");
+    if (bowOwned) placeToolInTrayFirst("bow");
+    placeToolInTrayFirst("seed");
+    placeToolInTrayFirst("potatoSeed");
+    placeToolInTrayFirst("berrySeed");
+    syncBagCounts();
+  }
+
+  function loadPocketsFromSave(data) {
+    if (data && pocketArrOk(data.tray, TRAY_CELLS) && pocketArrOk(data.bag, BAG_CELLS)) {
+      trayCells = readPocketArr(data.tray, TRAY_CELLS);
+      bagCells = readPocketArr(data.bag, BAG_CELLS);
+      if (typeof data.selectedSlot === "number") {
+        selectedSlot = data.selectedSlot | 0;
+        if (selectedSlot < 0 || selectedSlot >= TRAY_CELLS) selectedSlot = 0;
+      }
+      ensureOwnedTools();
+      return;
+    }
+    migrateOldInventoryToPockets();
+  }
+
+  function overflowBagToChest() {
+    trimPocketOver(trayCells, TRAY_CELLS);
+    trimPocketOver(bagCells, BAG_CELLS);
+    syncBagCounts();
   }
 
   function findHouseChest() {
@@ -6200,7 +6589,7 @@
     if (move > have) move = have;
     if (move > room) move = room;
     if (move <= 0) return 0;
-    inventory[key] = have - move;
+    takeFromBag(key, move);
     chest[key] = chestCount(key) + move;
     persistSave();
     return move;
@@ -6217,16 +6606,29 @@
     if (move > room) move = room;
     if (move <= 0) return 0;
     chest[key] = have - move;
-    inventory[key] = bagCount(key) + move;
+    addToBag(key, move);
     persistSave();
     return move;
   }
 
   function chestPut(all) {
-    var rec, n;
+    var rec, n, i;
+    if (all) {
+      n = 0;
+      for (i = 0; i < CHEST_ROWS.length; i++) n += putInChest(CHEST_ROWS[i].key, -1);
+      if (n <= 0) {
+        chestMsg = "NOTHING TO PUT.";
+        chestMsgT = 1200;
+        return;
+      }
+      playSfx("ui");
+      chestMsg = "PUT AWAY.";
+      chestMsgT = 900;
+      return;
+    }
     rec = CHEST_ROWS[chestSel];
     if (!rec) return;
-    n = putInChest(rec.key, all ? -1 : 1);
+    n = putInChest(rec.key, 1);
     if (n <= 0) {
       if (bagCount(rec.key) < 1) chestMsg = "NOTHING TO PUT.";
       else chestMsg = "CHEST IS FULL.";
@@ -6234,15 +6636,28 @@
       return;
     }
     playSfx("ui");
-    chestMsg = all ? "PUT AWAY." : "";
-    chestMsgT = all ? 900 : 0;
+    chestMsg = "";
+    chestMsgT = 0;
   }
 
   function chestTake(all) {
-    var rec, n;
+    var rec, n, i;
+    if (all) {
+      n = 0;
+      for (i = 0; i < CHEST_ROWS.length; i++) n += takeFromChest(CHEST_ROWS[i].key, -1);
+      if (n <= 0) {
+        chestMsg = "CHEST IS EMPTY.";
+        chestMsgT = 1200;
+        return;
+      }
+      playSfx("ui");
+      chestMsg = "TOOK IT OUT.";
+      chestMsgT = 900;
+      return;
+    }
     rec = CHEST_ROWS[chestSel];
     if (!rec) return;
-    n = takeFromChest(rec.key, all ? -1 : 1);
+    n = takeFromChest(rec.key, 1);
     if (n <= 0) {
       if (chestCount(rec.key) < 1) chestMsg = "CHEST IS EMPTY.";
       else chestMsg = "BAG FULL.";
@@ -6250,8 +6665,8 @@
       return;
     }
     playSfx("ui");
-    chestMsg = all ? "TOOK IT OUT." : "";
-    chestMsgT = all ? 900 : 0;
+    chestMsg = "";
+    chestMsgT = 0;
   }
 
   function chestRowAt(p) {
@@ -6738,7 +7153,7 @@
   }
 
   function modalOpen() {
-    return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || shopOpen || craftOpen || chestOpen);
+    return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || shopOpen || craftOpen || chestOpen || bagOpen);
   }
 
   function uiPaused() {
@@ -6777,6 +7192,10 @@
     }
     if (chestOpen) {
       closeChest();
+      return true;
+    }
+    if (bagOpen) {
+      closeBag();
       return true;
     }
     return false;
@@ -7175,11 +7594,11 @@
   }
 
   function hasMushroomToGive() {
-    return !quest.flowerDone && (inventory.mushroom > 0 || found.mushroom);
+    return !quest.flowerDone && (bagCount("mushroom") > 0 || found.mushroom);
   }
 
   function giveMushroom() {
-    if ((inventory.mushroom || 0) > 0) inventory.mushroom -= 1;
+    if (bagCount("mushroom") > 0) takeFromBag("mushroom", 1);
     quest.flowerAsked = true;
     quest.flowerDone = true;
     persistSave();
@@ -7188,12 +7607,12 @@
   }
 
   function hasVeggieToSell() {
-    return (inventory.veggie || 0) > 0;
+    return bagCount("veggie") > 0;
   }
 
   function sellVeggie() {
     if (!hasVeggieToSell()) return false;
-    inventory.veggie -= 1;
+    takeFromBag("veggie", 1);
     gold += CROP_PRICE;
     persistSave();
     return true;
@@ -7385,11 +7804,11 @@
   }
 
   function hasCopperToGive() {
-    return (inventory.copper || 0) > 0;
+    return bagCount("copper") > 0;
   }
 
   function giveCopperToPip() {
-    if ((inventory.copper || 0) > 0) inventory.copper -= 1;
+    if (bagCount("copper") > 0) takeFromBag("copper", 1);
   }
 
   function placePipLantern() {
@@ -7856,6 +8275,7 @@
     } else if (item.id === "hat") {
       hatOwned = true;
       hatOn = true;
+      giveTool("hat");
       shopMsg = "A FINE STRAW HAT.";
     } else if (item.id === "fence") {
       if (bagRoom("wood") < 1) {
@@ -7879,7 +8299,7 @@
       shopMsg = "PLUS 3 STONE.";
     } else if (item.id === "pole") {
       poleOwned = true;
-      selectedSlot = SLOT_POLE;
+      giveTool("pole");
       shopMsg = "A FINE FISHING POLE.";
     }
     shopMsgT = 1400;
@@ -7946,12 +8366,12 @@
   function tryPlantFlower(tx, ty) {
     var ch;
     if (currentScene !== "overworld") return false;
-    if ((inventory.flower || 0) < 1) return false;
+    if (!selectedHas("flower", 1)) return false;
     ch = cell(tx, ty);
     if (ch !== "g" && ch !== "m") return false;
     if (propAt(tx, ty)) return false;
     if (!walkable(tx, ty) && !(player.tx === tx && player.ty === ty)) return false;
-    inventory.flower -= 1;
+    spendSelected("flower", 1);
     PROPS.push({ kind: "townFlower", tx: tx, ty: ty });
     builds.push({ kind: "townFlower", tx: tx, ty: ty });
     if (onTownGreen(tx, ty)) {
@@ -7963,16 +8383,16 @@
 
 
   function swordEquipped() {
-    return !!(swordOwned && selectedSlot === SLOT_SWORD);
+    return !!(swordOwned && selectedIs("sword"));
   }
 
   function toolEquipped(id) {
-    if (id === "axe") return !!(axeOwned && selectedSlot === SLOT_AXE);
-    if (id === "pick") return !!(pickaxeOwned && selectedSlot === SLOT_PICK);
-    if (id === "shovel") return !!(shovelOwned && selectedSlot === SLOT_SHOVEL);
-    if (id === "pole") return !!(poleOwned && selectedSlot === SLOT_POLE);
+    if (id === "axe") return !!(axeOwned && selectedIs("axe"));
+    if (id === "pick") return !!(pickaxeOwned && selectedIs("pick"));
+    if (id === "shovel") return !!(shovelOwned && selectedIs("shovel"));
+    if (id === "pole") return !!(poleOwned && selectedIs("pole"));
     if (id === "sword") return swordEquipped();
-    if (id === "bow") return !!(bowOwned && selectedSlot === SLOT_BOW);
+    if (id === "bow") return !!(bowOwned && selectedIs("bow"));
     return false;
   }
 
@@ -8315,7 +8735,7 @@
     }
     if (!found) return false;
     setCell(tx, ty, "g");
-    inventory.stone = (inventory.stone | 0) + PATH_COST;
+    addToBag("stone", PATH_COST);
     player.workTool = "pickaxe";
     player.swing = 220;
     spawnSparks(tx * TILE + 8, ty * TILE + 6);
@@ -9285,7 +9705,7 @@
     var i;
     if (swordOwned) return;
     swordOwned = true;
-    selectedSlot = SLOT_SWORD;
+    giveTool("sword");
     if (prop) {
       i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
@@ -9318,8 +9738,7 @@
   }
 
   function eatSnack() {
-    if ((inventory.snack || 0) < 1) return false;
-    inventory.snack -= 1;
+    if (spendSelected("snack", 1) < 1) return false;
     hp += SNACK_HEAL;
     energy += SNACK_ENERGY;
     if (hp > MAX_HP) hp = MAX_HP;
@@ -9331,8 +9750,7 @@
   }
 
   function eatCarrot() {
-    if ((inventory.veggie || 0) < 1) return false;
-    inventory.veggie -= 1;
+    if (spendSelected("veggie", 1) < 1) return false;
     hp += VEGGIE_HEAL;
     energy += VEGGIE_ENERGY;
     if (hp > MAX_HP) hp = MAX_HP;
@@ -9344,8 +9762,7 @@
   }
 
   function eatMushroom() {
-    if ((inventory.mushroom || 0) < 1) return false;
-    inventory.mushroom -= 1;
+    if (spendSelected("mushroom", 1) < 1) return false;
     hp += MUSH_HEAL;
     energy += MUSH_ENERGY;
     if (hp > MAX_HP) hp = MAX_HP;
@@ -9395,8 +9812,8 @@
 
   function tryLeaveWood() {
     if (!(quest.flowerDone && mailRead.mine && !quest.errandDone)) return false;
-    if (inventory.wood < 1) return false;
-    inventory.wood -= 1;
+    if (bagCount("wood") < 1) return false;
+    takeFromBag("wood", 1);
     quest.errandDone = true;
     persistSave();
     unlockAch("caveHelper");
@@ -10079,7 +10496,7 @@
   }
 
   function tryPlaceOrWalk(tx, ty) {
-    var placingNow = placingFenceNow() || selectedSlot === SLOT_STONE;
+    var placingNow = placingFenceNow() || selectedIs("stone");
     if (placingNow && canBuildOn(tx, ty)) {
       goBuild(tx, ty);
       return "build";
@@ -10245,11 +10662,11 @@
     highlight = { tx: tx, ty: ty, ghost: ghost };
     if (!canBuildOn(tx, ty)) return;
     if (placingFence && player.tx === tx && player.ty === ty) return;
-    if (placingFence && inventory.wood < FENCE_COST) {
+    if (placingFence && !selectedHas("wood", FENCE_COST)) {
       slotShake = 220;
       return;
     }
-    if (!placingFence && inventory.stone < PATH_COST) {
+    if (!placingFence && !selectedHas("stone", PATH_COST)) {
       slotShake = 220;
       return;
     }
@@ -11655,46 +12072,283 @@
   }
 
   function slotVisible(i) {
-    var n = slotCount(i);
-    if (n >= 0) {
-      if (n < 1) return false;
-      if (i === SLOT_COPPER && pipDone) return false;
-      if (i === SLOT_MOON && homeLightOn()) return false;
-      return true;
-    }
-    if (i === SLOT_SEED || i === SLOT_POTATO_SEED || i === SLOT_BERRY_SEED) return true;
-    if (i === SLOT_HAT) return !!hatOwned;
-    if (i === SLOT_SWORD) return !!swordOwned;
-    if (i === SLOT_BOW) return !!bowOwned;
-    if (i === SLOT_SHOVEL) return !!shovelOwned;
-    if (i === SLOT_AXE) return !!axeOwned;
-    if (i === SLOT_PICK) return !!pickaxeOwned;
-    if (i === SLOT_POLE) return !!poleOwned;
-    return false;
+    return i >= 0 && i < TRAY_CELLS;
   }
 
   function visibleSlots() {
-    var i, id, out = [];
-    for (i = 0; i < SLOT_ORDER.length; i++) {
-      id = SLOT_ORDER[i];
-      if (slotVisible(id)) out.push(id);
-    }
+    var i, out = [];
+    for (i = 0; i < TRAY_CELLS; i++) out.push(i);
     return out;
   }
 
   function ensureSelectedSlot() {
-    if (!slotVisible(selectedSlot)) {
-      selectedSlot = SLOT_SEED;
-      setFenceBuildOn(false);
-    }
+    if (selectedSlot < 0 || selectedSlot >= TRAY_CELLS) selectedSlot = 0;
+    if (!selectedIs("wood")) setFenceBuildOn(false);
   }
 
   function selectHotbarIndex(n) {
-    var vis = visibleSlots();
-    if (n < 0 || n >= vis.length) return false;
-    pickHotbarSlot(vis[n]);
+    if (n < 0 || n >= TRAY_CELLS) return false;
+    pickHotbarSlot(n);
     playSfx("ui");
     return true;
+  }
+
+  function trayLayout() {
+    var slot = 18, gap = 1, slots = TRAY_CELLS;
+    var barW = slots * slot + (slots - 1) * gap;
+    var bx = ((VIEW_W - barW) / 2) | 0;
+    var by = VIEW_H - 22;
+    var bagW = 32, bagH = 22;
+    var bagX = bx + barW + 5;
+    var bagY = by - 2;
+    if (bagX + bagW > VIEW_W - 2) bagX = VIEW_W - bagW - 2;
+    return { slot: slot, gap: gap, slots: slots, barW: barW, bx: bx, by: by, bagX: bagX, bagY: bagY, bagW: bagW, bagH: bagH };
+  }
+
+  function bagLayout() {
+    var cell = 16, gap = 1, cols = BAG_COLS, rows = BAG_ROWS;
+    var gridW = cols * cell + (cols - 1) * gap;
+    var gridH = rows * cell + (rows - 1) * gap;
+    var pad = 8;
+    var head = 14;
+    var w = gridW + pad * 2;
+    var h = gridH + pad + head + 12;
+    var x = ((VIEW_W - w) / 2) | 0;
+    var y = 26;
+    return {
+      x: x, y: y, w: w, h: h,
+      gridX: x + pad, gridY: y + head + 8,
+      cell: cell, gap: gap, cols: cols, rows: rows,
+      gridW: gridW, gridH: gridH,
+      closeX: x + w - 16, closeY: y + 2, closeW: 13, closeH: 12
+    };
+  }
+
+  function drawBagKey(g, key, x, y) {
+    if (!key) return;
+    if (key === "seed") Assets.draw(g, "seed", x, y);
+    else if (key === "potatoSeed") paintPotatoSeed(g, x, y);
+    else if (key === "berrySeed") paintBerrySeed(g, x, y);
+    else if (key === "wood") Assets.draw(g, "wood", x, y);
+    else if (key === "stone") Assets.draw(g, "stoneItem", x, y);
+    else if (key === "iron") Assets.draw(g, "iron", x, y);
+    else if (key === "copper") Assets.draw(g, "copper", x, y);
+    else if (key === "silver") paintSilver(g, x, y);
+    else if (key === "goldore") paintGoldore(g, x, y);
+    else if (key === "copperBar") paintCopperBar(g, x, y);
+    else if (key === "silverBar") paintSilverBar(g, x, y);
+    else if (key === "goldBar") paintGoldBar(g, x, y);
+    else if (key === "mushroom") Assets.draw(g, "mushroom", x, y);
+    else if (key === "moonshard") Assets.draw(g, "moonshard", x, y);
+    else if (key === "veggie") Assets.draw(g, "veggie", x, y);
+    else if (key === "potato") paintPotato(g, x, y);
+    else if (key === "berry") paintBerry(g, x, y);
+    else if (key === "flower") Assets.draw(g, "townFlower", x, y);
+    else if (key === "snack") Assets.draw(g, "honeybun", x, y);
+    else if (key === "hat") Assets.draw(g, "strawHat", x, y);
+    else if (key === "sword") Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", x, y);
+    else if (key === "shovel") Assets.draw(g, "shovel", x, y);
+    else if (key === "axe") Assets.draw(g, "axe", x, y);
+    else if (key === "pick") Assets.draw(g, "pickaxe", x, y);
+    else if (key === "bow") Assets.draw(g, "bow", x, y);
+    else if (key === "pole") paintFishingPole(g, x, y);
+    else if (fishKindById(key)) paintFishIcon(g, x, y, key);
+  }
+
+  function drawOneBagCell(g, rec, sx, sy, slot, sel, trayish, heldHere) {
+    var count, label, shakeX;
+    shakeX = 0;
+    if (slotShake > 0 && rec && (rec.key === "wood" || rec.key === "stone") && sel) {
+      shakeX = ((tick / 40) | 0) % 2 ? 1 : -1;
+    }
+    sx += shakeX;
+    fill(g, sx, sy, slot, slot, sel ? C.woodHi : (trayish ? "#8A5A28" : C.woodSh));
+    fill(g, sx + 1, sy + 1, slot - 2, slot - 2, C.slot);
+    fill(g, sx + 2, sy + 2, slot - 4, slot - 4, sel ? "#6A4420" : (trayish ? "#4A2E14" : "#5A3818"));
+    if (sel) {
+      fill(g, sx, sy, slot, 1, C.parch);
+      fill(g, sx, sy, 1, slot, C.parch);
+    }
+    if (trayish) {
+      fill(g, sx, sy, slot, 1, C.flower);
+      fill(g, sx, sy + slot - 1, slot, 1, C.flower);
+    }
+    if (rec && rec.key === "wood" && fenceBuildOn && sel) {
+      fill(g, sx, sy, slot, 1, C.flower);
+      fill(g, sx, sy + slot - 1, slot, 1, C.flower);
+      fill(g, sx, sy, 1, slot, C.flower);
+      fill(g, sx + slot - 1, sy, 1, slot, C.flower);
+    }
+    if (heldHere) {
+      fill(g, sx + 3, sy + 3, slot - 6, slot - 6, "#3A2410");
+      return;
+    }
+    if (rec && rec.key) {
+      drawBagKey(g, rec.key, sx + 1, sy + 1);
+      if (!isToolKey(rec.key)) {
+        label = String(rec.count | 0);
+        drawSlotCount(g, label, sx, sy, slot);
+      }
+    }
+  }
+
+  function paintBagIcon(g, x, y, on) {
+    fill(g, x + 6, y + 8, 16, 12, on ? C.woodHi : C.woodMid);
+    fill(g, x + 5, y + 9, 18, 10, C.woodSh);
+    fill(g, x + 7, y + 10, 14, 8, on ? "#E8B060" : C.woodMid);
+    fill(g, x + 11, y + 6, 6, 4, C.woodOut);
+    fill(g, x + 12, y + 5, 4, 3, C.woodHi);
+    px(g, x + 14, y + 12, C.woodOut);
+  }
+
+  function pocketHeldHere(place, i, rec) {
+    return !!(bagOpen && bagHeld && bagHeldFrom && bagHeldFrom.place === place && bagHeldFrom.i === i && !rec);
+  }
+
+  function stashBagHeld() {
+    var i;
+    if (!bagHeld) return;
+    if (bagHeldFrom && !pocketAt(bagHeldFrom.place, bagHeldFrom.i)) {
+      setPocket(bagHeldFrom.place, bagHeldFrom.i, bagHeld);
+    } else {
+      i = firstEmptyTray();
+      if (i >= 0) setPocket("tray", i, bagHeld);
+      else {
+        i = firstEmptyBag();
+        if (i >= 0) setPocket("bag", i, bagHeld);
+        else if (bagHeldFrom) setPocket(bagHeldFrom.place, bagHeldFrom.i, bagHeld);
+      }
+    }
+    bagHeld = null;
+    bagHeldFrom = null;
+    syncBagCounts();
+  }
+
+  function openBag() {
+    bagOpen = true;
+    pending = null;
+    kbDrive = false;
+    clearMoveKeys();
+    if (player.path) player.path = [];
+    player.queuedWalk = null;
+    player.moving = false;
+  }
+
+  function closeBag() {
+    stashBagHeld();
+    bagOpen = false;
+  }
+
+  function toggleBag() {
+    if (bagOpen) closeBag();
+    else openBag();
+    playSfx("ui");
+  }
+
+  function bagCellAt(p) {
+    var L = bagLayout();
+    var col, row, idx;
+    if (p.x < L.gridX || p.y < L.gridY) return -1;
+    col = ((p.x - L.gridX) / (L.cell + L.gap)) | 0;
+    row = ((p.y - L.gridY) / (L.cell + L.gap)) | 0;
+    if (col < 0 || row < 0 || col >= L.cols || row >= L.rows) return -1;
+    idx = row * L.cols + col;
+    if (idx < 0 || idx >= BAG_CELLS) return -1;
+    return idx;
+  }
+
+  function tapPocket(place, idx) {
+    var rec, tmp, max;
+    max = place === "tray" ? TRAY_CELLS : BAG_CELLS;
+    if (idx < 0 || idx >= max) return;
+    rec = pocketAt(place, idx);
+    if (bagHeld) {
+      if (bagHeldFrom && bagHeldFrom.place === place && bagHeldFrom.i === idx && !rec) {
+        setPocket(place, idx, bagHeld);
+        bagHeld = null;
+        bagHeldFrom = null;
+      } else if (!rec) {
+        setPocket(place, idx, bagHeld);
+        bagHeld = null;
+        bagHeldFrom = null;
+      } else {
+        tmp = rec;
+        setPocket(place, idx, bagHeld);
+        bagHeld = tmp;
+        bagHeldFrom = { place: place, i: idx };
+      }
+      syncBagCounts();
+      playSfx("ui");
+      return;
+    }
+    if (!rec) {
+      playSfx("ui");
+      return;
+    }
+    bagHeld = rec;
+    bagHeldFrom = { place: place, i: idx };
+    setPocket(place, idx, null);
+    syncBagCounts();
+    playSfx("ui");
+  }
+
+  function tapBagUi(p) {
+    var L = bagLayout();
+    var T = trayLayout();
+    var idx;
+    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 6)) {
+      closeBag();
+      playSfx("ui");
+      return true;
+    }
+    if (hitPad(p.x, p.y, T.bagX, T.bagY, T.bagW, T.bagH, 4)) {
+      closeBag();
+      playSfx("ui");
+      return true;
+    }
+    idx = bagCellAt(p);
+    if (idx >= 0) {
+      tapPocket("bag", idx);
+      return true;
+    }
+    if (p.y >= T.by && p.y <= T.by + T.slot && p.x >= T.bx && p.x <= T.bx + T.barW) {
+      idx = ((p.x - T.bx) / (T.slot + T.gap)) | 0;
+      if (idx >= 0 && idx < TRAY_CELLS) tapPocket("tray", idx);
+      return true;
+    }
+    if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h) return true;
+    closeBag();
+    return true;
+  }
+
+  function drawBag(g) {
+    var L, T, i, col, row, sx, sy, rec;
+    if (!bagOpen) return;
+    T = trayLayout();
+    g.fillStyle = "rgba(20,12,8,0.45)";
+    g.fillRect(0, 0, VIEW_W, T.by - 4);
+    L = bagLayout();
+    woodPanel(g, L.x, L.y, L.w, L.h);
+    fill(g, L.x + 3, L.y + 3, L.w - 6, L.h - 6, C.parch);
+    woodPanel(g, L.x + 8, L.y - 6, 38, 11);
+    drawText(g, "BAG", L.x + 14, L.y - 3, C.parch);
+    drawText(g, "TRAY BELOW", L.gridX, L.y + 4, C.woodSh);
+    woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
+    drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
+    for (i = 0; i < BAG_CELLS; i++) {
+      col = i % L.cols;
+      row = (i / L.cols) | 0;
+      sx = L.gridX + col * (L.cell + L.gap);
+      sy = L.gridY + row * (L.cell + L.gap);
+      rec = bagCells[i];
+      drawOneBagCell(g, rec, sx, sy, L.cell, false, false, pocketHeldHere("bag", i, rec));
+    }
+    if (bagHeld) {
+      drawBagKey(g, bagHeld.key, bagPointer.x - 8, bagPointer.y - 8);
+      if (!isToolKey(bagHeld.key)) {
+        drawSlotCount(g, String(bagHeld.count | 0), bagPointer.x - 8, bagPointer.y - 8, 16);
+      }
+    }
   }
 
   function buildStampRect() {
@@ -11747,125 +12401,22 @@
     drawPlaceStamp(g);
 
     ensureSelectedSlot();
-    var vis = visibleSlots();
-    var slots = vis.length;
-    var slot = 18;
-    var gap = 1;
-    var barW = slots * slot + (slots - 1) * gap;
-    var bx = ((VIEW_W - barW) / 2) | 0;
-    var by = VIEW_H - 22;
-    woodPanel(g, bx - 3, by - 3, barW + 6, 24);
-    var n, i, sx, sy, sel, count, label, shakeX;
-    for (n = 0; n < slots; n++) {
-      i = vis[n];
-      count = -1;
-      sx = bx + n * (slot + gap);
-      sy = by;
-      shakeX = 0;
-      if (slotShake > 0 && (i === SLOT_WOOD || i === SLOT_STONE) && i === selectedSlot) {
-        shakeX = ((tick / 40) | 0) % 2 ? 1 : -1;
-      }
-      sx += shakeX;
-      sel = i === selectedSlot;
-      fill(g, sx, sy, slot, slot, sel ? C.woodHi : C.woodSh);
-      fill(g, sx + 1, sy + 1, slot - 2, slot - 2, C.slot);
-      fill(g, sx + 2, sy + 2, slot - 4, slot - 4, sel ? "#6A4420" : "#5A3818");
-      if (sel) {
-        fill(g, sx, sy, slot, 1, C.parch);
-        fill(g, sx, sy, 1, slot, C.parch);
-      }
-      if (i === SLOT_WOOD && fenceBuildOn) {
-        fill(g, sx, sy, slot, 1, C.flower);
-        fill(g, sx, sy + slot - 1, slot, 1, C.flower);
-        fill(g, sx, sy, 1, slot, C.flower);
-        fill(g, sx + slot - 1, sy, 1, slot, C.flower);
-      }
-      if (i === SLOT_SEED) {
-        Assets.draw(g, "seed", sx + 1, sy + 1);
-      } else if (i === SLOT_POTATO_SEED) {
-        paintPotatoSeed(g, sx + 1, sy + 1);
-      } else if (i === SLOT_BERRY_SEED) {
-        paintBerrySeed(g, sx + 1, sy + 1);
-      } else if (i === SLOT_WOOD) {
-        Assets.draw(g, "wood", sx + 1, sy + 1);
-        count = inventory.wood;
-      } else if (i === SLOT_STONE) {
-        Assets.draw(g, "stoneItem", sx + 1, sy + 1);
-        count = inventory.stone;
-      } else if (i === SLOT_IRON) {
-        Assets.draw(g, "iron", sx + 1, sy + 1);
-        count = inventory.iron;
-      } else if (i === SLOT_COPPER) {
-        Assets.draw(g, "copper", sx + 1, sy + 1);
-        count = inventory.copper;
-      } else if (i === SLOT_SILVER) {
-        paintSilver(g, sx + 1, sy + 1);
-        count = inventory.silver;
-      } else if (i === SLOT_GOLDORE) {
-        paintGoldore(g, sx + 1, sy + 1);
-        count = inventory.goldore;
-      } else if (i === SLOT_COPPER_BAR) {
-        paintCopperBar(g, sx + 1, sy + 1);
-        count = inventory.copperBar;
-      } else if (i === SLOT_SILVER_BAR) {
-        paintSilverBar(g, sx + 1, sy + 1);
-        count = inventory.silverBar;
-      } else if (i === SLOT_GOLD_BAR) {
-        paintGoldBar(g, sx + 1, sy + 1);
-        count = inventory.goldBar;
-      } else if (i === SLOT_MUSH) {
-        Assets.draw(g, "mushroom", sx + 1, sy + 1);
-        count = inventory.mushroom;
-      } else if (i === SLOT_MOON) {
-        Assets.draw(g, "moonshard", sx + 1, sy + 1);
-        count = inventory.moonshard;
-      } else if (i === SLOT_VEGGIE) {
-        Assets.draw(g, "veggie", sx + 1, sy + 1);
-        count = inventory.veggie;
-      } else if (i === SLOT_POTATO) {
-        paintPotato(g, sx + 1, sy + 1);
-        count = inventory.potato;
-      } else if (i === SLOT_BERRY) {
-        paintBerry(g, sx + 1, sy + 1);
-        count = inventory.berry;
-      } else if (i === SLOT_FLOWER) {
-        Assets.draw(g, "townFlower", sx + 1, sy + 1);
-        count = inventory.flower;
-      } else if (i === SLOT_SNACK) {
-        Assets.draw(g, "honeybun", sx + 1, sy + 1);
-        count = inventory.snack;
-      } else if (i === SLOT_HAT && hatOwned) {
-        Assets.draw(g, "strawHat", sx + 1, sy + 1);
-        count = hatOn ? 1 : 0;
-      } else if (i === SLOT_SWORD && swordOwned) {
-        Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", sx + 1, sy + 1);
-        count = 1;
-      } else if (i === SLOT_SHOVEL && shovelOwned) {
-        Assets.draw(g, "shovel", sx + 1, sy + 1);
-        count = 1;
-      } else if (i === SLOT_AXE && axeOwned) {
-        Assets.draw(g, "axe", sx + 1, sy + 1);
-        count = 1;
-      } else if (i === SLOT_PICK && pickaxeOwned) {
-        Assets.draw(g, "pickaxe", sx + 1, sy + 1);
-        count = 1;
-      } else if (i === SLOT_BOW && bowOwned) {
-        Assets.draw(g, "bow", sx + 1, sy + 1);
-        count = 1;
-      } else if (i === SLOT_POLE && poleOwned) {
-        paintFishingPole(g, sx + 1, sy + 1);
-        count = 1;
-      } else if (fishKindBySlot(i)) {
-        paintFishIcon(g, sx + 1, sy + 1, fishKindBySlot(i).id);
-        count = bagCount(fishKindBySlot(i).id);
-      } else {
-        count = -1;
-      }
-      if (count >= 0) {
-        label = String(count);
-        drawSlotCount(g, label, sx, sy, slot);
-      }
+    var T = trayLayout();
+    var n, rec, sx, sy, sel;
+    woodPanel(g, T.bx - 3, T.by - 3, T.barW + 6, 24);
+    for (n = 0; n < TRAY_CELLS; n++) {
+      rec = trayCells[n];
+      sx = T.bx + n * (T.slot + T.gap);
+      sy = T.by;
+      sel = n === selectedSlot;
+      drawOneBagCell(g, rec, sx, sy, T.slot, sel, true, pocketHeldHere("tray", n, rec));
     }
+    woodPanel(g, T.bagX, T.bagY, T.bagW, T.bagH);
+    if (bagOpen) {
+      fill(g, T.bagX, T.bagY, T.bagW, 1, C.flower);
+      fill(g, T.bagX, T.bagY + T.bagH - 1, T.bagW, 1, C.flower);
+    }
+    drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + 8, C.parch);
 
     fill(g, 48, 13, 3, 1, C.parch);
     fill(g, 48, 14, 1, 1, C.parch);
@@ -11887,7 +12438,7 @@
 
   function drawFishNameChip(g) {
     var fk, label, tw, w, x, y;
-    fk = fishKindBySlot(selectedSlot);
+    fk = fishKindById(selectedKey());
     if (!fk) return;
     label = fk.name;
     tw = textWidth(label);
@@ -11899,7 +12450,7 @@
   }
 
   function showFenceBuildBtn() {
-    return selectedSlot === SLOT_WOOD && slotVisible(SLOT_WOOD);
+    return selectedIs("wood") && selectedHas("wood", 1);
   }
 
   function fenceBuildBtnRect() {
@@ -12119,6 +12670,7 @@
       drawDayTint(g);
     }
     drawHUD(g);
+    drawBag(g);
     drawDialogue(g);
     drawAchieveList(g);
     drawQuestPlaque(g);
@@ -12334,18 +12886,16 @@
   }
 
   function tapHud(p) {
-    var vis = visibleSlots();
-    var slots = vis.length;
-    var slot = 18;
-    var gap = 1;
-    var barW = slots * slot + (slots - 1) * gap;
-    var bx = ((VIEW_W - barW) / 2) | 0;
-    var by = VIEW_H - 22;
-    var idx, id;
+    var T = trayLayout();
+    var idx, key;
     var worldHud = { x: p.x + camX, y: p.y + camY };
     var hudTx = Math.floor(worldHud.x / TILE);
     var hudTy = Math.floor(worldHud.y / TILE);
     if (hudWorldDoor(hudTx, hudTy, worldHud)) return false;
+    if (hitPad(p.x, p.y, T.bagX, T.bagY, T.bagW, T.bagH, 4)) {
+      toggleBag();
+      return true;
+    }
     if (hitSwordBtn(p)) {
       startSwordSwing();
       return true;
@@ -12358,18 +12908,22 @@
         return true;
       }
     }
-    if (p.y >= by && p.y <= by + 18 && p.x >= bx && p.x <= bx + barW) {
-      idx = ((p.x - bx) / (slot + gap)) | 0;
-      if (idx >= 0 && idx < slots) {
-        id = vis[idx];
-        pickHotbarSlot(id);
+    if (p.y >= T.by && p.y <= T.by + T.slot && p.x >= T.bx && p.x <= T.bx + T.barW) {
+      idx = ((p.x - T.bx) / (T.slot + T.gap)) | 0;
+      if (idx >= 0 && idx < TRAY_CELLS) {
+        if (bagOpen) {
+          tapPocket("tray", idx);
+          return true;
+        }
+        pickHotbarSlot(idx);
         playSfx("ui");
-        if (id === SLOT_SNACK && (inventory.snack || 0) > 0) eatSnack();
-        if (id === SLOT_VEGGIE && (inventory.veggie || 0) > 0) eatCarrot();
-        if (id === SLOT_POTATO && (inventory.potato || 0) > 0) eatPotato();
-        if (id === SLOT_BERRY && (inventory.berry || 0) > 0) eatBerry();
-        if (id === SLOT_MUSH && (inventory.mushroom || 0) > 0) eatMushroom();
-        if (id === SLOT_HAT && hatOwned) {
+        key = selectedKey();
+        if (key === "snack") eatSnack();
+        if (key === "veggie") eatCarrot();
+        if (key === "potato") eatPotato();
+        if (key === "berry") eatBerry();
+        if (key === "mushroom") eatMushroom();
+        if (key === "hat" && hatOwned) {
           hatOn = !hatOn;
           persistSave();
         }
@@ -12379,6 +12933,7 @@
     if (inHud(p, 46, 3, 68, 18, 2)) return true;
     if (inHud(p, 4, 3, 18, 18, 3)) {
       playSfx("ui");
+      if (bagOpen) closeBag();
       achieveOpen = !achieveOpen;
       questOpen = false;
       achieveScroll = 0;
@@ -12387,6 +12942,7 @@
     }
     if (inHud(p, 24, 3, 18, 18, 3)) {
       playSfx("ui");
+      if (bagOpen) closeBag();
       questOpen = !questOpen;
       achieveOpen = false;
       return true;
@@ -12430,6 +12986,13 @@
     }
     if (chestOpen) {
       tapChest(p, e);
+      return;
+    }
+    if (bagOpen) {
+      bagPointer.x = p.x;
+      bagPointer.y = p.y;
+      if (tapHud(p)) return;
+      tapBagUi(p);
       return;
     }
 
@@ -12770,7 +13333,7 @@
       goPickCrop(tx, ty);
       return;
     }
-    if ((selectedSlot === SLOT_SEED || selectedSlot === SLOT_POTATO_SEED || selectedSlot === SLOT_BERRY_SEED) && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
+    if ((selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed")) && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
       goPlant(tx, ty);
       return;
     }
@@ -12778,16 +13341,16 @@
       tryFishTap(hitProp && hitProp.kind === "pond" ? hitProp : farmPondAt(tx, ty), tx, ty);
       return;
     }
-    if (selectedSlot === SLOT_SHOVEL && shovelOwned && canDigOn(tx, ty)) {
+    if (selectedIs("shovel") && shovelOwned && canDigOn(tx, ty)) {
       goDig(tx, ty);
       return;
     }
-    if (selectedSlot === SLOT_SHOVEL && currentScene === "overworld") {
+    if (selectedIs("shovel") && currentScene === "overworld") {
       highlight = { tx: tx, ty: ty };
       slotShake = 180;
       return;
     }
-    if (selectedSlot === SLOT_FLOWER && (inventory.flower || 0) > 0 && (cell(tx, ty) === "g" || cell(tx, ty) === "m")) {
+    if (selectedIs("flower") && selectedHas("flower", 1) && (cell(tx, ty) === "g" || cell(tx, ty) === "m")) {
       highlight = { tx: tx, ty: ty };
       if (isNear(player.tx, player.ty, tx, ty) || (player.tx === tx && player.ty === ty)) {
         tryPlantFlower(tx, ty);
@@ -12880,6 +13443,7 @@
   }
 
   paintLoading();
+  initFreshBag();
   loadSave();
   applyScene("overworld");
   applyRestore();
@@ -12938,6 +13502,15 @@
     unlockAudio();
     var mk, dismissKey, actionKey;
     if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    if (!e.repeat && bagOpen && (e.code === "Escape" || e.key === "Escape" || e.key === "Esc")) {
+      e.preventDefault();
+      closeBag();
+      return;
+    }
+    if (!e.repeat && bagOpen && (e.code === "Space" || e.key === " " || e.code === "Enter" || e.key === "Enter")) {
+      e.preventDefault();
+      return;
+    }
     dismissKey = e.code === "Escape" || e.code === "Space" || e.code === "Enter" ||
       e.key === "Escape" || e.key === "Esc" || e.key === " " || e.key === "Enter";
     if (!e.repeat && dismissKey) {
@@ -12960,14 +13533,19 @@
     var slotN = 0;
     if (e.code && e.code.indexOf("Digit") === 0) slotN = e.code.charAt(5) | 0;
     else if (e.code && e.code.indexOf("Numpad") === 0) slotN = e.code.charAt(6) | 0;
-    else if (e.key && e.key.length === 1 && e.key >= "1" && e.key <= "8") slotN = e.key | 0;
-    if (slotN >= 1 && slotN <= 8) {
+    else if (e.key && e.key.length === 1 && e.key >= "1" && e.key <= "9") slotN = e.key | 0;
+    if (e.code === "Digit0" || e.code === "Numpad0" || e.key === "0") slotN = 10;
+    if (slotN >= 1 && slotN <= 10) {
       e.preventDefault();
       if (!e.repeat) selectHotbarIndex(slotN - 1);
       return;
     }
     actionKey = e.code === "Space" || e.code === "KeyJ" || e.code === "KeyE" ||
       e.key === " " || e.key === "j" || e.key === "J" || e.key === "e" || e.key === "E";
+    if (bagOpen && !e.repeat && (e.code === "Space" || e.key === " ")) {
+      e.preventDefault();
+      return;
+    }
     if (!e.repeat && actionKey) {
       e.preventDefault();
       if (tryClimbShaft()) return;
@@ -13034,6 +13612,11 @@
   canvas.addEventListener("pointerdown", tap, { passive: true });
   canvas.addEventListener("pointermove", function (e) {
     var p, dy;
+    if (bagOpen) {
+      p = pointFromEvent(e);
+      bagPointer.x = p.x;
+      bagPointer.y = p.y;
+    }
     if (chestOpen && chestDrag) {
       if (chestDrag.id && e.pointerId !== chestDrag.id) return;
       p = pointFromEvent(e);
@@ -13133,8 +13716,13 @@
       setCell: setCell,
       builds: function () { return builds; },
       inventory: function () { return inventory; },
+      trayCells: function () { return trayCells; },
+      bagCells: function () { return bagCells; },
+      selectedKey: selectedKey,
+      BAG_CELLS: BAG_CELLS,
+      TRAY_CELLS: TRAY_CELLS,
       PATH_COST: PATH_COST,
-      equipPick: function () { pickaxeOwned = true; selectedSlot = SLOT_PICK; },
+      equipPick: function () { pickaxeOwned = true; giveTool("pick"); },
       breakPlayerPathAt: breakPlayerPathAt,
       playerPathAt: playerPathAt,
       trySmashFacing: trySmashFacing,
@@ -13164,7 +13752,16 @@
       selectedSmeltOre: selectedSmeltOre,
       SLOT_COPPER: SLOT_COPPER,
       SLOT_WOOD: SLOT_WOOD,
-      selectSlot: function (id) { selectedSlot = id; if (id !== SLOT_WOOD) setFenceBuildOn(false); },
+      selectSlot: function (id) {
+        var key = keyFromOldSlot(id);
+        if (key) {
+          selectTool(key);
+          if (key !== "wood") setFenceBuildOn(false);
+          return;
+        }
+        if (id >= 0 && id < TRAY_CELLS) selectedSlot = id;
+        if (!selectedIs("wood")) setFenceBuildOn(false);
+      },
       selectedSlot: function () { return selectedSlot; },
       fenceBuildOn: function () { return fenceBuildOn; },
       setFenceBuildOn: setFenceBuildOn,
@@ -13282,7 +13879,7 @@
       dismissUnlock: dismissUnlock,
       dismissTopDialog: dismissTopDialog,
       poleOwned: function () { return poleOwned; },
-      setPoleOwned: function (v) { poleOwned = !!v; if (poleOwned) selectedSlot = SLOT_POLE; },
+      setPoleOwned: function (v) { poleOwned = !!v; if (poleOwned) giveTool("pole"); },
       SLOT_POLE: SLOT_POLE,
       fishing: function () { return fishing; },
       beginFishing: beginFishing,

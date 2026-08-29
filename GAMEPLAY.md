@@ -56,7 +56,7 @@ Fuel stacks. Tools unlock once. Errands convert. Wonders stay in the world.
 - **Copper** drops stop after Pip’s lantern. Slot hides when that job is done.
 - **Gem, sapphire, mountain heart** are finds / table trophies, not gold.
 - **Gold loop:** grow carrots → Junie pays 10G. Pip **sells** (buns, seeds, flowers, hat, kits, fishing pole). Pip does **not** buy carrots or buns.
-- **Hotbar is verbs:** seed always. Stack items (wood, stone, iron, carrot, flower, bun, copper, mushroom, shard, fish) only while the bag count is above 0. Tools/hat/bow/pole only when owned. Copper hides after Pip’s job. Shard hides once it is home.
+- **Tray + bag:** 10 extra tray slots (always on screen) plus a 15x6 bag of 90 storage cells (100 total). Use/eat/plant/tools from the selected tray slot only. Move stacks between tray and bag in the BAG panel. Pickup fills a tray stack with room, then a bag stack with room, then an empty tray slot, then an empty bag slot.
 
 ## Fishing
 
@@ -74,7 +74,8 @@ Not endless. Pockets are a work outing; the house chest is the warehouse. Ground
 
 | Place | Cap per kind | Role |
 |---|---|---|
-| Bag (pockets) | 150 | What Orion carries on the farm and in the mine |
+| Tray (10 extra slots) | 150 / stack | Always-on hotbar. What you use. |
+| Bag (15x6 = 90 cells) | 150 / stack | Storage. Open BAG to move in/out of the tray |
 | House chest | 500 | Home warehouse. Same UI later for shop crates / mine lockers, each with its own cap |
 | Crop stacks (carrot, potato, berry) | 1000 | Bag and chest. Darren 8/29: hold up to 1000 carrots. Wood/ore stay 150/500 |
 | Ground loot | until picked | Overflow that did not fit the bag |
