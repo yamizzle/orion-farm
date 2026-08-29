@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260828f";
+  var BUILD = "20260829a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -389,6 +389,7 @@
   var lootSeq = 1;
   var LOOT_POP_MS = 280;
   var selectedSlot = 0;
+  var fenceBuildOn = false;
   var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, copperBar: 0, silverBar: 0, goldBar: 0 };
   var slotShake = 0;
   var SLOT_SEED = 0;
@@ -4614,8 +4615,39 @@
     }
   }
 
+  function placingFenceNow() {
+    return selectedSlot === SLOT_WOOD && fenceBuildOn;
+  }
+
+  function setFenceBuildOn(on) {
+    fenceBuildOn = !!(on && selectedSlot === SLOT_WOOD && slotVisible(SLOT_WOOD));
+    if (!fenceBuildOn && pending && pending.type === "build" && selectedSlot === SLOT_WOOD) {
+      pending = null;
+    }
+  }
+
+  function toggleFenceBuild() {
+    if (selectedSlot !== SLOT_WOOD || !slotVisible(SLOT_WOOD)) {
+      setFenceBuildOn(false);
+      return false;
+    }
+    setFenceBuildOn(!fenceBuildOn);
+    if (fenceBuildOn) showLineNote("TAP A TILE TO BUILD");
+    else showLineNote("WALKING");
+    return fenceBuildOn;
+  }
+
+  function pickHotbarSlot(id) {
+    if (id === SLOT_WOOD && selectedSlot === SLOT_WOOD) {
+      toggleFenceBuild();
+      return;
+    }
+    selectedSlot = id;
+    setFenceBuildOn(false);
+  }
+
   function tryBuild(tx, ty) {
-    var placingFence = selectedSlot === SLOT_WOOD;
+    var placingFence = placingFenceNow();
     var placingPath = selectedSlot === SLOT_STONE;
     if (!placingFence && !placingPath) return false;
     if (!canBuildOn(tx, ty)) return false;
@@ -9488,6 +9520,20 @@
     startWalk(player, path, 3.5);
   }
 
+  function tryPlaceOrWalk(tx, ty) {
+    var placingNow = placingFenceNow() || selectedSlot === SLOT_STONE;
+    if (placingNow && canBuildOn(tx, ty)) {
+      goBuild(tx, ty);
+      return "build";
+    }
+    if (placingNow && currentScene === "overworld") {
+      highlight = { tx: tx, ty: ty };
+      slotShake = 180;
+      return "shake";
+    }
+    return "";
+  }
+
   function goWalk(tx, ty) {
     pending = null;
     if (tx < 0) tx = 0;
@@ -9639,7 +9685,7 @@
   }
 
   function goBuild(tx, ty) {
-    var placingFence = selectedSlot === SLOT_WOOD;
+    var placingFence = placingFenceNow();
     var ghost = placingFence ? fenceKindFor(tx, ty) : "path";
     highlight = { tx: tx, ty: ty, ghost: ghost };
     if (!canBuildOn(tx, ty)) return;
@@ -11053,13 +11099,16 @@
   }
 
   function ensureSelectedSlot() {
-    if (!slotVisible(selectedSlot)) selectedSlot = SLOT_SEED;
+    if (!slotVisible(selectedSlot)) {
+      selectedSlot = SLOT_SEED;
+      setFenceBuildOn(false);
+    }
   }
 
   function selectHotbarIndex(n) {
     var vis = visibleSlots();
     if (n < 0 || n >= vis.length) return false;
-    selectedSlot = vis[n];
+    pickHotbarSlot(vis[n]);
     playSfx("ui");
     return true;
   }
@@ -11141,6 +11190,12 @@
       if (sel) {
         fill(g, sx, sy, slot, 1, C.parch);
         fill(g, sx, sy, 1, slot, C.parch);
+      }
+      if (i === SLOT_WOOD && fenceBuildOn) {
+        fill(g, sx, sy, slot, 1, C.flower);
+        fill(g, sx, sy + slot - 1, slot, 1, C.flower);
+        fill(g, sx, sy, 1, slot, C.flower);
+        fill(g, sx + slot - 1, sy, 1, slot, C.flower);
       }
       if (i === SLOT_SEED) {
         Assets.draw(g, "seed", sx + 1, sy + 1);
@@ -11239,6 +11294,31 @@
       fill(g, 53, 15, filled, 2, energy <= 15 ? "#C8B03C" : C.energy);
     }
     drawSwordBtn(g);
+    drawFenceBuildBtn(g);
+  }
+
+  function showFenceBuildBtn() {
+    return selectedSlot === SLOT_WOOD && slotVisible(SLOT_WOOD);
+  }
+
+  function fenceBuildBtnRect() {
+    var tw = textWidth("BUILD");
+    var w = tw + 12;
+    return { x: ((VIEW_W - w) / 2) | 0, y: VIEW_H - 39, w: w, h: 13, tw: tw };
+  }
+
+  function drawFenceBuildBtn(g) {
+    var r;
+    if (!showFenceBuildBtn()) return;
+    r = fenceBuildBtnRect();
+    woodPanel(g, r.x, r.y, r.w, r.h);
+    if (fenceBuildOn) {
+      fill(g, r.x, r.y, r.w, 1, C.flower);
+      fill(g, r.x, r.y + r.h - 1, r.w, 1, C.flower);
+      fill(g, r.x, r.y, 1, r.h, C.flower);
+      fill(g, r.x + r.w - 1, r.y, 1, r.h, C.flower);
+    }
+    drawText(g, "BUILD", r.x + 6, r.y + 3, fenceBuildOn ? C.parch : C.uiText);
   }
 
 
@@ -11665,11 +11745,19 @@
       startSwordSwing();
       return true;
     }
+    if (showFenceBuildBtn()) {
+      var br = fenceBuildBtnRect();
+      if (inHud(p, br.x, br.y, br.w, br.h, 0)) {
+        toggleFenceBuild();
+        playSfx("ui");
+        return true;
+      }
+    }
     if (p.y >= by && p.y <= by + 18 && p.x >= bx && p.x <= bx + barW) {
       idx = ((p.x - bx) / (slot + gap)) | 0;
       if (idx >= 0 && idx < slots) {
         id = vis[idx];
-        selectedSlot = id;
+        pickHotbarSlot(id);
         playSfx("ui");
         if (id === SLOT_SNACK && (inventory.snack || 0) > 0) eatSnack();
         if (id === SLOT_VEGGIE && (inventory.veggie || 0) > 0) eatCarrot();
@@ -12095,15 +12183,7 @@
       }
       return;
     }
-    if ((selectedSlot === SLOT_WOOD || selectedSlot === SLOT_STONE) && canBuildOn(tx, ty)) {
-      goBuild(tx, ty);
-      return;
-    }
-    if ((selectedSlot === SLOT_WOOD || selectedSlot === SLOT_STONE) && currentScene === "overworld") {
-      highlight = { tx: tx, ty: ty };
-      slotShake = 180;
-      return;
-    }
+    if (tryPlaceOrWalk(tx, ty)) return;
     if (swordEquipped() && (isNear(player.tx, player.ty, tx, ty) || (player.tx === tx && player.ty === ty))) {
       if (currentScene === "mine" || currentScene === "overworld") {
         swingAtFacing();
@@ -12443,8 +12523,20 @@
       selectedSmeltOre: selectedSmeltOre,
       SLOT_COPPER: SLOT_COPPER,
       SLOT_WOOD: SLOT_WOOD,
-      selectSlot: function (id) { selectedSlot = id; },
+      selectSlot: function (id) { selectedSlot = id; if (id !== SLOT_WOOD) setFenceBuildOn(false); },
       selectedSlot: function () { return selectedSlot; },
+      fenceBuildOn: function () { return fenceBuildOn; },
+      setFenceBuildOn: setFenceBuildOn,
+      toggleFenceBuild: toggleFenceBuild,
+      placingFenceNow: placingFenceNow,
+      tryPlaceOrWalk: tryPlaceOrWalk,
+      goBuild: goBuild,
+      goWalk: goWalk,
+      tryBuild: tryBuild,
+      canBuildOn: canBuildOn,
+      fenceBuildBtnRect: fenceBuildBtnRect,
+      showFenceBuildBtn: showFenceBuildBtn,
+      FENCE_COST: FENCE_COST,
       energy: function () { return energy; },
       setEnergy: function (n) { energy = n; },
       MAX_ENERGY: MAX_ENERGY,
