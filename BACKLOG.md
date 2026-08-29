@@ -340,6 +340,10 @@ Highest-leverage theme: 20260829d live (Jobs stamp PASS). Door one-tap FIXED aga
 - House (smelt / Z's / windows) **UNTESTED**.
 - No NEW/WORSE vs 8pm baseline.
 
+## Local 8/29 (BUILD 20260829e)
+
+- Fishing line from pole to bobber is a solid 2px dark-brown stroke with a 1px cream rim (was 9 dotted 1px water-foam pixels that vanished on the pond). Cast/wait/reel unchanged.
+
 ## Local 8/29 (BUILD 20260829d)
 
 - Pip sells a FISHING POLE (30G, one-time). Select it, stand next to a farm pond, tap the water or Space/E. Cast, wait, reel. Random miss or a named fish (minnow through starfin). Tap elsewhere cancels. Town fountain not fishable. Jobs BUILD line and fence BUILD chip unchanged.
