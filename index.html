@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260828e";
+  var BUILD = "20260828f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -487,8 +487,10 @@
   var TREETOP_COLS = 40;
   var TREETOP_ROWS = 30;
   var treetopDoor = { tx: 25, ty: 8 };
-  var treetopLand = { tx: 20, ty: 22 };
-  var treetopExit = { tx: 20, ty: 23 };
+  var treetopLand = { tx: 20, ty: 21 };
+  var treetopExit = { tx: 17, ty: 21 };
+  var treetopSouth = { tx: 20, ty: 28 };
+  var treetopSouthLand = { tx: 25, ty: 12 };
   var giantTreeLand = { tx: 25, ty: 10 };
   var TREE_COLS = 10;
   var TREE_ROWS = 8;
@@ -2147,6 +2149,10 @@
     return currentScene === "treetop" && tx === treetopExit.tx && ty === treetopExit.ty;
   }
 
+  function isTreetopSouthExit(tx, ty) {
+    return currentScene === "treetop" && ty >= 28 && tx >= 19 && tx <= 20;
+  }
+
   function treeDownSpot() {
     if (currentScene !== "tree") return null;
     if (treeFloor === 1) return { tx: 5, ty: 6 };
@@ -2252,6 +2258,26 @@
     startWalk(player, path, 3.5);
   }
 
+  function exitTreetopSouth() {
+    applyScene("forest");
+    /* A bit south of the giant trunk (door 25,8 / climb-down 25,10)
+       so a casual north tap does not instantly re-enter. */
+    placePlayer(treetopSouthLand.tx, treetopSouthLand.ty, "down");
+    persistSave();
+  }
+
+  function goExitTreetopSouth() {
+    highlight = { tx: treetopSouth.tx, ty: treetopSouth.ty };
+    if (isTreetopSouthExit(player.tx, player.ty)) {
+      exitTreetopSouth();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, treetopSouth.tx, treetopSouth.ty);
+    if (!path.length) return;
+    pending = { type: "exitTreetopSouth" };
+    startWalk(player, path, 3.5);
+  }
+
   function goTreeShaft(up) {
     var d = up ? treeUpSpot() : treeDownSpot();
     if (!d) return;
@@ -2269,85 +2295,72 @@
 
   function buildTreetopGround() {
     var cols = TREETOP_COLS, rows = TREETOP_ROWS;
-    var g = [], y, x, row;
+    var g = [], y, x, row, ch;
+    /* Painted canopy (canopyMap): walk only the wood/leaf paths.
+       Conservative — sky, empty air, and off-branch foliage stay solid. */
+    var walk = [
+      "........................................",
+      "........................................",
+      "..................ffff..................",
+      "..................fllf..................",
+      ".................ffff...................",
+      "..................fff...................",
+      "...................f....................",
+      "...................f....................",
+      "..................fff...................",
+      "...................ff...................",
+      "...................ff...........fffff...",
+      "..................ff...........fffff....",
+      ".......f..........f...........ffff......",
+      "......ff..........f..........ffff.......",
+      ".....flf..........ff........ff..........",
+      "......ffffff.......ff......fff..........",
+      "........fffff......ff.....fff...........",
+      "...........fff.....ff....fff............",
+      ".............ff...ff.....ff.............",
+      "..............ffffff.....f..............",
+      "................fffff....f..............",
+      "................fflllfffff..............",
+      "...............fffllfff.................",
+      "...............fffffff..................",
+      "................fffffff.................",
+      "..................ffff..................",
+      "..................fff...................",
+      "...................ff...................",
+      "...................ff...................",
+      "...................ff..................."
+    ];
     for (y = 0; y < rows; y++) {
       row = [];
-      for (x = 0; x < cols; x++) row[x] = "y";
+      for (x = 0; x < cols; x++) {
+        ch = (walk[y] && walk[y].charAt(x)) || ".";
+        row[x] = (ch === "f" || ch === "l") ? ch : "y";
+      }
       g[y] = row;
     }
-    function set(tx, ty, ch) {
-      if (tx >= 0 && ty >= 0 && tx < cols && ty < rows) g[ty][tx] = ch;
-    }
-    function rect(x0, y0, x1, y1, ch) {
-      var xx, yy;
-      for (yy = y0; yy <= y1; yy++) {
-        for (xx = x0; xx <= x1; xx++) set(xx, yy, ch);
-      }
-    }
-    /* Canopy walk: branching wood among leaves, sky showing through. */
-    /* South trunk-top clearing (arrive / DOWN). */
-    rect(16, 20, 24, 25, "f");
-    rect(17, 21, 23, 24, "l");
-    /* North spine into the high canopy. */
-    rect(19, 8, 21, 20, "f");
-    rect(17, 12, 23, 16, "l");
-    /* North view perch. */
-    rect(16, 3, 24, 8, "f");
-    rect(17, 4, 23, 7, "l");
-    set(15, 5, "f"); set(25, 5, "f");
-    set(20, 2, "f");
-    /* West nest branch. */
-    rect(5, 14, 19, 16, "f");
-    rect(6, 13, 12, 17, "l");
-    rect(3, 13, 6, 17, "f");
-    set(2, 15, "f");
-    /* East view branch. */
-    rect(21, 11, 35, 13, "f");
-    rect(26, 10, 32, 14, "l");
-    rect(33, 9, 37, 15, "f");
-    set(38, 12, "f");
-    set(35, 8, "f"); set(36, 8, "f");
-    /* Northeast spur. */
-    rect(24, 6, 29, 11, "f");
-    rect(25, 7, 28, 10, "l");
-    /* Southwest spur. */
-    rect(9, 21, 16, 23, "f");
-    rect(10, 20, 14, 24, "l");
-    set(8, 23, "f"); set(8, 24, "f");
-    /* Southeast spur. */
-    rect(24, 21, 30, 23, "f");
-    rect(26, 20, 29, 24, "l");
-    /* Northwest high branch. */
-    rect(8, 7, 18, 9, "f");
-    rect(10, 6, 14, 10, "l");
-    set(9, 6, "f");
-    /* Sky gaps so the canopy is not a solid carpet. */
-    set(17, 12, "y"); set(23, 16, "y");
-    set(18, 14, "y");
-    set(16, 3, "y"); set(24, 3, "y");
-    set(27, 10, "y");
     return g;
   }
 
   function buildTreetopProps() {
     return [
-      { kind: "woodsDown", tx: 20, ty: 23 },
-      { kind: "lantern", tx: 23, ty: 20 },
-      { kind: "berryBush", tx: 16, ty: 25 },
+      { kind: "woodsDown", tx: 17, ty: 21 },
+      { kind: "woodsSign", tx: 20, ty: 28 },
+      { kind: "lantern", tx: 16, ty: 20 },
+      { kind: "berryBush", tx: 16, ty: 24 },
       { kind: "nest", tx: 7, ty: 14, eggs: true },
-      { kind: "nest", tx: 27, ty: 8 },
-      { kind: "wildflower", tx: 36, ty: 12 },
+      { kind: "nest", tx: 32, ty: 12 },
+      { kind: "wildflower", tx: 35, ty: 10 },
       { kind: "silver", tx: 20, ty: 4 },
-      { kind: "toadstool", tx: 28, ty: 22 },
-      { kind: "wildflower", tx: 11, ty: 7 },
-      { kind: "canopySpan", tx: 26, ty: 12 },
+      { kind: "toadstool", tx: 27, ty: 16 },
+      { kind: "wildflower", tx: 10, ty: 16 },
+      { kind: "canopySpan", tx: 26, ty: 16 },
       { kind: "canopySpan", tx: 10, ty: 15 },
       { kind: "canopyClump", tx: 6, ty: 14 },
-      { kind: "canopyClump", tx: 30, ty: 11 },
-      { kind: "canopyClump", tx: 18, ty: 6 },
-      { kind: "canopyHang", tx: 19, ty: 21 },
-      { kind: "canopyHang", tx: 23, ty: 14 },
-      { kind: "canopyHang", tx: 15, ty: 8 }
+      { kind: "canopyClump", tx: 33, ty: 11 },
+      { kind: "canopyClump", tx: 19, ty: 3 },
+      { kind: "canopyHang", tx: 19, ty: 22 },
+      { kind: "canopyHang", tx: 28, ty: 15 },
+      { kind: "canopyHang", tx: 18, ty: 8 }
     ];
   }
 
@@ -4677,6 +4690,7 @@
     if (holeHit(tx, ty, world)) return true;
     if (isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || houseDoorHit(tx, ty, world)) return true;
     if (isForestEntrance(tx, ty) || isForestExit(tx, ty)) return true;
+    if (isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty)) return true;
     return false;
   }
 
@@ -4713,7 +4727,7 @@
 
   function isPathDoor(tx, ty) {
     return isForestEntrance(tx, ty) || isForestExit(tx, ty) ||
-      isTreetopEntrance(tx, ty) || isTreetopExit(tx, ty) ||
+      isTreetopEntrance(tx, ty) || isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty) ||
       isTreeDown(tx, ty) || isTreeUp(tx, ty) ||
       isMineEntrance(tx, ty) || isMineExit(tx, ty) ||
       isMineDown(tx, ty) || isMineUp(tx, ty);
@@ -9234,6 +9248,11 @@
       exitTreetop();
       return;
     }
+    if (isTreetopSouthExit(player.tx, player.ty)) {
+      pending = null;
+      exitTreetopSouth();
+      return;
+    }
     tryPickupHere();
     if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && standingOnHouseChest()) {
       pending = null;
@@ -9351,6 +9370,8 @@
       enterTree();
     } else if (act.type === "exitTreetop") {
       exitTreetop();
+    } else if (act.type === "exitTreetopSouth") {
+      exitTreetopSouth();
     } else if (act.type === "treeUp") {
       climbTree();
     } else if (act.type === "treeDown") {
@@ -11838,7 +11859,7 @@
       goEnter();
       return;
     }
-    if (isForestEntrance(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsSign")) {
+    if (currentScene === "overworld" && (isForestEntrance(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsSign"))) {
       goEnterForest();
       return;
     }
@@ -11860,6 +11881,10 @@
     }
     if (shopDoorHit(tx, ty, world) || isShopEntrance(tx, ty)) {
       goEnterShop();
+      return;
+    }
+    if (currentScene === "treetop" && (isTreetopSouthExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsSign"))) {
+      goExitTreetopSouth();
       return;
     }
     if (currentScene === "treetop" && (isTreetopExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsDown"))) {
@@ -11901,6 +11926,10 @@
     }
     if (isForestExit(tx, ty)) {
       goExitForest();
+      return;
+    }
+    if (currentScene === "treetop" && (isTreetopSouthExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsSign"))) {
+      goExitTreetopSouth();
       return;
     }
     if (currentScene === "treetop" && (isTreetopExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsDown"))) {
@@ -12251,6 +12280,10 @@
         exitTreetop();
         return;
       }
+      if (isTreetopSouthExit(player.tx, player.ty)) {
+        exitTreetopSouth();
+        return;
+      }
       if (trySmeltHere()) return;
       if (tryPickupHere()) return;
       if (tryPickupFacing()) return;
@@ -12436,6 +12469,8 @@
       treetopDoor: treetopDoor,
       treetopLand: treetopLand,
       treetopExit: treetopExit,
+      treetopSouth: treetopSouth,
+      treetopSouthLand: treetopSouthLand,
       giantTreeLand: giantTreeLand,
       TREE_COLS: TREE_COLS,
       TREE_ROWS: TREE_ROWS,
@@ -12455,6 +12490,7 @@
       isForestExit: isForestExit,
       isTreetopEntrance: isTreetopEntrance,
       isTreetopExit: isTreetopExit,
+      isTreetopSouthExit: isTreetopSouthExit,
       enterForest: enterForest,
       exitForest: exitForest,
       enterTree: enterTree,
@@ -12464,6 +12500,7 @@
       descendTree: descendTree,
       enterTreetop: enterTreetop,
       exitTreetop: exitTreetop,
+      exitTreetopSouth: exitTreetopSouth,
       wantedTune: wantedTune,
       applyScene: applyScene,
       placePlayer: placePlayer,
