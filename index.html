@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829a";
+  var BUILD = "20260829b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3475,7 +3475,7 @@
     }
     camX = Math.round(Math.max(minX, Math.min(maxX, targetX)));
     camY = Math.round(Math.max(minY, Math.min(maxY, targetY)));
-    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree") {
+    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
         if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") {
@@ -4743,7 +4743,7 @@
     }
     f = facingTile();
     if (isMineExit(f.tx, f.ty) || mineExitHit(f.tx, f.ty, null)) {
-      goExit();
+      exitMine();
       return true;
     }
     if (isMineDown(f.tx, f.ty)) {
@@ -9561,14 +9561,11 @@
 
   function goExit() {
     highlight = { tx: portalOut.tx, ty: portalOut.ty };
-    if (player.tx === portalOut.tx && player.ty === portalOut.ty) {
+    /* One tap / Space on MINE 1 OUT leaves now. Walking onto the tile still
+       exits via arrive(); do not pathfind — that was the multi-tap bug. */
+    if (currentScene === "mine" && mineFloor === 1) {
       exitMine();
-      return;
     }
-    var path = findPath(player.tx, player.ty, portalOut.tx, portalOut.ty);
-    if (!path.length) return;
-    pending = { type: "exit" };
-    startWalk(player, path, 3.5);
   }
 
   function goMineShaft(down) {
@@ -11905,7 +11902,7 @@
         return;
       }
       if (isMineExit(tx, ty) || mineExitHit(tx, ty, world) || (hitHoleEarly && hitHoleEarly.kind === "ladder" && mineFloor === 1)) {
-        goExit();
+        exitMine();
         return;
       }
       var mi, monHit;
@@ -12001,7 +11998,7 @@
       return;
     }
     if (isMineExit(tx, ty) || mineExitHit(tx, ty, world) || (hitHole && hitHole.kind === "ladder" && mineFloor === 1)) {
-      goExit();
+      exitMine();
       return;
     }
     if (isHouseExit(tx, ty) || (currentScene === "house" && tx === houseOut.tx && ty === houseOut.ty + 1)) {
@@ -12483,6 +12480,15 @@
       tryClimbShaft: tryClimbShaft,
       portalOut: portalOut,
       goExit: goExit,
+      exitMine: exitMine,
+      enterMineFloor: enterMineFloor,
+      goMineShaft: goMineShaft,
+      holeHit: holeHit,
+      facingTile: facingTile,
+      isMineDown: isMineDown,
+      isMineUp: isMineUp,
+      mineFloor: function () { return mineFloor; },
+      arrive: arrive,
       goEnterHouse: goEnterHouse,
       exitHouse: exitHouse,
       enterHouse: enterHouse,
