@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829c";
+  var BUILD = "20260829d";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -390,7 +390,7 @@
   var LOOT_POP_MS = 280;
   var selectedSlot = 0;
   var fenceBuildOn = false;
-  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, copperBar: 0, silverBar: 0, goldBar: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0 };
   var slotShake = 0;
   var SLOT_SEED = 0;
   var SLOT_WOOD = 1;
@@ -417,10 +417,21 @@
   var SLOT_COPPER_BAR = 22;
   var SLOT_SILVER_BAR = 23;
   var SLOT_GOLD_BAR = 24;
-  var HUD_SLOTS = 22;
+  var SLOT_POLE = 25;
+  var SLOT_MINNOW = 26;
+  var SLOT_BLUEGILL = 27;
+  var SLOT_PERCH = 28;
+  var SLOT_CATFISH = 29;
+  var SLOT_TROUT = 30;
+  var SLOT_BASS = 31;
+  var SLOT_GOLDEN_CARP = 32;
+  var SLOT_MOONFISH = 33;
+  var SLOT_STARFIN = 34;
+  var HUD_SLOTS = 34;
   var SLOT_ORDER = [
     SLOT_SEED, SLOT_POTATO_SEED, SLOT_BERRY_SEED, SLOT_WOOD, SLOT_STONE, SLOT_IRON, SLOT_COPPER, SLOT_SILVER, SLOT_GOLDORE, SLOT_COPPER_BAR, SLOT_SILVER_BAR, SLOT_GOLD_BAR, SLOT_MUSH, SLOT_MOON,
-    SLOT_VEGGIE, SLOT_POTATO, SLOT_BERRY, SLOT_FLOWER, SLOT_SNACK, SLOT_HAT, SLOT_SWORD, SLOT_BOW, SLOT_SHOVEL, SLOT_AXE, SLOT_PICK
+    SLOT_VEGGIE, SLOT_POTATO, SLOT_BERRY, SLOT_FLOWER, SLOT_SNACK, SLOT_HAT, SLOT_SWORD, SLOT_BOW, SLOT_SHOVEL, SLOT_AXE, SLOT_PICK, SLOT_POLE,
+    SLOT_MINNOW, SLOT_BLUEGILL, SLOT_PERCH, SLOT_CATFISH, SLOT_TROUT, SLOT_BASS, SLOT_GOLDEN_CARP, SLOT_MOONFISH, SLOT_STARFIN
   ];
   var MAX_HP = 50;
   var HEARTS = 5;
@@ -432,6 +443,20 @@
   var tiredSpawn = 0;
   var ENERGY_HIT = 1;
   var ENERGY_SWING = 1;
+  var ENERGY_CAST = 2;
+  var FISH_MISS = 0.28;
+  var FISH_KINDS = [
+    { id: "minnow", name: "MINNOW", weight: 19, slot: SLOT_MINNOW, hue: "silver" },
+    { id: "bluegill", name: "BLUEGILL", weight: 18, slot: SLOT_BLUEGILL, hue: "blue" },
+    { id: "perch", name: "PERCH", weight: 18, slot: SLOT_PERCH, hue: "olive" },
+    { id: "catfish", name: "CATFISH", weight: 10, slot: SLOT_CATFISH, hue: "brown" },
+    { id: "trout", name: "TROUT", weight: 10, slot: SLOT_TROUT, hue: "pink" },
+    { id: "bass", name: "BASS", weight: 10, slot: SLOT_BASS, hue: "green" },
+    { id: "goldenCarp", name: "GOLDEN CARP", weight: 6, slot: SLOT_GOLDEN_CARP, hue: "gold" },
+    { id: "moonfish", name: "MOONFISH", weight: 6, slot: SLOT_MOONFISH, hue: "moon" },
+    { id: "starfin", name: "STARFIN", weight: 3, slot: SLOT_STARFIN, hue: "star" }
+  ];
+  var fishing = null;
   var SWING_MS = 300;
   var SWING_HIT_AT = 0.05;
   var ENERGY_WALK_TILES = 0;
@@ -564,6 +589,7 @@
   var swordOwned = false;
   var axeOwned = false;
   var shovelOwned = false;
+  var poleOwned = false;
   var pickaxeOwned = false;
   var shieldOwned = false;
   var ironSwordOwned = false;
@@ -574,7 +600,7 @@
   var BAG_STACK = 150;
   var CHEST_STACK = 500;
   var CROP_STACK = 1000;
-  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, copperBar: 0, silverBar: 0, goldBar: 0 };
+  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0 };
   var chestOpen = false;
   var chestSel = 0;
   var chestMsg = "";
@@ -597,7 +623,16 @@
     { key: "silverBar", name: "AG BAR", icon: "silverBar" },
     { key: "goldBar", name: "AU BAR", icon: "goldBar" },
     { key: "potato", name: "POTATO", icon: "potato" },
-    { key: "berry", name: "BERRY", icon: "berry" }
+    { key: "berry", name: "BERRY", icon: "berry" },
+    { key: "minnow", name: "MINNOW", icon: "minnow" },
+    { key: "bluegill", name: "BLUEGILL", icon: "bluegill" },
+    { key: "perch", name: "PERCH", icon: "perch" },
+    { key: "catfish", name: "CATFISH", icon: "catfish" },
+    { key: "trout", name: "TROUT", icon: "trout" },
+    { key: "bass", name: "BASS", icon: "bass" },
+    { key: "goldenCarp", name: "GOLDEN CARP", icon: "goldenCarp" },
+    { key: "moonfish", name: "MOONFISH", icon: "moonfish" },
+    { key: "starfin", name: "STARFIN", icon: "starfin" }
   ];
   var shieldSkip = false;
   var arrows = [];
@@ -946,6 +981,16 @@
     } else if (kind === "eat") {
       playPulse(620, 0.06, 0.08, audioSfx, t);
       playTri(740, 0.08, 0.06, audioSfx, t + 0.05);
+    } else if (kind === "cast") {
+      playNoise(0.06, 0.22, 1800, t);
+      playPulse(380, 0.07, 0.12, audioSfx, t);
+    } else if (kind === "splash") {
+      playNoise(0.12, 0.48, 420, t, audioSfx, "lowpass");
+      playPulse(180, 0.08, 0.14, audioSfx, t);
+      playNoise(0.07, 0.22, 900, t + 0.05, audioSfx);
+    } else if (kind === "nibble") {
+      playPulse(520, 0.04, 0.12, audioSfx, t);
+      playTri(240, 0.06, 0.10, audioSfx, t + 0.03);
     } else if (kind === "toast") {
       playPulse(midiHz(67), 0.07, 0.08, audioSfx, t);
       playPulse(midiHz(71), 0.07, 0.08, audioSfx, t + 0.08);
@@ -1097,7 +1142,8 @@
     { id: "snack", name: "HONEY BUN", price: 6, icon: "honeybun" },
     { id: "hat", name: "STRAW HAT", price: 25, icon: "strawHat" },
     { id: "fence", name: "FENCE KIT", price: 12, icon: "wood" },
-    { id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" }
+    { id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" },
+    { id: "pole", name: "FISHING POLE", price: 30, icon: "fishingPole" }
   ];
 
   function hash(x, y, s) {
@@ -1999,6 +2045,7 @@
     var fresh, key, cached;
     if (currentScene === "mine") monsterCache[mineFloor] = monsters;
     saveScene();
+    if (name !== currentScene) cancelFishing();
     if (name === "mine") mineFloor = floor ? clampMineFloor(floor) : clampMineFloor(mineFloor);
     if (name === "tree") treeFloor = floor ? clampTreeFloor(floor) : clampTreeFloor(treeFloor);
     currentScene = name;
@@ -2843,7 +2890,77 @@
     if (id === "copperBar") { paintCopperBar(g, x, y); return; }
     if (id === "silverBar") { paintSilverBar(g, x, y); return; }
     if (id === "goldBar") { paintGoldBar(g, x, y); return; }
+    if (id === "fishingPole") { paintFishingPole(g, x, y); return; }
+    if (fishKindById(id)) { paintFishIcon(g, x, y, id); return; }
     if (Assets.spr[id]) Assets.draw(g, id, x, y);
+  }
+
+  function fishKindById(id) {
+    var i;
+    for (i = 0; i < FISH_KINDS.length; i++) {
+      if (FISH_KINDS[i].id === id) return FISH_KINDS[i];
+    }
+    return null;
+  }
+
+  function fishKindBySlot(slot) {
+    var i;
+    for (i = 0; i < FISH_KINDS.length; i++) {
+      if (FISH_KINDS[i].slot === slot) return FISH_KINDS[i];
+    }
+    return null;
+  }
+
+  function paintFishingPole(g, x, y) {
+    fill(g, x + 3, y + 12, 4, 2, "#6D4427");
+    fill(g, x + 4, y + 11, 3, 2, "#C47A38");
+    fill(g, x + 6, y + 4, 2, 9, "#E8B060");
+    fill(g, x + 7, y + 2, 2, 4, "#C47A38");
+    px(g, x + 8, y + 1, "#3D1A0C");
+    fill(g, x + 8, y + 8, 3, 3, "#8B5A28");
+    px(g, x + 9, y + 9, "#F3D2A3");
+    px(g, x + 11, y + 6, "#A8D4E8");
+    px(g, x + 12, y + 5, "#A8D4E8");
+    px(g, x + 13, y + 7, "#C45A38");
+  }
+
+  function paintFishIcon(g, x, y, id) {
+    var body, belly, fin, eye;
+    body = "#8A8A7A";
+    belly = "#D8D0C0";
+    fin = "#5A5A4E";
+    eye = "#3A2210";
+    if (id === "minnow") { body = "#C8C8D4"; belly = "#F0F0F8"; fin = "#8A8A7A"; }
+    else if (id === "bluegill") { body = "#3A7AB0"; belly = "#A8D4E8"; fin = "#2E6A96"; }
+    else if (id === "perch") { body = "#C4A060"; belly = "#E8D090"; fin = "#6D4427"; }
+    else if (id === "catfish") { body = "#6D4427"; belly = "#C4A060"; fin = "#3D1A0C"; }
+    else if (id === "trout") { body = "#C45A38"; belly = "#F0B428"; fin = "#8B2E1C"; }
+    else if (id === "bass") { body = "#2F7A14"; belly = "#8FD42A"; fin = "#1E5A12"; }
+    else if (id === "goldenCarp") { body = "#E8B028"; belly = "#F8E070"; fin = "#C47A38"; }
+    else if (id === "moonfish") { body = "#A8D4E8"; belly = "#F0F0F8"; fin = "#4A96C8"; }
+    else if (id === "starfin") { body = "#E8C888"; belly = "#F8E070"; fin = "#8B1A1A"; }
+    fill(g, x + 3, y + 7, 9, 4, body);
+    fill(g, x + 4, y + 6, 7, 2, belly);
+    fill(g, x + 5, y + 10, 5, 1, belly);
+    fill(g, x + 11, y + 6, 3, 5, fin);
+    px(g, x + 12, y + 5, fin);
+    px(g, x + 12, y + 11, fin);
+    px(g, x + 4, y + 8, eye);
+    px(g, x + 5, y + 8, "#F8FCFF");
+    if (id === "catfish") {
+      px(g, x + 2, y + 8, "#3D1A0C");
+      px(g, x + 2, y + 10, "#3D1A0C");
+    }
+    if (id === "starfin") {
+      px(g, x + 7, y + 5, "#F8E070");
+      px(g, x + 6, y + 4, "#F8E070");
+      px(g, x + 8, y + 4, "#F8E070");
+    }
+    if (id === "moonfish") px(g, x + 8, y + 7, "#F8FCFF");
+    if (id === "perch") {
+      px(g, x + 7, y + 7, "#6D4427");
+      px(g, x + 9, y + 8, "#6D4427");
+    }
   }
 
   function paintBar(g, x, y, dark, mid, lite) {
@@ -3735,7 +3852,7 @@
 
   function tryKeyboardStep() {
     var dir, nx, ny;
-    if (uiPaused() || player.hitting || player.arc > 0) return;
+    if (uiPaused() || player.hitting || player.arc > 0 || fishing) return;
     if (midStep(player) || (player.path && player.path.length)) return;
     dir = kbDir();
     if (!dir) return;
@@ -4086,6 +4203,7 @@
     }
     if (currentScene !== "overworld") return false;
     if (cell(tx, ty) !== "g") return false;
+    if (farmPondAt(tx, ty)) return false;
     if (tx === npc.tx && ty === npc.ty) return false;
     if (tx === chicken.tx && ty === chicken.ty) return false;
     if (carOccupies(tx, ty)) return false;
@@ -4297,7 +4415,9 @@
     if (kind === "wood" || kind === "stone" || kind === "veggie" || kind === "flower" ||
         kind === "snack" || kind === "copper" || kind === "mushroom" || kind === "moonshard" || kind === "iron" ||
         kind === "silver" || kind === "goldore" || kind === "potato" || kind === "berry" ||
-        kind === "copperBar" || kind === "silverBar" || kind === "goldBar") {
+        kind === "copperBar" || kind === "silverBar" || kind === "goldBar" ||
+        kind === "minnow" || kind === "bluegill" || kind === "perch" || kind === "catfish" ||
+        kind === "trout" || kind === "bass" || kind === "goldenCarp" || kind === "moonfish" || kind === "starfin") {
       return kind;
     }
     return "";
@@ -4739,6 +4859,7 @@
     }
     selectedSlot = id;
     setFenceBuildOn(false);
+    if (fishing && id !== SLOT_POLE) cancelFishing();
   }
 
   function tryBuild(tx, ty) {
@@ -4955,6 +5076,7 @@
     highlight = null;
     ripples = [];
     sparks = [];
+    cancelFishing();
     flushPickups();
     cancelHit();
     updateCamera();
@@ -5072,6 +5194,7 @@
       swordOwned = !!data.swordOwned;
       axeOwned = !!data.axeOwned;
       shovelOwned = !!data.shovelOwned;
+      poleOwned = !!data.poleOwned;
       pickaxeOwned = !!data.pickaxeOwned;
       shieldOwned = !!data.shieldOwned;
       ironSwordOwned = !!data.ironSwordOwned;
@@ -5109,6 +5232,15 @@
         inventory.copperBar = clampCount(data.inventory.copperBar);
         inventory.silverBar = clampCount(data.inventory.silverBar);
         inventory.goldBar = clampCount(data.inventory.goldBar);
+        inventory.minnow = clampCount(data.inventory.minnow);
+        inventory.bluegill = clampCount(data.inventory.bluegill);
+        inventory.perch = clampCount(data.inventory.perch);
+        inventory.catfish = clampCount(data.inventory.catfish);
+        inventory.trout = clampCount(data.inventory.trout);
+        inventory.bass = clampCount(data.inventory.bass);
+        inventory.goldenCarp = clampCount(data.inventory.goldenCarp);
+        inventory.moonfish = clampCount(data.inventory.moonfish);
+        inventory.starfin = clampCount(data.inventory.starfin);
       } else {
         if (typeof data.veggie === "number" && data.veggie > 0) inventory.veggie = clampCount(data.veggie);
         if (found.copper) inventory.copper = 1;
@@ -5132,6 +5264,15 @@
         chest.copperBar = clampCount(data.chest.copperBar);
         chest.silverBar = clampCount(data.chest.silverBar);
         chest.goldBar = clampCount(data.chest.goldBar);
+        chest.minnow = clampCount(data.chest.minnow);
+        chest.bluegill = clampCount(data.chest.bluegill);
+        chest.perch = clampCount(data.chest.perch);
+        chest.catfish = clampCount(data.chest.catfish);
+        chest.trout = clampCount(data.chest.trout);
+        chest.bass = clampCount(data.chest.bass);
+        chest.goldenCarp = clampCount(data.chest.goldenCarp);
+        chest.moonfish = clampCount(data.chest.moonfish);
+        chest.starfin = clampCount(data.chest.starfin);
       }
       overflowBagToChest();
       if (data.crops && typeof data.crops === "object") {
@@ -5346,7 +5487,16 @@
           berry: inventory.berry | 0,
           copperBar: inventory.copperBar | 0,
           silverBar: inventory.silverBar | 0,
-          goldBar: inventory.goldBar | 0
+          goldBar: inventory.goldBar | 0,
+          minnow: inventory.minnow | 0,
+          bluegill: inventory.bluegill | 0,
+          perch: inventory.perch | 0,
+          catfish: inventory.catfish | 0,
+          trout: inventory.trout | 0,
+          bass: inventory.bass | 0,
+          goldenCarp: inventory.goldenCarp | 0,
+          moonfish: inventory.moonfish | 0,
+          starfin: inventory.starfin | 0
         },
         chest: {
           wood: chest.wood | 0,
@@ -5364,7 +5514,16 @@
           berry: chest.berry | 0,
           copperBar: chest.copperBar | 0,
           silverBar: chest.silverBar | 0,
-          goldBar: chest.goldBar | 0
+          goldBar: chest.goldBar | 0,
+          minnow: chest.minnow | 0,
+          bluegill: chest.bluegill | 0,
+          perch: chest.perch | 0,
+          catfish: chest.catfish | 0,
+          trout: chest.trout | 0,
+          bass: chest.bass | 0,
+          goldenCarp: chest.goldenCarp | 0,
+          moonfish: chest.moonfish | 0,
+          starfin: chest.starfin | 0
         },
         hatOwned: !!hatOwned,
         hatOn: !!hatOn,
@@ -5373,6 +5532,7 @@
         swordOwned: !!swordOwned,
         axeOwned: !!axeOwned,
         shovelOwned: !!shovelOwned,
+        poleOwned: !!poleOwned,
         pickaxeOwned: !!pickaxeOwned,
         shieldOwned: !!shieldOwned,
         ironSwordOwned: !!ironSwordOwned,
@@ -7610,10 +7770,10 @@
   }
 
   function shopLayout() {
-    var w = 280, h = 158;
+    var w = 280, h = 172;
     var x = ((VIEW_W - w) / 2) | 0;
-    var y = 14;
-    return { x: x, y: y, w: w, h: h, listY: y + 22, rowH: 16, buyX: x + 16, buyY: y + 132, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14 };
+    var y = 8;
+    return { x: x, y: y, w: w, h: h, listY: y + 22, rowH: 16, buyX: x + 16, buyY: y + 146, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14 };
   }
 
   function buyShopItem(item) {
@@ -7621,6 +7781,11 @@
       hatOn = !hatOn;
       persistSave();
       shopMsg = hatOn ? "YOU PUT IT ON." : "HAT IN THE BAG.";
+      shopMsgT = 1200;
+      return;
+    }
+    if (item.id === "pole" && poleOwned) {
+      shopMsg = "YOU ALREADY HAVE ONE.";
       shopMsgT = 1200;
       return;
     }
@@ -7684,6 +7849,10 @@
       }
       addToBag("stone", 3);
       shopMsg = "PLUS 3 STONE.";
+    } else if (item.id === "pole") {
+      poleOwned = true;
+      selectedSlot = SLOT_POLE;
+      shopMsg = "A FINE FISHING POLE.";
     }
     shopMsgT = 1400;
     persistSave();
@@ -7728,12 +7897,13 @@
       item = SHOP_ITEMS[i];
       rowY = L.listY + i * L.rowH;
       if (i === shopSel) fill(g, L.x + 8, rowY, L.w - 16, L.rowH - 1, "#E8C888");
-      Assets.draw(g, item.icon, L.x + 10, rowY - 1);
+      drawItemIcon(g, item.icon, L.x + 10, rowY - 1);
       label = item.name;
       if (item.id === "hat" && hatOwned) label = hatOn ? "HAT  ON" : "HAT  OFF";
+      if (item.id === "pole" && poleOwned) label = "POLE  OWNED";
       if (item.id === "seeds" && extraPlots >= 4) label = "GARDEN FULL";
       drawText(g, label, L.x + 30, rowY + 4, C.uiText);
-      price = (item.id === "hat" && hatOwned) ? "0G" : (item.price + "G");
+      price = (item.id === "hat" && hatOwned) || (item.id === "pole" && poleOwned) ? "0G" : (item.price + "G");
       drawText(g, price, L.x + L.w - textWidth(price) - 12, rowY + 4, C.woodSh);
     }
     woodPanel(g, L.buyX, L.buyY, L.buyW, L.btnH);
@@ -7772,6 +7942,7 @@
     if (id === "axe") return !!(axeOwned && selectedSlot === SLOT_AXE);
     if (id === "pick") return !!(pickaxeOwned && selectedSlot === SLOT_PICK);
     if (id === "shovel") return !!(shovelOwned && selectedSlot === SLOT_SHOVEL);
+    if (id === "pole") return !!(poleOwned && selectedSlot === SLOT_POLE);
     if (id === "sword") return swordEquipped();
     if (id === "bow") return !!(bowOwned && selectedSlot === SLOT_BOW);
     return false;
@@ -7839,6 +8010,262 @@
     if (tryDig(t.tx, t.ty)) return true;
     if (tryDig(player.tx, player.ty)) return true;
     return false;
+  }
+
+  function farmPondAt(tx, ty) {
+    var i, p;
+    if (currentScene !== "overworld") return null;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "pond" && propOccupies(p, tx, ty)) return p;
+    }
+    return null;
+  }
+
+  function orthoNearTile(ax, ay, bx, by) {
+    return (ax === bx && Math.abs(ay - by) === 1) || (ay === by && Math.abs(ax - bx) === 1);
+  }
+
+  function standingByPond(pond) {
+    var x, y;
+    if (!pond) return false;
+    for (y = pond.ty; y < pond.ty + 2; y++) {
+      for (x = pond.tx; x < pond.tx + 2; x++) {
+        if (orthoNearTile(player.tx, player.ty, x, y)) return true;
+      }
+    }
+    return false;
+  }
+
+  function nearestPondTile(pond) {
+    var x, y, best = null, bestD = 999, d;
+    if (!pond) return null;
+    for (y = pond.ty; y < pond.ty + 2; y++) {
+      for (x = pond.tx; x < pond.tx + 2; x++) {
+        d = Math.abs(x - player.tx) + Math.abs(y - player.ty);
+        if (d < bestD) {
+          bestD = d;
+          best = { tx: x, ty: y };
+        }
+      }
+    }
+    return best;
+  }
+
+  function nearestPondBank(pond) {
+    var x, y, dest, d, best = null, bestD = 999;
+    if (!pond) return null;
+    for (y = pond.ty; y < pond.ty + 2; y++) {
+      for (x = pond.tx; x < pond.tx + 2; x++) {
+        dest = nearestAdjacent(x, y);
+        if (!dest) continue;
+        d = Math.abs(dest.tx - player.tx) + Math.abs(dest.ty - player.ty);
+        if (d < bestD) {
+          bestD = d;
+          best = dest;
+        }
+      }
+    }
+    return best;
+  }
+
+  function pondBobberSpot(pond, tile) {
+    var t = tile || nearestPondTile(pond);
+    if (!t) return { x: pond.tx * TILE + 16, y: pond.ty * TILE + 16 };
+    return { x: t.tx * TILE + 8, y: t.ty * TILE + 10 };
+  }
+
+  function pickCatchFish() {
+    var i, total = 0, roll, acc = 0;
+    for (i = 0; i < FISH_KINDS.length; i++) total += FISH_KINDS[i].weight;
+    roll = Math.random() * total;
+    for (i = 0; i < FISH_KINDS.length; i++) {
+      acc += FISH_KINDS[i].weight;
+      if (roll < acc) return FISH_KINDS[i];
+    }
+    return FISH_KINDS[0];
+  }
+
+  function spendCastEnergy() {
+    if (energy <= 1) return;
+    energy -= ENERGY_CAST;
+    if (energy < 1) energy = 1;
+    persistSave();
+  }
+
+  function cancelFishing() {
+    if (!fishing) return;
+    fishing = null;
+    player.workTool = "";
+    player.swing = 0;
+  }
+
+  function beginFishing(pond, tx, ty) {
+    var spot, wait;
+    if (!pond || fishing) return false;
+    if (uiPaused() || faintFx) return false;
+    player.path = [];
+    player.queuedWalk = null;
+    player.moving = false;
+    player.stepT = 0;
+    player.frame = 0;
+    pending = null;
+    faceToward(player, tx, ty);
+    player.workTool = "pole";
+    player.swing = 220;
+    spendCastEnergy();
+    spot = pondBobberSpot(pond, { tx: tx, ty: ty });
+    wait = 1500 + Math.random() * 2500;
+    fishing = {
+      pondTx: pond.tx,
+      pondTy: pond.ty,
+      tileTx: tx,
+      tileTy: ty,
+      phase: "cast",
+      age: 0,
+      castMs: 420,
+      waitMs: wait,
+      reelMs: 720,
+      bite: false,
+      fish: null,
+      bobX: spot.x,
+      bobY: spot.y,
+      splash: 0
+    };
+    playSfx("cast");
+    return true;
+  }
+
+  function finishFishingReel() {
+    var fish;
+    if (!fishing) return;
+    fish = fishing.fish;
+    fishing = null;
+    player.workTool = "";
+    player.swing = 0;
+    if (fish) {
+      addItem(fish.id, 1);
+      showLineNote("YUM! A " + fish.name + ".");
+      playSfx("pickup");
+    } else {
+      showLineNote("NOTHING THIS TIME.");
+    }
+  }
+
+  function updateFishing(dt) {
+    if (!fishing) return;
+    fishing.age += dt;
+    if (fishing.phase === "cast") {
+      if (player.swing > 0) player.swing -= dt;
+      if (fishing.age >= fishing.castMs) {
+        fishing.phase = "wait";
+        fishing.age = 0;
+      }
+      return;
+    }
+    if (fishing.phase === "wait") {
+      if (fishing.age >= fishing.waitMs) {
+        fishing.bite = Math.random() >= FISH_MISS;
+        fishing.fish = fishing.bite ? pickCatchFish() : null;
+        fishing.phase = "reel";
+        fishing.age = 0;
+        fishing.splash = 1;
+        playSfx(fishing.bite ? "nibble" : "splash");
+        if (fishing.bite) playSfx("splash");
+      }
+      return;
+    }
+    if (fishing.phase === "reel") {
+      if (fishing.splash) fishing.splash += dt;
+      if (fishing.age >= fishing.reelMs) finishFishingReel();
+    }
+  }
+
+  function drawFishing(g) {
+    var hand, bx, by, bob, t, i, ang, px0, py0, steps, s, x, y;
+    if (!fishing) return;
+    hand = swordHand(0, 0, (player.swing > 0) ? -1 : 0);
+    bob = 0;
+    if (fishing.phase === "wait") bob = Math.round(Math.sin(tick / 180) * 1);
+    if (fishing.phase === "reel" && fishing.bite) bob = 2 + Math.round(Math.sin(tick / 70) * 1);
+    bx = fishing.bobX;
+    by = fishing.bobY + bob;
+    if (fishing.phase === "cast") {
+      t = fishing.age / fishing.castMs;
+      if (t > 1) t = 1;
+      bx = hand.x + (fishing.bobX - hand.x) * t;
+      by = hand.y + (fishing.bobY - hand.y) * t;
+    }
+    steps = 10;
+    for (s = 1; s < steps; s++) {
+      x = Math.round(hand.x + (bx - hand.x) * (s / steps));
+      y = Math.round(hand.y + (by - hand.y) * (s / steps));
+      px(g, x, y, s < 3 ? C.woodMid : C.waterFm);
+    }
+    fill(g, Math.round(hand.x) - 1, Math.round(hand.y) - 1, 3, 8, C.woodMid);
+    fill(g, Math.round(hand.x), Math.round(hand.y) - 2, 2, 6, C.woodHi);
+    if (fishing.phase !== "cast" || fishing.age > 80) {
+      fill(g, Math.round(bx) - 1, Math.round(by) - 1, 3, 3, "#C45A38");
+      px(g, Math.round(bx), Math.round(by) - 1, "#F3D2A3");
+      px(g, Math.round(bx), Math.round(by) + 1, "#8B2E1C");
+    }
+    if (fishing.phase === "reel" && fishing.splash) {
+      for (i = 0; i < 7; i++) {
+        ang = (i / 7) * Math.PI * 2 + fishing.age * 0.01;
+        px0 = Math.round(fishing.bobX + Math.cos(ang) * (2 + fishing.age * 0.018));
+        py0 = Math.round(fishing.bobY + Math.sin(ang) * (1 + fishing.age * 0.012) - fishing.age * 0.01);
+        px(g, px0, py0, i % 2 ? C.waterFm : C.water);
+      }
+    }
+  }
+
+  function tryFishFacing() {
+    var t, pond;
+    if (uiPaused() || faintFx) return false;
+    if (fishing) return true;
+    t = facingTile();
+    pond = farmPondAt(t.tx, t.ty);
+    if (!pond) return false;
+    if (!poleOwned) {
+      showLineNote("YOU NEED A FISHING POLE.");
+      return true;
+    }
+    if (!toolEquipped("pole")) {
+      showLineNote("SELECT THE FISHING POLE.");
+      return true;
+    }
+    if (!standingByPond(pond)) return false;
+    return beginFishing(pond, t.tx, t.ty);
+  }
+
+  function tryFishTap(pond, tx, ty) {
+    var dest, path;
+    if (!pond || pond.kind !== "pond") return false;
+    if (currentScene !== "overworld") return false;
+    if (fishing) return true;
+    if (!poleOwned) {
+      showLineNote("YOU NEED A FISHING POLE.");
+      return true;
+    }
+    if (!toolEquipped("pole")) {
+      dest = nearestPondBank(pond);
+      if (dest && (dest.tx !== player.tx || dest.ty !== player.ty)) {
+        highlight = { tx: dest.tx, ty: dest.ty };
+        goWalk(dest.tx, dest.ty);
+      } else {
+        showLineNote("SELECT THE FISHING POLE.");
+      }
+      return true;
+    }
+    if (!standingByPond(pond)) {
+      dest = nearestPondBank(pond);
+      if (!dest) return true;
+      highlight = { tx: dest.tx, ty: dest.ty };
+      path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+      if (path.length) startWalk(player, path, 3.5);
+      return true;
+    }
+    return beginFishing(pond, tx, ty);
   }
 
   function playerPathAt(tx, ty) {
@@ -8181,7 +8608,7 @@
   }
 
   function canSwordSwing() {
-    if (uiPaused() || faintFx) return false;
+    if (uiPaused() || faintFx || fishing) return false;
     if (currentScene === "house" || currentScene === "shop") return false;
     if (swordEquipped()) return true;
     return currentScene === "mine";
@@ -8554,6 +8981,7 @@
     dialogue = null;
     pending = null;
     highlight = null;
+    cancelFishing();
     shopOpen = false;
     craftOpen = false;
     closeChest();
@@ -11197,6 +11625,8 @@
     if (i === SLOT_BERRY) return bagCount("berry");
     if (i === SLOT_FLOWER) return bagCount("flower");
     if (i === SLOT_SNACK) return bagCount("snack");
+    var fk = fishKindBySlot(i);
+    if (fk) return bagCount(fk.id);
     return -1;
   }
 
@@ -11215,6 +11645,7 @@
     if (i === SLOT_SHOVEL) return !!shovelOwned;
     if (i === SLOT_AXE) return !!axeOwned;
     if (i === SLOT_PICK) return !!pickaxeOwned;
+    if (i === SLOT_POLE) return !!poleOwned;
     return false;
   }
 
@@ -11397,6 +11828,12 @@
       } else if (i === SLOT_BOW && bowOwned) {
         Assets.draw(g, "bow", sx + 1, sy + 1);
         count = 1;
+      } else if (i === SLOT_POLE && poleOwned) {
+        paintFishingPole(g, sx + 1, sy + 1);
+        count = 1;
+      } else if (fishKindBySlot(i)) {
+        paintFishIcon(g, sx + 1, sy + 1, fishKindBySlot(i).id);
+        count = bagCount(fishKindBySlot(i).id);
       } else {
         count = -1;
       }
@@ -11421,6 +11858,20 @@
     }
     drawSwordBtn(g);
     drawFenceBuildBtn(g);
+    drawFishNameChip(g);
+  }
+
+  function drawFishNameChip(g) {
+    var fk, label, tw, w, x, y;
+    fk = fishKindBySlot(selectedSlot);
+    if (!fk) return;
+    label = fk.name;
+    tw = textWidth(label);
+    w = tw + 10;
+    x = ((VIEW_W - w) / 2) | 0;
+    y = VIEW_H - 39;
+    woodPanel(g, x, y, w, 13);
+    drawText(g, label, x + 5, y + 3, C.parch);
   }
 
   function showFenceBuildBtn() {
@@ -11630,6 +12081,7 @@
       drawPickups(g);
       drawArrows(g);
       drawSparks(g);
+      drawFishing(g);
       drawFestivalSparkles(g);
       g.restore();
       drawFestivalStar(g);
@@ -11638,6 +12090,7 @@
       drawPickups(g);
       drawArrows(g);
       drawSparks(g);
+      drawFishing(g);
       g.restore();
       drawDayTint(g);
     }
@@ -11958,6 +12411,14 @@
 
     if (tapHud(p)) return;
     if (player.arc > 0) return;
+    if (fishing) {
+      var fxWorld = { x: p.x + camX, y: p.y + camY };
+      var fxTx = Math.floor(fxWorld.x / TILE);
+      var fxTy = Math.floor(fxWorld.y / TILE);
+      var fxPond = farmPondAt(fxTx, fxTy);
+      if (fxPond && fishing.pondTx === fxPond.tx && fishing.pondTy === fxPond.ty) return;
+      cancelFishing();
+    }
 
     kbDrive = false;
     var world = { x: p.x + camX, y: p.y + camY };
@@ -12168,7 +12629,7 @@
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -12289,6 +12750,10 @@
       goPlant(tx, ty);
       return;
     }
+    if ((hitProp && hitProp.kind === "pond") || farmPondAt(tx, ty)) {
+      tryFishTap(hitProp && hitProp.kind === "pond" ? hitProp : farmPondAt(tx, ty), tx, ty);
+      return;
+    }
     if (selectedSlot === SLOT_SHOVEL && shovelOwned && canDigOn(tx, ty)) {
       goDig(tx, ty);
       return;
@@ -12333,7 +12798,9 @@
     if (!uiPaused()) {
       updateSwordArc(dt);
       updateArrows(dt);
-      if (player.hitting) {
+      if (fishing) {
+        updateFishing(dt);
+      } else if (player.hitting) {
         updateHit(dt);
       } else if (player.arc > 0) {
         /* locked in the sword arc */
@@ -12500,6 +12967,7 @@
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
       if (tryDigFacing()) return;
+      if (tryFishFacing()) return;
       if (canSwordSwing()) {
         startSwordSwing();
         return;
@@ -12788,7 +13256,19 @@
       toastName: function () { return toast ? toast.name : ""; },
       toastQueued: function () { return toastQueue.slice(); },
       dismissUnlock: dismissUnlock,
-      dismissTopDialog: dismissTopDialog
+      dismissTopDialog: dismissTopDialog,
+      poleOwned: function () { return poleOwned; },
+      setPoleOwned: function (v) { poleOwned = !!v; if (poleOwned) selectedSlot = SLOT_POLE; },
+      SLOT_POLE: SLOT_POLE,
+      fishing: function () { return fishing; },
+      beginFishing: beginFishing,
+      cancelFishing: cancelFishing,
+      tryFishFacing: tryFishFacing,
+      tryFishTap: tryFishTap,
+      farmPondAt: farmPondAt,
+      standingByPond: standingByPond,
+      FISH_KINDS: FISH_KINDS,
+      FISH_MISS: FISH_MISS
     };
   }
   checkFreshBuild();

@@ -55,8 +55,18 @@ Fuel stacks. Tools unlock once. Errands convert. Wonders stay in the world.
 - **Mushrooms** are food (tap to eat) after you have extras. Junie still takes **one** for her job.
 - **Copper** drops stop after Pip’s lantern. Slot hides when that job is done.
 - **Gem, sapphire, mountain heart** are finds / table trophies, not gold.
-- **Gold loop:** grow carrots → Junie pays 10G. Pip **sells** (buns, seeds, flowers, hat, kits). Pip does **not** buy carrots or buns.
-- **Hotbar is verbs:** seed always. Stack items (wood, stone, iron, carrot, flower, bun, copper, mushroom, shard) only while the bag count is above 0. Tools/hat/bow only when owned. Copper hides after Pip’s job. Shard hides once it is home.
+- **Gold loop:** grow carrots → Junie pays 10G. Pip **sells** (buns, seeds, flowers, hat, kits, fishing pole). Pip does **not** buy carrots or buns.
+- **Hotbar is verbs:** seed always. Stack items (wood, stone, iron, carrot, flower, bun, copper, mushroom, shard, fish) only while the bag count is above 0. Tools/hat/bow/pole only when owned. Copper hides after Pip’s job. Shard hides once it is home.
+
+## Fishing
+
+Farm ponds only (props at (3,33) and (24,13)). Not the town fountain.
+
+- Buy **FISHING POLE** from Pip (30G, one-time). Hotbar slot like shovel. Selecting it does not eat or place.
+- Stand orthogonally next to a pond tile with the pole selected, then tap the water or Space/E facing it.
+- No pole: `YOU NEED A FISHING POLE.` Pole out but not next to water: tap walks, no auto-cast.
+- Cast → wait ~1.5–4s (bobber) → reel. Miss ~28% before the rarity roll. No timing bar. Tap elsewhere cancels (no fish). Cannot walk/swing mid-cast.
+- Catch goes to a named bag stack (150 cap). HUD shows the fish name. Do not grant fish on load.
 
 ## Storage
 

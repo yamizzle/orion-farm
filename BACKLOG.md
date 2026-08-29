@@ -327,6 +327,10 @@ Highest-leverage theme: 20260829b live but mine OUT one-tap FAIL (still 5–6 ta
 - House (smelt / Z's / windows) **UNTESTED**.
 - No NEW/WORSE vs 8pm baseline.
 
+## Local 8/29 (BUILD 20260829d)
+
+- Pip sells a FISHING POLE (30G, one-time). Select it, stand next to a farm pond, tap the water or Space/E. Cast, wait, reel. Random miss or a named fish (minnow through starfin). Tap elsewhere cancels. Town fountain not fishable. Jobs BUILD line and fence BUILD chip unchanged.
+
 ## Local 8/29 (BUILD 20260829c)
 
 - Carrot / potato / berry stacks raised to 1000 in bag and chest (wood/ore stay 150/500). HUD no longer clips counts at 999.
