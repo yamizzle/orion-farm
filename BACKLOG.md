@@ -68,7 +68,7 @@ Highest-leverage theme: 20260829b live but mine OUT one-tap FAIL (still 5–6 ta
 | Medium | Done 8/25 live | Woods exit re-enters immediately | Farm / Forest N | FIXED 8/25 ~2pm live BUILD 20260825m: landing south of WOODS; one north tap no re-enter. Local 8/25 BUILD 20260825j: exitForest now placePlayer(5, 11, "down") — two tiles south of door (5,8); landing is not isForestEntrance; needs ≥2 north walks to re-enter. enterForest / door zone (dx -1..1, dy 0/-1) unchanged. Node-tested. Do not mark Done until live. NEW 8/25 8am live: After FARM exit you land one tile below the WOODS sign, so a north tap-to-move instantly re-enters the forest. Cost two accidental round trips (and 2 in-game days) this pass. |
 | Medium | Done 8/25 live | Forest lamp post blocks the dirt road | Forest N | FIXED 8/25 ~2pm live BUILD 20260825m: lamps off dirt. Local 8/25 BUILD 20260825j: moved forest lanterns off dirt (tx 13–15) — (12,20), (16,40), (16,62); kept (12,56)/(6,50)/(21,55)/(22,4). Night glow kept. Node-tested zero lanterns on road columns. Do not mark Done until live. NEW 8/25 8am live: Forest lamp post sits in the middle of the north–south dirt road and fully blocks it; must path around to reach FARM exit. |
 | Medium | Open | Only one weapon equipped | Combat / HUD | NEW 8/24 Darren. Sword, bow, and any other weapon: one at a time. Can't load a bow while holding a sword. |
-| Medium | Open | Ability to dig holes | Farm | Tool/hoe, dirt patches you can plant in or fall into — leave design loose. Not claimed built. |
+| Medium | Open | Ability to dig holes | Farm | Farm still Open. Local 8/29 woods: shovel on 7 marked dirt/leaf mounds (not whole floor). Not claimed farm-done. |
 | Medium | Open | Ability to upgrade the house | House | Bigger rooms, furniture — leave design loose. Not claimed built. |
 | Medium | Done 8/27 live | Woods bush berry drop + large mushroom pickup; fallen logs unchoppable | Forest N | FIXED 8/27 2am live BUILD 20260827a: fallen log 2 taps no-axe, wood pile walk-on (WOOD x4). Berry bush smash + walk-on pickup (1→3). Mushroom pickup still works; star title MUSHROOM FIND in live bundle (toast too fast to photo). Local 8/27: 2 HP / axe one-shot; loot-first on bush from 20260826f. |
 | Medium | Local 8/26 | Smelt ore in the house fire | House | Local 8/26 BUILD 20260826c: select copper/silver/gold ore, walk to the fireplace, tap or Space — 1 ore becomes 1 bar. Wrong item: THE FIRE WANTS ORE. Do not mark Done until live. |
@@ -326,6 +326,12 @@ Highest-leverage theme: 20260829b live but mine OUT one-tap FAIL (still 5–6 ta
 - Imagine folk/chest/signs **look good live**.
 - House (smelt / Z's / windows) **UNTESTED**.
 - No NEW/WORSE vs 8pm baseline.
+
+## Local 8/29 (BUILD 20260829c)
+
+- Carrot / potato / berry stacks raised to 1000 in bag and chest (wood/ore stay 150/500). HUD no longer clips counts at 999.
+- Woods shovel: 7 dirt/leaf mounds off the path. Shovel + tap/Space digs; modest stone/copper/mushroom/potato/flower; holes stay dug. Not the whole forest floor.
+- HUD version stamp (`20260829b` wood badge) removed from the play screen. Small BUILD id now sits in the Jobs panel. Fence-place BUILD chip unchanged.
 
 ## Strengths to keep
 

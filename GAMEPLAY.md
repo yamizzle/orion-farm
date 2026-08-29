@@ -66,6 +66,7 @@ Not endless. Pockets are a work outing; the house chest is the warehouse. Ground
 |---|---|---|
 | Bag (pockets) | 150 | What Orion carries on the farm and in the mine |
 | House chest | 500 | Home warehouse. Same UI later for shop crates / mine lockers, each with its own cap |
+| Crop stacks (carrot, potato, berry) | 1000 | Bag and chest. Darren 8/29: hold up to 1000 carrots. Wood/ore stay 150/500 |
 | Ground loot | until picked | Overflow that did not fit the bag |
 
 Do not auto-move new pickups into the chest. `overflowBagToChest` is only for old saves that already exceeded the bag cap. Future storage is another chest object with a cap, not a bigger bag.

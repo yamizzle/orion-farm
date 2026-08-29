@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829b";
+  var BUILD = "20260829c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -483,6 +483,16 @@
   var shopOut = { tx: 8, ty: 8 };
   var FOREST_COLS = 28;
   var FOREST_ROWS = 66;
+  /* Handful of shovel-dig mounds on moss, off the dirt road / giant-tree path. */
+  var WOODS_DIG_SPOTS = [
+    { tx: 10, ty: 61, loot: "stone" },
+    { tx: 9, ty: 21, loot: "copper" },
+    { tx: 17, ty: 25, loot: "mushroom" },
+    { tx: 5, ty: 34, loot: "stone" },
+    { tx: 21, ty: 28, loot: "potato" },
+    { tx: 8, ty: 43, loot: "flower" },
+    { tx: 19, ty: 45, loot: "copper" }
+  ];
   var forestIn = { tx: 5, ty: 8 };
   var forestOut = { tx: 14, ty: 65 };
   var TREETOP_COLS = 40;
@@ -563,6 +573,7 @@
   var craftMsgT = 0;
   var BAG_STACK = 150;
   var CHEST_STACK = 500;
+  var CROP_STACK = 1000;
   var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, copperBar: 0, silverBar: 0, goldBar: 0 };
   var chestOpen = false;
   var chestSel = 0;
@@ -2681,6 +2692,35 @@
     startWalk(player, path, 3.5);
   }
 
+  function drawWoodsDigSpots(g) {
+    var i, s, dug, dx, dy, ox, oy, j, h, leaf;
+    if (currentScene !== "forest") return;
+    for (i = 0; i < WOODS_DIG_SPOTS.length; i++) {
+      s = WOODS_DIG_SPOTS[i];
+      dug = woodsDugAt(s.tx, s.ty);
+      dx = s.tx * TILE;
+      dy = s.ty * TILE;
+      ox = ((hash(s.tx, s.ty, 3) * 3) | 0) - 1;
+      oy = ((hash(s.tx, s.ty, 7) * 3) | 0) - 1;
+      if (dug) {
+        if (Assets.spr["dirt"]) Assets.draw(g, "dirt", dx, dy);
+        else fill(g, dx, dy, 16, 16, C.dirtMid);
+        fillDisk(g, dx + 8, dy + 9, 5, C.tillOut);
+        fillDisk(g, dx + 8, dy + 9, 3, "#241408");
+      } else {
+        if (Assets.spr["dirt"]) Assets.draw(g, "dirt", dx + ox, dy + oy);
+        else fill(g, dx + ox, dy + oy, 16, 16, C.dirtMid);
+        fill(g, dx + ox + 3, dy + oy + 2, 10, 3, C.dirtHi);
+        fill(g, dx + ox + 2, dy + oy + 12, 12, 3, C.dirtSh);
+        for (j = 0; j < 6; j++) {
+          h = hash(s.tx, s.ty, j + 11);
+          leaf = h < 0.45 ? "#3E8A28" : (h < 0.75 ? "#8FD44A" : "#C47A38");
+          px(g, dx + ox + 2 + ((h * 12) | 0), dy + oy + 3 + ((hash(s.ty, j, 5) * 10) | 0), leaf);
+        }
+      }
+    }
+  }
+
   function drawMossTile(g, tx, ty, dx, dy) {
     var i, h, night, img;
     night = forestNightFlora();
@@ -4005,29 +4045,72 @@
     return true;
   }
 
+  function woodsDigAt(tx, ty) {
+    var i, s;
+    if (currentScene !== "forest") return null;
+    for (i = 0; i < WOODS_DIG_SPOTS.length; i++) {
+      s = WOODS_DIG_SPOTS[i];
+      if (s.tx === tx && s.ty === ty) return s;
+    }
+    return null;
+  }
+
+  function woodsDugAt(tx, ty) {
+    var i, b;
+    for (i = 0; i < builds.length; i++) {
+      b = builds[i];
+      if (b && b.kind === "woodsHole" && b.tx === tx && b.ty === ty) return true;
+    }
+    return false;
+  }
+
+  function woodsLootName(kind) {
+    if (kind === "copper") return "COPPER";
+    if (kind === "mushroom") return "A MUSHROOM";
+    if (kind === "potato") return "A POTATO";
+    if (kind === "flower") return "A FLOWER";
+    return "A STONE";
+  }
+
   function canDigOn(tx, ty) {
-    if (currentScene !== "overworld") return false;
+    var spot;
     if (!inBounds(tx, ty)) return false;
-    if (cell(tx, ty) !== "g") return false;
     if (!walkable(tx, ty)) return false;
     if (propAt(tx, ty)) return false;
+    if (folkOccupies(tx, ty)) return false;
+    if (isEntrance(tx, ty)) return false;
+    if (currentScene === "forest") {
+      spot = woodsDigAt(tx, ty);
+      if (!spot || woodsDugAt(tx, ty)) return false;
+      return true;
+    }
+    if (currentScene !== "overworld") return false;
+    if (cell(tx, ty) !== "g") return false;
     if (tx === npc.tx && ty === npc.ty) return false;
     if (tx === chicken.tx && ty === chicken.ty) return false;
-    if (folkOccupies(tx, ty)) return false;
     if (carOccupies(tx, ty)) return false;
-    if (isEntrance(tx, ty)) return false;
     return true;
   }
 
   function tryDig(tx, ty) {
+    var spot;
     if (!shovelOwned) return false;
     if (!canDigOn(tx, ty)) return false;
     if (energy <= 0) {
       spendEnergy(ENERGY_HIT);
       return true;
     }
-    setCell(tx, ty, "p");
-    builds.push({ kind: "hole", tx: tx, ty: ty });
+    if (currentScene === "forest") {
+      spot = woodsDigAt(tx, ty);
+      builds.push({ kind: "woodsHole", tx: tx, ty: ty });
+      if (spot && spot.loot) {
+        spawnGroundLoot(spot.loot, tx, ty, 1);
+        showLineNote("YOU FOUND " + woodsLootName(spot.loot) + "!");
+      }
+    } else {
+      setCell(tx, ty, "p");
+      builds.push({ kind: "hole", tx: tx, ty: ty });
+    }
     spendEnergy(ENERGY_HIT);
     player.workTool = "shovel";
     player.swing = 220;
@@ -4228,12 +4311,24 @@
     return (chest[key] || 0) | 0;
   }
 
+  function isCropKey(key) {
+    return key === "veggie" || key === "potato" || key === "berry";
+  }
+
+  function bagCap(key) {
+    return isCropKey(key) ? CROP_STACK : BAG_STACK;
+  }
+
+  function chestCap(key) {
+    return isCropKey(key) ? CROP_STACK : CHEST_STACK;
+  }
+
   function bagRoom(key) {
-    return Math.max(0, BAG_STACK - bagCount(key));
+    return Math.max(0, bagCap(key) - bagCount(key));
   }
 
   function chestRoom(key) {
-    return Math.max(0, CHEST_STACK - chestCount(key));
+    return Math.max(0, chestCap(key) - chestCount(key));
   }
 
   function addToBag(key, amount) {
@@ -4868,7 +4963,7 @@
   function clampCount(n) {
     n = n | 0;
     if (n < 0) return 0;
-    if (n > 999) return 999;
+    if (n > 1000) return 1000;
     return n;
   }
 
@@ -5085,7 +5180,7 @@
           item = src[bi];
           if (!item || typeof item !== "object") continue;
           bk = item.kind;
-          if (bk !== "path" && bk !== "hole" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR" && bk !== "townFlower" && bk !== "goneFence") continue;
+          if (bk !== "path" && bk !== "hole" && bk !== "woodsHole" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR" && bk !== "townFlower" && bk !== "goneFence") continue;
           builds.push({ kind: bk, tx: item.tx | 0, ty: item.ty | 0 });
         }
       }
@@ -5801,7 +5896,7 @@
     var i, key, extra, room, move;
     for (i = 0; i < CHEST_ROWS.length; i++) {
       key = CHEST_ROWS[i].key;
-      extra = bagCount(key) - BAG_STACK;
+      extra = bagCount(key) - bagCap(key);
       if (extra <= 0) continue;
       room = chestRoom(key);
       move = extra < room ? extra : room;
@@ -7732,6 +7827,17 @@
       if (breakPlayerPathAt(t.tx, t.ty)) return true;
       if (breakPlayerPathAt(player.tx, player.ty)) return true;
     }
+    return false;
+  }
+
+  function tryDigFacing() {
+    var t;
+    if (uiPaused() || faintFx) return false;
+    if (!toolEquipped("shovel")) return false;
+    if (player.swing > 0) return false;
+    t = facingTile();
+    if (tryDig(t.tx, t.ty)) return true;
+    if (tryDig(player.tx, player.ty)) return true;
     return false;
   }
 
@@ -10933,6 +11039,7 @@
     woodPanel(g, L.muteX, L.muteY, L.muteW, L.muteH);
     label = (sfxMuted && musicMuted) ? "SOUND" : "MUTE";
     drawText(g, label, L.muteX + ((L.muteW - textWidth(label)) / 2) | 0, L.muteY + 3, C.parch);
+    drawText(g, BUILD, L.x + 10, L.y + L.h - 12, C.woodSh);
   }
 
   function hitSprite(p, x, y, w, h, ox, oy) {
@@ -10959,6 +11066,31 @@
 
   function textWidth(str) {
     return str.length * 6 - 1;
+  }
+
+  function drawTextPitch(g, str, x, y, color, pitch) {
+    g.fillStyle = color;
+    var i, r, c, bits, ch;
+    pitch = pitch || 6;
+    for (i = 0; i < str.length; i++) {
+      ch = str.charAt(i);
+      bits = FONT[ch] || FONT[" "];
+      for (r = 0; r < 7; r++) {
+        for (c = 0; c < 5; c++) {
+          if (bits[r] & (0x10 >> c)) {
+            g.fillRect(x + i * pitch + c, y + r, 1, 1);
+          }
+        }
+      }
+    }
+  }
+
+  function drawSlotCount(g, label, sx, sy, slot) {
+    var pitch = label.length >= 4 ? 5 : 6;
+    var w = label.length * pitch - 1;
+    var x = sx + slot - w - 2;
+    drawTextPitch(g, label, x, sy + slot - 9, C.woodOut, pitch);
+    drawTextPitch(g, label, x - 1, sy + slot - 10, C.parch, pitch);
   }
 
   function woodPanel(g, x, y, w, h) {
@@ -11157,7 +11289,6 @@
     var gLabel = (gold | 0) + "G";
     drawText(g, gLabel, 310 - textWidth(gLabel), 8, C.flower);
     drawText(g, clockHudLine(), 210, 16, C.parch);
-    drawBuildStamp(g);
     drawPlaceStamp(g);
 
     ensureSelectedSlot();
@@ -11270,10 +11401,8 @@
         count = -1;
       }
       if (count >= 0) {
-        if (count > 999) count = 999;
         label = String(count);
-        drawText(g, label, sx + slot - textWidth(label) - 2, sy + slot - 9, C.woodOut);
-        drawText(g, label, sx + slot - textWidth(label) - 3, sy + slot - 10, C.parch);
+        drawSlotCount(g, label, sx, sy, slot);
       }
     }
 
@@ -11453,6 +11582,8 @@
         }
       }
     }
+
+    if (currentScene === "forest") drawWoodsDigSpots(g);
 
     if (highlight) {
       if (highlight.ghost && Assets.spr[highlight.ghost]) {
@@ -12368,6 +12499,7 @@
       if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
+      if (tryDigFacing()) return;
       if (canSwordSwing()) {
         startSwordSwing();
         return;
@@ -12465,6 +12597,17 @@
     window.orionTest = {
       BUILD: BUILD,
       buildStampRect: buildStampRect,
+      bagCap: bagCap,
+      chestCap: chestCap,
+      CROP_STACK: CROP_STACK,
+      BAG_STACK: BAG_STACK,
+      CHEST_STACK: CHEST_STACK,
+      WOODS_DIG_SPOTS: WOODS_DIG_SPOTS,
+      woodsDigAt: woodsDigAt,
+      woodsDugAt: woodsDugAt,
+      canDigOn: canDigOn,
+      tryDig: tryDig,
+      tryDigFacing: tryDigFacing,
       buildMine4Ground: buildMine4Ground,
       buildMine5Ground: buildMine5Ground,
       buildMine6Ground: buildMine6Ground,
