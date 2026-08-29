@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260828c";
+  var BUILD = "20260828d";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3431,7 +3431,7 @@
       minX = 0;
       maxX = Math.max(0, worldW - VIEW_W);
       minY = 0;
-      maxY = Math.max(0, worldH - VIEW_H);
+      maxY = Math.max(0, worldH - VIEW_H + CAM_PAD_BOTTOM);
     }
     if (currentScene === "house" || currentScene === "shop") {
       if (worldW < VIEW_W) {
@@ -3468,7 +3468,7 @@
           camY = minY;
         }
       }
-      if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
+      if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
         camY = Math.round(player.y - (VIEW_H - CAM_PAD_BOTTOM));
         if (camY > maxY) camY = maxY;
       }
@@ -4655,16 +4655,58 @@
     return currentScene === "mine" && mineFloor === 1 && tx === portalOut.tx && ty === portalOut.ty;
   }
 
-  /* Fat-finger the OUT ladder / OUT label so one tap exits (label sits 8px north). */
+  /* Fat-finger the OUT ladder / OUT label so one tap exits (label sits 8px north).
+     Include the south tile — the hotbar often covers the lower rungs. */
   function mineExitHit(tx, ty, world) {
-    var bx, by;
+    var bx, by, dx, dy;
     if (currentScene !== "mine" || mineFloor !== 1) return false;
-    if (tx === portalOut.tx && (ty === portalOut.ty || ty === portalOut.ty - 1)) return true;
-    if ((tx === portalOut.tx - 1 || tx === portalOut.tx + 1) && ty === portalOut.ty) return true;
+    dx = tx - portalOut.tx;
+    dy = ty - portalOut.ty;
+    if (dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1) return true;
     if (!world) return false;
-    bx = portalOut.tx * TILE - 8;
-    by = portalOut.ty * TILE - 16;
-    return world.x >= bx && world.x < bx + 32 && world.y >= by && world.y < by + 32;
+    bx = portalOut.tx * TILE - 16;
+    by = portalOut.ty * TILE - 24;
+    return world.x >= bx && world.x < bx + 48 && world.y >= by && world.y < by + 56;
+  }
+
+  function hudWorldDoor(tx, ty, world) {
+    if (isMineExit(tx, ty) || mineExitHit(tx, ty, world)) return true;
+    if (isMineDown(tx, ty) || isMineUp(tx, ty)) return true;
+    if (holeHit(tx, ty, world)) return true;
+    if (isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || houseDoorHit(tx, ty, world)) return true;
+    if (isForestEntrance(tx, ty) || isForestExit(tx, ty)) return true;
+    return false;
+  }
+
+  function tryClimbShaft() {
+    var f;
+    if (currentScene !== "mine") return false;
+    if (isMineExit(player.tx, player.ty)) {
+      exitMine();
+      return true;
+    }
+    if (isMineDown(player.tx, player.ty)) {
+      enterMineFloor(mineFloor + 1, "down");
+      return true;
+    }
+    if (isMineUp(player.tx, player.ty)) {
+      enterMineFloor(mineFloor - 1, "up");
+      return true;
+    }
+    f = facingTile();
+    if (isMineExit(f.tx, f.ty) || mineExitHit(f.tx, f.ty, null)) {
+      goExit();
+      return true;
+    }
+    if (isMineDown(f.tx, f.ty)) {
+      goMineShaft(true);
+      return true;
+    }
+    if (isMineUp(f.tx, f.ty)) {
+      goMineShaft(false);
+      return true;
+    }
+    return false;
   }
 
   function isPathDoor(tx, ty) {
@@ -4738,7 +4780,7 @@
        pixel opening) enters. Left/right fat-finger was catching east/west
        path taps at Orion's chest height and bouncing kids back inside. */
     if (onStoop) {
-      if (tx === houseIn.tx && ty === houseIn.ty) return true;
+      if (tx === houseIn.tx && (ty === houseIn.ty || ty === houseIn.ty - 1)) return true;
       if (!world) return false;
       hx = 15 * TILE;
       hy = 25 * TILE - 16;
@@ -11173,7 +11215,7 @@
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop" || currentScene === "mine") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -11184,10 +11226,13 @@
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop" || currentScene === "mine") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
           if (currentScene === "treetop" || currentScene === "tree") drawSkyTile(g, tx, ty, dx, dy);
           else if (currentScene === "house" || currentScene === "shop") Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
-          else drawMossTile(g, tx, ty, dx, dy);
+          else if (currentScene === "mine") {
+            if (mineFloor >= 4) Assets.draw(g, "deepFloor", dx, dy);
+            else Assets.draw(g, ((tx + ty) & 1) ? "mineFloor1" : "mineFloor", dx, dy);
+          } else drawMossTile(g, tx, ty, dx, dy);
           continue;
         }
         ch = cell(tx, ty);
@@ -11526,6 +11571,10 @@
     var bx = ((VIEW_W - barW) / 2) | 0;
     var by = VIEW_H - 22;
     var idx, id;
+    var worldHud = { x: p.x + camX, y: p.y + camY };
+    var hudTx = Math.floor(worldHud.x / TILE);
+    var hudTy = Math.floor(worldHud.y / TILE);
+    if (hudWorldDoor(hudTx, hudTy, worldHud)) return false;
     if (hitSwordBtn(p)) {
       startSwordSwing();
       return true;
@@ -11672,6 +11721,19 @@
       }
     }
     if (currentScene === "mine") {
+      var hitHoleEarly = holeHit(tx, ty, world);
+      if (isMineDown(tx, ty) || (hitHoleEarly && hitHoleEarly.kind === "hole")) {
+        goMineShaft(true);
+        return;
+      }
+      if (isMineUp(tx, ty) || (hitHoleEarly && hitHoleEarly.kind === "ladder" && mineFloor > 1)) {
+        goMineShaft(false);
+        return;
+      }
+      if (isMineExit(tx, ty) || mineExitHit(tx, ty, world) || (hitHoleEarly && hitHoleEarly.kind === "ladder" && mineFloor === 1)) {
+        goExit();
+        return;
+      }
       var mi, monHit;
       for (mi = 0; mi < monsters.length; mi++) {
         monHit = monsters[mi];
@@ -12115,18 +12177,7 @@
       e.key === " " || e.key === "j" || e.key === "J" || e.key === "e" || e.key === "E";
     if (!e.repeat && actionKey) {
       e.preventDefault();
-      if (isMineExit(player.tx, player.ty)) {
-        exitMine();
-        return;
-      }
-      if (isMineDown(player.tx, player.ty)) {
-        enterMineFloor(mineFloor + 1, "down");
-        return;
-      }
-      if (isMineUp(player.tx, player.ty)) {
-        enterMineFloor(mineFloor - 1, "up");
-        return;
-      }
+      if (tryClimbShaft()) return;
       if (isTreetopEntrance(player.tx, player.ty)) {
         enterTreetop();
         return;
@@ -12222,6 +12273,12 @@
       houseIn: houseIn,
       isHouseEntrance: isHouseEntrance,
       houseDoorHit: houseDoorHit,
+      mineExitHit: mineExitHit,
+      isMineExit: isMineExit,
+      hudWorldDoor: hudWorldDoor,
+      tryClimbShaft: tryClimbShaft,
+      portalOut: portalOut,
+      goExit: goExit,
       goEnterHouse: goEnterHouse,
       exitHouse: exitHouse,
       enterHouse: enterHouse,
