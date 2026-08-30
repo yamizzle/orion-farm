@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829m";
+  var BUILD = "20260830a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -7922,6 +7922,40 @@
     f.y = tileFootY(f.ty);
   }
 
+  function actorTiles(who) {
+    var tiles = [], seen = {};
+    function add(tx, ty) {
+      var key;
+      if (tx == null || ty == null) return;
+      key = tx + "," + ty;
+      if (seen[key]) return;
+      seen[key] = true;
+      tiles.push({ tx: tx, ty: ty });
+    }
+    if (!who) return tiles;
+    add(who.tx, who.ty);
+    if (who.path && who.path.length) add(who.path[0].tx, who.path[0].ty);
+    if (who.stepFrom) add(who.stepFrom.tx, who.stepFrom.ty);
+    return tiles;
+  }
+
+  function tilesTouch(a, b) {
+    var i, j, dx, dy;
+    if (!a || !b) return false;
+    for (i = 0; i < a.length; i++) {
+      for (j = 0; j < b.length; j++) {
+        dx = Math.abs(a[i].tx - b[j].tx);
+        dy = Math.abs(a[i].ty - b[j].ty);
+        if (dx + dy <= 1) return true;
+      }
+    }
+    return false;
+  }
+
+  function playerNearFolk(f) {
+    return !!(f && tilesTouch(actorTiles(player), actorTiles(f)));
+  }
+
   function playerFacingFolk(f) {
     var tile;
     if (!f) return false;
@@ -7934,12 +7968,13 @@
     var i, f, dest;
     var list;
     if (currentScene !== "overworld" && currentScene !== "forest") return;
+    if (currentScene === "overworld" && npc && playerNearFolk(npc)) folkStop(npc);
     list = liveFolk();
     for (i = 0; i < list.length; i++) {
       f = list[i];
-      if (playerFacingFolk(f)) {
+      if (playerNearFolk(f)) {
         folkStop(f);
-        f.idle = 1400;
+        f.idle = 1800;
         continue;
       }
       f.anim += dt;
@@ -8172,7 +8207,7 @@
     var dest, path;
     if (!nimVisible()) return;
     highlight = { tx: nim.tx, ty: nim.ty };
-    if (isNear(player.tx, player.ty, nim.tx, nim.ty)) {
+    if (playerNearFolk(nim)) {
       pending = null;
       startWalk(player, [], 3.5);
       talkNim();
@@ -8266,7 +8301,7 @@
   function goTalkFolk(f) {
     var dest, path;
     highlight = { tx: f.tx, ty: f.ty };
-    if (isNear(player.tx, player.ty, f.tx, f.ty)) {
+    if (playerNearFolk(f)) {
       pending = null;
       startWalk(player, [], 3.5);
       talkFolk(f);
@@ -10664,42 +10699,30 @@
   }
 
   function tryTalkAdjacent() {
-    var spots, i, t, f, fi, p;
+    var me, f, fi, p, face;
     if (uiPaused() || faintFx) return false;
-    spots = [
-      facingTile(),
-      { tx: player.tx, ty: player.ty },
-      { tx: player.tx - 1, ty: player.ty },
-      { tx: player.tx + 1, ty: player.ty },
-      { tx: player.tx, ty: player.ty - 1 },
-      { tx: player.tx, ty: player.ty + 1 }
-    ];
-    function here(who, tile) {
-      if (!who) return false;
-      if (who.tx === tile.tx && who.ty === tile.ty) return true;
-      if (who.path && who.path.length && who.path[0].tx === tile.tx && who.path[0].ty === tile.ty) return true;
-      return false;
+    me = actorTiles(player);
+    function nearWho(who) {
+      return !!(who && tilesTouch(me, actorTiles(who)));
     }
-    for (i = 0; i < spots.length; i++) {
-      t = spots[i];
-      if (currentScene === "overworld") {
-        if (here(npc, t)) { goTalk(); return true; }
-        if (nimVisible() && here(nim, t)) { goTalkNim(); return true; }
-        for (fi = 0; fi < townFolk.length; fi++) {
-          f = townFolk[fi];
-          if (here(f, t)) { goTalkFolk(f); return true; }
-        }
-      } else if (currentScene === "shop") {
-        if (t.tx === 8 && t.ty === 4) { talkPip(); return true; }
-      } else if (currentScene === "forest") {
-        for (fi = 0; fi < forestFolk.length; fi++) {
-          f = forestFolk[fi];
-          if (here(f, t)) { goTalkFolk(f); return true; }
-        }
-      } else if (currentScene === "tree") {
-        p = propAt(t.tx, t.ty);
-        if (p && p.kind === "bird") { talkBird(); return true; }
+    if (currentScene === "overworld") {
+      if (nearWho(npc)) { goTalk(); return true; }
+      if (nimVisible() && nearWho(nim)) { goTalkNim(); return true; }
+      for (fi = 0; fi < townFolk.length; fi++) {
+        f = townFolk[fi];
+        if (nearWho(f)) { goTalkFolk(f); return true; }
       }
+    } else if (currentScene === "shop") {
+      if (tilesTouch(me, [{ tx: 8, ty: 4 }])) { talkPip(); return true; }
+    } else if (currentScene === "forest") {
+      for (fi = 0; fi < forestFolk.length; fi++) {
+        f = forestFolk[fi];
+        if (nearWho(f)) { goTalkFolk(f); return true; }
+      }
+    } else if (currentScene === "tree") {
+      face = facingTile();
+      p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
+      if (p && p.kind === "bird") { talkBird(); return true; }
     }
     return false;
   }
@@ -10707,7 +10730,7 @@
   function goTalk() {
     if (currentScene !== "overworld") return;
     highlight = { tx: npc.tx, ty: npc.ty };
-    if (isNear(player.tx, player.ty, npc.tx, npc.ty)) {
+    if (playerNearFolk(npc)) {
       pending = null;
       startWalk(player, [], 3.5);
       talkNeighbor();
@@ -12069,9 +12092,9 @@
     var contentH = ACH.length * rowH;
     var maxScroll = contentH - listH;
     if (maxScroll < 0) maxScroll = 0;
-    var closeW = 14, closeH = 12;
-    var closeX = x + w - closeW - 6;
-    var closeY = y + 4;
+    var closeW = 16, closeH = 14;
+    var closeX = x + w - closeW - 4;
+    var closeY = y + 2;
     return {
       x: x, y: y, w: w, h: h,
       listX: listX, listY: listY, listW: listW, listH: listH,
@@ -12094,20 +12117,25 @@
 
   function tapAchieve(p, e) {
     var L = achieveLayout();
-    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 4)) {
+    /* Header chrome (title + X) always closes. The old close hitbox sat in a
+       dead strip under DAY: taps on the panel but above the list were swallowed
+       and list-drag started if the X was clicked a couple pixels low. */
+    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 8) ||
+        (p.x >= L.x && p.x < L.x + L.w && p.y >= L.y - 8 && p.y < L.listY)) {
       playSfx("ui");
       closeAchieveList();
-      return;
+      return true;
     }
     if (p.x >= L.listX && p.x < L.x + L.w - 4 && p.y >= L.listY && p.y < L.listY + L.listH) {
       achieveDrag = { y: p.y, scroll: achieveScroll, id: e ? e.pointerId : 0 };
       if (e && canvas.setPointerCapture) {
         try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
       }
-      return;
+      return false;
     }
-    if (p.x >= L.x && p.x < L.x + L.w && p.y >= L.y - 8 && p.y < L.y + L.h) return;
+    if (p.x >= L.x && p.x < L.x + L.w && p.y >= L.y && p.y < L.y + L.h) return false;
     closeAchieveList();
+    return true;
   }
 
   function drawAchieveList(g) {
@@ -12120,7 +12148,7 @@
     woodPanel(g, L.x + 8, L.y - 6, 50, 11);
     drawText(g, "STARS", L.x + 12, L.y - 3, C.parch);
     woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
-    drawText(g, "X", L.closeX + 4, L.closeY + 2, C.parch);
+    drawText(g, "X", L.closeX + 5, L.closeY + 3, C.parch);
     g.save();
     g.beginPath();
     g.rect(L.listX, L.listY, L.listW, L.listH);
@@ -14168,6 +14196,27 @@
       setChestCount: function (k, n) { chest[k] = n | 0; },
       chestMsg: function () { return chestMsg; },
       playerFacingFolk: playerFacingFolk,
+      playerNearFolk: playerNearFolk,
+      actorTiles: actorTiles,
+      tilesTouch: tilesTouch,
+      tryTalkAdjacent: tryTalkAdjacent,
+      goTalk: goTalk,
+      goTalkFolk: goTalkFolk,
+      townFolk: function () { return townFolk; },
+      npc: function () { return npc; },
+      updateTownFolk: updateTownFolk,
+      folkStop: folkStop,
+      achieveLayout: achieveLayout,
+      tapAchieve: tapAchieve,
+      closeAchieveList: closeAchieveList,
+      achieveIsOpen: function () { return achieveOpen; },
+      setAchieveOpen: function (v) {
+        achieveOpen = !!v;
+        if (!achieveOpen) {
+          achieveScroll = 0;
+          achieveDrag = null;
+        }
+      },
       findHouseChest: findHouseChest,
       talkPip: talkPip,
       openShop: openShop,
