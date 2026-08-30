@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829k";
+  var BUILD = "20260829l";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -11211,6 +11211,8 @@
         p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore") {
       return p.ty * TILE + 14;
     }
+    /* fence feet stay on the tile so Orion south of a fence sorts in front */
+    if (isFenceKind(p.kind)) return p.ty * TILE + TILE;
     return p.ty * TILE + TILE;
   }
 
@@ -11262,6 +11264,7 @@
       }
       return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     }
+    if (isFenceKind(p.kind)) return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     return { x: p.tx * TILE, y: p.ty * TILE, w: 16, h: 16 };
   }
 
@@ -11324,6 +11327,41 @@
     ly = p.ty * TILE - 8;
     fill(g, lx - 2, ly - 1, tw + 4, 9, "rgba(42,26,16,0.78)");
     drawText(g, word, lx, ly, C.parch || "#F3D2A3");
+  }
+
+  function drawFence(g, kind, x, y) {
+    var hi = "#DE8F1F";
+    var mid = "#A15A0E";
+    var sh = "#6C3C09";
+    var cap = "#D88A1C";
+    var top = y - 16;
+    var railY = y - 6;
+    var h, c, railX, railW;
+    Assets.draw(g, kind, x, y);
+    function shaft(px, colors, y0, y1) {
+      h = y1 - y0 + 1;
+      if (h < 1) return;
+      for (c = 0; c < colors.length; c++) fill(g, px + c, y0, 1, h, colors[c]);
+      fill(g, px, y0, colors.length, 1, cap);
+      fill(g, px + 1, y0, Math.max(1, colors.length - 2), 1, hi);
+    }
+    if (kind === "fenceL") {
+      shaft(x + 1, ["#653A0A", "#854A0C", "#AC630E", "#884B0C", "#6F3F09"], top, y + 4);
+      railX = x + 4;
+      railW = 12;
+    } else if (kind === "fenceR") {
+      shaft(x + 11, ["#703F0B", "#854A0E", "#AD6712", "#96540E", "#7E470C"], top, y + 4);
+      railX = x;
+      railW = 12;
+    } else {
+      shaft(x + 1, ["#7B440B", "#854A0C", "#663A0A"], top, y + 8);
+      shaft(x + 13, ["#5C3409", "#D67F14", "#98560F"], top, y + 8);
+      railX = x + 3;
+      railW = 10;
+    }
+    fill(g, railX, railY, railW, 1, hi);
+    fill(g, railX, railY + 1, railW, 1, mid);
+    fill(g, railX, railY + 2, railW, 1, sh);
   }
 
   function drawProp(g, p) {
@@ -11409,12 +11447,8 @@
       Assets.draw(g, "weed" + ((p.tx + p.ty) & 1), x, y);
     } else if (p.kind === "tallGrass") {
       Assets.draw(g, "tallGrass" + ((p.tx + p.ty) & 1), x, y);
-    } else if (p.kind === "fenceH") {
-      Assets.draw(g, "fenceH", x, y);
-    } else if (p.kind === "fenceL") {
-      Assets.draw(g, "fenceL", x, y);
-    } else if (p.kind === "fenceR") {
-      Assets.draw(g, "fenceR", x, y);
+    } else if (isFenceKind(p.kind)) {
+      drawFence(g, p.kind, x, y);
     } else if (p.kind === "cave") {
       drawCaveMouth(g, x, y);
     } else if (p.kind === "mineSign") {
@@ -12841,7 +12875,11 @@
     if (currentScene === "forest") drawWoodsDigSpots(g);
 
     if (highlight) {
-      if (highlight.ghost && Assets.spr[highlight.ghost]) {
+      if (highlight.ghost && isFenceKind(highlight.ghost)) {
+        g.globalAlpha = 0.4;
+        drawFence(g, highlight.ghost, highlight.tx * TILE, highlight.ty * TILE);
+        g.globalAlpha = 1;
+      } else if (highlight.ghost && Assets.spr[highlight.ghost]) {
         g.globalAlpha = 0.4;
         Assets.draw(g, highlight.ghost, highlight.tx * TILE, highlight.ty * TILE);
         g.globalAlpha = 1;
