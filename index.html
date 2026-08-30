@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830a";
+  var BUILD = "20260830b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -4307,14 +4307,28 @@
     return "fenceH";
   }
 
+  function isSoftBuildProp(p) {
+    return !!(p && (p.kind === "tallGrass" || p.kind === "weed" || p.kind === "wildflower"));
+  }
+
+  function clearSoftBuildProp(tx, ty) {
+    var i, p;
+    for (i = PROPS.length - 1; i >= 0; i--) {
+      p = PROPS[i];
+      if (!isSoftBuildProp(p) || !propOccupies(p, tx, ty)) continue;
+      PROPS.splice(i, 1);
+    }
+  }
+
   function canBuildOn(tx, ty) {
-    var ch;
+    var ch, p;
     if (currentScene !== "overworld") return false;
     if (!inBounds(tx, ty)) return false;
     ch = cell(tx, ty);
     if (ch !== "g" && ch !== "d" && ch !== "h" && ch !== "m" && ch !== "k") return false;
     if (!walkable(tx, ty)) return false;
-    if (propAt(tx, ty)) return false;
+    p = propAt(tx, ty);
+    if (p && !isSoftBuildProp(p)) return false;
     if (tx === npc.tx && ty === npc.ty) return false;
     if (tx === chicken.tx && ty === chicken.ty) return false;
     if (carOccupies(tx, ty)) return false;
@@ -5338,6 +5352,7 @@
     if (placingFence) {
       spendSelected("wood", FENCE_COST);
       var fk = fenceKindFor(tx, ty);
+      clearSoftBuildProp(tx, ty);
       clearGoneFence(tx, ty);
       delete harvestNodes[nodeKey(liveHarvestScene(), tx, ty)];
       PROPS.push({ kind: fk, tx: tx, ty: ty });
@@ -5378,17 +5393,17 @@
   }
 
   /* Fat-finger the OUT ladder / OUT label so one tap exits (label sits 8px north).
-     Include the south tile — the hotbar often covers the lower rungs. */
+     5x5 tile pad + tall pixel rect: south rungs sit under the hotbar / sword btn. */
   function mineExitHit(tx, ty, world) {
     var bx, by, dx, dy;
     if (currentScene !== "mine" || mineFloor !== 1) return false;
     dx = tx - portalOut.tx;
     dy = ty - portalOut.ty;
-    if (dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1) return true;
+    if (dx >= -2 && dx <= 2 && dy >= -2 && dy <= 2) return true;
     if (!world) return false;
-    bx = portalOut.tx * TILE - 16;
-    by = portalOut.ty * TILE - 24;
-    return world.x >= bx && world.x < bx + 48 && world.y >= by && world.y < by + 56;
+    bx = portalOut.tx * TILE - 24;
+    by = portalOut.ty * TILE - 32;
+    return world.x >= bx && world.x < bx + 64 && world.y >= by && world.y < by + 80;
   }
 
   function hudWorldDoor(tx, ty, world) {
@@ -6605,8 +6620,21 @@
   }
 
   function placeToolInTrayFirst(key) {
-    var idx;
-    if (!key || bagCount(key) > 0) return;
+    var idx, i, c;
+    if (!key) return;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      if (trayCells[i] && trayCells[i].key === key) return;
+    }
+    for (i = 0; i < BAG_CELLS; i++) {
+      c = bagCells[i];
+      if (!c || c.key !== key) continue;
+      idx = firstEmptyTray();
+      if (idx >= 0) {
+        trayCells[idx] = { key: c.key, count: c.count | 0 };
+        bagCells[i] = null;
+      }
+      return;
+    }
     idx = firstEmptyTray();
     if (idx >= 0) {
       trayCells[idx] = { key: key, count: 1 };
@@ -10760,8 +10788,7 @@
   function tryPlaceOrWalk(tx, ty) {
     var placingNow = placingFenceNow() || selectedIs("stone");
     if (placingNow && canBuildOn(tx, ty)) {
-      goBuild(tx, ty);
-      return "build";
+      if (goBuild(tx, ty)) return "build";
     }
     /* Invalid place taps (dirt, till, occupied) must walk, not eat the click. */
     return "";
@@ -10773,6 +10800,10 @@
     if (ty < 0) ty = 0;
     if (tx >= COLS) tx = COLS - 1;
     if (ty >= ROWS) ty = ROWS - 1;
+    if (currentScene === "mine" && mineFloor === 1 && (isMineExit(tx, ty) || mineExitHit(tx, ty, null))) {
+      exitMine();
+      return;
+    }
     if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && houseChestHit(tx, ty, null)) {
       goChest();
       return;
@@ -10917,41 +10948,43 @@
   function goBuild(tx, ty) {
     var placingFence = placingFenceNow();
     var ghost = placingFence ? fenceKindFor(tx, ty) : "path";
+    var dest, path, pathOn;
     highlight = { tx: tx, ty: ty, ghost: ghost };
-    if (!canBuildOn(tx, ty)) return;
-    if (placingFence && player.tx === tx && player.ty === ty) return;
+    if (!canBuildOn(tx, ty)) return false;
+    if (placingFence && player.tx === tx && player.ty === ty) return false;
     if (placingFence && !selectedHas("wood", FENCE_COST)) {
       slotShake = 220;
-      return;
+      return true;
     }
     if (!placingFence && !selectedHas("stone", PATH_COST)) {
       slotShake = 220;
-      return;
+      return true;
     }
     if (placingFence) {
       if (isNear(player.tx, player.ty, tx, ty)) {
         pending = null;
         faceToward(player, tx, ty);
         tryBuild(tx, ty);
-        return;
+        return true;
       }
-      var dest = nearestAdjacent(tx, ty);
-      if (!dest) return;
-      var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
-      if (!path.length) return;
+      dest = nearestAdjacent(tx, ty);
+      if (!dest) return false;
+      path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+      if (!path.length) return false;
       pending = { type: "build", tx: tx, ty: ty };
       startWalk(player, path, 3.5);
-      return;
+      return true;
     }
     if (player.tx === tx && player.ty === ty) {
       pending = null;
       tryBuild(tx, ty);
-      return;
+      return true;
     }
-    var pathOn = findPath(player.tx, player.ty, tx, ty);
-    if (!pathOn.length) return;
+    pathOn = findPath(player.tx, player.ty, tx, ty);
+    if (!pathOn.length) return false;
     pending = { type: "build", tx: tx, ty: ty };
     startWalk(player, pathOn, 3.5);
+    return true;
   }
 
   function goDig(tx, ty) {
@@ -13223,6 +13256,10 @@
     var worldHud = { x: p.x + camX, y: p.y + camY };
     var hudTx = Math.floor(worldHud.x / TILE);
     var hudTy = Math.floor(worldHud.y / TILE);
+    /* Prefer MINE 1 OUT over sword/hotbar when the finger is on the ladder/OUT label. */
+    if (currentScene === "mine" && mineFloor === 1 && (isMineExit(hudTx, hudTy) || mineExitHit(hudTx, hudTy, worldHud))) {
+      return false;
+    }
     if (hudWorldDoor(hudTx, hudTy, worldHud)) return false;
     if (hitPad(p.x, p.y, T.bagX, T.bagY, T.bagW, T.bagH, 4)) {
       toggleBag();
@@ -13643,6 +13680,10 @@
     if (hitProp && hitProp.kind === "berryBush") {
       goPickBerry(hitProp);
       return;
+    }
+    /* BUILD-on wins over cutting soft grass on the same tile (was silent-fail walk). */
+    if (placingFenceNow() || selectedIs("stone")) {
+      if (tryPlaceOrWalk(tx, ty)) return;
     }
     if (hitProp && isPickablePlant(hitProp)) {
       goPickPlant(hitProp);
@@ -14102,6 +14143,7 @@
       goWalk: goWalk,
       tryBuild: tryBuild,
       canBuildOn: canBuildOn,
+      isSoftBuildProp: isSoftBuildProp,
       fenceBuildBtnRect: fenceBuildBtnRect,
       showFenceBuildBtn: showFenceBuildBtn,
       FENCE_COST: FENCE_COST,
