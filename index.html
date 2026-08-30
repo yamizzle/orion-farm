@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830d";
+  var BUILD = "20260830e";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -8461,12 +8461,16 @@
   function shopDoorHit(tx, ty, world) {
     var hx, hy;
     if (currentScene !== "overworld") return false;
+    /* South-face door (43,26), one north on the painted door, one east for fat-finger.
+       Skip the west tile (42,26): that is the parked car's right half. */
     if (tx === shopIn.tx && (ty === shopIn.ty || ty === shopIn.ty - 1)) return true;
-    if ((tx === shopIn.tx - 1 || tx === shopIn.tx + 1) && ty === shopIn.ty) return true;
+    if (tx === shopIn.tx + 1 && ty === shopIn.ty) return true;
     if (!world) return false;
+    /* 96x80 shop sprite at tile (42,22) with oy -16. LEFT wood door + steps,
+       not the old 64px box and not the awning window to the right. */
     hx = 42 * TILE;
     hy = 22 * TILE - 16;
-    return world.x >= hx + 8 && world.x < hx + 32 && world.y >= hy + 48 && world.y < hy + 80;
+    return world.x >= hx + 16 && world.x < hx + 34 && world.y >= hy + 46 && world.y < hy + 80;
   }
 
   function enterShop() {
@@ -13436,6 +13440,10 @@
           goTalkFolk(f);
           return;
         }
+      }
+      if (shopDoorHit(tx, ty, world) || isShopEntrance(tx, ty)) {
+        goEnterShop();
+        return;
       }
       if (carSpriteHit(world)) {
         goTapCar();
