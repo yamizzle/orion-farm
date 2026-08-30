@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829j";
+  var BUILD = "20260829k";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -369,10 +369,11 @@
         ]);
       });
     },
-    draw: function (ctx, id, x, y, frame) {
+    draw: function (ctx, id, x, y, frame, scale) {
       var s = Assets.spr[id];
       if (!s || !Assets.img) return;
       var fr = frame || 0;
+      var sc = scale || 1;
       var fw = s.fw || s.w;
       var ox = s.ox || 0;
       var oy = s.oy || 0;
@@ -381,8 +382,8 @@
       ctx.drawImage(
         Assets.img,
         s.x + fr * fw, s.y, fw, s.h,
-        Math.round(x + ox - ax), Math.round(y + oy - ay),
-        fw, s.h
+        Math.round(x + (ox - ax) * sc), Math.round(y + (oy - ay) * sc),
+        fw * sc, s.h * sc
       );
     }
   };
@@ -3616,10 +3617,22 @@
     return tx >= 0 && ty >= 0 && tx < COLS && ty < ROWS;
   }
 
+  function carSpanDelta(face) {
+    if (face === "left") return { dx: -1, dy: 0 };
+    if (face === "up") return { dx: 0, dy: -1 };
+    if (face === "down") return { dx: 0, dy: 1 };
+    return { dx: 1, dy: 0 };
+  }
+
   function carOccupies(tx, ty) {
+    var d, ex, ey;
     if (currentScene !== "overworld" || !car) return false;
     if (tx === car.tx && ty === car.ty) return true;
     if (car.path && car.path.length && car.path[0].tx === tx && car.path[0].ty === ty) return true;
+    d = carSpanDelta(car.face || "right");
+    ex = car.tx + d.dx;
+    ey = car.ty + d.dy;
+    if (tx === ex && ty === ey) return true;
     return false;
   }
 
@@ -8073,22 +8086,22 @@
 
   function carSpriteHit(world) {
     var face = car.face || "right";
-    if (face === "up" || face === "down") return hitSprite(world, car.x, car.y, 16, 20, 8, 18);
-    return hitSprite(world, car.x, car.y, 24, 16, 12, 14);
+    if (face === "up" || face === "down") return hitSprite(world, car.x, car.y, 32, 40, 16, 36);
+    return hitSprite(world, car.x, car.y, 48, 32, 24, 28);
   }
 
   function carLampSpots() {
     var face = car.face || "right";
     if (face === "right") {
-      return [{ x: car.x + 10, y: car.y - 6 }, { x: car.x + 10, y: car.y - 4 }];
+      return [{ x: car.x + 20, y: car.y - 12 }, { x: car.x + 20, y: car.y - 8 }];
     }
     if (face === "left") {
-      return [{ x: car.x - 11, y: car.y - 6 }, { x: car.x - 11, y: car.y - 4 }];
+      return [{ x: car.x - 22, y: car.y - 12 }, { x: car.x - 22, y: car.y - 8 }];
     }
     if (face === "up") {
-      return [{ x: car.x - 3, y: car.y - 15 }, { x: car.x + 2, y: car.y - 15 }];
+      return [{ x: car.x - 6, y: car.y - 30 }, { x: car.x + 4, y: car.y - 30 }];
     }
-    return [{ x: car.x - 3, y: car.y - 2 }, { x: car.x + 2, y: car.y - 2 }];
+    return [{ x: car.x - 6, y: car.y - 4 }, { x: car.x + 4, y: car.y - 4 }];
   }
 
 
@@ -11144,8 +11157,8 @@
     var face = car.face || "right";
     var sid = "car-" + face;
     if (!Assets.spr[sid]) sid = "car-right";
-    drawShadow(g, car.x, car.y, 7);
-    Assets.draw(g, sid, car.x, car.y, car.frame || 0);
+    drawShadow(g, car.x, car.y, (face === "up" || face === "down") ? 11 : 16);
+    Assets.draw(g, sid, car.x, car.y, car.frame || 0, 2);
     if (reedDone && lanternGlowAmt() > 0.12) {
       var spots = carLampSpots();
       var glow = 0.55 + 0.35 * lanternGlowAmt();
