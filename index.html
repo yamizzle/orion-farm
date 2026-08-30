@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830e";
+  var BUILD = "20260830f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -350,6 +350,9 @@
           loadImage("assets/props/forestChest.png").then(function (im) { Assets.forestChest = im; }).catch(function () {}),
           loadImage("assets/props/woodsSign.png").then(function (im) { Assets.woodsSign = im; }).catch(function () {}),
           loadImage("assets/props/nest.png").then(function (im) { Assets.nest = im; }).catch(function () {}),
+          loadImage("assets/props/giantBird.png").then(function (im) { Assets.giantBird = im; }).catch(function () {}),
+          loadImage("assets/props/giantBirdFly.png").then(function (im) { Assets.giantBirdFly = im; }).catch(function () {}),
+          loadImage("assets/props/birdRide.png").then(function (im) { Assets.birdRide = im; }).catch(function () {}),
           loadImage("assets/actors/bird.png").then(function (im) { Assets.bird = im; }).catch(function () {}),
           loadImage("assets/tiles/treetopSky.png").then(function (im) { Assets.treetopSky = im; }).catch(function () {}),
           loadImage("assets/tiles/canopySky.png").then(function (im) { Assets.canopySky = im; }).catch(function () {}),
@@ -501,6 +504,8 @@
   var tick = 0;
   var lastTs = 0;
   var dialogue = null;
+  var birdFly = null;
+  var birdRideFx = null;
   var crops = {};
   var pending = null;
   var solid = null;
@@ -578,7 +583,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -738,7 +743,8 @@
     { id: "carFriend", name: "CAR FRIEND", blurb: "LIT THE CAR'S NIGHT LAMPS" },
     { id: "caveFoe", name: "CAVE FOE", blurb: "BEAT A MONSTER" },
     { id: "peakGlow", name: "PEAK GLOW", blurb: "THE PEAK LIGHT." },
-    { id: "moondropNight", name: "MOONDROP NIGHT", blurb: "THE MOUNTAIN SHINES" }
+    { id: "moondropNight", name: "MOONDROP NIGHT", blurb: "THE MOUNTAIN SHINES" },
+    { id: "birdStar", name: "BIRD STAR", blurb: "HELPED THE NEST" }
   ];
   var COLLECT_ACH = { copper: "copperGlow", mushroom: "caveSnack", moonshard: "moonPiece" };
   var NOTE_OPEN = ["I LEFT MOON SHARDS", "IN THESE CAVES.", "BRING THEM HOME."];
@@ -2156,6 +2162,7 @@
       applyBuildsTo(GROUND, PROPS);
     }
     if (name === "overworld") applyPipLantern(PROPS);
+    if (name === "treetop" && found.birdArrived) ensureGiantBirdLanded();
     if (fresh && name !== "house") applyHarvestState((name === "mine" || name === "tree") ? harvestSceneName() : name, PROPS);
     if (name === "mine") {
       if (monsterCache[mineFloor]) monsters = monsterCache[mineFloor];
@@ -2432,7 +2439,7 @@
   }
 
   function buildTreetopProps() {
-    return [
+    var list = [
       { kind: "woodsDown", tx: 17, ty: 21 },
       { kind: "woodsSign", tx: 20, ty: 28 },
       { kind: "lantern", tx: 16, ty: 20 },
@@ -2452,6 +2459,8 @@
       { kind: "canopyHang", tx: 28, ty: 15 },
       { kind: "canopyHang", tx: 18, ty: 8 }
     ];
+    if (found.birdArrived) list.push({ kind: "giantBird", tx: 7, ty: 14 });
+    return list;
   }
 
   function buildTreeGround() {
@@ -3147,8 +3156,9 @@
     else if (p.kind === "woodsSign") drawWoodsSign(g, x, y);
     else if (p.kind === "giantTree") drawGiantTree(g, x, y);
     else if (p.kind === "woodsDown") drawWoodsDown(g, x, y);
-    else if (p.kind === "nest") drawNest(g, x, y);
+    else if (p.kind === "nest") drawNest(g, x, y, p);
     else if (p.kind === "bird") drawBird(g, x, y);
+    else if (p.kind === "giantBird") drawGiantBird(g, x, y);
     else if (p.kind === "canopyBough") drawCanopyBough(g, x, y);
     else if (p.kind === "canopySpan") drawCanopyDecal(g, Assets.canopySpan, x, y);
     else if (p.kind === "canopyClump") drawCanopyDecal(g, Assets.canopyClump, x, y);
@@ -3395,9 +3405,25 @@
     drawText(g, word, sx, y - 7, C.parch);
   }
 
-  function drawNest(g, x, y) {
-    if (Assets.nest) {
-      g.drawImage(Assets.nest, x, y, 16, 16);
+  function drawEmptyNest(g, x, y) {
+    fill(g, x + 1, y + 8, 14, 5, "#6D4427");
+    fill(g, x + 2, y + 7, 12, 4, "#8B5A28");
+    fill(g, x + 3, y + 9, 10, 3, "#5A3A18");
+  }
+
+  function drawNest(g, x, y, p) {
+    var img, w, h, dx, dy;
+    if (p && !p.eggs) {
+      drawEmptyNest(g, x, y);
+      return;
+    }
+    img = Assets.nest;
+    if (img) {
+      w = img.naturalWidth || img.width || 32;
+      h = img.naturalHeight || img.height || 32;
+      dx = x + ((TILE - w) / 2 | 0);
+      dy = y + TILE - h;
+      g.drawImage(img, dx, dy, w, h);
       return;
     }
     fill(g, x + 1, y + 8, 14, 5, "#6D4427");
@@ -3405,6 +3431,19 @@
     fill(g, x + 3, y + 9, 10, 3, "#5A3A18");
     fill(g, x + 4, y + 8, 3, 2, "#F3D2A3");
     fill(g, x + 8, y + 8, 3, 2, "#E8C84A");
+  }
+
+  function drawGiantBird(g, x, y) {
+    var img, w, h, dx, dy, bob;
+    if (birdFly || birdRideFx) return;
+    img = Assets.giantBird;
+    bob = ((tick / 280) | 0) % 2 ? -1 : 0;
+    if (!img) return;
+    w = img.naturalWidth || img.width || 64;
+    h = img.naturalHeight || img.height || 48;
+    dx = x + ((TILE - w) / 2 | 0);
+    dy = y + TILE - h + bob;
+    g.drawImage(img, dx, dy, w, h);
   }
 
   function drawBird(g, x, y) {
@@ -5625,6 +5664,8 @@
         found.sapphire = !!data.found.sapphire;
         found.peakLight = !!data.found.peakLight;
         found.peakChest = !!data.found.peakChest;
+        found.birdArrived = !!data.found.birdArrived;
+        found.birdNestFixed = !!data.found.birdNestFixed;
       }
       if (data.unlocked && typeof data.unlocked === "object") unlocked = data.unlocked;
       introSeen = !!data.introSeen;
@@ -7398,7 +7439,7 @@
   }
 
   function uiPaused() {
-    return !!(toast || modalOpen());
+    return !!(toast || modalOpen() || birdFly || birdRideFx);
   }
 
   function dismissTopDialog() {
@@ -7725,8 +7766,8 @@
     }
   }
 
-  function openDialogue(title, lines) {
-    dialogue = { title: title, lines: lines };
+  function openDialogue(title, lines, choices) {
+    dialogue = { title: title, lines: lines, choices: choices || null };
     playSfx("talk");
   }
 
@@ -8326,6 +8367,197 @@
     }
     pending = { type: "talkBird" };
     startWalk(player, path, 3.5);
+  }
+
+  var BIRD_STOPS = [
+    { id: "tree", label: "TREE" },
+    { id: "home", label: "HOME" },
+    { id: "town", label: "TOWN" },
+    { id: "cave", label: "CAVE" },
+    { id: "peak", label: "PEAK" }
+  ];
+
+  function findEggNest() {
+    var i, p;
+    if (currentScene !== "treetop") return null;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "nest" && p.eggs && p.tx === 7 && p.ty === 14) return p;
+    }
+    return null;
+  }
+
+  function findGiantBird() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "giantBird") return p;
+    }
+    return null;
+  }
+
+  function ensureGiantBirdLanded() {
+    var bird;
+    if (currentScene !== "treetop") return null;
+    bird = findGiantBird();
+    if (bird) return bird;
+    PROPS.push({ kind: "giantBird", tx: 7, ty: 14 });
+    return findGiantBird();
+  }
+
+  function startBirdFlyIn() {
+    var nest, img, w, h, destX, destY;
+    if (found.birdArrived || birdFly || birdRideFx) return;
+    nest = findEggNest();
+    if (!nest) return;
+    img = Assets.giantBirdFly;
+    w = img ? (img.naturalWidth || img.width) : 80;
+    h = img ? (img.naturalHeight || img.height) : 64;
+    destX = nest.tx * TILE + ((TILE - w) / 2 | 0);
+    destY = nest.ty * TILE + TILE - h;
+    birdFly = {
+      age: 0,
+      life: 1400,
+      x0: destX + 90,
+      y0: destY - 70,
+      x1: destX,
+      y1: destY,
+      w: w,
+      h: h
+    };
+    playSfx("talk");
+  }
+
+  function maybeBirdArrive() {
+    var nest;
+    if (found.birdArrived || birdFly || birdRideFx) return;
+    if (currentScene !== "treetop") return;
+    nest = findEggNest();
+    if (!nest) return;
+    if (nearProp(nest)) startBirdFlyIn();
+  }
+
+  function landGiantBird() {
+    found.birdArrived = true;
+    ensureGiantBirdLanded();
+    persistSave();
+    talkGiantBird();
+  }
+
+  function talkGiantBird() {
+    if (!found.birdArrived) {
+      startBirdFlyIn();
+      return;
+    }
+    if (!found.birdNestFixed) {
+      if (bagCount("wood") >= 10) {
+        takeFromBag("wood", 10);
+        found.birdNestFixed = true;
+        persistSave();
+        unlockAch("birdStar");
+        openDialogue("BIRD", ["THANK YOU.", "THE NEST IS SAFE.", "A STAR FOR YOU."]);
+        return;
+      }
+      openDialogue("BIRD", ["MY NEST NEEDS", "10 WOOD PLEASE."]);
+      return;
+    }
+    openDialogue("BIRD", ["WANT A RIDE?"], BIRD_STOPS);
+  }
+
+  function goTreetopBird() {
+    var nest, bird, dest, path, target;
+    nest = findEggNest();
+    bird = findGiantBird();
+    target = bird || nest;
+    if (!target) return;
+    highlight = { tx: target.tx, ty: target.ty };
+    if (nearProp(target) || (nest && nearProp(nest))) {
+      pending = null;
+      talkGiantBird();
+      return;
+    }
+    dest = nearestAdjacent(target.tx, target.ty);
+    if (!dest) {
+      talkGiantBird();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkGiantBird();
+      return;
+    }
+    pending = { type: "treetopBird" };
+    startWalk(player, path, 3.5);
+  }
+
+  function beginBirdRide(stopId) {
+    birdRideFx = { age: 0, life: 1600, stop: stopId };
+    playSfx("talk");
+  }
+
+  function finishBirdRide() {
+    var stop = birdRideFx ? birdRideFx.stop : "";
+    birdRideFx = null;
+    if (stop === "tree") {
+      applyScene("forest");
+      placePlayer(giantTreeLand.tx, giantTreeLand.ty, "up");
+    } else if (stop === "home") {
+      applyScene("overworld");
+      placePlayer(houseIn.tx, houseIn.ty + 1, "up");
+    } else if (stop === "town") {
+      applyScene("overworld");
+      placePlayer(43, 27, "up");
+    } else if (stop === "cave") {
+      applyScene("overworld");
+      placePlayer(portalIn.tx, portalIn.ty + 1, "up");
+    } else if (stop === "peak") {
+      applyScene("mine", 6);
+      placePlayer(16, 7, "up");
+    }
+    persistSave();
+  }
+
+  function updateBirdFx(dt) {
+    maybeBirdArrive();
+    if (birdFly) {
+      birdFly.age += dt;
+      if (birdFly.age >= birdFly.life) {
+        birdFly = null;
+        landGiantBird();
+      }
+    }
+    if (birdRideFx) {
+      birdRideFx.age += dt;
+      if (birdRideFx.age >= birdRideFx.life) finishBirdRide();
+    }
+  }
+
+  function drawBirdFly(g) {
+    var u, x, y, img;
+    if (!birdFly) return;
+    img = Assets.giantBirdFly;
+    if (!img) return;
+    u = birdFly.age / birdFly.life;
+    if (u > 1) u = 1;
+    u = 1 - (1 - u) * (1 - u);
+    x = birdFly.x0 + (birdFly.x1 - birdFly.x0) * u;
+    y = birdFly.y0 + (birdFly.y1 - birdFly.y0) * u + Math.sin(birdFly.age / 90) * 3;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, Math.round(x), Math.round(y), birdFly.w, birdFly.h);
+  }
+
+  function drawBirdRideOverlay(g) {
+    var img, w, h, x, y, bob;
+    if (!birdRideFx) return;
+    img = Assets.birdRide;
+    if (!img) return;
+    w = img.naturalWidth || img.width;
+    h = img.naturalHeight || img.height;
+    bob = Math.round(Math.sin(birdRideFx.age / 80) * 2);
+    x = ((VIEW_W - w) / 2) | 0;
+    y = 36 + bob;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, x, y, w, h);
   }
 
   function talkFolk(f) {
@@ -10243,7 +10475,7 @@
     return p && (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
       p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
       p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore" ||
-      p.kind === "toadstool" || (p.kind === "nest" && p.eggs));
+      p.kind === "toadstool");
   }
 
   function findNote() {
@@ -10304,14 +10536,6 @@
   function pickupCollectible(prop) {
     var i;
     if (!isCollectible(prop)) return;
-    if (prop.kind === "nest" && prop.eggs) {
-      prop.eggs = false;
-      addItem("berry", 1);
-      spawnPickup("berry", prop.tx, prop.ty, 0);
-      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
-      persistSave();
-      return;
-    }
     if (prop.kind === "toadstool") {
       i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
@@ -10717,6 +10941,8 @@
       descendTree();
     } else if (act.type === "talkBird") {
       talkBird();
+    } else if (act.type === "treetopBird") {
+      talkGiantBird();
     } else if (act.type === "shop") {
       openShop();
     } else if (act.type === "plantFlower") {
@@ -10781,6 +11007,12 @@
       face = facingTile();
       p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
       if (p && p.kind === "bird") { talkBird(); return true; }
+    } else if (currentScene === "treetop") {
+      face = facingTile();
+      p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
+      if (p && ((p.kind === "nest" && p.eggs) || p.kind === "giantBird")) { talkGiantBird(); return true; }
+      if (findGiantBird() && nearProp(findGiantBird())) { talkGiantBird(); return true; }
+      if (findEggNest() && nearProp(findEggNest())) { talkGiantBird(); return true; }
     }
     return false;
   }
@@ -11077,6 +11309,7 @@
   }
 
   function drawPlayer(g) {
+    if (birdRideFx) return;
     var bob, sx, sy, amp;
     if (faintFx && faintFx.stage === "out") {
       drawShadow(g, player.x, player.y, 6);
@@ -11329,7 +11562,9 @@
     if (p.kind === "swordPedestal") return p.ty * TILE + 20;
     if (p.kind === "giantTree") return p.ty * TILE + 24;
     if (p.kind === "woodsDown") return p.ty * TILE + 4;
-    if (p.kind === "nest" || p.kind === "bird") return p.ty * TILE + 12;
+    if (p.kind === "nest") return p.ty * TILE + 14;
+    if (p.kind === "bird") return p.ty * TILE + 12;
+    if (p.kind === "giantBird") return p.ty * TILE + 22;
     if (p.kind === "woodsSign") return p.ty * TILE + 8;
     if (p.kind === "note" || p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
         p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
@@ -11373,7 +11608,11 @@
     if (p.kind === "log") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 16 };
     if (p.kind === "giantTree") return { x: p.tx * TILE - 56, y: p.ty * TILE - 96, w: 128, h: 120 };
     if (p.kind === "woodsDown") return { x: p.tx * TILE - 4, y: p.ty * TILE - 10, w: 24, h: 28 };
-    if (p.kind === "nest") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 20, h: 16 };
+    if (p.kind === "nest") {
+      if (p.eggs) return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 32 };
+      return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 20, h: 16 };
+    }
+    if (p.kind === "giantBird") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
     if (p.kind === "bird") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 20 };
     if (p.kind === "woodsSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
     if (p.kind === "cave") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
@@ -11544,7 +11783,7 @@
     } else if (p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "log" ||
                p.kind === "fern" || p.kind === "wildflower" || p.kind === "toadstool" ||
                p.kind === "berryBush" || p.kind === "woodsSign" || p.kind === "silver" || p.kind === "goldore" ||
-               p.kind === "giantTree" || p.kind === "woodsDown" || p.kind === "nest" || p.kind === "bird" ||
+               p.kind === "giantTree" || p.kind === "woodsDown" || p.kind === "nest" || p.kind === "bird" || p.kind === "giantBird" ||
                p.kind === "canopyBough" || p.kind === "canopySpan" || p.kind === "canopyClump" || p.kind === "canopyHang") {
       drawForestProp(g, p, x, y);
     } else if (p.kind === "stump") {
@@ -11980,21 +12219,42 @@
   function dialogueLayout() {
     var lines = (dialogue && dialogue.lines) || [];
     var title = (dialogue && dialogue.title) || "";
+    var choices = (dialogue && dialogue.choices) || [];
     var x = 16, w = 288;
-    var h = 30 + Math.max(2, lines.length) * 10;
+    var rows, h, y, okW, okH, okX, okY, closeW, closeH, closeX, closeY;
+    var choiceRects, i, n, row, col, cols, btnW, btnH, gap, rowW, bx, by, startX;
+    n = choices.length;
+    rows = n ? (n <= 3 ? 1 : 2) : 0;
+    h = 30 + Math.max(2, lines.length) * 10;
+    if (rows) h += 8 + rows * 18;
     if (h < 64) h = 64;
-    var y = 166 - h;
+    y = 166 - h;
     if (y < 78) y = 78;
-    var okW = 28, okH = 12;
-    var okX = x + ((w - okW) / 2) | 0;
-    var okY = y + h - 18;
-    var closeW = 14, closeH = 12;
-    var closeX = x + w - closeW - 6;
-    var closeY = y + 4;
+    okW = 28; okH = 12;
+    okX = x + ((w - okW) / 2) | 0;
+    okY = y + h - 18;
+    closeW = 14; closeH = 12;
+    closeX = x + w - closeW - 6;
+    closeY = y + 4;
+    choiceRects = [];
+    if (n) {
+      btnW = 52; btnH = 14; gap = 6;
+      cols = n <= 3 ? n : 3;
+      by = y + 12 + lines.length * 10 + 6;
+      for (i = 0; i < n; i++) {
+        row = i < cols ? 0 : 1;
+        col = i < cols ? i : i - cols;
+        rowW = (row === 0 ? Math.min(n, cols) : n - cols) * btnW + ((row === 0 ? Math.min(n, cols) : n - cols) - 1) * gap;
+        startX = x + ((w - rowW) / 2) | 0;
+        bx = startX + col * (btnW + gap);
+        choiceRects.push({ x: bx, y: by + row * 18, w: btnW, h: btnH, id: choices[i].id, label: choices[i].label });
+      }
+    }
     return {
-      x: x, y: y, w: w, h: h, title: title, lines: lines,
+      x: x, y: y, w: w, h: h, title: title, lines: lines, choices: choices,
       okX: okX, okY: okY, okW: okW, okH: okH,
-      closeX: closeX, closeY: closeY, closeW: closeW, closeH: closeH
+      closeX: closeX, closeY: closeY, closeW: closeW, closeH: closeH,
+      choiceRects: choiceRects
     };
   }
 
@@ -12004,10 +12264,33 @@
     return true;
   }
 
+  function tapDialogue(p) {
+    var L, i, r;
+    if (!dialogue) return false;
+    L = dialogueLayout();
+    if (L.choiceRects && L.choiceRects.length) {
+      for (i = 0; i < L.choiceRects.length; i++) {
+        r = L.choiceRects[i];
+        if (p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h) {
+          dialogue = null;
+          if (r.id) beginBirdRide(r.id);
+          return true;
+        }
+      }
+      if (p.x >= L.closeX && p.x < L.closeX + L.closeW && p.y >= L.closeY && p.y < L.closeY + L.closeH) {
+        dialogue = null;
+        return true;
+      }
+      return true;
+    }
+    dialogue = null;
+    return true;
+  }
+
   function drawDialogue(g) {
     if (!dialogue) return;
     var L = dialogueLayout();
-    var tw, i;
+    var tw, i, r;
     woodPanel(g, L.x, L.y, L.w, L.h);
     fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
     tw = textWidth(L.title) + 12;
@@ -12017,10 +12300,20 @@
     for (i = 0; i < L.lines.length; i++) {
       drawText(g, L.lines[i], L.x + 10, L.y + 12 + i * 10, C.uiText);
     }
-    woodPanel(g, L.okX, L.okY, L.okW, L.okH);
-    drawText(g, "OK", L.okX + 8, L.okY + 3, C.parch);
+    if (!(L.choiceRects && L.choiceRects.length)) {
+      woodPanel(g, L.okX, L.okY, L.okW, L.okH);
+      drawText(g, "OK", L.okX + 8, L.okY + 3, C.parch);
+    }
     woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
     drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
+    if (L.choiceRects) {
+      for (i = 0; i < L.choiceRects.length; i++) {
+        r = L.choiceRects[i];
+        woodPanel(g, r.x, r.y, r.w, r.h);
+        tw = textWidth(r.label);
+        drawText(g, r.label, r.x + ((r.w - tw) / 2 | 0), r.y + 4, C.parch);
+      }
+    }
   }
 
   function clamp01(t) {
@@ -13050,6 +13343,7 @@
       g.save();
       g.translate(-camX, -camY);
       drawActors(g);
+      drawBirdFly(g);
       drawPickups(g);
       drawArrows(g);
       drawSparks(g);
@@ -13057,14 +13351,17 @@
       drawFestivalSparkles(g);
       g.restore();
       drawFestivalStar(g);
+      drawBirdRideOverlay(g);
     } else {
       drawActors(g);
+      drawBirdFly(g);
       drawPickups(g);
       drawArrows(g);
       drawSparks(g);
       drawFishing(g);
       g.restore();
       drawDayTint(g);
+      drawBirdRideOverlay(g);
     }
     drawHUD(g);
     drawBag(g);
@@ -13364,9 +13661,10 @@
       return;
     }
     if (dialogue) {
-      closeDialogue();
+      tapDialogue(p);
       return;
     }
+    if (birdFly || birdRideFx) return;
     if (wipeAsk) {
       tapWipeAsk(p);
       return;
@@ -13575,6 +13873,10 @@
       goTalkBird();
       return;
     }
+    if (currentScene === "treetop" && propAt(tx, ty) && ((propAt(tx, ty).kind === "nest" && propAt(tx, ty).eggs) || propAt(tx, ty).kind === "giantBird")) {
+      goTreetopBird();
+      return;
+    }
     var hitHole = holeHit(tx, ty, world);
     if (isMineDown(tx, ty) || (hitHole && hitHole.kind === "hole")) {
       goMineShaft(true);
@@ -13620,11 +13922,15 @@
       goTalkBird();
       return;
     }
+    if (currentScene === "treetop" && propAt(tx, ty) && ((propAt(tx, ty).kind === "nest" && propAt(tx, ty).eggs) || propAt(tx, ty).kind === "giantBird")) {
+      goTreetopBird();
+      return;
+    }
     var hitProp = propAt(tx, ty);
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -13688,6 +13994,10 @@
     }
     if (hitProp && hitProp.kind === "mailbox") {
       goMail();
+      return;
+    }
+    if (currentScene === "treetop" && hitProp && ((hitProp.kind === "nest" && hitProp.eggs) || hitProp.kind === "giantBird")) {
+      goTreetopBird();
       return;
     }
     if (hitProp && isCollectible(hitProp)) {
@@ -13788,6 +14098,7 @@
     ctx.imageSmoothingEnabled = false;
     updateSleep(dt);
     updateFaint(dt);
+    updateBirdFx(dt);
     updateLineNote(dt);
     if (!uiPaused()) {
       updateSwordArc(dt);
