@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829g";
+  var BUILD = "20260829h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -10522,11 +10522,7 @@
       goBuild(tx, ty);
       return "build";
     }
-    if (placingNow && currentScene === "overworld") {
-      highlight = { tx: tx, ty: ty };
-      slotShake = 180;
-      return "shake";
-    }
+    /* Invalid place taps (dirt, till, occupied) must walk, not eat the click. */
     return "";
   }
 
@@ -13364,11 +13360,6 @@
     }
     if (selectedIs("shovel") && shovelOwned && canDigOn(tx, ty)) {
       goDig(tx, ty);
-      return;
-    }
-    if (selectedIs("shovel") && currentScene === "overworld") {
-      highlight = { tx: tx, ty: ty };
-      slotShake = 180;
       return;
     }
     if (selectedIs("flower") && selectedHas("flower", 1) && (cell(tx, ty) === "g" || cell(tx, ty) === "m")) {
