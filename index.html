@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830f";
+  var BUILD = "20260830g";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -8369,6 +8369,44 @@
     startWalk(player, path, 3.5);
   }
 
+  function findTreeEggNest() {
+    var i, p;
+    if (currentScene !== "tree") return null;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "nest" && p.eggs) return p;
+    }
+    return null;
+  }
+
+  function talkTreeNest() {
+    openDialogue("NEST", ["THE MAMA BIRD IS UP TOP."]);
+  }
+
+  function goTalkTreeNest() {
+    var p, dest, path;
+    p = findTreeEggNest();
+    if (!p) return;
+    highlight = { tx: p.tx, ty: p.ty };
+    if (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty)) {
+      pending = null;
+      talkTreeNest();
+      return;
+    }
+    dest = nearestAdjacent(p.tx, p.ty);
+    if (!dest) {
+      talkTreeNest();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkTreeNest();
+      return;
+    }
+    pending = { type: "talkTreeNest" };
+    startWalk(player, path, 3.5);
+  }
+
   var BIRD_STOPS = [
     { id: "tree", label: "TREE" },
     { id: "home", label: "HOME" },
@@ -8418,8 +8456,8 @@
     birdFly = {
       age: 0,
       life: 1400,
-      x0: destX + 90,
-      y0: destY - 70,
+      x0: player.tx * TILE + 40,
+      y0: player.ty * TILE - 80,
       x1: destX,
       y1: destY,
       w: w,
@@ -8434,7 +8472,7 @@
     if (currentScene !== "treetop") return;
     nest = findEggNest();
     if (!nest) return;
-    if (nearProp(nest)) startBirdFlyIn();
+    startBirdFlyIn();
   }
 
   function landGiantBird() {
@@ -10941,6 +10979,8 @@
       descendTree();
     } else if (act.type === "talkBird") {
       talkBird();
+    } else if (act.type === "talkTreeNest") {
+      talkTreeNest();
     } else if (act.type === "treetopBird") {
       talkGiantBird();
     } else if (act.type === "shop") {
@@ -11007,6 +11047,7 @@
       face = facingTile();
       p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
       if (p && p.kind === "bird") { talkBird(); return true; }
+      if (p && p.kind === "nest" && p.eggs) { talkTreeNest(); return true; }
     } else if (currentScene === "treetop") {
       face = facingTile();
       p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
@@ -11562,7 +11603,7 @@
     if (p.kind === "swordPedestal") return p.ty * TILE + 20;
     if (p.kind === "giantTree") return p.ty * TILE + 24;
     if (p.kind === "woodsDown") return p.ty * TILE + 4;
-    if (p.kind === "nest") return p.ty * TILE + 14;
+    if (p.kind === "nest") return p.ty * TILE + 22;
     if (p.kind === "bird") return p.ty * TILE + 12;
     if (p.kind === "giantBird") return p.ty * TILE + 22;
     if (p.kind === "woodsSign") return p.ty * TILE + 8;
@@ -13873,6 +13914,10 @@
       goTalkBird();
       return;
     }
+    if (currentScene === "tree" && propAt(tx, ty) && propAt(tx, ty).kind === "nest" && propAt(tx, ty).eggs) {
+      goTalkTreeNest();
+      return;
+    }
     if (currentScene === "treetop" && propAt(tx, ty) && ((propAt(tx, ty).kind === "nest" && propAt(tx, ty).eggs) || propAt(tx, ty).kind === "giantBird")) {
       goTreetopBird();
       return;
@@ -13920,6 +13965,10 @@
     }
     if (currentScene === "tree" && propAt(tx, ty) && propAt(tx, ty).kind === "bird") {
       goTalkBird();
+      return;
+    }
+    if (currentScene === "tree" && propAt(tx, ty) && propAt(tx, ty).kind === "nest" && propAt(tx, ty).eggs) {
+      goTalkTreeNest();
       return;
     }
     if (currentScene === "treetop" && propAt(tx, ty) && ((propAt(tx, ty).kind === "nest" && propAt(tx, ty).eggs) || propAt(tx, ty).kind === "giantBird")) {
@@ -13994,6 +14043,10 @@
     }
     if (hitProp && hitProp.kind === "mailbox") {
       goMail();
+      return;
+    }
+    if (currentScene === "tree" && hitProp && hitProp.kind === "nest" && hitProp.eggs) {
+      goTalkTreeNest();
       return;
     }
     if (currentScene === "treetop" && hitProp && ((hitProp.kind === "nest" && hitProp.eggs) || hitProp.kind === "giantBird")) {
