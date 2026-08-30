@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829h";
+  var BUILD = "20260829i";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -359,7 +359,13 @@
           loadImage("assets/tiles/canopyMap.png").then(function (im) { Assets.canopyMap = im; }).catch(function () {}),
           loadImage("assets/props/canopySpan.png").then(function (im) { Assets.canopySpan = im; }).catch(function () {}),
           loadImage("assets/props/canopyClump.png").then(function (im) { Assets.canopyClump = im; }).catch(function () {}),
-          loadImage("assets/props/canopyHang.png").then(function (im) { Assets.canopyHang = im; }).catch(function () {})
+          loadImage("assets/props/canopyHang.png").then(function (im) { Assets.canopyHang = im; }).catch(function () {}),
+          loadImage("assets/tiles/overRimNorth.png").then(function (im) { Assets.overRimNorth = im; }).catch(function () {}),
+          loadImage("assets/tiles/overRimSouth.png").then(function (im) { Assets.overRimSouth = im; }).catch(function () {}),
+          loadImage("assets/tiles/overRimWest.png").then(function (im) { Assets.overRimWest = im; }).catch(function () {}),
+          loadImage("assets/tiles/overRimEast.png").then(function (im) { Assets.overRimEast = im; }).catch(function () {}),
+          loadImage("assets/props/overClumpA.png").then(function (im) { Assets.overClumpA = im; }).catch(function () {}),
+          loadImage("assets/props/overClumpB.png").then(function (im) { Assets.overClumpB = im; }).catch(function () {})
         ]);
       });
     },
@@ -3532,6 +3538,16 @@
       }
     }
     if (currentScene === "overworld") block(npc.tx, npc.ty);
+    if (currentScene === "overworld" && hasOverRim()) {
+      for (x = 0; x < COLS; x++) {
+        block(x, 0);
+        block(x, ROWS - 1);
+      }
+      for (y = 0; y < ROWS; y++) {
+        block(0, y);
+        block(COLS - 1, y);
+      }
+    }
   }
 
   function inBounds(tx, ty) {
@@ -3560,6 +3576,7 @@
 
   function walkable(tx, ty) {
     if (!inBounds(tx, ty) || solid[ty][tx]) return false;
+    if (currentScene === "overworld" && hasOverRim() && overRimTile(tx, ty)) return false;
     if (carOccupies(tx, ty)) return false;
     return true;
   }
@@ -12535,12 +12552,36 @@
     g.restore();
   }
 
+  function hasOverRim() {
+    return !!(Assets.overRimNorth || Assets.overRimSouth || Assets.overRimWest || Assets.overRimEast);
+  }
+
+  function overRimTile(tx, ty) {
+    return tx <= 0 || ty <= 0 || tx >= COLS - 1 || ty >= ROWS - 1;
+  }
+
+  function drawOverRim(g) {
+    var w, h;
+    if (currentScene !== "overworld" || !hasOverRim()) return;
+    w = COLS * TILE;
+    h = ROWS * TILE;
+    if (Assets.overRimWest) g.drawImage(Assets.overRimWest, -48, 0, 64, h);
+    if (Assets.overRimEast) g.drawImage(Assets.overRimEast, w - 16, 0, 64, h);
+    if (Assets.overRimNorth) g.drawImage(Assets.overRimNorth, -48, -58, w + 96, 74);
+    if (Assets.overRimSouth) g.drawImage(Assets.overRimSouth, -48, h - 16, w + 96, 56);
+    if (Assets.overClumpA) g.drawImage(Assets.overClumpA, 18 * TILE, -8, 48, 32);
+    if (Assets.overClumpB) g.drawImage(Assets.overClumpB, 42 * TILE, (ROWS - 1) * TILE - 8, 48, 32);
+    if (Assets.overClumpA) g.drawImage(Assets.overClumpA, -8, 12 * TILE, 40, 40);
+    if (Assets.overClumpB) g.drawImage(Assets.overClumpB, w - 24, 22 * TILE, 40, 40);
+  }
+
   function drawWorld(g, dt) {
     updateCamera();
     g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree") ? (C.sky || "#8EC8E8") : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
+    drawOverRim(g);
     if (currentScene === "treetop" && Assets.canopyMap) {
       g.drawImage(Assets.canopyMap, 0, 0, TREETOP_COLS * TILE, TREETOP_ROWS * TILE);
     }
@@ -12620,6 +12661,8 @@
           } else {
             Assets.draw(g, houseShellTile(tx, ty), dx, dy);
           }
+        } else if (currentScene === "overworld" && hasOverRim() && overRimTile(tx, ty)) {
+          /* unique Imagine rim already painted */
         } else {
           Assets.draw(g, "grass" + grassIndex(tx, ty), dx, dy);
         }
@@ -13923,6 +13966,7 @@
   }
   checkFreshBuild();
   Assets.load().then(function () {
+    if (currentScene === "overworld") buildSolid();
     requestAnimationFrame(loop);
   }).catch(function () {
     paintMissing();
