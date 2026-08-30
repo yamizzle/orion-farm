@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829f";
+  var BUILD = "20260829g";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -6551,8 +6551,10 @@
     var listX = x + 8;
     var listY = y + 20;
     var listW = w - 20;
-    var allY = y + h - 16;
-    var listH = allY - listY - 4;
+    var btnH = 14;
+    var btnW = 78;
+    var allY = y + h - 18;
+    var listH = allY - listY - 6;
     var rowH = 11;
     var contentH = CHEST_ROWS.length * rowH;
     var maxScroll = contentH - listH;
@@ -6565,9 +6567,9 @@
       backX: x + w - 46,
       backY: y - 8,
       backW: 36, backH: 12,
-      putX: x + 12, takeX: x + 88,
+      putX: x + 8, takeX: x + w - 8 - btnW,
       allY: allY,
-      btnW: 70, btnH: 12,
+      btnW: btnW, btnH: btnH,
       bagX: x + 112,
       chestX: x + w - 16
     };
@@ -6618,6 +6620,9 @@
       for (i = 0; i < CHEST_ROWS.length; i++) n += putInChest(CHEST_ROWS[i].key, -1);
       if (n <= 0) {
         chestMsg = "NOTHING TO PUT.";
+        for (i = 0; i < CHEST_ROWS.length; i++) {
+          if (bagCount(CHEST_ROWS[i].key) > 0) { chestMsg = "CHEST IS FULL."; break; }
+        }
         chestMsgT = 1200;
         return;
       }
@@ -6647,6 +6652,9 @@
       for (i = 0; i < CHEST_ROWS.length; i++) n += takeFromChest(CHEST_ROWS[i].key, -1);
       if (n <= 0) {
         chestMsg = "CHEST IS EMPTY.";
+        for (i = 0; i < CHEST_ROWS.length; i++) {
+          if (chestCount(CHEST_ROWS[i].key) > 0) { chestMsg = "BAG FULL."; break; }
+        }
         chestMsgT = 1200;
         return;
       }
@@ -6697,12 +6705,12 @@
       closeChest();
       return true;
     }
-    if (hitPad(p.x, p.y, L.putX, L.allY, L.btnW, L.btnH, 4)) {
-      chestPut(true);
-      return true;
-    }
-    if (hitPad(p.x, p.y, L.takeX, L.allY, L.btnW, L.btnH, 4)) {
-      chestTake(true);
+    /* Footer: PUT ALL is the left wood; everything else on this strip is TAKE ALL
+       (covers the old clustered TAKE ALL at x+88 and the new right-aligned wood).
+       2pm live missed the 70x12 because it sat under the list's PUT half. */
+    if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.allY - 6 && p.y < L.allY + L.btnH + 8) {
+      if (p.x < L.putX + L.btnW + 4) chestPut(true);
+      else chestTake(true);
       return true;
     }
     if (p.x >= L.listX && p.x < L.x + L.w - 4 && p.y >= L.listY && p.y < L.listY + L.listH) {
@@ -6779,7 +6787,7 @@
     woodPanel(g, L.takeX, L.allY, L.btnW, L.btnH);
     drawText(g, "TAKE ALL", L.takeX + ((L.btnW - textWidth("TAKE ALL")) / 2) | 0, L.allY + 2, C.parch);
     if (chestMsg && chestMsgT > 0) {
-      drawText(g, chestMsg, L.x + 170, L.allY + 2, C.gold);
+      drawText(g, chestMsg, L.putX + L.btnW + 6, L.allY + 4, C.gold);
     }
   }
 
@@ -7723,6 +7731,14 @@
     f.y = tileFootY(f.ty);
   }
 
+  function playerFacingFolk(f) {
+    var tile;
+    if (!f) return false;
+    if (Math.abs(player.tx - f.tx) + Math.abs(player.ty - f.ty) !== 1) return false;
+    tile = facingTile();
+    return tile.tx === f.tx && tile.ty === f.ty;
+  }
+
   function updateTownFolk(dt) {
     var i, f, dest;
     var list;
@@ -7730,6 +7746,11 @@
     list = liveFolk();
     for (i = 0; i < list.length; i++) {
       f = list[i];
+      if (playerFacingFolk(f)) {
+        folkStop(f);
+        f.idle = 1400;
+        continue;
+      }
       f.anim += dt;
       if (f.anim > 220) {
         f.anim = 0;
@@ -13849,6 +13870,23 @@
       openChest: openChest,
       chestIsOpen: function () { return chestOpen; },
       closeChest: closeChest,
+      chestTake: chestTake,
+      chestPut: chestPut,
+      takeFromChest: takeFromChest,
+      putInChest: putInChest,
+      chestLayout: chestLayout,
+      tapChest: tapChest,
+      tapChestRow: tapChestRow,
+      hitPad: hitPad,
+      CHEST_ROWS: CHEST_ROWS,
+      chestCount: chestCount,
+      bagCount: bagCount,
+      addToBag: addToBag,
+      takeFromBag: takeFromBag,
+      chest: function () { return chest; },
+      setChestCount: function (k, n) { chest[k] = n | 0; },
+      chestMsg: function () { return chestMsg; },
+      playerFacingFolk: playerFacingFolk,
       findHouseChest: findHouseChest,
       talkPip: talkPip,
       openShop: openShop,
