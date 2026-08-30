@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260829l";
+  var BUILD = "20260829m";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3656,6 +3656,38 @@
     return true;
   }
 
+  function nearestWalkable(fromTx, fromTy) {
+    var r, x, y, tx, ty, maxR;
+    fromTx = fromTx | 0;
+    fromTy = fromTy | 0;
+    if (walkable(fromTx, fromTy)) return { tx: fromTx, ty: fromTy };
+    maxR = COLS + ROWS;
+    if (maxR < 8) maxR = 8;
+    if (maxR > 160) maxR = 160;
+    for (r = 1; r <= maxR; r++) {
+      for (x = -r; x <= r; x++) {
+        y = r - Math.abs(x);
+        tx = fromTx + x;
+        ty = fromTy + y;
+        if (walkable(tx, ty)) return { tx: tx, ty: ty };
+        if (y) {
+          ty = fromTy - y;
+          if (walkable(tx, ty)) return { tx: tx, ty: ty };
+        }
+      }
+    }
+    return { tx: 16, ty: 30 };
+  }
+
+  function unstickPlayer() {
+    var spot;
+    if (walkable(player.tx, player.ty)) return false;
+    spot = nearestWalkable(player.tx, player.ty);
+    placePlayer(spot.tx, spot.ty, player.face);
+    persistSave();
+    return true;
+  }
+
   function playerOccupies(tx, ty) {
     if (tx === player.tx && ty === player.ty) return true;
     if (player.path && player.path.length && player.path[0].tx === tx && player.path[0].ty === ty) return true;
@@ -6066,7 +6098,7 @@
   }
 
   function applyRestore() {
-    var scene, tx, ty, face;
+    var scene, tx, ty, face, spot;
     if (!pendingRestore) return;
     scene = pendingRestore.scene || "overworld";
     if (scene !== currentScene) applyScene(scene);
@@ -6074,10 +6106,10 @@
     ty = pendingRestore.ty;
     face = pendingRestore.face || "down";
     if (scene === "overworld") {
-      if (tx < 0) tx = 0;
-      if (ty < 0) ty = 0;
-      if (tx >= OVER_COLS) tx = OVER_COLS - 1;
-      if (ty >= OVER_ROWS) ty = OVER_ROWS - 1;
+      if (tx < 1) tx = 1;
+      if (ty < 1) ty = 1;
+      if (tx >= OVER_COLS - 1) tx = OVER_COLS - 2;
+      if (ty >= OVER_ROWS - 1) ty = OVER_ROWS - 2;
     }
     if (!inBounds(tx, ty) || !walkable(tx, ty)) {
       if (scene === "house") { tx = 10; ty = 9; face = "up"; }
@@ -6093,10 +6125,15 @@
         else if (mineFloor === 6) { tx = 8; ty = 12; face = "down"; }
         else { tx = 16; ty = 19; face = "up"; }
       }
-      else { tx = 16; ty = 30; face = "down"; }
+      else {
+        spot = nearestWalkable(tx, ty);
+        tx = spot.tx;
+        ty = spot.ty;
+      }
     }
     placePlayer(tx, ty, face);
     pendingRestore = null;
+    unstickPlayer();
     if ((hp <= 0 || energy <= 0) && !faintFx) beginFaint();
   }
 
@@ -14177,6 +14214,7 @@
   checkFreshBuild();
   Assets.load().then(function () {
     if (currentScene === "overworld") buildSolid();
+    unstickPlayer();
     requestAnimationFrame(loop);
   }).catch(function () {
     paintMissing();
