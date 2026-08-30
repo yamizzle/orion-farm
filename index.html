@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830b";
+  var BUILD = "20260830c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -521,7 +521,7 @@
   var SHOP_ROWS = 10;
   var houseIn = { tx: 17, ty: 28 };
   var houseOut = { tx: 10, ty: 10 };
-  var shopIn = { tx: 44, ty: 26 };
+  var shopIn = { tx: 43, ty: 26 };
   var shopOut = { tx: 8, ty: 8 };
   var FOREST_COLS = 28;
   var FOREST_ROWS = 66;
@@ -548,7 +548,7 @@
   var TREE_COLS = 10;
   var TREE_ROWS = 8;
   var treeFloor = 1;
-  var pipLanternAt = { tx: 43, ty: 25 };
+  var pipLanternAt = { tx: 41, ty: 25 };
   var TOWN_GREEN = { x0: 43, y0: 29, x1: 55, y1: 32 };
   var SAVE_KEY = "moondrop-mountain-v1";
   var SAVE_VER = 4;
@@ -1254,9 +1254,15 @@
     } else if (p.kind === "house") {
       x1 = p.tx + 4;
       y1 = p.ty + 3;
-    } else if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
+    } else if (p.kind === "shopHouse") {
+      x1 = p.tx + 5;
+      y1 = p.ty + 3;
+    } else if (p.kind === "townHouseA") {
       x1 = p.tx + 3;
-      y1 = p.ty + 2;
+      y1 = p.ty + 4;
+    } else if (p.kind === "townHouseB") {
+      x1 = p.tx + 4;
+      y1 = p.ty + 3;
     } else if (p.kind === "pond" || p.kind === "fountain") {
       x1 = p.tx + 1;
       y1 = p.ty + 1;
@@ -1526,11 +1532,11 @@
       { kind: "lantern", tx: 32, ty: 8 },
       { kind: "lantern", tx: 36, ty: 8 },
       { kind: "shopHouse", tx: 42, ty: 22 },
-      { kind: "townHouseA", tx: 50, ty: 22 },
+      { kind: "townHouseA", tx: 50, ty: 21 },
       { kind: "townHouseB", tx: 58, ty: 28 },
       { kind: "fountain", tx: 46, ty: 29 },
       { kind: "statue", tx: 51, ty: 29 },
-      { kind: "shopSign", tx: 44, ty: 25 },
+      { kind: "shopSign", tx: 45, ty: 26 },
       { kind: "lantern", tx: 20, ty: 31 },
       { kind: "lantern", tx: 26, ty: 31 },
       { kind: "lantern", tx: 32, ty: 31 },
@@ -3555,9 +3561,17 @@
             block(p.tx + x, p.ty + y);
           }
         }
-      } else if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
-        for (y = 0; y < 3; y++) {
+      } else if (p.kind === "shopHouse") {
+        for (y = 0; y < 4; y++) {
+          for (x = 0; x < 6; x++) block(p.tx + x, p.ty + y);
+        }
+      } else if (p.kind === "townHouseA") {
+        for (y = 0; y < 5; y++) {
           for (x = 0; x < 4; x++) block(p.tx + x, p.ty + y);
+        }
+      } else if (p.kind === "townHouseB") {
+        for (y = 0; y < 4; y++) {
+          for (x = 0; x < 5; x++) block(p.tx + x, p.ty + y);
         }
       } else if (p.kind === "fountain") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
@@ -4170,9 +4184,9 @@
   function propOccupies(p, tx, ty) {
     if (!p) return false;
     if (p.kind === "house") return tx >= p.tx && tx < p.tx + 5 && ty >= p.ty && ty < p.ty + 4;
-    if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
-      return tx >= p.tx && tx < p.tx + 4 && ty >= p.ty && ty < p.ty + 3;
-    }
+    if (p.kind === "shopHouse") return tx >= p.tx && tx < p.tx + 6 && ty >= p.ty && ty < p.ty + 4;
+    if (p.kind === "townHouseA") return tx >= p.tx && tx < p.tx + 4 && ty >= p.ty && ty < p.ty + 5;
+    if (p.kind === "townHouseB") return tx >= p.tx && tx < p.tx + 5 && ty >= p.ty && ty < p.ty + 4;
     if (p.kind === "fountain") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "counter") return tx >= p.tx && tx < p.tx + 3 && ty === p.ty;
     if (p.kind === "bed") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
@@ -7535,10 +7549,18 @@
         fn(p.tx * TILE + 40, p.ty * TILE + 68, 0.88, 80 + i);
         fn(p.tx * TILE + 60, p.ty * TILE + 36, 0.55, 90 + i);
         fn(p.tx * TILE + 40, p.ty * TILE + 8, 0.40, 100 + i);
-      } else if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
-        fn(p.tx * TILE + 32, p.ty * TILE + 52, 0.72, 80 + i);
-        fn(p.tx * TILE + 16, p.ty * TILE + 18, 0.48, 90 + i);
-        fn(p.tx * TILE + 48, p.ty * TILE + 18, 0.42, 100 + i);
+      } else if (p.kind === "shopHouse") {
+        fn(p.tx * TILE + 24, p.ty * TILE + 68, 0.72, 80 + i);
+        fn(p.tx * TILE + 56, p.ty * TILE + 28, 0.48, 90 + i);
+        fn(p.tx * TILE + 80, p.ty * TILE + 20, 0.42, 100 + i);
+      } else if (p.kind === "townHouseA") {
+        fn(p.tx * TILE + 16, p.ty * TILE + 84, 0.72, 80 + i);
+        fn(p.tx * TILE + 40, p.ty * TILE + 48, 0.48, 90 + i);
+        fn(p.tx * TILE + 32, p.ty * TILE + 12, 0.42, 100 + i);
+      } else if (p.kind === "townHouseB") {
+        fn(p.tx * TILE + 64, p.ty * TILE + 68, 0.72, 80 + i);
+        fn(p.tx * TILE + 24, p.ty * TILE + 36, 0.48, 90 + i);
+        fn(p.tx * TILE + 48, p.ty * TILE + 20, 0.42, 100 + i);
       }
     }
     if (currentScene === "overworld" && car && reedDone && lanternGlowAmt() > 0.02) {
@@ -8399,9 +8421,13 @@
     tx = p.tx;
     ty = p.ty;
     if (p.kind === "fountain") { tx = p.tx; ty = p.ty + 1; }
-    if (p.kind === "townHouseA" || p.kind === "townHouseB") {
-      tx = p.tx + 2;
-      ty = p.ty + 3;
+    if (p.kind === "townHouseA") {
+      tx = p.tx + 1;
+      ty = p.ty + 5;
+    }
+    if (p.kind === "townHouseB") {
+      tx = p.tx + 3;
+      ty = p.ty + 4;
     }
     highlight = { tx: tx, ty: ty };
     if (isNear(player.tx, player.ty, p.tx, p.ty) || isNear(player.tx, player.ty, tx, ty) ||
@@ -8440,7 +8466,7 @@
     if (!world) return false;
     hx = 42 * TILE;
     hy = 22 * TILE - 16;
-    return world.x >= hx + 24 && world.x < hx + 40 && world.y >= hy + 40 && world.y < hy + 64;
+    return world.x >= hx + 8 && world.x < hx + 32 && world.y >= hy + 48 && world.y < hy + 80;
   }
 
   function enterShop() {
@@ -8451,7 +8477,7 @@
 
   function exitShop() {
     applyScene("overworld");
-    placePlayer(44, 27, "down");
+    placePlayer(43, 27, "down");
     persistSave();
   }
 
@@ -11266,7 +11292,9 @@
 
   function propFoot(p) {
     if (p.kind === "house") return p.ty * TILE + 64;
-    if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") return p.ty * TILE + 48;
+    if (p.kind === "shopHouse") return p.ty * TILE + 64;
+    if (p.kind === "townHouseA") return p.ty * TILE + 80;
+    if (p.kind === "townHouseB") return p.ty * TILE + 64;
     if (p.kind === "fountain") return p.ty * TILE + 28;
     if (p.kind === "statue") return p.ty * TILE + 28;
     if (p.kind === "counter") return p.ty * TILE + 20;
@@ -11311,9 +11339,9 @@
 
   function propBounds(p) {
     if (p.kind === "house") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 80, h: 80 };
-    if (p.kind === "shopHouse" || p.kind === "townHouseA" || p.kind === "townHouseB") {
-      return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 64 };
-    }
+    if (p.kind === "shopHouse") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 96, h: 80 };
+    if (p.kind === "townHouseA") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 96 };
+    if (p.kind === "townHouseB") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 96, h: 80 };
     if (p.kind === "fountain") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
     if (p.kind === "statue") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };

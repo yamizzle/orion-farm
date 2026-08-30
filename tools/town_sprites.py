@@ -533,9 +533,9 @@ def install(ns):
     extra_sprites = [
         {"id": "cobble", "file": "tiles/cobble.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "meadow", "file": "tiles/meadow.png", "w": 16, "h": 16, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
-        {"id": "shopHouse", "file": "props/shopHouse.png", "w": 64, "h": 64, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
-        {"id": "townHouseA", "file": "props/townHouseA.png", "w": 64, "h": 64, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
-        {"id": "townHouseB", "file": "props/townHouseB.png", "w": 64, "h": 64, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
+        {"id": "shopHouse", "file": "props/shopHouse.png", "w": 96, "h": 80, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
+        {"id": "townHouseA", "file": "props/townHouseA.png", "w": 64, "h": 96, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
+        {"id": "townHouseB", "file": "props/townHouseB.png", "w": 96, "h": 80, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
         {"id": "fountain", "file": "props/fountain-{n}.png", "w": 32, "h": 32, "frames": 2, "anchor": [0, 0], "ox": 0, "oy": 0, "generated": True},
         {"id": "statue", "file": "props/statue.png", "w": 16, "h": 32, "frames": 1, "anchor": [0, 0], "ox": 0, "oy": -16, "generated": True},
         {"id": "car-right", "file": "actors/car-right-{n}.png", "w": 24, "h": 16, "frames": 2, "anchor": CarA, "ox": 0, "oy": 0, "generated": True},
