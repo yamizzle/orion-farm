@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830h";
+  var BUILD = "20260830i";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -360,6 +360,10 @@
           loadImage("assets/tiles/canopyBranch.png").then(function (im) { Assets.canopyBranch = im; }).catch(function () {}),
           loadImage("assets/props/canopyBough.png").then(function (im) { Assets.canopyBough = im; }).catch(function () {}),
           loadImage("assets/tiles/canopyMap.png").then(function (im) { Assets.canopyMap = im; }).catch(function () {}),
+          loadImage("assets/tiles/peakMap.png").then(function (im) { Assets.peakMap = im; }).catch(function () {}),
+          loadImage("assets/props/peakRocks.png").then(function (im) { Assets.peakRocks = im; }).catch(function () {}),
+          loadImage("assets/props/caveMouth.png").then(function (im) { Assets.caveMouth = im; }).catch(function () {}),
+          loadImage("assets/props/caveStairs.png").then(function (im) { Assets.caveStairs = im; }).catch(function () {}),
           loadImage("assets/props/canopySpan.png").then(function (im) { Assets.canopySpan = im; }).catch(function () {}),
           loadImage("assets/props/canopyClump.png").then(function (im) { Assets.canopyClump = im; }).catch(function () {}),
           loadImage("assets/props/canopyHang.png").then(function (im) { Assets.canopyHang = im; }).catch(function () {}),
@@ -544,6 +548,15 @@
   var forestOut = { tx: 14, ty: 65 };
   var TREETOP_COLS = 40;
   var TREETOP_ROWS = 30;
+  var PEAK_COLS = 40;
+  var PEAK_ROWS = 30;
+  var peakLand = { tx: 20, ty: 25 };
+  var CLIMB_COLS = 18;
+  var CLIMB_ROWS = 12;
+  var climbFloor = 1;
+  var minePeakStairs = { tx: 22, ty: 6 };
+  var peakRocksAt = { tx: 19, ty: 4 };
+  var peakCaveAt = { tx: 20, ty: 27 };
   var treetopDoor = { tx: 25, ty: 8 };
   var treetopLand = { tx: 20, ty: 21 };
   var treetopExit = { tx: 17, ty: 21 };
@@ -1029,7 +1042,7 @@
 
   function wantedTune() {
     if (currentScene === "house" || currentScene === "shop") return "house";
-    if (currentScene === "mine") return "mine";
+    if (currentScene === "mine" || currentScene === "caveclimb") return "mine";
     if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") return clockPhaseName() === "NIGHT" ? "forestNight" : "forest";
     if (festivalOn && clockPhaseName() === "NIGHT") return "festival";
     if (clockPhaseName() === "NIGHT") return "farmNight";
@@ -1192,13 +1205,17 @@
       if (treeFloor >= 2 && treeFloor <= 4) return "tree" + treeFloor;
       return "tree";
     }
+    if (currentScene === "caveclimb") {
+      if (climbFloor === 2) return "caveclimb2";
+      return "caveclimb1";
+    }
     if (currentScene !== "mine") return currentScene;
     if (mineFloor >= 2 && mineFloor <= 6) return "mine" + mineFloor;
     return "mine";
   }
 
   function liveHarvestScene() {
-    if (currentScene === "mine" || currentScene === "tree") return harvestSceneName();
+    if (currentScene === "mine" || currentScene === "tree" || currentScene === "caveclimb") return harvestSceneName();
     return currentScene;
   }
 
@@ -1210,6 +1227,10 @@
     if (name === "tree") {
       floor = floor || treeFloor;
       if (floor >= 2 && floor <= 4) return "tree" + floor;
+    }
+    if (name === "caveclimb") {
+      floor = floor || climbFloor;
+      if (floor >= 1 && floor <= 2) return "caveclimb" + floor;
     }
     return name;
   }
@@ -1225,6 +1246,13 @@
     n = n | 0;
     if (n < 1) return 1;
     if (n > 6) return 6;
+    return n;
+  }
+
+  function clampClimbFloor(n) {
+    n = n | 0;
+    if (n < 1) return 1;
+    if (n > 2) return 2;
     return n;
   }
 
@@ -1804,6 +1832,7 @@
     carveMine(g, 5, 8, 26, 18);
     carveMine(g, 10, 3, 21, 10);
     carveMine(g, 12, 16, 20, 21);
+    carveMine(g, 21, 4, 24, 8);
     g[10][9] = "#";
     g[11][9] = "#";
     g[10][22] = "#";
@@ -1816,6 +1845,8 @@
     var list = [
       { kind: "ladder", tx: 8, ty: 10 },
       { kind: "moonAltar", tx: 16, ty: 5 },
+      { kind: "caveStairs", tx: 22, ty: 6, dir: "up" },
+      { kind: "peakSign", tx: 21, ty: 5 },
       { kind: "lantern", tx: 12, ty: 8 },
       { kind: "lantern", tx: 20, ty: 8 },
       { kind: "lantern", tx: 16, ty: 16 },
@@ -2085,6 +2116,7 @@
     if (name !== currentScene) cancelFishing();
     if (name === "mine") mineFloor = floor ? clampMineFloor(floor) : clampMineFloor(mineFloor);
     if (name === "tree") treeFloor = floor ? clampTreeFloor(floor) : clampTreeFloor(treeFloor);
+    if (name === "caveclimb") climbFloor = floor ? clampClimbFloor(floor) : clampClimbFloor(climbFloor);
     currentScene = name;
     key = sceneCacheKey(name);
     cached = sceneCache[key];
@@ -2151,6 +2183,16 @@
       ROWS = TREE_ROWS;
       GROUND = buildTreeGround();
       PROPS = buildTreeProps();
+    } else if (name === "peak") {
+      COLS = PEAK_COLS;
+      ROWS = PEAK_ROWS;
+      GROUND = buildPeakGround();
+      PROPS = buildPeakProps();
+    } else if (name === "caveclimb") {
+      COLS = CLIMB_COLS;
+      ROWS = CLIMB_ROWS;
+      GROUND = buildClimbGround();
+      PROPS = buildClimbProps();
     } else {
       COLS = OVER_COLS;
       ROWS = OVER_ROWS;
@@ -2163,7 +2205,7 @@
     }
     if (name === "overworld") applyPipLantern(PROPS);
     if (name === "treetop" && found.birdArrived) ensureGiantBirdLanded();
-    if (fresh && name !== "house") applyHarvestState((name === "mine" || name === "tree") ? harvestSceneName() : name, PROPS);
+    if (fresh && name !== "house") applyHarvestState((name === "mine" || name === "tree" || name === "caveclimb") ? harvestSceneName() : name, PROPS);
     if (name === "mine") {
       if (monsterCache[mineFloor]) monsters = monsterCache[mineFloor];
       else spawnMineMonsters();
@@ -2388,6 +2430,318 @@
     if (!path.length) return;
     pending = { type: up ? "treeUp" : "treeDown" };
     startWalk(player, path, 3.5);
+  }
+
+  function buildPeakGround() {
+    var cols = PEAK_COLS, rows = PEAK_ROWS;
+    var g = [], y, x, row, ch;
+    /* Painted peakMap: walk only the dirt balcony + winding path.
+       Snow, cliffs, sky, pines, and the fallen-rock pile stay solid. */
+    var walk = [
+      "........................................",
+      "........................................",
+      "........................................",
+      "........................................",
+      "........................................",
+      "..................fff...................",
+      "..................fff...................",
+      "................fffff...................",
+      "..............fffff.....................",
+      "............fffff.......................",
+      "............fff.........................",
+      "............fffff.......................",
+      "..............fffff.....................",
+      "................fffff...................",
+      "..................fffff.................",
+      "....................fff.................",
+      "..................fffff.................",
+      "................fffff...................",
+      "...............fffff....................",
+      "...............fffff....................",
+      "..............ffffff....................",
+      "..............ffffff....................",
+      ".............fffffff....................",
+      "............fffffffff...................",
+      "...........fffffffffff..................",
+      "...........fffffffffff..................",
+      "...........fffffffffff..................",
+      "...........fffffffffff..................",
+      "...........fffffffffff..................",
+      "............fffffffff..................."
+    ];
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) {
+        ch = (walk[y] && walk[y].charAt(x)) || ".";
+        row[x] = (ch === "f") ? "f" : "y";
+      }
+      g[y] = row;
+    }
+    return g;
+  }
+
+  function buildPeakProps() {
+    return [
+      { kind: "peakRocks", tx: peakRocksAt.tx, ty: peakRocksAt.ty },
+      { kind: "caveMouth", tx: peakCaveAt.tx, ty: peakCaveAt.ty },
+      { kind: "peakSign", tx: 18, ty: 27 }
+    ];
+  }
+
+  function buildClimbGround() {
+    var g = blankMine(CLIMB_COLS, CLIMB_ROWS);
+    carveMine(g, 2, 2, 15, 10);
+    if (climbFloor === 2) carveMine(g, 7, 1, 11, 4);
+    return g;
+  }
+
+  function climbDownSpot() {
+    if (currentScene !== "caveclimb") return null;
+    return { tx: 5, ty: 9 };
+  }
+
+  function climbUpSpot() {
+    if (currentScene !== "caveclimb") return null;
+    if (climbFloor === 1) return { tx: 12, ty: 3 };
+    return null;
+  }
+
+  function climbMouthSpot() {
+    if (currentScene !== "caveclimb" || climbFloor !== 2) return null;
+    return { tx: 9, ty: 2 };
+  }
+
+  function buildClimbProps() {
+    var list = [];
+    var down = climbDownSpot();
+    var up = climbUpSpot();
+    var mouth = climbMouthSpot();
+    if (down) list.push({ kind: "caveStairs", tx: down.tx, ty: down.ty, dir: "down" });
+    if (up) list.push({ kind: "caveStairs", tx: up.tx, ty: up.ty, dir: "up" });
+    if (mouth) list.push({ kind: "caveMouth", tx: mouth.tx, ty: mouth.ty });
+    if (climbFloor === 1) {
+      list.push({ kind: "lantern", tx: 4, ty: 4 });
+      list.push({ kind: "lantern", tx: 13, ty: 8 });
+    } else {
+      list.push({ kind: "lantern", tx: 4, ty: 6 });
+    }
+    return list;
+  }
+
+  function isPeakCave(tx, ty) {
+    if (currentScene !== "peak") return false;
+    return ty >= 27 && ty <= 28 && tx >= 19 && tx <= 21;
+  }
+
+  function isPeakRocks(tx, ty) {
+    if (currentScene !== "peak") return false;
+    return ty >= 3 && ty <= 5 && tx >= 17 && tx <= 21;
+  }
+
+  function isMinePeakStairs(tx, ty) {
+    return currentScene === "mine" && mineFloor === 6 && tx === minePeakStairs.tx && ty === minePeakStairs.ty;
+  }
+
+  function isClimbDown(tx, ty) {
+    var d = climbDownSpot();
+    return !!(d && tx === d.tx && ty === d.ty);
+  }
+
+  function isClimbUp(tx, ty) {
+    var d = climbUpSpot();
+    return !!(d && tx === d.tx && ty === d.ty);
+  }
+
+  function isClimbMouth(tx, ty) {
+    var d = climbMouthSpot();
+    if (d && tx === d.tx && ty === d.ty) return true;
+    if (currentScene !== "caveclimb" || climbFloor !== 2) return false;
+    return ty <= 2 && tx >= 8 && tx <= 10;
+  }
+
+  function isPeakEntrance(tx, ty) {
+    return isPeakCave(tx, ty) || isMinePeakStairs(tx, ty) || isClimbMouth(tx, ty);
+  }
+
+  function enterPeak(via) {
+    applyScene("peak");
+    placePlayer(peakLand.tx, peakLand.ty, "up");
+    persistSave();
+  }
+
+  function enterClimbFloor(floor, via) {
+    var spot;
+    floor = clampClimbFloor(floor);
+    applyScene("caveclimb", floor);
+    if (via === "mouth") {
+      spot = { tx: 9, ty: 4, face: "down" };
+    } else if (via === "down") {
+      if (floor === 1) spot = { tx: 12, ty: 5, face: "down" };
+      else spot = { tx: 5, ty: 7, face: "down" };
+    } else {
+      if (floor === 1) spot = { tx: 5, ty: 7, face: "up" };
+      else spot = { tx: 5, ty: 7, face: "up" };
+    }
+    placePlayer(spot.tx, spot.ty, spot.face);
+    persistSave();
+  }
+
+  function enterMineFromClimb() {
+    applyScene("mine", 6);
+    placePlayer(22, 8, "down");
+    persistSave();
+  }
+
+  function climbPeakUp() {
+    if (climbFloor === 1) enterClimbFloor(2, "up");
+    else enterPeak("mouth");
+  }
+
+  function climbPeakDown() {
+    if (climbFloor === 1) enterMineFromClimb();
+    else enterClimbFloor(1, "down");
+  }
+
+  function talkPeakRocks() {
+    openDialogue("FALLEN ROCKS.", ["THE PATH IS BLOCKED."]);
+  }
+
+  function goPeakCave() {
+    highlight = { tx: peakCaveAt.tx, ty: peakCaveAt.ty };
+    if (isPeakCave(player.tx, player.ty)) {
+      enterClimbFloor(2, "mouth");
+      return;
+    }
+    var path = findPath(player.tx, player.ty, peakCaveAt.tx, peakCaveAt.ty);
+    if (!path.length) {
+      enterClimbFloor(2, "mouth");
+      return;
+    }
+    pending = { type: "peakCave" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goPeakRocks() {
+    highlight = { tx: peakRocksAt.tx, ty: peakRocksAt.ty };
+    if (isNear(player.tx, player.ty, peakRocksAt.tx, peakRocksAt.ty) || isPeakRocks(player.tx, player.ty)) {
+      pending = null;
+      talkPeakRocks();
+      return;
+    }
+    var dest = nearestAdjacent(peakRocksAt.tx, peakRocksAt.ty);
+    if (!dest) {
+      talkPeakRocks();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkPeakRocks();
+      return;
+    }
+    pending = { type: "peakRocks" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goMinePeakStairs() {
+    highlight = { tx: minePeakStairs.tx, ty: minePeakStairs.ty };
+    if (isMinePeakStairs(player.tx, player.ty)) {
+      enterClimbFloor(1, "up");
+      return;
+    }
+    var path = findPath(player.tx, player.ty, minePeakStairs.tx, minePeakStairs.ty);
+    if (!path.length) {
+      enterClimbFloor(1, "up");
+      return;
+    }
+    pending = { type: "minePeak" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goClimbShaft(up) {
+    var d = up ? climbUpSpot() : climbDownSpot();
+    if (up && !d && climbFloor === 2) {
+      d = climbMouthSpot();
+      highlight = d ? { tx: d.tx, ty: d.ty } : null;
+      if (isClimbMouth(player.tx, player.ty)) {
+        enterPeak("mouth");
+        return;
+      }
+      if (!d) return;
+      var pathM = findPath(player.tx, player.ty, d.tx, d.ty);
+      if (!pathM.length) return;
+      pending = { type: "climbMouth" };
+      startWalk(player, pathM, 3.5);
+      return;
+    }
+    if (!d) return;
+    highlight = { tx: d.tx, ty: d.ty };
+    if (player.tx === d.tx && player.ty === d.ty) {
+      if (up) climbPeakUp();
+      else climbPeakDown();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, d.tx, d.ty);
+    if (!path.length) return;
+    pending = { type: up ? "climbUp" : "climbDown" };
+    startWalk(player, path, 3.5);
+  }
+
+  function tryPeakDoors() {
+    var f;
+    if (currentScene === "peak") {
+      if (isPeakCave(player.tx, player.ty)) {
+        enterClimbFloor(2, "mouth");
+        return true;
+      }
+      if (isPeakRocks(player.tx, player.ty)) {
+        talkPeakRocks();
+        return true;
+      }
+      f = facingTile();
+      if (isPeakCave(f.tx, f.ty)) {
+        goPeakCave();
+        return true;
+      }
+      if (isPeakRocks(f.tx, f.ty)) {
+        goPeakRocks();
+        return true;
+      }
+      return false;
+    }
+    if (isMinePeakStairs(player.tx, player.ty)) {
+      enterClimbFloor(1, "up");
+      return true;
+    }
+    if (currentScene === "mine" && mineFloor === 6) {
+      f = facingTile();
+      if (isMinePeakStairs(f.tx, f.ty)) {
+        goMinePeakStairs();
+        return true;
+      }
+    }
+    if (currentScene !== "caveclimb") return false;
+    if (isClimbDown(player.tx, player.ty)) {
+      climbPeakDown();
+      return true;
+    }
+    if (isClimbUp(player.tx, player.ty)) {
+      climbPeakUp();
+      return true;
+    }
+    if (isClimbMouth(player.tx, player.ty)) {
+      enterPeak("mouth");
+      return true;
+    }
+    f = facingTile();
+    if (isClimbDown(f.tx, f.ty)) {
+      goClimbShaft(false);
+      return true;
+    }
+    if (isClimbUp(f.tx, f.ty) || isClimbMouth(f.tx, f.ty)) {
+      goClimbShaft(true);
+      return true;
+    }
+    return false;
   }
 
   function buildTreetopGround() {
@@ -3833,7 +4187,7 @@
         maxY = Math.max(0, worldH - VIEW_H);
       }
     }
-    if (currentScene === "treetop" || currentScene === "tree") {
+    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
       } else {
@@ -3843,18 +4197,32 @@
       minY = -CAM_PAD_TOP;
       maxY = Math.max(minY, worldH - VIEW_H + CAM_PAD_BOTTOM);
     }
+    if (currentScene === "caveclimb") {
+      if (worldW < VIEW_W) {
+        minX = maxX = (worldW - VIEW_W) >> 1;
+      } else {
+        minX = 0;
+        maxX = Math.max(0, worldW - VIEW_W);
+      }
+      if (worldH < VIEW_H) {
+        minY = maxY = (worldH - VIEW_H) >> 1;
+      } else {
+        minY = 0;
+        maxY = Math.max(0, worldH - VIEW_H + CAM_PAD_BOTTOM);
+      }
+    }
     camX = Math.round(Math.max(minX, Math.min(maxX, targetX)));
     camY = Math.round(Math.max(minY, Math.min(maxY, targetY)));
-    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine") {
+    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "caveclimb") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") {
+        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") {
           if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
         } else if (camY < minY) {
           camY = minY;
         }
       }
-      if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
+      if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "caveclimb") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
         camY = Math.round(player.y - (VIEW_H - CAM_PAD_BOTTOM));
         if (camY > maxY) camY = maxY;
       }
@@ -5461,11 +5829,12 @@
 
   function hudWorldDoor(tx, ty, world) {
     if (isMineExit(tx, ty) || mineExitHit(tx, ty, world)) return true;
-    if (isMineDown(tx, ty) || isMineUp(tx, ty)) return true;
+    if (isMineDown(tx, ty) || isMineUp(tx, ty) || isMinePeakStairs(tx, ty)) return true;
     if (holeHit(tx, ty, world)) return true;
     if (isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || houseDoorHit(tx, ty, world)) return true;
     if (isForestEntrance(tx, ty) || isForestExit(tx, ty)) return true;
     if (isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty)) return true;
+    if (isPeakCave(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty)) return true;
     return false;
   }
 
@@ -5484,6 +5853,10 @@
       enterMineFloor(mineFloor - 1, "up");
       return true;
     }
+    if (isMinePeakStairs(player.tx, player.ty)) {
+      enterClimbFloor(1, "up");
+      return true;
+    }
     f = facingTile();
     if (isMineExit(f.tx, f.ty) || mineExitHit(f.tx, f.ty, null)) {
       exitMine();
@@ -5497,6 +5870,10 @@
       goMineShaft(false);
       return true;
     }
+    if (isMinePeakStairs(f.tx, f.ty)) {
+      goMinePeakStairs();
+      return true;
+    }
     return false;
   }
 
@@ -5505,7 +5882,8 @@
       isTreetopEntrance(tx, ty) || isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty) ||
       isTreeDown(tx, ty) || isTreeUp(tx, ty) ||
       isMineEntrance(tx, ty) || isMineExit(tx, ty) ||
-      isMineDown(tx, ty) || isMineUp(tx, ty);
+      isMineDown(tx, ty) || isMineUp(tx, ty) || isMinePeakStairs(tx, ty) ||
+      isPeakCave(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty);
   }
 
   function mineDownSpot() {
@@ -5543,7 +5921,7 @@
     if (currentScene !== "mine") return false;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
-      if (p.kind !== "hole" && p.kind !== "ladder") continue;
+      if (p.kind !== "hole" && p.kind !== "ladder" && p.kind !== "caveStairs" && p.kind !== "caveMouth") continue;
       if (tx === p.tx && (ty === p.ty || ty === p.ty - 1)) return p;
       if (!world) continue;
       b = propBounds(p);
@@ -5730,6 +6108,7 @@
       bowOwned = !!data.bowOwned;
       mineFloor = clampMineFloor(data.mineFloor);
       treeFloor = clampTreeFloor(data.treeFloor);
+      climbFloor = clampClimbFloor(data.climbFloor);
       if (typeof data.hp === "number" && data.hp >= 0) {
         hp = data.hp | 0;
         if (hp > MAX_HP) hp = MAX_HP;
@@ -5866,10 +6245,10 @@
         }
       }
       syncLilaFlowers();
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down"
@@ -6092,6 +6471,7 @@
         bowOwned: !!bowOwned,
         mineFloor: clampMineFloor(mineFloor),
         treeFloor: clampTreeFloor(treeFloor),
+        climbFloor: clampClimbFloor(climbFloor),
         hp: hp | 0,
         energy: energy | 0,
         extraPlots: extraPlots | 0,
@@ -6187,6 +6567,11 @@
       else if (scene === "forest") { tx = 14; ty = 63; face = "up"; }
       else if (scene === "treetop") { tx = treetopLand.tx; ty = treetopLand.ty; face = "up"; }
       else if (scene === "tree") { tx = 5; ty = 5; face = "up"; }
+      else if (scene === "peak") { tx = peakLand.tx; ty = peakLand.ty; face = "up"; }
+      else if (scene === "caveclimb") {
+        if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
+        else { tx = 5; ty = 7; face = "up"; }
+      }
       else if (scene === "mine") {
         if (mineFloor === 2) { tx = 5; ty = 10; face = "down"; }
         else if (mineFloor === 3) { tx = 11; ty = 11; face = "up"; }
@@ -7420,6 +7805,8 @@
   function placeHudLabel() {
     if (currentScene === "tree") return "TREE " + treeFloor;
     if (currentScene === "treetop") return "TREETOP";
+    if (currentScene === "peak") return "PEAK";
+    if (currentScene === "caveclimb") return "STAIRS " + climbFloor;
     return "";
   }
 
@@ -7554,6 +7941,10 @@
       if (t >= 0.56) return { r: 255, g: cozy ? 178 : 196, b: cozy ? 112 : 140, a: cozy ? 0.26 : 0.16 };
       return { r: 255, g: cozy ? 220 : 236, b: cozy ? 176 : 210, a: cozy ? 0.12 : 0.04 };
     }
+    if (currentScene === "caveclimb") {
+      if (climbFloor === 1) return { r: 52, g: 40, b: 70, a: 0.54 };
+      return { r: 150, g: 140, b: 128, a: 0.18 };
+    }
     if (currentScene === "mine") {
       if (mineFloor >= 6) return { r: 48, g: 36, b: 72, a: 0.56 };
       if (mineFloor >= 5) return { r: 56, g: 42, b: 80, a: 0.52 };
@@ -7566,7 +7957,7 @@
   }
 
   function lanternGlowAmt() {
-    if (currentScene === "mine") return 0.55;
+    if (currentScene === "mine" || currentScene === "caveclimb") return 0.55;
     if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "treetop") return 0;
     var t = dayMs / DAY_MS;
     if (t < 0.75) return 0;
@@ -7750,7 +8141,7 @@
 
   function drawDayTint(g) {
     var tint, amt;
-    if (currentScene === "house" || currentScene === "shop" || currentScene === "mine") {
+    if (currentScene === "house" || currentScene === "shop" || currentScene === "mine" || currentScene === "caveclimb") {
       tint = currentTint();
       if (tint && tint.a >= 0.01) {
         fillBlend(g, "multiply", tint.a, tint.r, tint.g, tint.b);
@@ -8555,8 +8946,8 @@
       applyScene("overworld");
       placePlayer(portalIn.tx, portalIn.ty + 1, "up");
     } else if (stop === "peak") {
-      applyScene("mine", 6);
-      placePlayer(16, 7, "up");
+      applyScene("peak");
+      placePlayer(peakLand.tx, peakLand.ty, "up");
     }
     persistSave();
   }
@@ -10859,6 +11250,31 @@
       exitTreetopSouth();
       return;
     }
+    if (isPeakCave(player.tx, player.ty)) {
+      pending = null;
+      enterClimbFloor(2, "mouth");
+      return;
+    }
+    if (isMinePeakStairs(player.tx, player.ty)) {
+      pending = null;
+      enterClimbFloor(1, "up");
+      return;
+    }
+    if (isClimbDown(player.tx, player.ty)) {
+      pending = null;
+      climbPeakDown();
+      return;
+    }
+    if (isClimbUp(player.tx, player.ty)) {
+      pending = null;
+      climbPeakUp();
+      return;
+    }
+    if (isClimbMouth(player.tx, player.ty)) {
+      pending = null;
+      enterPeak("mouth");
+      return;
+    }
     tryPickupHere();
     if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && standingOnHouseChest()) {
       pending = null;
@@ -10982,6 +11398,18 @@
       climbTree();
     } else if (act.type === "treeDown") {
       descendTree();
+    } else if (act.type === "peakCave") {
+      enterClimbFloor(2, "mouth");
+    } else if (act.type === "minePeak") {
+      enterClimbFloor(1, "up");
+    } else if (act.type === "climbUp") {
+      climbPeakUp();
+    } else if (act.type === "climbDown") {
+      climbPeakDown();
+    } else if (act.type === "climbMouth") {
+      enterPeak("mouth");
+    } else if (act.type === "peakRocks") {
+      talkPeakRocks();
     } else if (act.type === "talkBird") {
       talkBird();
     } else if (act.type === "talkTreeNest") {
@@ -11059,6 +11487,11 @@
       if (p && ((p.kind === "nest" && p.eggs) || p.kind === "giantBird")) { talkGiantBird(); return true; }
       if (findGiantBird() && nearProp(findGiantBird())) { talkGiantBird(); return true; }
       if (findEggNest() && nearProp(findEggNest())) { talkGiantBird(); return true; }
+    } else if (currentScene === "peak") {
+      face = facingTile();
+      p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
+      if (p && p.kind === "peakRocks") { talkPeakRocks(); return true; }
+      if (isPeakRocks(player.tx, player.ty) || isPeakRocks(face.tx, face.ty)) { talkPeakRocks(); return true; }
     }
     return false;
   }
@@ -11110,6 +11543,22 @@
     if (ty >= ROWS) ty = ROWS - 1;
     if (currentScene === "mine" && mineFloor === 1 && (isMineExit(tx, ty) || mineExitHit(tx, ty, null))) {
       exitMine();
+      return;
+    }
+    if (isMinePeakStairs(tx, ty)) {
+      goMinePeakStairs();
+      return;
+    }
+    if (isPeakCave(tx, ty)) {
+      goPeakCave();
+      return;
+    }
+    if (isClimbDown(tx, ty)) {
+      goClimbShaft(false);
+      return;
+    }
+    if (isClimbUp(tx, ty) || isClimbMouth(tx, ty)) {
+      goClimbShaft(true);
       return;
     }
     if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && houseChestHit(tx, ty, null)) {
@@ -11612,6 +12061,10 @@
     if (p.kind === "bird") return p.ty * TILE + 12;
     if (p.kind === "giantBird") return p.ty * TILE + 22;
     if (p.kind === "woodsSign") return p.ty * TILE + 8;
+    if (p.kind === "peakRocks") return p.ty * TILE + 14;
+    if (p.kind === "caveMouth") return p.ty * TILE + 16;
+    if (p.kind === "caveStairs") return p.ty * TILE + 20;
+    if (p.kind === "peakSign") return p.ty * TILE + 8;
     if (p.kind === "note" || p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
         p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
         p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore") {
@@ -11661,6 +12114,10 @@
     if (p.kind === "giantBird") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
     if (p.kind === "bird") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 20 };
     if (p.kind === "woodsSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
+    if (p.kind === "peakRocks") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
+    if (p.kind === "caveMouth") return { x: p.tx * TILE - 16, y: p.ty * TILE - 32, w: 48, h: 48 };
+    if (p.kind === "caveStairs") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 32 };
+    if (p.kind === "peakSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
     if (p.kind === "cave") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "mineSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
     if (p.kind === "pond") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 36, h: 32 };
@@ -11700,6 +12157,28 @@
   function onScreen(b) {
     return b.x + b.w > camX - 8 && b.x < camX + VIEW_W + 8 &&
       b.y + b.h > camY - 8 && b.y < camY + VIEW_H + 8;
+  }
+
+  function drawStandSprite(g, img, x, y) {
+    var w, h, dx, dy;
+    if (!img) return false;
+    w = img.naturalWidth || img.width;
+    h = img.naturalHeight || img.height;
+    dx = x + ((TILE - w) / 2 | 0);
+    dy = y + TILE - h;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, dx, dy, w, h);
+    return true;
+  }
+
+  function drawPeakSign(g, x, y) {
+    var tw, sx;
+    fill(g, x + 7, y + 6, 2, 10, C.woodOut);
+    fill(g, x + 8, y + 6, 1, 10, C.woodMid);
+    tw = textWidth("PEAK");
+    sx = x + ((TILE - tw) / 2 | 0);
+    woodPanel(g, sx - 4, y - 6, tw + 8, 13);
+    drawText(g, "PEAK", sx, y - 3, C.parch);
   }
 
   function drawCaveMouth(g, x, y) {
@@ -11878,6 +12357,17 @@
       Assets.draw(g, "ladder", x, y);
       if (currentScene === "mine") drawShaftLabel(g, p, mineFloor === 1 ? "OUT" : "UP");
       if (currentScene === "tree") drawShaftLabel(g, p, "UP");
+    } else if (p.kind === "peakRocks") {
+      drawStandSprite(g, Assets.peakRocks, x, y);
+    } else if (p.kind === "caveMouth") {
+      if (!drawStandSprite(g, Assets.caveMouth, x, y)) drawCaveMouth(g, x, y);
+    } else if (p.kind === "caveStairs") {
+      drawStandSprite(g, Assets.caveStairs, x, y);
+      if (p.dir === "up") drawShaftLabel(g, p, "UP");
+      else if (p.dir === "down") drawShaftLabel(g, p, "DOWN");
+      else drawShaftLabel(g, p, "STAIRS");
+    } else if (p.kind === "peakSign") {
+      drawPeakSign(g, x, y);
     } else if (p.kind === "hole") {
       if (currentScene === "mine") {
         g.fillStyle = "rgba(232,200,74," + (0.16 + 0.12 * (0.5 + 0.5 * Math.sin(tick / 180))).toFixed(3) + ")";
@@ -12199,7 +12689,7 @@
     sortActors(list);
     for (i = 0; i < list.length; i++) {
       item = list[i];
-      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") {
+      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") {
         if (item.kind === "prop") drawGradedProp(g, item);
         else drawWashedActor(g, item);
       } else {
@@ -13249,7 +13739,7 @@
 
   function drawWorld(g, dt) {
     updateCamera();
-    g.fillStyle = currentScene === "mine" ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree") ? (C.sky || "#8EC8E8") : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb") ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") ? (currentScene === "peak" ? "#9BB8D0" : (C.sky || "#8EC8E8")) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -13257,13 +13747,16 @@
     if (currentScene === "treetop" && Assets.canopyMap) {
       g.drawImage(Assets.canopyMap, 0, 0, TREETOP_COLS * TILE, TREETOP_ROWS * TILE);
     }
+    if (currentScene === "peak" && Assets.peakMap) {
+      g.drawImage(Assets.peakMap, 0, 0, PEAK_COLS * TILE, PEAK_ROWS * TILE);
+    }
 
     var x0 = Math.max(0, (camX / TILE) | 0);
     var y0 = Math.max(0, (camY / TILE) | 0);
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop" || currentScene === "mine") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop" || currentScene === "mine" || currentScene === "peak" || currentScene === "caveclimb") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -13274,17 +13767,20 @@
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop" || currentScene === "mine") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
-          if (currentScene === "treetop" || currentScene === "tree") drawSkyTile(g, tx, ty, dx, dy);
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop" || currentScene === "mine" || currentScene === "peak" || currentScene === "caveclimb") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+          if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") drawSkyTile(g, tx, ty, dx, dy);
           else if (currentScene === "house" || currentScene === "shop") Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
-          else if (currentScene === "mine") {
-            if (mineFloor >= 4) Assets.draw(g, "deepFloor", dx, dy);
+          else if (currentScene === "mine" || currentScene === "caveclimb") {
+            if ((currentScene === "mine" && mineFloor >= 4) || (currentScene === "caveclimb" && climbFloor === 1)) Assets.draw(g, "deepFloor", dx, dy);
             else Assets.draw(g, ((tx + ty) & 1) ? "mineFloor1" : "mineFloor", dx, dy);
           } else drawMossTile(g, tx, ty, dx, dy);
           continue;
         }
         ch = cell(tx, ty);
         if (currentScene === "treetop" && Assets.canopyMap && (ch === "y" || ch === "f" || ch === "l")) {
+          continue;
+        }
+        if (currentScene === "peak" && Assets.peakMap && (ch === "y" || ch === "f")) {
           continue;
         }
         if (ch === "d") drawDirtTile(g, tx, ty, dx, dy);
@@ -13296,8 +13792,8 @@
             drawCropSprite(g, crop, dx, dy + bob);
           }
         } else if (ch === "s") {
-          if (currentScene === "mine") {
-            if (mineFloor >= 4) Assets.draw(g, "deepFloor", dx, dy);
+          if (currentScene === "mine" || currentScene === "caveclimb") {
+            if ((currentScene === "mine" && mineFloor >= 4) || (currentScene === "caveclimb" && climbFloor === 1)) Assets.draw(g, "deepFloor", dx, dy);
             else Assets.draw(g, ((tx + ty) & 1) ? "mineFloor1" : "mineFloor", dx, dy);
             if (cell(tx, ty - 1) === "#") fill(g, dx, dy, TILE, 2, "rgba(8,6,10,0.55)");
             if (cell(tx - 1, ty) === "#") fill(g, dx, dy, 1, TILE, "rgba(8,6,10,0.28)");
@@ -13326,8 +13822,8 @@
             Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
           }
         } else if (ch === "#") {
-          if (currentScene === "mine") {
-            Assets.draw(g, mineFloor >= 4 ? "deepWall" : "mineWall", dx, dy);
+          if (currentScene === "mine" || currentScene === "caveclimb") {
+            Assets.draw(g, ((currentScene === "mine" && mineFloor >= 4) || (currentScene === "caveclimb" && climbFloor === 1)) ? "deepWall" : "mineWall", dx, dy);
           } else if (currentScene === "tree") {
             drawBarkWall(g, tx, ty, dx, dy);
           } else {
@@ -13383,7 +13879,7 @@
       }
     }
 
-    if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") {
+    if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") {
       g.restore();
       drawDayTint(g);
       g.save();
@@ -13832,6 +14328,14 @@
         goMineShaft(false);
         return;
       }
+      if (isMinePeakStairs(tx, ty) || (hitHoleEarly && hitHoleEarly.kind === "caveStairs")) {
+        goMinePeakStairs();
+        return;
+      }
+      if (propAt(tx, ty) && propAt(tx, ty).kind === "peakSign") {
+        goMinePeakStairs();
+        return;
+      }
       if (isMineExit(tx, ty) || mineExitHit(tx, ty, world) || (hitHoleEarly && hitHoleEarly.kind === "ladder" && mineFloor === 1)) {
         exitMine();
         return;
@@ -13927,6 +14431,26 @@
       goTreetopBird();
       return;
     }
+    if (currentScene === "peak" && (isPeakCave(tx, ty) || (propAt(tx, ty) && (propAt(tx, ty).kind === "caveMouth" || propAt(tx, ty).kind === "peakSign")))) {
+      goPeakCave();
+      return;
+    }
+    if (currentScene === "peak" && (isPeakRocks(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "peakRocks"))) {
+      goPeakRocks();
+      return;
+    }
+    if (currentScene === "caveclimb" && (isClimbDown(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "caveStairs" && propAt(tx, ty).dir === "down"))) {
+      goClimbShaft(false);
+      return;
+    }
+    if (currentScene === "caveclimb" && (isClimbUp(tx, ty) || isClimbMouth(tx, ty) || (propAt(tx, ty) && ((propAt(tx, ty).kind === "caveStairs" && propAt(tx, ty).dir === "up") || propAt(tx, ty).kind === "caveMouth")))) {
+      goClimbShaft(true);
+      return;
+    }
+    if (isMinePeakStairs(tx, ty) || (propAt(tx, ty) && (propAt(tx, ty).kind === "caveStairs" || propAt(tx, ty).kind === "peakSign") && currentScene === "mine")) {
+      goMinePeakStairs();
+      return;
+    }
     var hitHole = holeHit(tx, ty, world);
     if (isMineDown(tx, ty) || (hitHole && hitHole.kind === "hole")) {
       goMineShaft(true);
@@ -13980,11 +14504,27 @@
       goTreetopBird();
       return;
     }
+    if (currentScene === "peak" && (isPeakCave(tx, ty) || (propAt(tx, ty) && (propAt(tx, ty).kind === "caveMouth" || propAt(tx, ty).kind === "peakSign")))) {
+      goPeakCave();
+      return;
+    }
+    if (currentScene === "peak" && (isPeakRocks(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "peakRocks"))) {
+      goPeakRocks();
+      return;
+    }
+    if (currentScene === "caveclimb" && (isClimbDown(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "caveStairs" && propAt(tx, ty).dir === "down"))) {
+      goClimbShaft(false);
+      return;
+    }
+    if (currentScene === "caveclimb" && (isClimbUp(tx, ty) || isClimbMouth(tx, ty) || (propAt(tx, ty) && ((propAt(tx, ty).kind === "caveStairs" && propAt(tx, ty).dir === "up") || propAt(tx, ty).kind === "caveMouth")))) {
+      goClimbShaft(true);
+      return;
+    }
     var hitProp = propAt(tx, ty);
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -14072,6 +14612,26 @@
     }
     if (hitProp && hitProp.kind === "moonAltar") {
       goPeakAltar(hitProp);
+      return;
+    }
+    if (hitProp && hitProp.kind === "peakRocks") {
+      goPeakRocks();
+      return;
+    }
+    if (hitProp && hitProp.kind === "caveMouth") {
+      if (currentScene === "peak") goPeakCave();
+      else goClimbShaft(true);
+      return;
+    }
+    if (hitProp && hitProp.kind === "caveStairs") {
+      if (currentScene === "mine") goMinePeakStairs();
+      else goClimbShaft(hitProp.dir === "up");
+      return;
+    }
+    if (hitProp && hitProp.kind === "peakSign") {
+      if (currentScene === "mine") goMinePeakStairs();
+      else if (currentScene === "peak") goPeakCave();
+      else openDialogue("PEAK", ["STAIRS"]);
       return;
     }
     if (currentScene === "mine") {
@@ -14325,6 +14885,7 @@
     if (!e.repeat && actionKey) {
       e.preventDefault();
       if (tryClimbShaft()) return;
+      if (tryPeakDoors()) return;
       if (isTreetopEntrance(player.tx, player.ty)) {
         enterTreetop();
         return;
@@ -14589,6 +15150,31 @@
       TREE_ROWS: TREE_ROWS,
       TREETOP_COLS: TREETOP_COLS,
       TREETOP_ROWS: TREETOP_ROWS,
+      PEAK_COLS: PEAK_COLS,
+      PEAK_ROWS: PEAK_ROWS,
+      CLIMB_COLS: CLIMB_COLS,
+      CLIMB_ROWS: CLIMB_ROWS,
+      peakLand: peakLand,
+      peakCaveAt: peakCaveAt,
+      peakRocksAt: peakRocksAt,
+      minePeakStairs: minePeakStairs,
+      climbFloor: function () { return climbFloor; },
+      setClimbFloor: function (n) { climbFloor = clampClimbFloor(n); },
+      clampClimbFloor: clampClimbFloor,
+      isPeakCave: isPeakCave,
+      isPeakRocks: isPeakRocks,
+      isPeakEntrance: isPeakEntrance,
+      isMinePeakStairs: isMinePeakStairs,
+      isClimbUp: isClimbUp,
+      isClimbDown: isClimbDown,
+      isClimbMouth: isClimbMouth,
+      enterPeak: enterPeak,
+      enterClimbFloor: enterClimbFloor,
+      climbPeakUp: climbPeakUp,
+      climbPeakDown: climbPeakDown,
+      tryPeakDoors: tryPeakDoors,
+      buildPeakGround: buildPeakGround,
+      buildClimbGround: buildClimbGround,
       treeFloor: function () { return treeFloor; },
       setTreeFloor: function (n) { treeFloor = clampTreeFloor(n); },
       drawHollowFloor: drawHollowFloor,
