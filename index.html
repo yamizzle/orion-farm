@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830r";
+  var BUILD = "20260830s";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -614,7 +614,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -1145,6 +1145,20 @@
     idle: 400,
     anim: 0,
     react: 0
+  };
+  var BALL_HOME = { tx: 46, ty: 32 };
+  var ball = {
+    tx: 46, ty: 32,
+    x: 46 * 16 + 8,
+    y: 32 * 16 + 14,
+    face: "down",
+    frame: 0,
+    path: [],
+    stepFrom: null,
+    stepT: 0,
+    queuedWalk: null,
+    moving: false,
+    anim: 0
   };
   var dog = {
     tx: 6, ty: 7,
@@ -4772,6 +4786,7 @@
       who.stepT = 0;
       if (who === player) {
         tryPickupHere();
+        if (ballLive() && player.tx === ball.tx && player.ty === ball.ty && !ballBusy()) kickBall();
         if (isPathDoor(who.tx, who.ty)) {
           who.path = [];
           who.queuedWalk = null;
@@ -6580,6 +6595,17 @@
         found.birdArrived = !!data.found.birdArrived;
         found.birdNestFixed = !!data.found.birdNestFixed;
         found.bridgeFixed = !!data.found.bridgeFixed;
+        found.kickedBall = !!data.found.kickedBall;
+      }
+      if (data.ball && typeof data.ball === "object") {
+        ball.tx = data.ball.tx | 0;
+        ball.ty = data.ball.ty | 0;
+        ball.x = tileCenterX(ball.tx);
+        ball.y = tileFootY(ball.ty);
+        ball.path = [];
+        ball.stepFrom = null;
+        ball.stepT = 0;
+        ball.moving = false;
       }
       if (data.unlocked && typeof data.unlocked === "object") unlocked = data.unlocked;
       introSeen = !!data.introSeen;
@@ -7022,6 +7048,7 @@
         loot: serializeLoot(),
         scene: currentScene,
         player: { tx: player.tx | 0, ty: player.ty | 0, face: player.face || "down" },
+        ball: { tx: ball.tx | 0, ty: ball.ty | 0 },
         builds: builds
       }));
     } catch (err) {}
@@ -7143,6 +7170,7 @@
     placePlayer(tx, ty, face);
     pendingRestore = null;
     unstickPlayer();
+    unstickBall();
     if ((hp <= 0 || energy <= 0) && !faintFx) beginFaint();
   }
 
@@ -8487,6 +8515,7 @@
     }
     holidaySyncKey = key;
     buildSolid();
+    unstickBall();
   }
 
 
@@ -8970,6 +8999,7 @@
 
   function questHint() {
     if (!quest.flowerAsked) return "SAY HI TO JUNIE";
+    if (!found.kickedBall) return "KICK THE BALL IN TOWN.";
     if (!quest.flowerDone) return "BRING A MUSHROOM TO JUNIE";
     if (mineMailReady() && !mailRead.mine) return "READ THE NEW LETTER";
     if (!quest.errandDone && mailRead.mine) return "LEAVE WOOD AT NIM'S NOTE";
@@ -12319,6 +12349,11 @@
       openChest();
       return;
     }
+    if (ballLive() && player.tx === ball.tx && player.ty === ball.ty && !ballBusy() && (!pending || pending.type === "kickBall")) {
+      pending = null;
+      kickBall();
+      return;
+    }
     if (!pending) return;
     var act = pending;
     pending = null;
@@ -12408,6 +12443,8 @@
       if (nearFireplace()) doSmeltNow();
     } else if (act.type === "chest") {
       openChest();
+    } else if (act.type === "kickBall") {
+      kickBall();
     } else if (act.type === "talkFolk") {
       if (act.folk && isNear(player.tx, player.ty, act.folk.tx, act.folk.ty)) talkFolk(act.folk);
     } else if (act.type === "talkNim") {
@@ -12513,6 +12550,11 @@
       return !!(who && tilesTouch(me, actorTiles(who)));
     }
     if (dogSceneOk() && nearWho(dog)) { talkDog(); return true; }
+    if (ballLive() && (nearWho(ball) || (player.tx === ball.tx && player.ty === ball.ty))) {
+      faceToward(player, ball.tx, ball.ty);
+      kickBall();
+      return true;
+    }
     if (currentScene === "overworld") {
       if (nearWho(npc)) { goTalk(); return true; }
       if (nimVisible() && nearWho(nim)) { goTalkNim(); return true; }
@@ -13082,6 +13124,120 @@
     if (chicken.idle > 0) return;
     chicken.idle = 900 + Math.random() * 2200;
     chickenYield();
+  }
+
+  function ballLive() {
+    return currentScene === "overworld";
+  }
+
+  function ballBusy() {
+    return !!(ball.path && ball.path.length);
+  }
+
+  function faceDelta(face) {
+    if (face === "left") return { dx: -1, dy: 0 };
+    if (face === "right") return { dx: 1, dy: 0 };
+    if (face === "up") return { dx: 0, dy: -1 };
+    return { dx: 0, dy: 1 };
+  }
+
+  function ballOk(tx, ty) {
+    if (!inBounds(tx, ty)) return false;
+    if (!walkable(tx, ty)) return false;
+    if (folkOccupies(tx, ty)) return false;
+    if (npc && npc.tx === tx && npc.ty === ty) return false;
+    if (chicken && chicken.tx === tx && chicken.ty === ty) return false;
+    if (dogSceneOk() && dog.tx === tx && dog.ty === ty) return false;
+    if (nimVisible() && nim.tx === tx && nim.ty === ty) return false;
+    return true;
+  }
+
+  function unstickBall() {
+    var spot;
+    if (currentScene !== "overworld") return;
+    if (walkable(ball.tx, ball.ty)) return;
+    spot = nearestWalkable(ball.tx, ball.ty);
+    ball.tx = spot.tx;
+    ball.ty = spot.ty;
+    ball.x = tileCenterX(ball.tx);
+    ball.y = tileFootY(ball.ty);
+    ball.path = [];
+    ball.stepFrom = null;
+    ball.stepT = 0;
+    ball.moving = false;
+    persistSave();
+  }
+
+  function kickBall() {
+    var d, n, i, tx, ty, path;
+    if (!ballLive()) return;
+    if (ballBusy()) return;
+    d = faceDelta(player.face);
+    n = 3 + ((Math.random() * 3) | 0);
+    path = [];
+    tx = ball.tx;
+    ty = ball.ty;
+    for (i = 0; i < n; i++) {
+      tx += d.dx;
+      ty += d.dy;
+      if (!ballOk(tx, ty)) break;
+      if (playerOccupies(tx, ty) && !(tx === ball.tx && ty === ball.ty)) break;
+      path.push({ tx: tx, ty: ty });
+    }
+    if (!found.kickedBall) found.kickedBall = true;
+    showLineNote("KICK!");
+    persistSave();
+    if (!path.length) return;
+    startWalk(ball, path, 7);
+  }
+
+  function goTapBall() {
+    var path;
+    if (!ballLive()) return;
+    highlight = { tx: ball.tx, ty: ball.ty };
+    if (isNear(player.tx, player.ty, ball.tx, ball.ty) || (player.tx === ball.tx && player.ty === ball.ty)) {
+      pending = null;
+      faceToward(player, ball.tx, ball.ty);
+      kickBall();
+      return;
+    }
+    path = findPath(player.tx, player.ty, ball.tx, ball.ty);
+    if (!path.length) return;
+    pending = { type: "kickBall" };
+    startWalk(player, path, 3.5);
+  }
+
+  function updateBall(dt) {
+    var dest;
+    if (!ballLive()) return;
+    dest = ball.path && ball.path.length ? ball.path[0] : null;
+    if (!dest) return;
+    if (!ballOk(dest.tx, dest.ty)) {
+      ball.path = [];
+      ball.stepFrom = null;
+      ball.stepT = 0;
+      ball.moving = false;
+      ball.x = tileCenterX(ball.tx);
+      ball.y = tileFootY(ball.ty);
+      persistSave();
+      return;
+    }
+    if (advanceWalk(ball, dt)) persistSave();
+  }
+
+  function drawBallSpr(g) {
+    var bob, x, y;
+    if (!ballLive()) return;
+    bob = Math.round(Math.sin(tick / 280) * 1);
+    x = Math.round(ball.x) - 8;
+    y = Math.round(ball.y) - 14 + bob;
+    drawShadow(g, ball.x, ball.y, 4);
+    fill(g, x + 4, y + 3, 8, 10, "#C45A38");
+    fill(g, x + 3, y + 4, 10, 8, "#C45A38");
+    fill(g, x + 5, y + 2, 6, 12, "#E07850");
+    fill(g, x + 6, y + 4, 3, 3, "#F3D2A3");
+    fill(g, x + 4, y + 11, 8, 2, "#8B2E1C");
+    fill(g, x + 7, y + 12, 2, 1, "#3D1A0C");
   }
 
   function drawShadow(g, x, y, hw) {
@@ -13765,6 +13921,7 @@
   function actorWorldPos(item) {
     if (item.kind === "player") return { x: player.x, y: player.y };
     if (item.kind === "chicken") return { x: chicken.x, y: chicken.y };
+    if (item.kind === "ball") return { x: ball.x, y: ball.y };
     if (item.kind === "npc") return { x: npc.x, y: npc.y };
     if (item.kind === "car") return { x: car.x, y: car.y };
     if (item.kind === "folk" && item.f) return { x: item.f.x, y: item.f.y };
@@ -13798,6 +13955,7 @@
     }
     if (currentScene === "overworld") {
       list.push({ foot: chicken.y, kind: "chicken" });
+      list.push({ foot: ball.y, kind: "ball" });
       list.push({ foot: npc.y, kind: "npc" });
       list.push({ foot: car.y, kind: "car" });
       for (i = 0; i < townFolk.length; i++) {
@@ -13829,6 +13987,7 @@
     if (item.kind === "prop") drawProp(g, item.p);
     else if (item.kind === "player") drawPlayer(g);
     else if (item.kind === "chicken") drawChickenSpr(g);
+    else if (item.kind === "ball") drawBallSpr(g);
     else if (item.kind === "dog") drawDogSpr(g);
     else if (item.kind === "car") drawCarSpr(g);
     else if (item.kind === "folk") {
@@ -15752,6 +15911,10 @@
       chicken.idle = 500;
       return;
     }
+    if (ballLive() && tx === ball.tx && ty === ball.ty) {
+      goTapBall();
+      return;
+    }
     if (dogSceneOk() && tx === dog.tx && ty === dog.ty) {
       talkDog();
       return;
@@ -16173,6 +16336,7 @@
         tryKeyboardStep();
       }
       updateChicken(dt);
+      updateBall(dt);
       updateDog(dt);
       updateTownFolk(dt);
       updateForestCritters(dt);
