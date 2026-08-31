@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830o";
+  var BUILD = "20260830p";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -635,6 +635,7 @@
   var axeHintSeen = false;
   var pickHintSeen = false;
   var extraPlots = 0;
+  var houseTier = 0;
   var hp = MAX_HP;
   var energy = MAX_ENERGY;
   var walkCharge = 0;
@@ -1213,6 +1214,8 @@
   };
   var SHOP_ITEMS = [
     { id: "seeds", name: "SEED TIN", price: 5, icon: "seed" },
+    { id: "potatoSeeds", name: "POTATO SEED", price: 8, icon: "potato" },
+    { id: "berrySeeds", name: "BERRY SEED", price: 8, icon: "berry" },
     { id: "flower", name: "FLOWER", price: 8, icon: "townFlower" },
     { id: "snack", name: "HONEY BUN", price: 6, icon: "honeybun" },
     { id: "apple", name: "APPLE", price: 4, icon: "apple" },
@@ -1222,7 +1225,8 @@
     { id: "fence", name: "FENCE KIT", price: 12, icon: "wood" },
     { id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" },
     { id: "pole", name: "FISHING POLE", price: 30, icon: "fishingPole" },
-    { id: "leash", name: "LEASH", price: 40, icon: "leash" }
+    { id: "leash", name: "LEASH", price: 40, icon: "leash" },
+    { id: "houseKit", name: "HOUSE KIT", price: 0, icon: "rug" }
   ];
 
   function hash(x, y, s) {
@@ -1941,8 +1945,16 @@
   }
 
 
+  function houseCols() {
+    return (houseTier | 0) >= 2 ? 24 : 20;
+  }
+
+  function houseRows() {
+    return HOUSE_ROWS;
+  }
+
   function buildHouseGround() {
-    var cols = HOUSE_COLS, rows = HOUSE_ROWS;
+    var cols = houseCols(), rows = houseRows();
     var g = [];
     var y, x, row;
     for (y = 0; y < rows; y++) {
@@ -1956,7 +1968,8 @@
   }
 
   function buildHouseProps() {
-    return [
+    var tier = houseTier | 0;
+    var list = [
       { kind: "bed", tx: 2, ty: 2 },
       { kind: "window", tx: 6, ty: 0 },
       { kind: "window", tx: 13, ty: 0 },
@@ -1964,7 +1977,7 @@
       { kind: "flowerbox", tx: 13, ty: 2 },
       { kind: "desk", tx: 9, ty: 2 },
       { kind: "chair", tx: 9, ty: 3 },
-      { kind: "fireplace", tx: 17, ty: 1 },
+      { kind: "fireplace", tx: tier >= 2 ? 21 : 17, ty: 1 },
       { kind: "rug", tx: 7, ty: 4 },
       { kind: "table", tx: 14, ty: 5 },
       { kind: "lantern", tx: 16, ty: 3 },
@@ -1974,6 +1987,17 @@
       { kind: "doormat", tx: 10, ty: 10 },
       { kind: "inndoor", tx: 10, ty: 11 }
     ];
+    if (tier >= 1) {
+      list.push({ kind: "rug", tx: 11, ty: 6 });
+      list.push({ kind: "housePlant", tx: 1, ty: 9 });
+      list.push({ kind: "crate", tx: 16, ty: 7 });
+      list.push({ kind: "lantern", tx: 1, ty: 4 });
+    }
+    if (tier >= 2) {
+      list.push({ kind: "window", tx: 19, ty: 0 });
+      list.push({ kind: "flowerbox", tx: 19, ty: 2 });
+    }
+    return list;
   }
 
 
@@ -2063,7 +2087,9 @@
 
   function saveScene() {
     if (!GROUND || !GROUND.length) return;
-    sceneCache[sceneCacheKey(currentScene)] = { cols: COLS, rows: ROWS, ground: GROUND, props: PROPS };
+    var rec = { cols: COLS, rows: ROWS, ground: GROUND, props: PROPS };
+    if (currentScene === "house") rec.houseTier = houseTier | 0;
+    sceneCache[sceneCacheKey(currentScene)] = rec;
   }
 
   function sceneProps(scene) {
@@ -2244,6 +2270,9 @@
     currentScene = name;
     key = sceneCacheKey(name);
     cached = sceneCache[key];
+    if (name === "house" && cached && (cached.houseTier | 0) !== (houseTier | 0)) {
+      cached = null;
+    }
     fresh = !cached;
     if (cached) {
       COLS = cached.cols;
@@ -2283,8 +2312,8 @@
         PROPS = buildMineProps();
       }
     } else if (name === "house") {
-      COLS = HOUSE_COLS;
-      ROWS = HOUSE_ROWS;
+      COLS = houseCols();
+      ROWS = houseRows();
       GROUND = buildHouseGround();
       PROPS = buildHouseProps();
     } else if (name === "shop") {
@@ -4372,7 +4401,7 @@
       } else if (
         p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" ||
         p.kind === "stump" || p.kind === "berryBush" || p.kind === "well" || p.kind === "rock" ||
-        p.kind === "lantern" || p.kind === "fenceH" || p.kind === "fenceL" ||
+        p.kind === "lantern" || p.kind === "crate" || p.kind === "fenceH" || p.kind === "fenceL" ||
         p.kind === "fenceR" || p.kind === "swordPedestal" || p.kind === "moonAltar" ||
         p.kind === "oceanSign"
       ) {
@@ -6563,6 +6592,9 @@
       }
       extraPlots = clampCount(data.extraPlots);
       if (extraPlots > 4) extraPlots = 4;
+      houseTier = data.houseTier | 0;
+      if (houseTier < 0) houseTier = 0;
+      if (houseTier > 2) houseTier = 2;
       if (data.inventory && typeof data.inventory === "object") {
         inventory.wood = clampCount(data.inventory.wood);
         inventory.stone = clampCount(data.inventory.stone);
@@ -6917,6 +6949,7 @@
         hp: hp | 0,
         energy: energy | 0,
         extraPlots: extraPlots | 0,
+        houseTier: houseTier | 0,
         crops: crops,
         nodes: serializeNodes(),
         loot: serializeLoot(),
@@ -8720,6 +8753,7 @@
     if (!found.peakLight) return "THE PEAK LIGHT WAITS.";
     if (!festivalOn && threeLightsOn()) return "A SHY GLOW WAITS AT NIGHT.";
     if (festivalOn) return "MOONDROP NIGHT SHINES.";
+    if ((houseTier | 0) < 2) return "PIP SELLS A HOUSE KIT.";
     return "THE PEAK GLOWS.";
   }
 
@@ -9847,6 +9881,58 @@
       persistSave();
       return;
     }
+    if (item.id === "houseKit") {
+      var needW, needS;
+      if ((houseTier | 0) >= 2) {
+        shopMsg = "HOUSE IS FULL.";
+        shopMsgT = 1200;
+        return;
+      }
+      needW = (houseTier | 0) === 0 ? 12 : 20;
+      needS = (houseTier | 0) === 0 ? 8 : 12;
+      if (bagCount("wood") < needW) {
+        shopMsg = "NEED " + needW + " WOOD.";
+        shopMsgT = 1400;
+        return;
+      }
+      if (bagCount("stone") < needS) {
+        shopMsg = "NEED " + needS + " STONE.";
+        shopMsgT = 1400;
+        return;
+      }
+      takeFromBag("wood", needW);
+      takeFromBag("stone", needS);
+      if ((houseTier | 0) === 0) {
+        houseTier = 1;
+        shopMsg = "NEW FURNITURE!";
+      } else {
+        houseTier = 2;
+        shopMsg = "A BIGGER HOUSE!";
+      }
+      delete sceneCache.house;
+      shopMsgT = 1400;
+      persistSave();
+      return;
+    }
+    if (item.id === "potatoSeeds" || item.id === "berrySeeds") {
+      var seedKey = item.id === "potatoSeeds" ? "potatoSeed" : "berrySeed";
+      if (bagCount(seedKey) >= 1) {
+        shopMsg = "YOU ALREADY HAVE SOME.";
+        shopMsgT = 1200;
+        return;
+      }
+      if (gold < item.price) {
+        shopMsg = "NOT ENOUGH GOLD";
+        shopMsgT = 1400;
+        return;
+      }
+      gold -= item.price;
+      placeToolInTrayFirst(seedKey);
+      shopMsg = item.id === "potatoSeeds" ? "POTATO SEEDS!" : "BERRY SEEDS!";
+      shopMsgT = 1400;
+      persistSave();
+      return;
+    }
     if (item.id === "seeds" && extraPlots >= 4) {
       shopMsg = "GARDEN IS FULL.";
       shopMsgT = 1200;
@@ -9930,10 +10016,12 @@
       buyShopItem(SHOP_ITEMS[shopSel]);
       return true;
     }
-    for (i = 0; i < SHOP_ITEMS.length; i++) {
+    var start = shopListStart();
+    var vis = shopVisCount();
+    for (i = 0; i < vis; i++) {
       rowY = L.listY + i * L.rowH;
       if (p.x >= L.x + 8 && p.x <= L.x + L.w - 8 && p.y >= rowY && p.y < rowY + L.rowH) {
-        shopSel = i;
+        if (start + i < SHOP_ITEMS.length) shopSel = start + i;
         return true;
       }
     }
@@ -9942,8 +10030,21 @@
     return true;
   }
 
+  function shopVisCount() {
+    var L = shopLayout();
+    return Math.max(1, ((L.buyY - 4 - L.listY) / L.rowH) | 0);
+  }
+
+  function shopListStart() {
+    var vis = shopVisCount();
+    var start = (shopSel | 0) - vis + 1;
+    if (start < 0) start = 0;
+    if (start > SHOP_ITEMS.length - vis) start = Math.max(0, SHOP_ITEMS.length - vis);
+    return start;
+  }
+
   function drawShop(g) {
-    var L, i, item, rowY, price, label, goldLine;
+    var L, i, item, rowY, price, label, goldLine, start, vis, idx;
     if (!shopOpen) return;
     g.fillStyle = "rgba(20,12,8,0.40)";
     g.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -9954,18 +10055,30 @@
     drawText(g, "PIP'S SHOP", L.x + 12, L.y - 3, C.parch);
     goldLine = (gold | 0) + "G";
     drawText(g, goldLine, L.x + L.w - textWidth(goldLine) - 10, L.y + 8, C.gold);
-    for (i = 0; i < SHOP_ITEMS.length; i++) {
-      item = SHOP_ITEMS[i];
+    start = shopListStart();
+    vis = shopVisCount();
+    for (i = 0; i < vis; i++) {
+      idx = start + i;
+      if (idx >= SHOP_ITEMS.length) break;
+      item = SHOP_ITEMS[idx];
       rowY = L.listY + i * L.rowH;
-      if (i === shopSel) fill(g, L.x + 8, rowY, L.w - 16, L.rowH - 1, "#E8C888");
+      if (idx === shopSel) fill(g, L.x + 8, rowY, L.w - 16, L.rowH - 1, "#E8C888");
       drawItemIcon(g, item.icon, L.x + 10, rowY - 1);
       label = item.name;
       if (item.id === "hat" && hatOwned) label = hatOn ? "HAT  ON" : "HAT  OFF";
       if (item.id === "pole" && poleOwned) label = "POLE  OWNED";
       if (item.id === "leash" && bagCount("leash") >= 1) label = "LEASH  OWNED";
       if (item.id === "seeds" && extraPlots >= 4) label = "GARDEN FULL";
+      if (item.id === "potatoSeeds" && bagCount("potatoSeed") >= 1) label = "POTATO  HAVE";
+      if (item.id === "berrySeeds" && bagCount("berrySeed") >= 1) label = "BERRY  HAVE";
+      if (item.id === "houseKit" && (houseTier | 0) >= 2) label = "HOUSE  FULL";
       drawText(g, label, L.x + 30, rowY + 4, C.uiText);
-      if (item.id === "leash") price = bagCount("leash") >= 1 ? "OWNED" : "40C";
+      if (item.id === "houseKit") {
+        if ((houseTier | 0) >= 2) price = "FULL";
+        else if ((houseTier | 0) === 0) price = "12W 8S";
+        else price = "20W 12S";
+      } else if (item.id === "leash") price = bagCount("leash") >= 1 ? "OWNED" : "40C";
+      else if ((item.id === "potatoSeeds" && bagCount("potatoSeed") >= 1) || (item.id === "berrySeeds" && bagCount("berrySeed") >= 1)) price = "HAVE";
       else price = (item.id === "hat" && hatOwned) || (item.id === "pole" && poleOwned) ? "0G" : (item.price + "G");
       drawText(g, price, L.x + L.w - textWidth(price) - 12, rowY + 4, C.woodSh);
     }
