@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830g";
+  var BUILD = "20260830h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -8248,7 +8248,13 @@
   }
 
   function carSpriteHit(world) {
-    var face = car.face || "right";
+    var face, tx, ty;
+    if (!world) return false;
+    tx = Math.floor(world.x / TILE);
+    ty = Math.floor(world.y / TILE);
+    /* Door / stoop taps enter the shop even when the truck sprite overlaps. */
+    if (shopDoorHit(tx, ty, world)) return false;
+    face = car.face || "right";
     if (face === "up" || face === "down") return hitSprite(world, car.x, car.y, 32, 40, 16, 36);
     return hitSprite(world, car.x, car.y, 48, 32, 24, 28);
   }
@@ -8731,16 +8737,17 @@
   function shopDoorHit(tx, ty, world) {
     var hx, hy;
     if (currentScene !== "overworld") return false;
-    /* South-face door (43,26), one north on the painted door, one east for fat-finger.
-       Skip the west tile (42,26): that is the parked car's right half. */
+    /* Painted left door (43,25), stoop/shopIn (43,26), east fat-finger (44,25)/(44,26),
+       west frame (42,25). Skip (42,26): parked car right half. Skip (43,27): exit landing
+       (bounce). Not the window/awning/barrel. */
     if (tx === shopIn.tx && (ty === shopIn.ty || ty === shopIn.ty - 1)) return true;
-    if (tx === shopIn.tx + 1 && ty === shopIn.ty) return true;
+    if (tx === shopIn.tx + 1 && (ty === shopIn.ty || ty === shopIn.ty - 1)) return true;
+    if (tx === shopIn.tx - 1 && ty === shopIn.ty - 1) return true;
     if (!world) return false;
-    /* 96x80 shop sprite at tile (42,22) with oy -16. LEFT wood door + steps,
-       not the old 64px box and not the awning window to the right. */
+    /* 96x80 shop sprite at tile (42,22) with oy -16. LEFT wood door + steps. */
     hx = 42 * TILE;
     hy = 22 * TILE - 16;
-    return world.x >= hx + 16 && world.x < hx + 34 && world.y >= hy + 46 && world.y < hy + 80;
+    return world.x >= hx + 12 && world.x < hx + 40 && world.y >= hy + 40 && world.y < hy + 80;
   }
 
   function enterShop() {
@@ -8757,14 +8764,12 @@
 
   function goEnterShop() {
     highlight = { tx: shopIn.tx, ty: shopIn.ty };
-    if (player.tx === shopIn.tx && player.ty === shopIn.ty) {
-      enterShop();
-      return;
-    }
-    var path = findPath(player.tx, player.ty, shopIn.tx, shopIn.ty);
-    if (!path.length) return;
-    pending = { type: "enterShop" };
-    startWalk(player, path, 3.5);
+    /* One tap on the painted door / stoop / front tiles enters now. Walking onto
+       shopIn still enters via arrive(). Do not pathfind to a tile the car or the
+       bigger shop painting can make unwalkable — that was the tap no-op. */
+    pending = null;
+    startWalk(player, [], 3.5);
+    enterShop();
   }
 
   function goExitShop() {
@@ -14463,6 +14468,12 @@
       houseIn: houseIn,
       isHouseEntrance: isHouseEntrance,
       houseDoorHit: houseDoorHit,
+      shopIn: shopIn,
+      shopDoorHit: shopDoorHit,
+      carSpriteHit: carSpriteHit,
+      isShopEntrance: isShopEntrance,
+      goEnterShop: goEnterShop,
+      enterShop: enterShop,
       mineExitHit: mineExitHit,
       isMineExit: isMineExit,
       hudWorldDoor: hudWorldDoor,
