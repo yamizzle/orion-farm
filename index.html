@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830j";
+  var BUILD = "20260830k";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -570,7 +570,7 @@
   var TOWN_GREEN = { x0: 43, y0: 29, x1: 55, y1: 32 };
   var SAVE_KEY = "moondrop-mountain-v1";
   var SAVE_VER = 4;
-  var DAY_MS = 150000;
+  var DAY_MS = 480000;
   var PHASES = ["MORNING", "AFTERNOON", "EVENING", "NIGHT"];
   var PHASE_MS = DAY_MS / PHASES.length;
   var dayNumber = 1;
@@ -5090,6 +5090,53 @@
     return -1;
   }
 
+  function pocketHasStacks(arr, len) {
+    var i;
+    for (i = 0; i < len; i++) {
+      if (arr[i] && arr[i].key) return true;
+    }
+    return false;
+  }
+
+  function trayHoldsRec(rec) {
+    var i;
+    if (!rec) return false;
+    for (i = 0; i < TRAY_CELLS; i++) if (trayCells[i] === rec) return true;
+    return false;
+  }
+
+  function bagHoldsRec(rec) {
+    var i;
+    if (!rec) return false;
+    for (i = 0; i < BAG_CELLS; i++) if (bagCells[i] === rec) return true;
+    return false;
+  }
+
+  function scrubEmptyPockets() {
+    var i, c;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      c = trayCells[i];
+      if (c && (c.count | 0) < 1) trayCells[i] = null;
+    }
+    for (i = 0; i < BAG_CELLS; i++) {
+      c = bagCells[i];
+      if (c && (c.count | 0) < 1) bagCells[i] = null;
+    }
+  }
+
+  function showOwnedGoodsInBag() {
+    var i, c, idx;
+    if (!pocketHasStacks(bagCells, BAG_CELLS) && !pocketHasStacks(trayCells, TRAY_CELLS)) return;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      c = trayCells[i];
+      if (!c || !c.key) continue;
+      if (bagHoldsRec(c)) continue;
+      idx = firstEmptyBag();
+      if (idx < 0) break;
+      bagCells[idx] = c;
+    }
+  }
+
   function selectedKey() {
     var c = trayCells[selectedSlot];
     return (c && c.key) ? c.key : "";
@@ -5111,16 +5158,17 @@
   }
 
   function bagCount(key) {
-    var n = 0, i, c;
+    var n = 0, i, c, seen, j;
     if (!key) return 0;
-    for (i = 0; i < TRAY_CELLS; i++) {
-      c = trayCells[i];
-      if (c && c.key === key) n += c.count | 0;
+    seen = [];
+    function add(rec) {
+      if (!rec || rec.key !== key) return;
+      for (j = 0; j < seen.length; j++) if (seen[j] === rec) return;
+      seen.push(rec);
+      n += rec.count | 0;
     }
-    for (i = 0; i < BAG_CELLS; i++) {
-      c = bagCells[i];
-      if (c && c.key === key) n += c.count | 0;
-    }
+    for (i = 0; i < TRAY_CELLS; i++) add(trayCells[i]);
+    for (i = 0; i < BAG_CELLS; i++) add(bagCells[i]);
     return n;
   }
 
@@ -5146,20 +5194,23 @@
   }
 
   function bagRoom(key) {
-    var i, c, room, cap;
+    var i, c, room, cap, seen, j;
     if (!key) return 0;
     cap = stackCap(key);
     room = 0;
-    for (i = 0; i < TRAY_CELLS; i++) {
-      c = trayCells[i];
-      if (!c) room += cap;
-      else if (c.key === key) room += Math.max(0, cap - (c.count | 0));
+    seen = [];
+    function slot(rec) {
+      if (!rec) {
+        room += cap;
+        return;
+      }
+      if (rec.key !== key) return;
+      for (j = 0; j < seen.length; j++) if (seen[j] === rec) return;
+      seen.push(rec);
+      room += Math.max(0, cap - (rec.count | 0));
     }
-    for (i = 0; i < BAG_CELLS; i++) {
-      c = bagCells[i];
-      if (!c) room += cap;
-      else if (c.key === key) room += Math.max(0, cap - (c.count | 0));
-    }
+    for (i = 0; i < TRAY_CELLS; i++) slot(trayCells[i]);
+    for (i = 0; i < BAG_CELLS; i++) slot(bagCells[i]);
     return room;
   }
 
@@ -5174,18 +5225,18 @@
   }
 
   function syncBagCounts() {
-    var i, k;
+    var i, rec, seen, j;
+    scrubEmptyPockets();
     for (i = 0; i < INV_KEYS.length; i++) inventory[INV_KEYS[i]] = 0;
-    for (i = 0; i < TRAY_CELLS; i++) {
-      if (!trayCells[i]) continue;
-      k = trayCells[i].key;
-      addInvCount(k, trayCells[i].count);
+    seen = [];
+    function add(item) {
+      if (!item) return;
+      for (j = 0; j < seen.length; j++) if (seen[j] === item) return;
+      seen.push(item);
+      addInvCount(item.key, item.count);
     }
-    for (i = 0; i < BAG_CELLS; i++) {
-      if (!bagCells[i]) continue;
-      k = bagCells[i].key;
-      addInvCount(k, bagCells[i].count);
-    }
+    for (i = 0; i < TRAY_CELLS; i++) add(trayCells[i]);
+    for (i = 0; i < BAG_CELLS; i++) add(bagCells[i]);
   }
 
   function fillStacksIn(arr, len, key, left, cap) {
@@ -6435,7 +6486,7 @@
           starfin: inventory.starfin | 0
         },
         tray: serializePocket(trayCells, TRAY_CELLS),
-        bag: serializePocket(bagCells, BAG_CELLS),
+        bag: serializePocket(bagCells, BAG_CELLS, true),
         selectedSlot: selectedSlot | 0,
         chest: {
           wood: chest.wood | 0,
@@ -7027,10 +7078,14 @@
     }
   }
 
-  function serializePocket(arr, len) {
+  function serializePocket(arr, len, skipTrayAlias) {
     var out = [], i, c;
     for (i = 0; i < len; i++) {
       c = arr[i];
+      if (skipTrayAlias && trayHoldsRec(c)) {
+        out.push(null);
+        continue;
+      }
       if (c && c.key && (c.count | 0) > 0) out.push({ key: c.key, count: c.count | 0 });
       else out.push(null);
     }
@@ -7142,9 +7197,11 @@
         if (selectedSlot < 0 || selectedSlot >= TRAY_CELLS) selectedSlot = 0;
       }
       ensureOwnedTools();
+      showOwnedGoodsInBag();
       return;
     }
     migrateOldInventoryToPockets();
+    showOwnedGoodsInBag();
   }
 
   function overflowBagToChest() {
@@ -7665,11 +7722,7 @@
     if (w > 300) w = 300;
     var x = ((VIEW_W - w) / 2) | 0;
     var y = 28;
-    var h = 86;
-    var btnW = 88;
-    var btnH = 14;
-    var btnX = x + ((w - btnW) / 2) | 0;
-    var btnY = y + 32;
+    var h = 100;
     var muteW = 56;
     var muteH = 14;
     var reloadW = 56;
@@ -7677,13 +7730,19 @@
     var pairW = reloadW + gap + muteW;
     var reloadX = x + ((w - pairW) / 2) | 0;
     var muteX = reloadX + reloadW + gap;
-    var muteY = y + 50;
+    var muteY = y + 28;
     var reloadY = muteY;
+    var stampY = muteY + muteH + 6;
+    var btnW = 70;
+    var btnH = 11;
+    var btnX = x + ((w - btnW) / 2) | 0;
+    var btnY = stampY + 14;
     return {
       x: x, y: y, w: w, h: h, line: line,
       btnX: btnX, btnY: btnY, btnW: btnW, btnH: btnH,
       muteX: muteX, muteY: muteY, muteW: muteW, muteH: muteH,
-      reloadX: reloadX, reloadY: reloadY, reloadW: reloadW
+      reloadX: reloadX, reloadY: reloadY, reloadW: reloadW,
+      stampY: stampY
     };
   }
 
@@ -13103,15 +13162,15 @@
     woodPanel(g, L.x + 8, L.y - 6, 38, 11);
     drawText(g, "JOB", L.x + 14, L.y - 3, C.parch);
     drawText(g, L.line, L.x + 10, L.y + 11, C.uiText);
-    woodPanel(g, L.btnX, L.btnY, L.btnW, L.btnH);
-    label = "START OVER";
-    drawText(g, label, L.btnX + ((L.btnW - textWidth(label)) / 2) | 0, L.btnY + 3, C.parch);
     woodPanel(g, L.reloadX, L.reloadY, L.reloadW, L.muteH);
     drawText(g, "RELOAD", L.reloadX + ((L.reloadW - textWidth("RELOAD")) / 2) | 0, L.reloadY + 3, C.parch);
     woodPanel(g, L.muteX, L.muteY, L.muteW, L.muteH);
     label = (sfxMuted && musicMuted) ? "SOUND" : "MUTE";
     drawText(g, label, L.muteX + ((L.muteW - textWidth(label)) / 2) | 0, L.muteY + 3, C.parch);
-    drawText(g, BUILD, L.x + 10, L.y + L.h - 12, C.woodSh);
+    drawText(g, BUILD, L.x + 10, L.stampY, C.woodSh);
+    woodPanel(g, L.btnX, L.btnY, L.btnW, L.btnH);
+    label = "START OVER";
+    drawText(g, label, L.btnX + ((L.btnW - textWidth(label)) / 2) | 0, L.btnY + 2, C.parch);
   }
 
   function hitSprite(p, x, y, w, h, ox, oy) {
@@ -13433,6 +13492,7 @@
   }
 
   function openBag() {
+    showOwnedGoodsInBag();
     bagOpen = true;
     pending = null;
     kbDrive = false;
