@@ -2,6 +2,7 @@
 
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
+Local 8/31 (BUILD 20260831i): ocean grass-to-beach is a straight tile row (not jagged); foam/water unchanged. Household save intact. Never START OVER.
 Local 8/31 (BUILD 20260831h): ocean ground restamped with Imagine transition tiles (grass, dirt, sand, foam, shallow, deep) so the shoreline is jagged like 31e; trees/flora/critters stay real props. Household save intact. Never START OVER.
 Local 8/31 (BUILD 20260831g): treetop bird sits in the painted canopy nest; overlay nest sprite removed; TREE 1 nest overlay kept.
 Local 8/31 (BUILD 20260831f): ocean ground is Imagine-stamped 16px tiles; trees/bushes/flowers/critters are real props (chop/pick/pull/tap); no painted-in flora; path aligned to tiles; farm grass/Orion/DAY_MS untouched.
