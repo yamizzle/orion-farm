@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831f";
+  var BUILD = "20260831g";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3382,8 +3382,7 @@
       { kind: "woodsSign", tx: 20, ty: 28 },
       { kind: "lantern", tx: 16, ty: 20 },
       { kind: "berryBush", tx: 16, ty: 24 },
-      { kind: "nest", tx: 7, ty: 14, eggs: true },
-      { kind: "nest", tx: 32, ty: 12 },
+      { kind: "nest", tx: 7, ty: 12, eggs: true },
       { kind: "wildflower", tx: 35, ty: 10 },
       { kind: "silver", tx: 20, ty: 4 },
       { kind: "toadstool", tx: 27, ty: 16 },
@@ -3397,7 +3396,7 @@
       { kind: "canopyHang", tx: 28, ty: 15 },
       { kind: "canopyHang", tx: 18, ty: 8 }
     ];
-    if (found.birdArrived) list.push({ kind: "giantBird", tx: 7, ty: 14 });
+    if (found.birdArrived) list.push({ kind: "giantBird", tx: 7, ty: 12 });
     return list;
   }
 
@@ -4373,6 +4372,7 @@
 
   function drawNest(g, x, y, p) {
     var img, w, h, dx, dy;
+    if (currentScene === "treetop") return;
     if (p && !p.eggs) {
       drawEmptyNest(g, x, y);
       return;
@@ -4403,6 +4403,7 @@
     h = img.naturalHeight || img.height || 48;
     dx = x + ((TILE - w) / 2 | 0);
     dy = y + TILE - h + bob;
+    if (currentScene === "treetop") dy -= 8;
     g.drawImage(img, dx, dy, w, h);
   }
 
@@ -9792,7 +9793,7 @@
     if (currentScene !== "treetop") return null;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
-      if (p.kind === "nest" && p.eggs && p.tx === 7 && p.ty === 14) return p;
+      if (p.kind === "nest" && p.eggs && p.tx === 7 && p.ty === 12) return p;
     }
     return null;
   }
@@ -9811,7 +9812,7 @@
     if (currentScene !== "treetop") return null;
     bird = findGiantBird();
     if (bird) return bird;
-    PROPS.push({ kind: "giantBird", tx: 7, ty: 14 });
+    PROPS.push({ kind: "giantBird", tx: 7, ty: 12 });
     return findGiantBird();
   }
 
@@ -13787,6 +13788,7 @@
     if (p.kind === "giantTree") return { x: p.tx * TILE - 56, y: p.ty * TILE - 96, w: 128, h: 120 };
     if (p.kind === "woodsDown") return { x: p.tx * TILE - 4, y: p.ty * TILE - 10, w: 24, h: 28 };
     if (p.kind === "nest") {
+      if (currentScene === "treetop") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 56 };
       if (p.eggs) return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 32 };
       return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 20, h: 16 };
     }
