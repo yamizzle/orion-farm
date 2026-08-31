@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831c";
+  var BUILD = "20260831d";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2807,8 +2807,7 @@
     return [
       { kind: "peakRocks", tx: peakRocksAt.tx, ty: peakRocksAt.ty },
       { kind: "caveMouth", tx: peakCaveAt.tx, ty: peakCaveAt.ty },
-      { kind: "peakSign", tx: 18, ty: 27 },
-      { kind: "woodsSign", tx: 16, ty: 29, label: "FARM" }
+      { kind: "peakSign", tx: 18, ty: 27 }
     ];
   }
 
@@ -2863,31 +2862,15 @@
   }
 
   function isPeakFarmExit(tx, ty) {
-    if (currentScene !== "peak") return false;
-    /* South balcony band — kid-facing way off the soft-lock peak. */
-    return ty >= 28 && ty <= 29 && tx >= 12 && tx <= 20;
+    return false;
   }
 
   function exitPeakToFarm() {
-    applyScene("overworld");
-    /* Land by the NE mine sign so kids can re-enter the mountain. */
-    placePlayer(37, 7, "down");
-    persistSave();
+    /* Peak farm shortcut removed — cave is the only way down. */
   }
 
   function goPeakFarmExit() {
-    highlight = { tx: 16, ty: 29 };
-    if (isPeakFarmExit(player.tx, player.ty)) {
-      exitPeakToFarm();
-      return;
-    }
-    var path = findPath(player.tx, player.ty, 16, 29);
-    if (!path.length) {
-      exitPeakToFarm();
-      return;
-    }
-    pending = { type: "peakFarm" };
-    startWalk(player, path, 3.5);
+    /* Peak farm shortcut removed — cave is the only way down. */
   }
 
   function isMinePeakStairs(tx, ty) {
@@ -3052,10 +3035,6 @@
         enterClimbFloor(2, "mouth");
         return true;
       }
-      if (isPeakFarmExit(player.tx, player.ty)) {
-        exitPeakToFarm();
-        return true;
-      }
       if (isPeakRocks(player.tx, player.ty)) {
         talkPeakRocks();
         return true;
@@ -3063,10 +3042,6 @@
       f = facingTile();
       if (isPeakCave(f.tx, f.ty)) {
         goPeakCave();
-        return true;
-      }
-      if (isPeakFarmExit(f.tx, f.ty) || (propAt(f.tx, f.ty) && propAt(f.tx, f.ty).kind === "woodsSign")) {
-        goPeakFarmExit();
         return true;
       }
       if (isPeakRocks(f.tx, f.ty)) {
@@ -12526,11 +12501,6 @@
       enterClimbFloor(2, "mouth");
       return;
     }
-    if (isPeakFarmExit(player.tx, player.ty)) {
-      pending = null;
-      exitPeakToFarm();
-      return;
-    }
     if (isMinePeakStairs(player.tx, player.ty)) {
       pending = null;
       enterClimbFloor(1, "up");
@@ -12697,8 +12667,6 @@
       descendTree();
     } else if (act.type === "peakCave") {
       enterClimbFloor(2, "mouth");
-    } else if (act.type === "peakFarm") {
-      exitPeakToFarm();
     } else if (act.type === "minePeak") {
       enterClimbFloor(1, "up");
     } else if (act.type === "climbUp") {
@@ -12880,10 +12848,6 @@
     }
     if (isPeakCave(tx, ty)) {
       goPeakCave();
-      return;
-    }
-    if (isPeakFarmExit(tx, ty)) {
-      goPeakFarmExit();
       return;
     }
     if (isClimbDown(tx, ty)) {
@@ -16248,10 +16212,6 @@
       goPeakRocks();
       return;
     }
-    if (currentScene === "peak" && (isPeakFarmExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsSign"))) {
-      goPeakFarmExit();
-      return;
-    }
     if (currentScene === "caveclimb" && (isClimbDown(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "caveStairs" && propAt(tx, ty).dir === "down"))) {
       goClimbShaft(false);
       return;
@@ -16339,10 +16299,6 @@
     }
     if (currentScene === "peak" && (isPeakRocks(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "peakRocks"))) {
       goPeakRocks();
-      return;
-    }
-    if (currentScene === "peak" && (isPeakFarmExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsSign"))) {
-      goPeakFarmExit();
       return;
     }
     if (currentScene === "caveclimb" && (isClimbDown(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "caveStairs" && propAt(tx, ty).dir === "down"))) {
@@ -16455,10 +16411,6 @@
     }
     if (hitProp && hitProp.kind === "rowboat") {
       goTalkBoat(hitProp);
-      return;
-    }
-    if (hitProp && hitProp.kind === "woodsSign" && currentScene === "peak") {
-      goPeakFarmExit();
       return;
     }
     if (hitProp && hitProp.kind === "oceanSign") {
