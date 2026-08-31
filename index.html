@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830s";
+  var BUILD = "20260830t";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -1961,6 +1961,139 @@
     return list.concat(scatterDeepRocks(GROUND, list, 0.022, 149));
   }
 
+  var MINE_DECOR_BLOCK = {
+    hole: 1, ladder: 1, note: 1, moonAltar: 1, caveStairs: 1, caveMouth: 1,
+    chest: 1, swordPedestal: 1, peakSign: 1, copper: 1, mushroom: 1, moonshard: 1,
+    gem: 1, iron: 1, sapphire: 1, mooncrystal: 1, goldore: 1, silver: 1
+  };
+  var MINE_DECOR_SPOTS = {
+    mine: {
+      crate: [[9, 8], [22, 14], [9, 14], [3, 4], [28, 4], [3, 16]],
+      lantern: [[7, 17], [25, 6], [12, 22], [30, 12]],
+      mushroom: [[6, 10], [26, 8], [12, 16], [20, 21]]
+    },
+    mine2: {
+      crate: [[3, 7], [3, 13], [27, 8], [18, 18], [9, 20]],
+      lantern: [[4, 20], [27, 18], [20, 3]],
+      mushroom: [[10, 13], [18, 12], [7, 19]]
+    },
+    mine3: {
+      crate: [[3, 8], [18, 3], [3, 13], [18, 13]],
+      lantern: [[3, 2], [18, 8], [8, 13]],
+      mushroom: [[7, 8], [14, 9], [4, 9]]
+    },
+    mine4: {
+      crate: [[3, 6], [3, 15], [28, 4], [28, 20], [4, 21]],
+      lantern: [[3, 10], [28, 10], [12, 21], [18, 3]],
+      mushroom: [[10, 15], [22, 10], [8, 19], [17, 18]]
+    },
+    mine5: {
+      crate: [[4, 3], [4, 12], [28, 4], [27, 20], [6, 20]],
+      lantern: [[14, 3], [27, 14], [6, 3], [28, 9]],
+      mushroom: [[12, 11], [20, 9], [10, 19], [22, 14]]
+    },
+    mine6: {
+      crate: [[5, 9], [5, 18], [26, 9], [26, 18]],
+      lantern: [[5, 14], [26, 14], [12, 21], [20, 21]],
+      mushroom: [[10, 16], [18, 19], [23, 9]]
+    },
+    caveclimb1: {
+      crate: [[2, 2], [15, 10]],
+      lantern: [[2, 10], [15, 2]],
+      mushroom: [[8, 7]]
+    },
+    caveclimb2: {
+      crate: [[2, 3], [15, 10]],
+      lantern: [[15, 4], [2, 10]],
+      mushroom: [[12, 7]]
+    }
+  };
+  var MINE_DECOR_CLEAR = {
+    mine: [[16, 20], [16, 19], [16, 18], [16, 4], [16, 5], [15, 4], [17, 4], [14, 19], [18, 18], [4, 3], [27, 3], [27, 17], [8, 11], [22, 8], [26, 12], [4, 12], [4, 5], [4, 15], [27, 5], [27, 15]],
+    mine2: [[5, 8], [5, 9], [5, 10], [24, 16], [24, 15], [24, 14], [25, 4], [8, 12], [22, 5], [26, 17], [6, 18]],
+    mine3: [[11, 13], [11, 12], [11, 11], [16, 10], [16, 9], [16, 11], [11, 3], [12, 3], [4, 4], [17, 5], [5, 12], [8, 12]],
+    mine4: [[6, 8], [6, 9], [6, 10], [24, 16], [24, 15], [24, 14], [26, 4], [22, 5], [27, 18], [10, 18], [18, 6]],
+    mine5: [[24, 16], [24, 15], [24, 14], [8, 5], [8, 4], [8, 6], [8, 7], [26, 4], [14, 18], [8, 18], [26, 11], [20, 6], [6, 18]],
+    mine6: [[8, 10], [8, 11], [8, 12], [16, 5], [16, 4], [16, 6], [15, 5], [17, 5], [22, 6], [22, 5], [22, 7], [21, 6], [23, 6], [21, 5], [20, 6], [24, 16], [6, 16], [25, 17], [22, 12]],
+    caveclimb1: [[5, 9], [5, 8], [4, 9], [6, 9], [12, 3], [12, 4], [11, 3], [13, 3], [12, 2]],
+    caveclimb2: [[5, 9], [5, 8], [4, 9], [6, 9], [9, 2], [9, 1], [8, 2], [10, 2], [9, 3], [8, 1], [10, 1]]
+  };
+
+  function mineDecorHas(props, kind, tx, ty) {
+    var i, p;
+    for (i = 0; i < props.length; i++) {
+      p = props[i];
+      if (p && p.kind === kind && p.tx === tx && p.ty === ty) return true;
+    }
+    return false;
+  }
+
+  function mineDecorTileTaken(props, tx, ty) {
+    var i, p;
+    for (i = 0; i < props.length; i++) {
+      p = props[i];
+      if (p && p.tx === tx && p.ty === ty) return true;
+    }
+    return false;
+  }
+
+  function mineDecorWallBeside(tx, ty) {
+    var g;
+    if (!GROUND || ty < 0 || ty >= GROUND.length || !GROUND[ty]) return false;
+    function wall(x, y) {
+      if (y < 0 || y >= GROUND.length || !GROUND[y]) return true;
+      if (x < 0 || x >= GROUND[y].length) return true;
+      return GROUND[y][x] === "#";
+    }
+    g = GROUND[ty][tx];
+    if (g !== "s") return false;
+    return wall(tx - 1, ty) || wall(tx + 1, ty) || wall(tx, ty - 1) || wall(tx, ty + 1);
+  }
+
+  function mineDecorBlocked(props, floorKey, tx, ty, kind) {
+    var i, p, spots, hk;
+    if (tx < 0 || ty < 0) return true;
+    if (!GROUND || ty >= GROUND.length || !GROUND[ty] || tx >= GROUND[ty].length) return true;
+    if (GROUND[ty][tx] === "#") return true;
+    if (mineDecorHas(props, kind, tx, ty)) return true;
+    if (mineDecorTileTaken(props, tx, ty)) return true;
+    spots = MINE_DECOR_CLEAR[floorKey];
+    if (spots) {
+      for (i = 0; i < spots.length; i++) {
+        if (spots[i][0] === tx && spots[i][1] === ty) return true;
+      }
+    }
+    for (i = 0; i < props.length; i++) {
+      p = props[i];
+      if (p && MINE_DECOR_BLOCK[p.kind] && p.tx === tx && p.ty === ty) return true;
+    }
+    hk = nodeKey(floorKey, tx, ty);
+    if (harvestNodes[hk]) return true;
+    if ((kind === "crate" || kind === "lantern") && !mineDecorWallBeside(tx, ty)) return true;
+    return false;
+  }
+
+  function ensureMineDecor(props, floorKey) {
+    var plan, kinds, ki, kind, spots, si, tx, ty, item;
+    if (!props || !floorKey) return;
+    plan = MINE_DECOR_SPOTS[floorKey];
+    if (!plan) return;
+    kinds = ["crate", "lantern", "mushroom"];
+    for (ki = 0; ki < kinds.length; ki++) {
+      kind = kinds[ki];
+      spots = plan[kind];
+      if (!spots) continue;
+      for (si = 0; si < spots.length; si++) {
+        tx = spots[si][0];
+        ty = spots[si][1];
+        if (mineDecorBlocked(props, floorKey, tx, ty, kind)) continue;
+        item = { kind: kind, tx: tx, ty: ty };
+        if (kind === "mushroom") item.deco = true;
+        if (kind === "lantern") item.walk = true;
+        props.push(item);
+      }
+    }
+  }
 
   function houseCols() {
     return (houseTier | 0) >= 2 ? 24 : 20;
@@ -2391,6 +2524,7 @@
     if (name === "overworld") applyPipLantern(PROPS);
     if (name === "treetop" && found.birdArrived) ensureGiantBirdLanded();
     if (fresh && name !== "house") applyHarvestState((name === "mine" || name === "tree" || name === "caveclimb") ? harvestSceneName() : name, PROPS);
+    if (name === "mine" || name === "caveclimb") ensureMineDecor(PROPS, sceneCacheKey(name));
     if (name === "mine") {
       if (monsterCache[mineFloor]) monsters = monsterCache[mineFloor];
       else spawnMineMonsters();
@@ -4422,7 +4556,7 @@
       } else if (
         p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" ||
         p.kind === "stump" || p.kind === "berryBush" || p.kind === "well" || p.kind === "rock" ||
-        p.kind === "lantern" || p.kind === "crate" || p.kind === "fenceH" || p.kind === "fenceL" ||
+        (p.kind === "lantern" && !p.walk) || p.kind === "crate" || p.kind === "fenceH" || p.kind === "fenceL" ||
         p.kind === "fenceR" || p.kind === "swordPedestal" || p.kind === "moonAltar" ||
         p.kind === "oceanSign"
       ) {
@@ -11944,10 +12078,11 @@
   }
 
   function isCollectible(p) {
-    return p && (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
+    if (!p || p.deco) return false;
+    return p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
       p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
       p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore" ||
-      p.kind === "toadstool");
+      p.kind === "toadstool";
   }
 
   function findNote() {
@@ -13837,12 +13972,16 @@
     } else if (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
                p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
                p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore") {
-      var bob = Math.round(Math.sin(tick / 280) * 1);
-      if (p.kind === "moonshard" || p.kind === "mooncrystal" || p.kind === "gem" || p.kind === "sapphire") {
-        g.fillStyle = p.kind === "sapphire" ? "rgba(60,90,200,0.22)" : (p.kind === "gem" ? "rgba(92,188,154,0.20)" : "rgba(232,240,255,0.22)");
-        g.fillRect(x - 2, y - 2 + bob, 20, 20);
+      if (p.deco) {
+        Assets.draw(g, p.kind, x, y);
+      } else {
+        var bob = Math.round(Math.sin(tick / 280) * 1);
+        if (p.kind === "moonshard" || p.kind === "mooncrystal" || p.kind === "gem" || p.kind === "sapphire") {
+          g.fillStyle = p.kind === "sapphire" ? "rgba(60,90,200,0.22)" : (p.kind === "gem" ? "rgba(92,188,154,0.20)" : "rgba(232,240,255,0.22)");
+          g.fillRect(x - 2, y - 2 + bob, 20, 20);
+        }
+        Assets.draw(g, p.kind, x, y + bob);
       }
-      Assets.draw(g, p.kind, x, y + bob);
     } else if (p.kind === "shopHouse") {
       Assets.draw(g, "shopHouse", x, y);
     } else if (p.kind === "townHouseA") {
