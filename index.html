@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831d";
+  var BUILD = "20260831e";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -574,7 +574,7 @@
   var peakCaveAt = { tx: 20, ty: 27 };
   var OCEAN_COLS = 40;
   var OCEAN_ROWS = 30;
-  var oceanLand = { tx: 14, ty: 2 };
+  var oceanLand = { tx: 18, ty: 2 };
   var treetopDoor = { tx: 25, ty: 8 };
   var treetopLand = { tx: 20, ty: 21 };
   var treetopExit = { tx: 17, ty: 21 };
@@ -3091,32 +3091,32 @@
     var g = [], y, x, row, ch;
     /* Painted oceanMap: walk only dirt path + sand beach + wooden dock. */
     var walk = [
-      "............fffff.......................",
-      "............fffff.......................",
-      "...........ffffff.......................",
-      "..........fffffff.......................",
-      ".........ffffffff.......................",
-      "........fffffffff.......................",
-      ".......ffffffffff.......................",
-      "......fffffffffff.......................",
-      ".....ffffffffffff.......................",
-      "....fffffffffffff.......................",
-      "...ffffffffffffff.......................",
-      "...ffffffffffffff.......................",
-      "...fffffffffffff........................",
-      "...fffffffffffff........................",
-      "....ffffffffffffff......................",
-      "....fffffffffffffff.....................",
-      "....ffffffffffffffff....................",
-      "....ffffffffffffffff....................",
-      "....fffffffffffffffff...................",
-      "....fffffffff.fffffffff.................",
-      "....ffffffff...ffffffffff...............",
-      "....fffffff.....fffffffff...............",
-      "....ffffff.......ffffffff...............",
-      "....fffff.........fffffff...............",
-      "....ffff...........fffff................",
-      "....fff.............fff.................",
+      "..................ff....................",
+      "..................ff....................",
+      "..................ff....................",
+      "..................ff....................",
+      "..................ff.................f..",
+      "..................f.................ff..",
+      ".................ff................fff..",
+      "..................ff...............f....",
+      "..................ff..............ff....",
+      "..................ff...........f.fff....",
+      ".................ff..........ffffff.....",
+      "...............fffff.........fffff......",
+      "............fffffffff......ffffff.......",
+      ".........fffffffffffffffffffffff........",
+      ".......fffffffffffffffffffffffff........",
+      "......ffffffffffffffffffffffffff........",
+      "...fffffffffffffffffffffffffff..........",
+      "f.fffffffffffffffffffffffffff...........",
+      "fffffffffffffffffffffffffffff...........",
+      ".ffffffffffffffffffffffffffff...........",
+      "...ffffffffffffffffffffffff.............",
+      "....fffff..fffff.fffff..................",
+      "..................f.....................",
+      "..................f.....................",
+      "..................f.....................",
+      "........................................",
       "........................................",
       "........................................",
       "........................................",
@@ -3135,10 +3135,7 @@
 
   function buildOceanProps() {
     return [
-      { kind: "rowboat", tx: 5, ty: 21 },
-      { kind: "rowboat", tx: 8, ty: 23 },
-      { kind: "rowboat", tx: 16, ty: 20 },
-      { kind: "oceanSign", tx: 12, ty: 3 }
+      { kind: "oceanSign", tx: 20, ty: 2 }
     ];
   }
 
@@ -3152,7 +3149,7 @@
   }
 
   function isOceanExit(tx, ty) {
-    return currentScene === "ocean" && ty <= 0 && tx >= 12 && tx <= 16;
+    return currentScene === "ocean" && ty <= 0 && tx >= 17 && tx <= 20;
   }
 
   function enterOcean() {
