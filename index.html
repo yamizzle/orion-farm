@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830u";
+  var BUILD = "20260831a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -5365,13 +5365,7 @@
       if (!spot || woodsDugAt(tx, ty)) return false;
       return true;
     }
-    if (currentScene !== "overworld") return false;
-    if (cell(tx, ty) !== "g") return false;
-    if (farmPondAt(tx, ty)) return false;
-    if (tx === npc.tx && ty === npc.ty) return false;
-    if (tx === chicken.tx && ty === chicken.ty) return false;
-    if (carOccupies(tx, ty)) return false;
-    return true;
+    return false;
   }
 
   function tryDig(tx, ty) {
