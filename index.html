@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831g";
+  var BUILD = "20260831h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3089,7 +3089,7 @@
   function buildOceanGround() {
     var cols = OCEAN_COLS, rows = OCEAN_ROWS;
     var g = [], y, x, row, ch;
-    /* 31f stamped oceanMap: grass/dirt/sand/dock walkable (f); water solid (y). */
+    /* 31h stamped oceanMap: grass/dirt/sand/dock walkable (f); foam/water solid (y). */
     var walk = [
       "ffffffffffffffffffffffffffffffffffffffff",
       "ffffffffffffffffffffffffffffffffffffffff",
@@ -3099,20 +3099,20 @@
       "ffffffffffffffffffffffffffffffffffffffff",
       "ffffffffffffffffffffffffffffffffffffffff",
       "ffffffffffffffffffffffffffffffffffffffff",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
       "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
       "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
       "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
       "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "yyfyyyfyyyfyyyfyyyfyyyfyyyfyyyfyyyyyyyyy",
       "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
       "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
       "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
@@ -3153,7 +3153,7 @@
       { kind: "wildflower", tx: 23, ty: 10 }, { kind: "wildflower", tx: 27, ty: 2 },
       { kind: "wildflower", tx: 29, ty: 12 }, { kind: "wildflower", tx: 9, ty: 1 },
       { kind: "fern", tx: 1, ty: 5 }, { kind: "fern", tx: 16, ty: 8 },
-      { kind: "fern", tx: 21, ty: 9 }, { kind: "fern", tx: 32, ty: 6 },
+      { kind: "fern", tx: 21, ty: 9 }, { kind: "fern", tx: 16, ty: 4 },
       { kind: "toadstool", tx: 7, ty: 9 }, { kind: "toadstool", tx: 24, ty: 5 },
       { kind: "toadstool", tx: 11, ty: 12 },
       { kind: "rock", tx: 3, ty: 11 }, { kind: "rock", tx: 30, ty: 11 },
