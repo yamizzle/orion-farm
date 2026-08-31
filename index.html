@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831a";
+  var BUILD = "20260831b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2807,7 +2807,8 @@
     return [
       { kind: "peakRocks", tx: peakRocksAt.tx, ty: peakRocksAt.ty },
       { kind: "caveMouth", tx: peakCaveAt.tx, ty: peakCaveAt.ty },
-      { kind: "peakSign", tx: 18, ty: 27 }
+      { kind: "peakSign", tx: 18, ty: 27 },
+      { kind: "woodsSign", tx: 16, ty: 29, label: "FARM" }
     ];
   }
 
@@ -2861,6 +2862,34 @@
     return ty >= 3 && ty <= 5 && tx >= 17 && tx <= 21;
   }
 
+  function isPeakFarmExit(tx, ty) {
+    if (currentScene !== "peak") return false;
+    /* South balcony band — kid-facing way off the soft-lock peak. */
+    return ty >= 28 && ty <= 29 && tx >= 12 && tx <= 20;
+  }
+
+  function exitPeakToFarm() {
+    applyScene("overworld");
+    /* Land by the NE mine sign so kids can re-enter the mountain. */
+    placePlayer(37, 7, "down");
+    persistSave();
+  }
+
+  function goPeakFarmExit() {
+    highlight = { tx: 16, ty: 29 };
+    if (isPeakFarmExit(player.tx, player.ty)) {
+      exitPeakToFarm();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, 16, 29);
+    if (!path.length) {
+      exitPeakToFarm();
+      return;
+    }
+    pending = { type: "peakFarm" };
+    startWalk(player, path, 3.5);
+  }
+
   function isMinePeakStairs(tx, ty) {
     return currentScene === "mine" && mineFloor === 6 && tx === minePeakStairs.tx && ty === minePeakStairs.ty;
   }
@@ -2911,7 +2940,14 @@
 
   function enterMineFromClimb() {
     applyScene("mine", 6);
-    placePlayer(22, 8, "down");
+    placePlayer(22, 7, "down");
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(21, 7, "down");
+    }
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(22, 8, "down");
+    }
+    unstickPlayer();
     persistSave();
   }
 
@@ -3016,6 +3052,10 @@
         enterClimbFloor(2, "mouth");
         return true;
       }
+      if (isPeakFarmExit(player.tx, player.ty)) {
+        exitPeakToFarm();
+        return true;
+      }
       if (isPeakRocks(player.tx, player.ty)) {
         talkPeakRocks();
         return true;
@@ -3023,6 +3063,10 @@
       f = facingTile();
       if (isPeakCave(f.tx, f.ty)) {
         goPeakCave();
+        return true;
+      }
+      if (isPeakFarmExit(f.tx, f.ty) || (propAt(f.tx, f.ty) && propAt(f.tx, f.ty).kind === "woodsSign")) {
+        goPeakFarmExit();
         return true;
       }
       if (isPeakRocks(f.tx, f.ty)) {
@@ -3087,18 +3131,18 @@
       "...fffffffffffff........................",
       "...fffffffffffff........................",
       "....ffffffffffffff......................",
+      "....fffffffffffffff.....................",
+      "....ffffffffffffffff....................",
       "....ffffffffffffffff....................",
       "....fffffffffffffffff...................",
-      "....ffffffffffffffffff..................",
-      "....fffffffffffffffffff.................",
-      "....fffffffffffffffffffff...............",
-      "....fffffffff..ffffffffffff.............",
-      "....ffffffff....ffffffffffff............",
-      "....fffffff......fffffffffff............",
-      "....ffffff........ffffffffff............",
-      "....fffff..........fffffffff............",
-      "....ffff............fffffff.............",
-      "....fff..............fffff..............",
+      "....fffffffff.fffffffff.................",
+      "....ffffffff...ffffffffff...............",
+      "....fffffff.....fffffffff...............",
+      "....ffffff.......ffffffff...............",
+      "....fffff.........fffffff...............",
+      "....ffff...........fffff................",
+      "....fff.............fff.................",
+      "........................................",
       "........................................",
       "........................................",
       "........................................"
@@ -4061,8 +4105,8 @@
     else if (p.kind === "wildflower") drawWildflower(g, x, y);
     else if (p.kind === "toadstool") drawToadstool(g, x, y);
     else if (p.kind === "berryBush") drawBerryBush(g, x, y, !!p.picked);
-    else if (p.kind === "woodsSign") drawWoodsSign(g, x, y);
-    else if (p.kind === "oceanSign") drawWoodsSign(g, x, y, "OCEAN");
+    else if (p.kind === "woodsSign") drawWoodsSign(g, x, y, p.label);
+    else if (p.kind === "oceanSign") drawWoodsSign(g, x, y, p.label || "OCEAN");
     else if (p.kind === "giantTree") drawGiantTree(g, x, y);
     else if (p.kind === "woodsDown") drawWoodsDown(g, x, y);
     else if (p.kind === "nest") drawNest(g, x, y, p);
@@ -4824,6 +4868,7 @@
     var bestX = sx, bestY = sy;
     var bestD = Math.abs(sx - ex) + Math.abs(sy - ey);
     var d;
+    var near;
     while (head < q.length) {
       cur = q[head++];
       if (goalOk && cur[0] === ex && cur[1] === ey) {
@@ -4845,8 +4890,47 @@
         }
       }
     }
+    /* Taps on snow/cliff/sky: walk toward the walkable tile nearest the tap,
+       not just the BFS node closest-to-goal from the start (often the start itself). */
+    if (!goalOk || (bestX === sx && bestY === sy)) {
+      near = nearestWalkable(ex, ey);
+      if (near && (near.tx !== sx || near.ty !== sy) && came[key(near.tx, near.ty)] !== undefined) {
+        return rebuildPath(came, sx, sy, near.tx, near.ty);
+      }
+      if (near && (near.tx !== sx || near.ty !== sy) && walkable(near.tx, near.ty)) {
+        return findPathToKnown(sx, sy, near.tx, near.ty);
+      }
+    }
     if (bestX === sx && bestY === sy) return [];
     return rebuildPath(came, sx, sy, bestX, bestY);
+  }
+
+  function findPathToKnown(sx, sy, ex, ey) {
+    if (sx === ex && sy === ey) return [];
+    if (!walkable(ex, ey)) return [];
+    var q = [[sx, sy]];
+    var came = {};
+    function key(x, y) { return x + "," + y; }
+    came[key(sx, sy)] = null;
+    var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    var head = 0;
+    var i, cur, nx, ny, nk;
+    while (head < q.length) {
+      cur = q[head++];
+      if (cur[0] === ex && cur[1] === ey) {
+        return rebuildPath(came, sx, sy, ex, ey);
+      }
+      for (i = 0; i < 4; i++) {
+        nx = cur[0] + dirs[i][0];
+        ny = cur[1] + dirs[i][1];
+        nk = key(nx, ny);
+        if (came[nk] !== undefined) continue;
+        if (!walkable(nx, ny)) continue;
+        came[nk] = [cur[0], cur[1], nx, ny];
+        q.push([nx, ny]);
+      }
+    }
+    return [];
   }
 
   function faceToward(who, tx, ty) {
@@ -6559,7 +6643,7 @@
       isTreeDown(tx, ty) || isTreeUp(tx, ty) ||
       isMineEntrance(tx, ty) || isMineExit(tx, ty) ||
       isMineDown(tx, ty) || isMineUp(tx, ty) || isMinePeakStairs(tx, ty) ||
-      isPeakCave(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) ||
+      isPeakCave(tx, ty) || isPeakFarmExit(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) ||
       isOceanEntrance(tx, ty) || isOceanExit(tx, ty) ||
       isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty);
   }
@@ -12442,6 +12526,11 @@
       enterClimbFloor(2, "mouth");
       return;
     }
+    if (isPeakFarmExit(player.tx, player.ty)) {
+      pending = null;
+      exitPeakToFarm();
+      return;
+    }
     if (isMinePeakStairs(player.tx, player.ty)) {
       pending = null;
       enterClimbFloor(1, "up");
@@ -12608,6 +12697,8 @@
       descendTree();
     } else if (act.type === "peakCave") {
       enterClimbFloor(2, "mouth");
+    } else if (act.type === "peakFarm") {
+      exitPeakToFarm();
     } else if (act.type === "minePeak") {
       enterClimbFloor(1, "up");
     } else if (act.type === "climbUp") {
@@ -12773,6 +12864,7 @@
   }
 
   function goWalk(tx, ty) {
+    var dest, path, spot;
     pending = null;
     if (tx < 0) tx = 0;
     if (ty < 0) ty = 0;
@@ -12788,6 +12880,10 @@
     }
     if (isPeakCave(tx, ty)) {
       goPeakCave();
+      return;
+    }
+    if (isPeakFarmExit(tx, ty)) {
+      goPeakFarmExit();
       return;
     }
     if (isClimbDown(tx, ty)) {
@@ -12810,7 +12906,16 @@
       goChest();
       return;
     }
-    startWalk(player, findPath(player.tx, player.ty, tx, ty), 3.5);
+    dest = { tx: tx, ty: ty };
+    if (!walkable(tx, ty)) {
+      spot = nearestWalkable(tx, ty);
+      if (!spot) return;
+      dest = spot;
+    }
+    if (dest.tx === player.tx && dest.ty === player.ty) return;
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) return;
+    startWalk(player, path, 3.5);
   }
 
   function goEnter() {
@@ -13941,7 +14046,7 @@
     } else if (p.kind === "caveStairs") {
       drawStandSprite(g, Assets.caveStairs, x, y);
       if (p.dir === "up") drawShaftLabel(g, p, "UP");
-      else if (p.dir === "down") drawShaftLabel(g, p, "DOWN");
+      else if (p.dir === "down") drawShaftLabel(g, p, (currentScene === "caveclimb" && climbFloor === 1) ? "MINE" : "DOWN");
       else drawShaftLabel(g, p, "STAIRS");
     } else if (p.kind === "peakSign") {
       drawPeakSign(g, x, y);
@@ -13989,7 +14094,7 @@
     } else if (p.kind === "rowboat") {
       Assets.draw(g, "rowboat", x, y);
     } else if (p.kind === "oceanSign") {
-      drawWoodsSign(g, x, y, "OCEAN");
+      drawWoodsSign(g, x, y, p.label || "OCEAN");
     } else if (p.kind === "townHouseB") {
       Assets.draw(g, "townHouseB", x, y);
     } else if (p.kind === "fountain") {
@@ -16140,6 +16245,10 @@
       goPeakRocks();
       return;
     }
+    if (currentScene === "peak" && (isPeakFarmExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsSign"))) {
+      goPeakFarmExit();
+      return;
+    }
     if (currentScene === "caveclimb" && (isClimbDown(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "caveStairs" && propAt(tx, ty).dir === "down"))) {
       goClimbShaft(false);
       return;
@@ -16227,6 +16336,10 @@
     }
     if (currentScene === "peak" && (isPeakRocks(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "peakRocks"))) {
       goPeakRocks();
+      return;
+    }
+    if (currentScene === "peak" && (isPeakFarmExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsSign"))) {
+      goPeakFarmExit();
       return;
     }
     if (currentScene === "caveclimb" && (isClimbDown(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "caveStairs" && propAt(tx, ty).dir === "down"))) {
@@ -16341,8 +16454,12 @@
       goTalkBoat(hitProp);
       return;
     }
+    if (hitProp && hitProp.kind === "woodsSign" && currentScene === "peak") {
+      goPeakFarmExit();
+      return;
+    }
     if (hitProp && hitProp.kind === "oceanSign") {
-      if (currentScene === "ocean") goExitOcean();
+if (currentScene === "ocean") goExitOcean();
       else goEnterOcean();
       return;
     }
@@ -16892,6 +17009,8 @@
       CLIMB_ROWS: CLIMB_ROWS,
       peakLand: peakLand,
       peakCaveAt: peakCaveAt,
+      isPeakFarmExit: isPeakFarmExit,
+      exitPeakToFarm: exitPeakToFarm,
       peakRocksAt: peakRocksAt,
       minePeakStairs: minePeakStairs,
       climbFloor: function () { return climbFloor; },
