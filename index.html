@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830k";
+  var BUILD = "20260830l";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -361,6 +361,7 @@
           loadImage("assets/props/canopyBough.png").then(function (im) { Assets.canopyBough = im; }).catch(function () {}),
           loadImage("assets/tiles/canopyMap.png").then(function (im) { Assets.canopyMap = im; }).catch(function () {}),
           loadImage("assets/tiles/peakMap.png").then(function (im) { Assets.peakMap = im; }).catch(function () {}),
+          loadImage("assets/tiles/oceanMap.png").then(function (im) { Assets.oceanMap = im; }).catch(function () {}),
           loadImage("assets/props/peakRocks.png").then(function (im) { Assets.peakRocks = im; }).catch(function () {}),
           loadImage("assets/props/caveMouth.png").then(function (im) { Assets.caveMouth = im; }).catch(function () {}),
           loadImage("assets/props/caveStairs.png").then(function (im) { Assets.caveStairs = im; }).catch(function () {}),
@@ -504,7 +505,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null };
   var tick = 0;
   var lastTs = 0;
   var dialogue = null;
@@ -557,6 +558,9 @@
   var minePeakStairs = { tx: 22, ty: 6 };
   var peakRocksAt = { tx: 19, ty: 4 };
   var peakCaveAt = { tx: 20, ty: 27 };
+  var OCEAN_COLS = 40;
+  var OCEAN_ROWS = 30;
+  var oceanLand = { tx: 14, ty: 2 };
   var treetopDoor = { tx: 25, ty: 8 };
   var treetopLand = { tx: 20, ty: 21 };
   var treetopExit = { tx: 17, ty: 21 };
@@ -1446,6 +1450,8 @@
     rect(12, 33, 14, 33, "d");
     rect(11, 34, 13, 34, "d");
     rect(10, 35, 11, 35, "d");
+    /* dirt strip south toward the ocean cove (keep pond 3,33 + rocks) */
+    rect(13, 35, 15, 38, "d");
     /* path north, west of the house, then east to the NE mine hole */
     for (y = 10; y <= 29; y++) {
       set(13, y, "d");
@@ -1580,7 +1586,8 @@
       { kind: "lantern", tx: 56, ty: 27 },
       { kind: "lantern", tx: 58, ty: 32 },
       { kind: "lantern", tx: 48, ty: 35 },
-      { kind: "woodsSign", tx: 4, ty: 8 }
+      { kind: "woodsSign", tx: 4, ty: 8 },
+      { kind: "oceanSign", tx: 16, ty: 37 }
     ];
     return list.concat(scatterOverworldExtras(GROUND, list));
   }
@@ -2188,6 +2195,11 @@
       ROWS = PEAK_ROWS;
       GROUND = buildPeakGround();
       PROPS = buildPeakProps();
+    } else if (name === "ocean") {
+      COLS = OCEAN_COLS;
+      ROWS = OCEAN_ROWS;
+      GROUND = buildOceanGround();
+      PROPS = buildOceanProps();
     } else if (name === "caveclimb") {
       COLS = CLIMB_COLS;
       ROWS = CLIMB_ROWS;
@@ -2739,6 +2751,177 @@
     }
     if (isClimbUp(f.tx, f.ty) || isClimbMouth(f.tx, f.ty)) {
       goClimbShaft(true);
+      return true;
+    }
+    return false;
+  }
+
+  function buildOceanGround() {
+    var cols = OCEAN_COLS, rows = OCEAN_ROWS;
+    var g = [], y, x, row, ch;
+    /* Painted oceanMap: walk only dirt path + sand beach + wooden dock. */
+    var walk = [
+      "............fffff.......................",
+      "............fffff.......................",
+      "...........ffffff.......................",
+      "..........fffffff.......................",
+      ".........ffffffff.......................",
+      "........fffffffff.......................",
+      ".......ffffffffff.......................",
+      "......fffffffffff.......................",
+      ".....ffffffffffff.......................",
+      "....fffffffffffff.......................",
+      "...ffffffffffffff.......................",
+      "...ffffffffffffff.......................",
+      "...fffffffffffff........................",
+      "...fffffffffffff........................",
+      "....ffffffffffffff......................",
+      "....ffffffffffffffff....................",
+      "....fffffffffffffffff...................",
+      "....ffffffffffffffffff..................",
+      "....fffffffffffffffffff.................",
+      "....fffffffffffffffffffff...............",
+      "....fffffffff..ffffffffffff.............",
+      "....ffffffff....ffffffffffff............",
+      "....fffffff......fffffffffff............",
+      "....ffffff........ffffffffff............",
+      "....fffff..........fffffffff............",
+      "....ffff............fffffff.............",
+      "....fff..............fffff..............",
+      "........................................",
+      "........................................",
+      "........................................"
+    ];
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) {
+        ch = (walk[y] && walk[y].charAt(x)) || ".";
+        row[x] = (ch === "f") ? "f" : "y";
+      }
+      g[y] = row;
+    }
+    return g;
+  }
+
+  function buildOceanProps() {
+    return [
+      { kind: "rowboat", tx: 5, ty: 21 },
+      { kind: "rowboat", tx: 8, ty: 23 },
+      { kind: "rowboat", tx: 16, ty: 20 },
+      { kind: "oceanSign", tx: 12, ty: 3 }
+    ];
+  }
+
+  function isOceanDoorCol(tx) {
+    return tx >= 13 && tx <= 15;
+  }
+
+  function isOceanEntrance(tx, ty) {
+    if (currentScene !== "overworld") return false;
+    return ty >= 37 && tx >= 13 && tx <= 15;
+  }
+
+  function isOceanExit(tx, ty) {
+    return currentScene === "ocean" && ty <= 0 && tx >= 12 && tx <= 16;
+  }
+
+  function enterOcean() {
+    applyScene("ocean");
+    placePlayer(oceanLand.tx, oceanLand.ty, "down");
+    persistSave();
+  }
+
+  function exitOcean() {
+    applyScene("overworld");
+    placePlayer(14, 36, "down");
+    persistSave();
+  }
+
+  function goEnterOcean() {
+    highlight = { tx: 14, ty: 37 };
+    if (isOceanEntrance(player.tx, player.ty)) {
+      enterOcean();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, 14, 37);
+    if (!path.length) {
+      enterOcean();
+      return;
+    }
+    pending = { type: "enterOcean" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitOcean() {
+    highlight = { tx: oceanLand.tx, ty: 0 };
+    if (isOceanExit(player.tx, player.ty)) {
+      exitOcean();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, oceanLand.tx, 0);
+    if (!path.length) return;
+    pending = { type: "exitOcean" };
+    startWalk(player, path, 3.5);
+  }
+
+  function talkBoat() {
+    openDialogue("A BOAT.", ["MAYBE LATER."]);
+  }
+
+  function goTalkBoat(p) {
+    var dest, path;
+    if (!p) return;
+    highlight = { tx: p.tx, ty: p.ty };
+    if (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty)) {
+      pending = null;
+      talkBoat();
+      return;
+    }
+    dest = nearestAdjacent(p.tx, p.ty);
+    if (!dest) {
+      talkBoat();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkBoat();
+      return;
+    }
+    pending = { type: "talkBoat", prop: p };
+    startWalk(player, path, 3.5);
+  }
+
+  function tryOceanDoors() {
+    var f;
+    if (currentScene === "overworld") {
+      if (isOceanEntrance(player.tx, player.ty)) {
+        enterOcean();
+        return true;
+      }
+      f = facingTile();
+      if (isOceanEntrance(f.tx, f.ty) || (propAt(f.tx, f.ty) && propAt(f.tx, f.ty).kind === "oceanSign") ||
+          (propAt(player.tx, player.ty) && propAt(player.tx, player.ty).kind === "oceanSign")) {
+        goEnterOcean();
+        return true;
+      }
+      return false;
+    }
+    if (currentScene !== "ocean") return false;
+    if (isOceanExit(player.tx, player.ty)) {
+      exitOcean();
+      return true;
+    }
+    f = facingTile();
+    if (isOceanExit(f.tx, f.ty)) {
+      goExitOcean();
+      return true;
+    }
+    if (propAt(player.tx, player.ty) && propAt(player.tx, player.ty).kind === "rowboat") {
+      talkBoat();
+      return true;
+    }
+    if (propAt(f.tx, f.ty) && propAt(f.tx, f.ty).kind === "rowboat") {
+      goTalkBoat(propAt(f.tx, f.ty));
       return true;
     }
     return false;
@@ -3520,6 +3703,7 @@
     else if (p.kind === "toadstool") drawToadstool(g, x, y);
     else if (p.kind === "berryBush") drawBerryBush(g, x, y, !!p.picked);
     else if (p.kind === "woodsSign") drawWoodsSign(g, x, y);
+    else if (p.kind === "oceanSign") drawWoodsSign(g, x, y, "OCEAN");
     else if (p.kind === "giantTree") drawGiantTree(g, x, y);
     else if (p.kind === "woodsDown") drawWoodsDown(g, x, y);
     else if (p.kind === "nest") drawNest(g, x, y, p);
@@ -3718,8 +3902,8 @@
     drawText(g, word, sx, y - 5, C.parch);
   }
 
-  function drawWoodsSign(g, x, y) {
-    var word = currentScene === "forest" ? "FARM" : "WOODS";
+  function drawWoodsSign(g, x, y, word) {
+    word = word || (currentScene === "forest" ? "FARM" : "WOODS");
     var tw, sx;
     if (Assets.woodsSign) {
       g.drawImage(Assets.woodsSign, x, y - 8, 16, 16);
@@ -4014,16 +4198,21 @@
         p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" ||
         p.kind === "stump" || p.kind === "berryBush" || p.kind === "well" || p.kind === "rock" ||
         p.kind === "lantern" || p.kind === "fenceH" || p.kind === "fenceL" ||
-        p.kind === "fenceR" || p.kind === "swordPedestal" || p.kind === "moonAltar"
+        p.kind === "fenceR" || p.kind === "swordPedestal" || p.kind === "moonAltar" ||
+        p.kind === "oceanSign"
       ) {
         block(p.tx, p.ty);
+      } else if (p.kind === "rowboat") {
+        for (y = 0; y < 2; y++) {
+          for (x = 0; x < 3; x++) block(p.tx + x, p.ty + y);
+        }
       }
     }
     if (currentScene === "overworld") block(npc.tx, npc.ty);
     if (currentScene === "overworld" && hasOverRim()) {
       for (x = 0; x < COLS; x++) {
         block(x, 0);
-        block(x, ROWS - 1);
+        if (!(isOceanDoorCol(x))) block(x, ROWS - 1);
       }
       for (y = 0; y < ROWS; y++) {
         block(0, y);
@@ -4199,7 +4388,7 @@
         maxY = Math.max(0, worldH - VIEW_H);
       }
     }
-    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") {
+    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "ocean") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
       } else {
@@ -4225,16 +4414,16 @@
     }
     camX = Math.round(Math.max(minX, Math.min(maxX, targetX)));
     camY = Math.round(Math.max(minY, Math.min(maxY, targetY)));
-    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "caveclimb") {
+    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") {
+        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "ocean") {
           if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
         } else if (camY < minY) {
           camY = minY;
         }
       }
-      if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "caveclimb") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
+      if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
         camY = Math.round(player.y - (VIEW_H - CAM_PAD_BOTTOM));
         if (camY > maxY) camY = maxY;
       }
@@ -4614,6 +4803,7 @@
     if (p.kind === "fireplace") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "rug") return tx >= p.tx && tx < p.tx + 3 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "pond") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
+    if (p.kind === "rowboat") return ty >= p.ty && ty < p.ty + 2 && tx >= p.tx && tx < p.tx + 3;
     if (p.kind === "log") return ty === p.ty && tx >= p.tx && tx < p.tx + 2;
     if (p.kind === "cave") return tx === p.tx && ty === p.ty;
     if (p.kind === "giantTree") return tx >= p.tx - 2 && tx <= p.tx + 1 && ty >= p.ty - 1 && ty <= p.ty;
@@ -5869,7 +6059,7 @@
   }
 
   function isEntrance(tx, ty) {
-    return isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || isShopEntrance(tx, ty) || isForestEntrance(tx, ty) || isTreetopEntrance(tx, ty);
+    return isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || isShopEntrance(tx, ty) || isForestEntrance(tx, ty) || isTreetopEntrance(tx, ty) || isOceanEntrance(tx, ty);
   }
 
   function isMineExit(tx, ty) {
@@ -5896,6 +6086,7 @@
     if (holeHit(tx, ty, world)) return true;
     if (isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || houseDoorHit(tx, ty, world)) return true;
     if (isForestEntrance(tx, ty) || isForestExit(tx, ty)) return true;
+    if (isOceanEntrance(tx, ty) || isOceanExit(tx, ty)) return true;
     if (isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty)) return true;
     if (isPeakCave(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty)) return true;
     return false;
@@ -5946,7 +6137,8 @@
       isTreeDown(tx, ty) || isTreeUp(tx, ty) ||
       isMineEntrance(tx, ty) || isMineExit(tx, ty) ||
       isMineDown(tx, ty) || isMineUp(tx, ty) || isMinePeakStairs(tx, ty) ||
-      isPeakCave(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty);
+      isPeakCave(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) ||
+      isOceanEntrance(tx, ty) || isOceanExit(tx, ty);
   }
 
   function mineDownSpot() {
@@ -6308,10 +6500,10 @@
         }
       }
       syncLilaFlowers();
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down"
@@ -6631,6 +6823,7 @@
       else if (scene === "treetop") { tx = treetopLand.tx; ty = treetopLand.ty; face = "up"; }
       else if (scene === "tree") { tx = 5; ty = 5; face = "up"; }
       else if (scene === "peak") { tx = peakLand.tx; ty = peakLand.ty; face = "up"; }
+      else if (scene === "ocean") { tx = oceanLand.tx; ty = oceanLand.ty; face = "down"; }
       else if (scene === "caveclimb") {
         if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
         else { tx = 5; ty = 7; face = "up"; }
@@ -7877,6 +8070,7 @@
     if (currentScene === "tree") return "TREE " + treeFloor;
     if (currentScene === "treetop") return "TREETOP";
     if (currentScene === "peak") return "PEAK";
+    if (currentScene === "ocean") return "OCEAN";
     if (currentScene === "caveclimb") return "STAIRS " + climbFloor;
     return "";
   }
@@ -8029,7 +8223,7 @@
 
   function lanternGlowAmt() {
     if (currentScene === "mine" || currentScene === "caveclimb") return 0.55;
-    if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "treetop") return 0;
+    if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "treetop" && currentScene !== "ocean") return 0;
     var t = dayMs / DAY_MS;
     if (t < 0.75) return 0;
     if (t < 0.768) return 0.22 + 0.78 * (t - 0.75) / 0.018;
@@ -11346,6 +11540,16 @@
       enterPeak("mouth");
       return;
     }
+    if (isOceanEntrance(player.tx, player.ty)) {
+      pending = null;
+      enterOcean();
+      return;
+    }
+    if (isOceanExit(player.tx, player.ty)) {
+      pending = null;
+      exitOcean();
+      return;
+    }
     tryPickupHere();
     if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && standingOnHouseChest()) {
       pending = null;
@@ -11479,6 +11683,12 @@
       climbPeakDown();
     } else if (act.type === "climbMouth") {
       enterPeak("mouth");
+    } else if (act.type === "enterOcean") {
+      enterOcean();
+    } else if (act.type === "exitOcean") {
+      exitOcean();
+    } else if (act.type === "talkBoat") {
+      talkBoat();
     } else if (act.type === "peakRocks") {
       talkPeakRocks();
     } else if (act.type === "talkBird") {
@@ -11563,6 +11773,10 @@
       p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
       if (p && p.kind === "peakRocks") { talkPeakRocks(); return true; }
       if (isPeakRocks(player.tx, player.ty) || isPeakRocks(face.tx, face.ty)) { talkPeakRocks(); return true; }
+    } else if (currentScene === "ocean") {
+      face = facingTile();
+      p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
+      if (p && p.kind === "rowboat") { talkBoat(); return true; }
     }
     return false;
   }
@@ -11630,6 +11844,14 @@
     }
     if (isClimbUp(tx, ty) || isClimbMouth(tx, ty)) {
       goClimbShaft(true);
+      return;
+    }
+    if (isOceanEntrance(tx, ty)) {
+      goEnterOcean();
+      return;
+    }
+    if (isOceanExit(tx, ty)) {
+      goExitOcean();
       return;
     }
     if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && houseChestHit(tx, ty, null)) {
@@ -12131,7 +12353,8 @@
     if (p.kind === "nest") return p.ty * TILE + 22;
     if (p.kind === "bird") return p.ty * TILE + 12;
     if (p.kind === "giantBird") return p.ty * TILE + 22;
-    if (p.kind === "woodsSign") return p.ty * TILE + 8;
+    if (p.kind === "woodsSign" || p.kind === "oceanSign") return p.ty * TILE + 8;
+    if (p.kind === "rowboat") return p.ty * TILE + 24;
     if (p.kind === "peakRocks") return p.ty * TILE + 14;
     if (p.kind === "caveMouth") return p.ty * TILE + 16;
     if (p.kind === "caveStairs") return p.ty * TILE + 20;
@@ -12184,7 +12407,8 @@
     }
     if (p.kind === "giantBird") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
     if (p.kind === "bird") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 20 };
-    if (p.kind === "woodsSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
+    if (p.kind === "woodsSign" || p.kind === "oceanSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
+    if (p.kind === "rowboat") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 32 };
     if (p.kind === "peakRocks") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
     if (p.kind === "caveMouth") return { x: p.tx * TILE - 16, y: p.ty * TILE - 32, w: 48, h: 48 };
     if (p.kind === "caveStairs") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 32 };
@@ -12470,6 +12694,10 @@
       Assets.draw(g, "shopHouse", x, y);
     } else if (p.kind === "townHouseA") {
       Assets.draw(g, "townHouseA", x, y);
+    } else if (p.kind === "rowboat") {
+      Assets.draw(g, "rowboat", x, y);
+    } else if (p.kind === "oceanSign") {
+      drawWoodsSign(g, x, y, "OCEAN");
     } else if (p.kind === "townHouseB") {
       Assets.draw(g, "townHouseB", x, y);
     } else if (p.kind === "fountain") {
@@ -12514,7 +12742,7 @@
     var t = dayMs / DAY_MS;
     var amt = lanternGlowAmt();
     var gr, pop, a;
-    if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "treetop") return null;
+    if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "treetop" && currentScene !== "ocean") return null;
     gr = currentGrade();
     if (amt >= 0.02) {
       pop = lanternPopAt(wx, wy);
@@ -13791,6 +14019,7 @@
   }
 
   function overRimTile(tx, ty) {
+    if (ty >= ROWS - 1 && isOceanDoorCol(tx)) return false;
     return tx <= 0 || ty <= 0 || tx >= COLS - 1 || ty >= ROWS - 1;
   }
 
@@ -13811,7 +14040,7 @@
 
   function drawWorld(g, dt) {
     updateCamera();
-    g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb") ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") ? (currentScene === "peak" ? "#9BB8D0" : (C.sky || "#8EC8E8")) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb") ? (C.caveDark || "#14110E") : (currentScene === "house" || currentScene === "shop") ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "ocean") ? (currentScene === "peak" ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -13822,13 +14051,16 @@
     if (currentScene === "peak" && Assets.peakMap) {
       g.drawImage(Assets.peakMap, 0, 0, PEAK_COLS * TILE, PEAK_ROWS * TILE);
     }
+    if (currentScene === "ocean" && Assets.oceanMap) {
+      g.drawImage(Assets.oceanMap, 0, 0, OCEAN_COLS * TILE, OCEAN_ROWS * TILE);
+    }
 
     var x0 = Math.max(0, (camX / TILE) | 0);
     var y0 = Math.max(0, (camY / TILE) | 0);
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop" || currentScene === "mine" || currentScene === "peak" || currentScene === "caveclimb") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -13839,8 +14071,9 @@
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop" || currentScene === "mine" || currentScene === "peak" || currentScene === "caveclimb") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "house" || currentScene === "shop" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
           if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") drawSkyTile(g, tx, ty, dx, dy);
+          else if (currentScene === "ocean") { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
           else if (currentScene === "house" || currentScene === "shop") Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
           else if (currentScene === "mine" || currentScene === "caveclimb") {
             if ((currentScene === "mine" && mineFloor >= 4) || (currentScene === "caveclimb" && climbFloor === 1)) Assets.draw(g, "deepFloor", dx, dy);
@@ -13853,6 +14086,9 @@
           continue;
         }
         if (currentScene === "peak" && Assets.peakMap && (ch === "y" || ch === "f")) {
+          continue;
+        }
+        if (currentScene === "ocean" && Assets.oceanMap && (ch === "y" || ch === "f")) {
           continue;
         }
         if (ch === "d") drawDirtTile(g, tx, ty, dx, dy);
@@ -14451,6 +14687,10 @@
       goEnter();
       return;
     }
+    if (currentScene === "overworld" && (isOceanEntrance(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "oceanSign"))) {
+      goEnterOcean();
+      return;
+    }
     if (currentScene === "overworld" && (isForestEntrance(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "woodsSign"))) {
       goEnterForest();
       return;
@@ -14501,6 +14741,14 @@
     }
     if (currentScene === "treetop" && propAt(tx, ty) && ((propAt(tx, ty).kind === "nest" && propAt(tx, ty).eggs) || propAt(tx, ty).kind === "giantBird")) {
       goTreetopBird();
+      return;
+    }
+    if (currentScene === "ocean" && (isOceanExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "oceanSign"))) {
+      goExitOcean();
+      return;
+    }
+    if (currentScene === "ocean" && propAt(tx, ty) && propAt(tx, ty).kind === "rowboat") {
+      goTalkBoat(propAt(tx, ty));
       return;
     }
     if (currentScene === "peak" && (isPeakCave(tx, ty) || (propAt(tx, ty) && (propAt(tx, ty).kind === "caveMouth" || propAt(tx, ty).kind === "peakSign")))) {
@@ -14576,6 +14824,14 @@
       goTreetopBird();
       return;
     }
+    if (currentScene === "ocean" && (isOceanExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "oceanSign"))) {
+      goExitOcean();
+      return;
+    }
+    if (currentScene === "ocean" && propAt(tx, ty) && propAt(tx, ty).kind === "rowboat") {
+      goTalkBoat(propAt(tx, ty));
+      return;
+    }
     if (currentScene === "peak" && (isPeakCave(tx, ty) || (propAt(tx, ty) && (propAt(tx, ty).kind === "caveMouth" || propAt(tx, ty).kind === "peakSign")))) {
       goPeakCave();
       return;
@@ -14596,7 +14852,7 @@
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -14684,6 +14940,15 @@
     }
     if (hitProp && hitProp.kind === "moonAltar") {
       goPeakAltar(hitProp);
+      return;
+    }
+    if (hitProp && hitProp.kind === "rowboat") {
+      goTalkBoat(hitProp);
+      return;
+    }
+    if (hitProp && hitProp.kind === "oceanSign") {
+      if (currentScene === "ocean") goExitOcean();
+      else goEnterOcean();
       return;
     }
     if (hitProp && hitProp.kind === "peakRocks") {
@@ -14958,6 +15223,7 @@
       e.preventDefault();
       if (tryClimbShaft()) return;
       if (tryPeakDoors()) return;
+      if (tryOceanDoors()) return;
       if (isTreetopEntrance(player.tx, player.ty)) {
         enterTreetop();
         return;
