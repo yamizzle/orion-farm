@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831b";
+  var BUILD = "20260831c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -14042,7 +14042,10 @@
     } else if (p.kind === "peakRocks") {
       drawStandSprite(g, Assets.peakRocks, x, y);
     } else if (p.kind === "caveMouth") {
-      if (!drawStandSprite(g, Assets.caveMouth, x, y)) drawCaveMouth(g, x, y);
+      /* Outdoor peak already paints the cave in peakMap; caveMouth art is inside-looking-out. */
+      if (currentScene !== "peak") {
+        if (!drawStandSprite(g, Assets.caveMouth, x, y)) drawCaveMouth(g, x, y);
+      }
     } else if (p.kind === "caveStairs") {
       drawStandSprite(g, Assets.caveStairs, x, y);
       if (p.dir === "up") drawShaftLabel(g, p, "UP");
