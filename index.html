@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830n";
+  var BUILD = "20260830o";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -405,7 +405,7 @@
   var LOOT_POP_MS = 280;
   var selectedSlot = 0;
   var fenceBuildOn = false;
-  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, leash: 0 };
   var BAG_CELLS = 90;
   var TRAY_CELLS = 10;
   var BAG_COLS = 15;
@@ -1144,6 +1144,22 @@
     anim: 0,
     react: 0
   };
+  var dog = {
+    tx: 6, ty: 7,
+    x: 6 * 16 + 8,
+    y: 7 * 16 + 14,
+    face: "down",
+    frame: 0,
+    path: [],
+    stepFrom: null,
+    stepT: 0,
+    queuedWalk: null,
+    idle: 800,
+    anim: 0,
+    houseTx: 6,
+    houseTy: 7,
+    scene: "house"
+  };
   var npc = {
     tx: 12, ty: 29,
     x: 12 * 16 + 8,
@@ -1205,7 +1221,8 @@
     { id: "hat", name: "STRAW HAT", price: 25, icon: "strawHat" },
     { id: "fence", name: "FENCE KIT", price: 12, icon: "wood" },
     { id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" },
-    { id: "pole", name: "FISHING POLE", price: 30, icon: "fishingPole" }
+    { id: "pole", name: "FISHING POLE", price: 30, icon: "fishingPole" },
+    { id: "leash", name: "LEASH", price: 40, icon: "leash" }
   ];
 
   function hash(x, y, s) {
@@ -5390,7 +5407,7 @@
   function isToolKey(key) {
     return key === "seed" || key === "potatoSeed" || key === "berrySeed" ||
       key === "hat" || key === "sword" || key === "shovel" || key === "axe" ||
-      key === "pick" || key === "pole" || key === "bow";
+      key === "pick" || key === "pole" || key === "bow" || key === "leash";
   }
 
   function isStackKey(key) {
@@ -5573,7 +5590,7 @@
     return Math.max(0, chestCap(key) - chestCount(key));
   }
 
-  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin"];
+  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","leash"];
 
   function addInvCount(k, n) {
     if (Object.prototype.hasOwnProperty.call(inventory, k)) inventory[k] = (inventory[k] | 0) + (n | 0);
@@ -6577,6 +6594,7 @@
         inventory.goldenCarp = clampCount(data.inventory.goldenCarp);
         inventory.moonfish = clampCount(data.inventory.moonfish);
         inventory.starfin = clampCount(data.inventory.starfin);
+        inventory.leash = clampCount(data.inventory.leash);
       } else {
         if (typeof data.veggie === "number" && data.veggie > 0) inventory.veggie = clampCount(data.veggie);
         if (found.copper) inventory.copper = 1;
@@ -6843,7 +6861,8 @@
           bass: inventory.bass | 0,
           goldenCarp: inventory.goldenCarp | 0,
           moonfish: inventory.moonfish | 0,
-          starfin: inventory.starfin | 0
+          starfin: inventory.starfin | 0,
+          leash: (bagCount("leash") >= 1 || (inventory.leash | 0) >= 1) ? 1 : 0
         },
         tray: serializePocket(trayCells, TRAY_CELLS),
         bag: serializePocket(bagCells, BAG_CELLS, true),
@@ -7538,6 +7557,7 @@
   }
 
   function ensureOwnedTools() {
+    if ((inventory.leash | 0) >= 1) placeToolInTrayFirst("leash");
     if (hatOwned) placeToolInTrayFirst("hat");
     if (swordOwned) placeToolInTrayFirst("sword");
     if (shovelOwned) placeToolInTrayFirst("shovel");
@@ -9784,10 +9804,10 @@
   }
 
   function shopLayout() {
-    var w = 280, h = 186;
+    var w = 280, h = 200;
     var x = ((VIEW_W - w) / 2) | 0;
     var y = 3;
-    return { x: x, y: y, w: w, h: h, listY: y + 16, rowH: 14, buyX: x + 16, buyY: y + 168, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14 };
+    return { x: x, y: y, w: w, h: h, listY: y + 16, rowH: 14, buyX: x + 16, buyY: y + 182, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14 };
   }
 
   function buyShopItem(item) {
@@ -9801,6 +9821,30 @@
     if (item.id === "pole" && poleOwned) {
       shopMsg = "YOU ALREADY HAVE ONE.";
       shopMsgT = 1200;
+      return;
+    }
+    if (item.id === "leash") {
+      if (bagCount("leash") >= 1) {
+        shopMsg = "YOU ALREADY HAVE ONE.";
+        shopMsgT = 1200;
+        return;
+      }
+      if (bagCount("veggie") < 40) {
+        shopMsg = "NEED 40 CARROTS.";
+        shopMsgT = 1400;
+        return;
+      }
+      if (bagRoom("leash") < 1) {
+        shopMsg = "BAG FULL.";
+        shopMsgT = 1200;
+        return;
+      }
+      takeFromBag("veggie", 40);
+      addToBag("leash", 1);
+      inventory.leash = 1;
+      shopMsg = "A DOG LEASH!";
+      shopMsgT = 1400;
+      persistSave();
       return;
     }
     if (item.id === "seeds" && extraPlots >= 4) {
@@ -9918,9 +9962,11 @@
       label = item.name;
       if (item.id === "hat" && hatOwned) label = hatOn ? "HAT  ON" : "HAT  OFF";
       if (item.id === "pole" && poleOwned) label = "POLE  OWNED";
+      if (item.id === "leash" && bagCount("leash") >= 1) label = "LEASH  OWNED";
       if (item.id === "seeds" && extraPlots >= 4) label = "GARDEN FULL";
       drawText(g, label, L.x + 30, rowY + 4, C.uiText);
-      price = (item.id === "hat" && hatOwned) || (item.id === "pole" && poleOwned) ? "0G" : (item.price + "G");
+      if (item.id === "leash") price = bagCount("leash") >= 1 ? "OWNED" : "40C";
+      else price = (item.id === "hat" && hatOwned) || (item.id === "pole" && poleOwned) ? "0G" : (item.price + "G");
       drawText(g, price, L.x + L.w - textWidth(price) - 12, rowY + 4, C.woodSh);
     }
     woodPanel(g, L.buyX, L.buyY, L.buyW, L.btnH);
@@ -12100,6 +12146,7 @@
     function nearWho(who) {
       return !!(who && tilesTouch(me, actorTiles(who)));
     }
+    if (dogSceneOk() && nearWho(dog)) { talkDog(); return true; }
     if (currentScene === "overworld") {
       if (nearWho(npc)) { goTalk(); return true; }
       if (nimVisible() && nearWho(nim)) { goTalkNim(); return true; }
@@ -12422,6 +12469,170 @@
     if (!path.length) return;
     pending = { type: "dig", tx: tx, ty: ty };
     startWalk(player, path, 3.5);
+  }
+
+
+  function hasLeash() {
+    return bagCount("leash") >= 1;
+  }
+
+  function dogSceneOk() {
+    if (currentScene === "house") return true;
+    if (!hasLeash()) return false;
+    return currentScene === "overworld" || currentScene === "ocean" || currentScene === "forest";
+  }
+
+  function dogStop() {
+    dog.path = [];
+    dog.queuedWalk = null;
+    dog.stepFrom = null;
+    dog.stepT = 0;
+    dog.moving = false;
+    dog.frame = 0;
+    dog.x = tileCenterX(dog.tx);
+    dog.y = tileFootY(dog.ty);
+  }
+
+  function dogOk(tx, ty) {
+    if (!inBounds(tx, ty) || !walkable(tx, ty)) return false;
+    if (playerOccupies(tx, ty)) return false;
+    if (currentScene === "house") {
+      if (!hasLeash() && isHouseExit(tx, ty)) return false;
+      return true;
+    }
+    return true;
+  }
+
+  function snapDogNearPlayer() {
+    var dirs, i, nx, ny, d;
+    dirs = [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    for (i = 0; i < dirs.length; i++) {
+      d = dirs[i];
+      nx = player.tx + d[0];
+      ny = player.ty + d[1];
+      if (dogOk(nx, ny)) {
+        dog.tx = nx;
+        dog.ty = ny;
+        dogStop();
+        return;
+      }
+    }
+    if (dogOk(player.tx, player.ty)) {
+      dog.tx = player.tx;
+      dog.ty = player.ty;
+      dogStop();
+    }
+  }
+
+  function dogYield() {
+    var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    var i, j, tmp, d, nx, ny;
+    for (i = 3; i > 0; i--) {
+      j = (Math.random() * (i + 1)) | 0;
+      tmp = dirs[i];
+      dirs[i] = dirs[j];
+      dirs[j] = tmp;
+    }
+    for (i = 0; i < 4; i++) {
+      d = dirs[i];
+      nx = dog.tx + d[0];
+      ny = dog.ty + d[1];
+      if (dogOk(nx, ny)) {
+        startWalk(dog, [{ tx: nx, ty: ny }], 0.85);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function dogFollow() {
+    var dist, dest, path, nx, ny, dirs, i, d, best, bd;
+    dist = Math.abs(player.tx - dog.tx) + Math.abs(player.ty - dog.ty);
+    if (dist <= 1) return;
+    if (dist > 8) {
+      snapDogNearPlayer();
+      return;
+    }
+    dirs = [[0, 1], [1, 0], [-1, 0], [0, -1]];
+    best = null;
+    bd = 99;
+    for (i = 0; i < 4; i++) {
+      d = dirs[i];
+      nx = player.tx + d[0];
+      ny = player.ty + d[1];
+      if (!dogOk(nx, ny) && !(nx === dog.tx && ny === dog.ty)) continue;
+      dest = Math.abs(nx - dog.tx) + Math.abs(ny - dog.ty);
+      if (dest < bd) { bd = dest; best = { tx: nx, ty: ny }; }
+    }
+    if (!best || (best.tx === dog.tx && best.ty === dog.ty)) return;
+    path = findPath(dog.tx, dog.ty, best.tx, best.ty);
+    if (path.length) startWalk(dog, path.slice(0, 2), 0.9);
+  }
+
+  function talkDog() {
+    if (hasLeash()) openDialogue("DOG", ["WOOF.", "LET'S GO!"]);
+    else openDialogue("DOG", ["WOOF.", "NEEDS A LEASH."]);
+  }
+
+  function updateDog(dt) {
+    var dest;
+    if (!dogSceneOk()) return;
+    if (dog.scene !== currentScene) {
+      if (currentScene === "house" && !hasLeash() && dog.houseTx) {
+        dog.tx = dog.houseTx;
+        dog.ty = dog.houseTy;
+        if (!dogOk(dog.tx, dog.ty)) {
+          dog.tx = 6;
+          dog.ty = 7;
+        }
+        dogStop();
+      } else {
+        snapDogNearPlayer();
+      }
+      dog.scene = currentScene;
+    }
+    if (currentScene === "house") {
+      dog.houseTx = dog.tx;
+      dog.houseTy = dog.ty;
+    }
+    dog.anim += dt;
+    if (dog.anim > 420) {
+      dog.anim = 0;
+      dog.frame = dog.frame ? 0 : 1;
+    }
+    dest = dog.path && dog.path.length ? dog.path[0] : null;
+    if (dest && playerOccupies(dest.tx, dest.ty)) {
+      dogStop();
+      dest = null;
+    }
+    if (dest) {
+      advanceWalk(dog, dt);
+      return;
+    }
+    if (hasLeash() && (currentScene === "overworld" || currentScene === "ocean" || currentScene === "forest" || currentScene === "house")) {
+      dog.idle -= dt;
+      if (dog.idle > 0) {
+        dogFollow();
+        return;
+      }
+      dog.idle = 280;
+      dogFollow();
+      return;
+    }
+    if (playerOccupies(dog.tx, dog.ty)) {
+      dogYield();
+      return;
+    }
+    dog.idle -= dt;
+    if (dog.idle > 0) return;
+    dog.idle = 1400 + Math.random() * 2200;
+    dogYield();
+  }
+
+  function drawDogSpr(g) {
+    var bob = dog.frame ? -1 : 0;
+    drawShadow(g, dog.x, dog.y, 5);
+    if (Assets.spr.dog) Assets.draw(g, "dog", dog.x, dog.y + bob);
   }
 
   function updateChicken(dt) {
@@ -13162,6 +13373,9 @@
         if (monsters[i].hp > 0) list.push({ foot: monsters[i].y, kind: "mon", m: monsters[i] });
       }
     }
+    if (dogSceneOk()) {
+      list.push({ foot: dog.y, kind: "dog" });
+    }
     if (currentScene === "overworld") {
       list.push({ foot: chicken.y, kind: "chicken" });
       list.push({ foot: npc.y, kind: "npc" });
@@ -13195,6 +13409,7 @@
     if (item.kind === "prop") drawProp(g, item.p);
     else if (item.kind === "player") drawPlayer(g);
     else if (item.kind === "chicken") drawChickenSpr(g);
+    else if (item.kind === "dog") drawDogSpr(g);
     else if (item.kind === "car") drawCarSpr(g);
     else if (item.kind === "folk") {
       if (item.f && (item.f.id === "hazel" || item.f.id === "rowan")) drawForestFolk(g, item.f);
@@ -14031,6 +14246,7 @@
     else if (key === "pick") Assets.draw(g, "pickaxe", x, y);
     else if (key === "bow") Assets.draw(g, "bow", x, y);
     else if (key === "pole") paintFishingPole(g, x, y);
+    else if (key === "leash") Assets.draw(g, "leash", x, y);
     else if (fishKindById(key)) paintFishIcon(g, x, y, key);
   }
 
@@ -14971,6 +15187,10 @@
         chicken.idle = 500;
         return;
       }
+      if (dogSceneOk() && hitSprite(world, dog.x, dog.y, 16, 16, 8, 14)) {
+        talkDog();
+        return;
+      }
       if (nimVisible() && hitSprite(world, nim.x, nim.y, 16, 32, 8, 28)) {
         goTalkNim();
         return;
@@ -15005,6 +15225,10 @@
         talkPip();
         return;
       }
+    }
+    if (dogSceneOk() && hitSprite(world, dog.x, dog.y, 16, 16, 8, 14)) {
+      talkDog();
+      return;
     }
     if (currentScene === "cottage") {
       if (hitSprite(world, tileCenterX(4), tileFootY(4), 16, 32, 8, 28) || (tx === 4 && ty === 4)) {
@@ -15103,6 +15327,10 @@
     if (currentScene === "overworld" && tx === chicken.tx && ty === chicken.ty) {
       chicken.react = 420;
       chicken.idle = 500;
+      return;
+    }
+    if (dogSceneOk() && tx === dog.tx && ty === dog.ty) {
+      talkDog();
       return;
     }
     if (isMineEntrance(tx, ty) || caveAt(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "mineSign")) {
@@ -15522,6 +15750,7 @@
         tryKeyboardStep();
       }
       updateChicken(dt);
+      updateDog(dt);
       updateTownFolk(dt);
       updateForestCritters(dt);
       updateNim(dt);
