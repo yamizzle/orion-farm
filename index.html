@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830q";
+  var BUILD = "20260830r";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -732,6 +732,7 @@
   var carTapped = false;
   var festivalOn = false;
   var nimMet = false;
+  var holidaySyncKey = "";
   var audioMuted = false;
   var sfxMuted = false;
   var musicMuted = false;
@@ -2089,7 +2090,7 @@
 
   function saveScene() {
     if (!GROUND || !GROUND.length) return;
-    var rec = { cols: COLS, rows: ROWS, ground: GROUND, props: PROPS };
+    var rec = { cols: COLS, rows: ROWS, ground: GROUND, props: propsWithoutHoliday(PROPS) };
     if (currentScene === "house") rec.houseTier = houseTier | 0;
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
@@ -2384,6 +2385,10 @@
       monsters = [];
     }
     buildSolid();
+    if (name === "overworld") {
+      holidaySyncKey = "";
+      syncHolidayProps();
+    }
   }
 
   function openMineAisle() {
@@ -4990,7 +4995,7 @@
   }
 
   function isSoftStrike(p) {
-    return p && (p.kind === "tallGrass" || p.kind === "weed" || p.kind === "townFlower" || p.kind === "crop");
+    return p && (p.kind === "tallGrass" || p.kind === "weed" || (p.kind === "townFlower" && !p.holiday) || p.kind === "crop");
   }
 
   function isSliceable(p) {
@@ -4998,7 +5003,7 @@
   }
 
   function isPickablePlant(p) {
-    return p && p.kind === "townFlower";
+    return p && p.kind === "townFlower" && !p.holiday;
   }
 
   function propOccupies(p, tx, ty) {
@@ -8360,6 +8365,131 @@
     return "SPRING · " + clockPhaseName();
   }
 
+  function townHoliday() {
+    var rem = (dayNumber | 0) % 7;
+    var phase;
+    if (rem === 0) return "market";
+    if (rem === 3) return "flower";
+    if (rem === 5) {
+      phase = clockPhaseName();
+      if (phase === "EVENING" || phase === "NIGHT") return "lantern";
+    }
+    return "";
+  }
+
+  function holidayHudLabel() {
+    var h = townHoliday();
+    if (h === "market") return "MARKET DAY";
+    if (h === "flower") return "FLOWER DAY";
+    if (h === "lantern" && !festivalOn) return "LANTERN EVE";
+    return "";
+  }
+
+  function inTownSquare() {
+    return currentScene === "overworld" && (player.tx | 0) >= 40;
+  }
+
+  function holidayExtraLines(who) {
+    var h = townHoliday();
+    if (h === "market" && (who === "junie" || who === "pip" || who === "luna")) {
+      return ["MARKET DAY!", "FRESH GOODS TODAY."];
+    }
+    if (h === "flower" && who === "junie") {
+      return ["FLOWERS FOR THE STATUE!"];
+    }
+    if (h === "lantern" && !festivalOn) {
+      return ["LANTERNS FOR TOWN."];
+    }
+    return null;
+  }
+
+  function withHolidayLines(who, lines) {
+    var extra = holidayExtraLines(who);
+    if (!extra || !lines) return lines;
+    return extra.concat(lines);
+  }
+
+  function shopItemPrice(item) {
+    var p;
+    if (!item) return 0;
+    p = item.price | 0;
+    if (item.id === "snack" && townHoliday() === "market") {
+      p = (p / 2) | 0;
+      if (p < 1) p = 1;
+    }
+    return p;
+  }
+
+  function propsWithoutHoliday(props) {
+    var out = [], i;
+    if (!props) return out;
+    for (i = 0; i < props.length; i++) {
+      if (props[i] && !props[i].holiday) out.push(props[i]);
+    }
+    return out;
+  }
+
+  function stripHolidayProps(props) {
+    var i;
+    if (!props) return;
+    for (i = props.length - 1; i >= 0; i--) {
+      if (props[i] && props[i].holiday) props.splice(i, 1);
+    }
+  }
+
+  function holidayPropList() {
+    var h = townHoliday();
+    var list = [];
+    if (h === "market") {
+      list.push({ kind: "crate", tx: 44, ty: 29, holiday: true });
+      list.push({ kind: "crate", tx: 49, ty: 29, holiday: true });
+    } else if (h === "flower") {
+      list.push({ kind: "townFlower", tx: 50, ty: 30, holiday: true });
+      list.push({ kind: "townFlower", tx: 52, ty: 30, holiday: true });
+      list.push({ kind: "townFlower", tx: 50, ty: 28, holiday: true });
+      list.push({ kind: "townFlower", tx: 52, ty: 28, holiday: true });
+      list.push({ kind: "townFlower", tx: 49, ty: 31, holiday: true });
+      list.push({ kind: "townFlower", tx: 53, ty: 31, holiday: true });
+    } else if (h === "lantern") {
+      list.push({ kind: "lampPost", tx: 45, ty: 28, holiday: true });
+      list.push({ kind: "lampPost", tx: 48, ty: 31, holiday: true });
+      list.push({ kind: "lampPost", tx: 45, ty: 31, holiday: true });
+      list.push({ kind: "lampPost", tx: 48, ty: 28, holiday: true });
+    }
+    return list;
+  }
+
+  function holidayTileBusy(tx, ty) {
+    var p;
+    if (playerOccupies(tx, ty)) return true;
+    if (folkOccupies(tx, ty)) return true;
+    if (carOccupies(tx, ty)) return true;
+    if (npc && npc.tx === tx && npc.ty === ty) return true;
+    p = propAt(tx, ty);
+    if (p && !p.holiday) return true;
+    return false;
+  }
+
+  function syncHolidayProps() {
+    var key, list, i, p;
+    if (currentScene !== "overworld") {
+      holidaySyncKey = "";
+      return;
+    }
+    key = townHoliday() + "|" + (dayNumber | 0) + "|" + clockPhaseName();
+    if (key === holidaySyncKey) return;
+    stripHolidayProps(PROPS);
+    list = holidayPropList();
+    for (i = 0; i < list.length; i++) {
+      p = list[i];
+      if (holidayTileBusy(p.tx, p.ty)) continue;
+      PROPS.push(p);
+    }
+    holidaySyncKey = key;
+    buildSolid();
+  }
+
+
   function placeHudLabel() {
     if (currentScene === "tree") return "TREE " + treeFloor;
     if (currentScene === "treetop") return "TREETOP";
@@ -8380,6 +8510,22 @@
     x = VIEW_W - tw - 8;
     woodPanel(g, x, y, tw + 6, 11);
     drawText(g, word, x + 3, y + 2, C.parch);
+  }
+
+  function drawHolidayChip(g) {
+    var label, tw, w, x, y, r;
+    if (!inTownSquare()) return;
+    label = holidayHudLabel();
+    if (!label) return;
+    tw = textWidth(label);
+    w = tw + 8;
+    y = 38;
+    x = VIEW_W - w - 2;
+    r = buildStampRect();
+    if (y === r.y && x < r.x + r.w && x + w > r.x) y = 50;
+    if (x < 46) x = 46;
+    woodPanel(g, x, y, w, 11);
+    drawText(g, label, x + 4, y + 2, C.parch);
   }
 
   function modalOpen() {
@@ -8444,7 +8590,13 @@
       dayMs -= DAY_MS;
       dayNumber += 1;
     }
-    if (clockPhase() !== before || dayNumber !== beforeDay) persistSave();
+    if (clockPhase() !== before || dayNumber !== beforeDay) {
+      persistSave();
+      if (currentScene === "overworld") {
+        holidaySyncKey = "";
+        syncHolidayProps();
+      }
+    }
     updateCrops();
     updateHarvestNodes();
   }
@@ -8566,6 +8718,11 @@
       fn(46 * TILE + 16, 30 * TILE + 4, 0.98, 301);
       fn(48 * TILE + 8, 31 * TILE + 2, 0.72, 302);
       fn(53 * TILE + 8, 31 * TILE + 2, 0.72, 303);
+    }
+    if (currentScene === "overworld" && townHoliday() === "lantern" && !festivalOn) {
+      fn(46 * TILE + 16, 30 * TILE + 4, 0.70, 310);
+      fn(45 * TILE + 8, 28 * TILE + 2, 0.48, 311);
+      fn(48 * TILE + 8, 31 * TILE + 2, 0.48, 312);
     }
   }
 
@@ -8712,6 +8869,7 @@
     }
     drawOutdoorGrade(g);
     amt = lanternGlowAmt();
+    if (amt < 0.02 && currentScene === "overworld" && townHoliday() === "lantern") amt = 0.22;
     if (amt > 0.02) {
       drawLanternWells(g, amt);
       drawLanternLights(g);
@@ -8904,7 +9062,7 @@
   function talkNeighbor() {
     faceToward(player, npc.tx, npc.ty);
     faceToward(npc, player.tx, player.ty);
-    openDialogue("JUNIE", neighborLines());
+    openDialogue("JUNIE", withHolidayLines("junie", neighborLines()));
   }
 
   function liveFolk() {
@@ -9134,11 +9292,14 @@
 
   function talkPip() {
     if (!pipDone && hasCopperToGive()) {
-      openDialogue("PIP", pipLines());
+      openDialogue("PIP", withHolidayLines("pip", pipLines()));
       return;
     }
     openShop();
-    if (!pipDone) {
+    if (townHoliday() === "market") {
+      shopMsg = "MARKET DAY! FRESH GOODS TODAY.";
+      shopMsgT = 2800;
+    } else if (!pipDone) {
       shopMsg = "BRING ME ONE COPPER FOR A LANTERN.";
       shopMsgT = 2800;
     }
@@ -9562,19 +9723,19 @@
     faceToward(player, f.tx, f.ty);
     faceToward(f, player.tx, player.ty);
     if (f.id === "lila") {
-      openDialogue(f.name, lilaLines());
+      openDialogue(f.name, withHolidayLines("lila", lilaLines()));
       return;
     }
     if (f.id === "pip") {
-      openDialogue(f.name, pipLines());
+      openDialogue(f.name, withHolidayLines("pip", pipLines()));
       return;
     }
     if (f.id === "reed") {
-      openDialogue(f.name, reedLines());
+      openDialogue(f.name, withHolidayLines("reed", reedLines()));
       return;
     }
     lines = f.lines[(tick / 800 | 0) % f.lines.length];
-    openDialogue(f.name, lines);
+    openDialogue(f.name, withHolidayLines(f.id, lines));
   }
 
   function goTalkFolk(f) {
@@ -9637,6 +9798,7 @@
   function talkLandmark(p) {
     if (p.kind === "statue") {
       if (festivalOn) openDialogue("STATUE", ["THE MOON KID SHINES.", "MOONDROP NIGHT."]);
+      else if (townHoliday() === "flower") openDialogue("STATUE", ["THE TOWN SMELLS SWEET."]);
       else openDialogue("STATUE", ["A MOON KID HOLDS", "UP THE NIGHT."]);
     } else if (p.kind === "fountain") {
       openDialogue("FOUNTAIN", ["COOL WATER SPLASHES.", "MAKE A WISH!"]);
@@ -9775,11 +9937,11 @@
   }
 
   function talkLuna() {
-    openDialogue("LUNA", ["NICE TO MEET YOU."]);
+    openDialogue("LUNA", withHolidayLines("luna", ["NICE TO MEET YOU."]));
   }
 
   function talkMaple() {
-    openDialogue("MAPLE", ["HELLO.", "COME AGAIN."]);
+    openDialogue("MAPLE", withHolidayLines("maple", ["HELLO.", "COME AGAIN."]));
   }
 
   function tryCottageDoors() {
@@ -9992,12 +10154,12 @@
         shopMsgT = 1200;
         return;
       }
-      if (gold < item.price) {
+      if (gold < shopItemPrice(item)) {
         shopMsg = "NOT ENOUGH GOLD";
         shopMsgT = 1400;
         return;
       }
-      gold -= item.price;
+      gold -= shopItemPrice(item);
       placeToolInTrayFirst(seedKey);
       shopMsg = item.id === "potatoSeeds" ? "POTATO SEEDS!" : "BERRY SEEDS!";
       shopMsgT = 1400;
@@ -10009,12 +10171,12 @@
       shopMsgT = 1200;
       return;
     }
-    if (gold < item.price) {
+    if (gold < shopItemPrice(item)) {
       shopMsg = "NOT ENOUGH GOLD";
       shopMsgT = 1400;
       return;
     }
-    gold -= item.price;
+    gold -= shopItemPrice(item);
     if (item.id === "seeds") {
       extraPlots += 1;
       if (sceneCache.overworld && sceneCache.overworld.ground) applyExtraPlots(sceneCache.overworld.ground);
@@ -10022,7 +10184,7 @@
       shopMsg = "MORE GARDEN PLOTS!";
     } else if (item.id === "flower") {
       if (bagRoom("flower") < 1) {
-        gold += item.price;
+        gold += shopItemPrice(item);
         shopMsg = "BAG FULL.";
         shopMsgT = 1200;
         persistSave();
@@ -10032,7 +10194,7 @@
       shopMsg = "A PRETTY FLOWER.";
     } else if (item.id === "snack" || item.id === "apple" || item.id === "bread" || item.id === "pie") {
       if (bagRoom(item.id) < 1) {
-        gold += item.price;
+        gold += shopItemPrice(item);
         shopMsg = "BAG FULL.";
         shopMsgT = 1200;
         persistSave();
@@ -10049,7 +10211,7 @@
       shopMsg = "A FINE STRAW HAT.";
     } else if (item.id === "fence") {
       if (bagRoom("wood") < 1) {
-        gold += item.price;
+        gold += shopItemPrice(item);
         shopMsg = "BAG FULL.";
         shopMsgT = 1200;
         persistSave();
@@ -10059,7 +10221,7 @@
       shopMsg = "PLUS 4 WOOD.";
     } else if (item.id === "path") {
       if (bagRoom("stone") < 1) {
-        gold += item.price;
+        gold += shopItemPrice(item);
         shopMsg = "BAG FULL.";
         shopMsgT = 1200;
         persistSave();
@@ -10069,7 +10231,7 @@
       shopMsg = "PLUS 3 STONE.";
     } else if (item.id === "lampKit") {
       if (bagRoom("lampKit") < 3) {
-        gold += item.price;
+        gold += shopItemPrice(item);
         shopMsg = "BAG FULL.";
         shopMsgT = 1200;
         persistSave();
@@ -10079,7 +10241,7 @@
       shopMsg = "PLUS 3 LAMPS.";
     } else if (item.id === "crateKit") {
       if (bagRoom("crateKit") < 3) {
-        gold += item.price;
+        gold += shopItemPrice(item);
         shopMsg = "BAG FULL.";
         shopMsgT = 1200;
         persistSave();
@@ -10170,7 +10332,7 @@
         else price = "20W 12S";
       } else if (item.id === "leash") price = bagCount("leash") >= 1 ? "OWNED" : "40C";
       else if ((item.id === "potatoSeeds" && bagCount("potatoSeed") >= 1) || (item.id === "berrySeeds" && bagCount("berrySeed") >= 1)) price = "HAVE";
-      else price = (item.id === "hat" && hatOwned) || (item.id === "pole" && poleOwned) ? "0G" : (item.price + "G");
+      else price = (item.id === "hat" && hatOwned) || (item.id === "pole" && poleOwned) ? "0G" : (shopItemPrice(item) + "G");
       drawText(g, price, L.x + L.w - textWidth(price) - 12, rowY + 4, C.woodSh);
     }
     woodPanel(g, L.buyX, L.buyY, L.buyW, L.btnH);
@@ -13473,7 +13635,7 @@
     } else if (p.kind === "mineSign") {
       drawMineSign(g, x, y);
     } else if (p.kind === "lantern" || p.kind === "lampPost") {
-      var lit = lanternIsLit();
+      var lit = lanternIsLit() || !!(p.holiday && townHoliday() === "lantern");
       var flicker;
       var cozyLamp = currentScene === "house" && homeLightOn();
       if (lit) {
@@ -14755,6 +14917,7 @@
     drawText(g, gLabel, 310 - textWidth(gLabel), 8, C.flower);
     drawText(g, clockHudLine(), 210, 16, C.parch);
     drawPlaceStamp(g);
+    drawHolidayChip(g);
 
     ensureSelectedSlot();
     var T = trayLayout();
