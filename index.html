@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260830p";
+  var BUILD = "20260830q";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -1226,7 +1226,9 @@
     { id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" },
     { id: "pole", name: "FISHING POLE", price: 30, icon: "fishingPole" },
     { id: "leash", name: "LEASH", price: 40, icon: "leash" },
-    { id: "houseKit", name: "HOUSE KIT", price: 0, icon: "rug" }
+    { id: "houseKit", name: "HOUSE KIT", price: 0, icon: "rug" },
+    { id: "lampKit", name: "LAMP KIT", price: 10, icon: "lantern" },
+    { id: "crateKit", name: "CRATE KIT", price: 10, icon: "crate" }
   ];
 
   function hash(x, y, s) {
@@ -5427,7 +5429,8 @@
         kind === "acorn" || kind === "pinecone" || kind === "apple" || kind === "bread" || kind === "pie" ||
         kind === "copperBar" || kind === "silverBar" || kind === "goldBar" ||
         kind === "minnow" || kind === "bluegill" || kind === "perch" || kind === "catfish" ||
-        kind === "trout" || kind === "bass" || kind === "goldenCarp" || kind === "moonfish" || kind === "starfin") {
+        kind === "trout" || kind === "bass" || kind === "goldenCarp" || kind === "moonfish" || kind === "starfin" ||
+        kind === "lampKit" || kind === "crateKit") {
       return kind;
     }
     return "";
@@ -6191,6 +6194,40 @@
     return selectedIs("wood") && fenceBuildOn;
   }
 
+  function placingLampNow() {
+    return selectedIs("lampKit") && selectedHas("lampKit", 1);
+  }
+
+  function placingCrateNow() {
+    return selectedIs("crateKit") && selectedHas("crateKit", 1);
+  }
+
+  function countBuiltKind(kind) {
+    var n = 0, i;
+    for (i = 0; i < builds.length; i++) {
+      if (builds[i] && builds[i].kind === kind) n += 1;
+    }
+    return n;
+  }
+
+  function canPlaceKitOn(tx, ty) {
+    var ch, p;
+    if (currentScene !== "overworld") return false;
+    if (!inBounds(tx, ty)) return false;
+    ch = cell(tx, ty);
+    if (ch !== "g" && ch !== "d" && ch !== "h" && ch !== "m" && ch !== "k" && ch !== "c") return false;
+    if (!walkable(tx, ty)) return false;
+    p = propAt(tx, ty);
+    if (p && !isSoftBuildProp(p)) return false;
+    if (tx === npc.tx && ty === npc.ty) return false;
+    if (tx === chicken.tx && ty === chicken.ty) return false;
+    if (carOccupies(tx, ty)) return false;
+    if (folkOccupies(tx, ty)) return false;
+    if (dogSceneOk() && tx === dog.tx && ty === dog.ty) return false;
+    if (isEntrance(tx, ty)) return false;
+    return true;
+  }
+
   function setFenceBuildOn(on) {
     fenceBuildOn = !!(on && selectedIs("wood") && selectedHas("wood", 1));
     if (!fenceBuildOn && pending && pending.type === "build" && selectedIs("wood")) {
@@ -6223,7 +6260,32 @@
   function tryBuild(tx, ty) {
     var placingFence = placingFenceNow();
     var placingPath = selectedIs("stone");
-    if (!placingFence && !placingPath) return false;
+    var placingLamp = placingLampNow();
+    var placingCrate = placingCrateNow();
+    var kitKind, kitKey, kitMax;
+    if (!placingFence && !placingPath && !placingLamp && !placingCrate) return false;
+    if (placingLamp || placingCrate) {
+      if (!canPlaceKitOn(tx, ty)) return false;
+      if (placingCrate && player.tx === tx && player.ty === ty) return false;
+      kitKind = placingLamp ? "lampPost" : "crate";
+      kitKey = placingLamp ? "lampKit" : "crateKit";
+      kitMax = 12;
+      if (countBuiltKind(kitKind) >= kitMax) {
+        showLineNote(placingLamp ? "TOO MANY LAMPS." : "TOO MANY CRATES.");
+        return true;
+      }
+      if (!selectedHas(kitKey, 1)) {
+        slotShake = 220;
+        return true;
+      }
+      spendSelected(kitKey, 1);
+      clearSoftBuildProp(tx, ty);
+      PROPS.push({ kind: kitKind, tx: tx, ty: ty });
+      builds.push({ kind: kitKind, tx: tx, ty: ty });
+      buildSolid();
+      persistSave();
+      return true;
+    }
     if (!canBuildOn(tx, ty)) return false;
     if (placingFence && player.tx === tx && player.ty === ty) return false;
     if (placingFence && !selectedHas("wood", FENCE_COST)) {
@@ -6713,7 +6775,7 @@
           item = src[bi];
           if (!item || typeof item !== "object") continue;
           bk = item.kind;
-          if (bk !== "path" && bk !== "hole" && bk !== "woodsHole" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR" && bk !== "townFlower" && bk !== "goneFence") continue;
+          if (bk !== "path" && bk !== "hole" && bk !== "woodsHole" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR" && bk !== "townFlower" && bk !== "goneFence" && bk !== "lampPost" && bk !== "crate") continue;
           builds.push({ kind: bk, tx: item.tx | 0, ty: item.ty | 0 });
         }
       }
@@ -6999,6 +7061,15 @@
         exists = false;
         for (j = 0; j < props.length; j++) {
           if (props[j].tx === b.tx && props[j].ty === b.ty && isFenceKind(props[j].kind)) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) props.push({ kind: b.kind, tx: b.tx, ty: b.ty });
+      } else if (b.kind === "lampPost" || b.kind === "crate") {
+        exists = false;
+        for (j = 0; j < props.length; j++) {
+          if (props[j].tx === b.tx && props[j].ty === b.ty && props[j].kind === b.kind) {
             exists = true;
             break;
           }
@@ -8465,7 +8536,7 @@
     var i, p, hx, hy;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
-      if (p.kind === "lantern") {
+      if (p.kind === "lantern" || p.kind === "lampPost") {
         fn(p.tx * TILE + 8, p.ty * TILE + 2, 1, i);
       } else if (p.kind === "house") {
         fn(p.tx * TILE + 40, p.ty * TILE + 68, 0.88, 80 + i);
@@ -9996,6 +10067,26 @@
       }
       addToBag("stone", 3);
       shopMsg = "PLUS 3 STONE.";
+    } else if (item.id === "lampKit") {
+      if (bagRoom("lampKit") < 3) {
+        gold += item.price;
+        shopMsg = "BAG FULL.";
+        shopMsgT = 1200;
+        persistSave();
+        return;
+      }
+      addToBag("lampKit", 3);
+      shopMsg = "PLUS 3 LAMPS.";
+    } else if (item.id === "crateKit") {
+      if (bagRoom("crateKit") < 3) {
+        gold += item.price;
+        shopMsg = "BAG FULL.";
+        shopMsgT = 1200;
+        persistSave();
+        return;
+      }
+      addToBag("crateKit", 3);
+      shopMsg = "PLUS 3 CRATES.";
     } else if (item.id === "pole") {
       poleOwned = true;
       giveTool("pole");
@@ -12336,7 +12427,11 @@
   }
 
   function tryPlaceOrWalk(tx, ty) {
-    var placingNow = placingFenceNow() || selectedIs("stone");
+    var placingNow = placingFenceNow() || selectedIs("stone") || placingLampNow() || placingCrateNow();
+    if (placingLampNow() || placingCrateNow()) {
+      if (canPlaceKitOn(tx, ty) && goBuild(tx, ty)) return "build";
+      return "";
+    }
     if (placingNow && canBuildOn(tx, ty)) {
       if (goBuild(tx, ty)) return "build";
     }
@@ -12521,9 +12616,59 @@
 
   function goBuild(tx, ty) {
     var placingFence = placingFenceNow();
-    var ghost = placingFence ? fenceKindFor(tx, ty) : "path";
+    var placingLamp = placingLampNow();
+    var placingCrate = placingCrateNow();
+    var ghost = placingFence ? fenceKindFor(tx, ty) : (placingLamp ? "lantern" : (placingCrate ? "crate" : "path"));
     var dest, path, pathOn;
     highlight = { tx: tx, ty: ty, ghost: ghost };
+    if (placingLamp || placingCrate) {
+      if (!canPlaceKitOn(tx, ty)) return false;
+      if (placingCrate && player.tx === tx && player.ty === ty) return false;
+      if (placingLamp && !selectedHas("lampKit", 1)) {
+        slotShake = 220;
+        return true;
+      }
+      if (placingCrate && !selectedHas("crateKit", 1)) {
+        slotShake = 220;
+        return true;
+      }
+      if (placingCrate) {
+        if (isNear(player.tx, player.ty, tx, ty)) {
+          pending = null;
+          faceToward(player, tx, ty);
+          tryBuild(tx, ty);
+          return true;
+        }
+        dest = nearestAdjacent(tx, ty);
+        if (!dest) return false;
+        path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+        if (!path.length) return false;
+        pending = { type: "build", tx: tx, ty: ty };
+        startWalk(player, path, 3.5);
+        return true;
+      }
+      if (player.tx === tx && player.ty === ty) {
+        pending = null;
+        tryBuild(tx, ty);
+        return true;
+      }
+      if (isNear(player.tx, player.ty, tx, ty)) {
+        pending = null;
+        faceToward(player, tx, ty);
+        tryBuild(tx, ty);
+        return true;
+      }
+      pathOn = findPath(player.tx, player.ty, tx, ty);
+      if (!pathOn.length) {
+        dest = nearestAdjacent(tx, ty);
+        if (!dest) return false;
+        pathOn = findPath(player.tx, player.ty, dest.tx, dest.ty);
+        if (!pathOn.length) return false;
+      }
+      pending = { type: "build", tx: tx, ty: ty };
+      startWalk(player, pathOn, 3.5);
+      return true;
+    }
     if (!canBuildOn(tx, ty)) return false;
     if (placingFence && player.tx === tx && player.ty === ty) return false;
     if (placingFence && !selectedHas("wood", FENCE_COST)) {
@@ -13031,7 +13176,7 @@
     if (p.kind === "crate" || p.kind === "stump" || p.kind === "tallGrass" || p.kind === "log" || p.kind === "berryBush" || p.kind === "fern" || p.kind === "wildflower" || p.kind === "toadstool" || p.kind === "canopyBough" || p.kind === "canopySpan" || p.kind === "canopyClump" || p.kind === "canopyHang") return p.ty * TILE + 14;
     if (p.kind === "cave") return p.ty * TILE + 2;
     if (p.kind === "mineSign") return p.ty * TILE + 8;
-    if (p.kind === "lantern") return p.ty * TILE + (currentScene === "house" ? 24 : 20);
+    if (p.kind === "lantern" || p.kind === "lampPost") return p.ty * TILE + (currentScene === "house" ? 24 : 20);
     if (p.kind === "moonAltar") return p.ty * TILE + 28;
     if (p.kind === "hole") return p.ty * TILE + 2;
     if (p.kind === "ladder") return p.ty * TILE + 20;
@@ -13110,7 +13255,7 @@
     if (p.kind === "moonAltar") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "fern") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "tallGrass") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
-    if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "ladder" || p.kind === "hole" || p.kind === "swordPedestal") {
+    if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "lampPost" || p.kind === "ladder" || p.kind === "hole" || p.kind === "swordPedestal") {
       if (p.kind === "lantern" && currentScene === "house") {
         return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
       }
@@ -13327,7 +13472,7 @@
       drawCaveMouth(g, x, y);
     } else if (p.kind === "mineSign") {
       drawMineSign(g, x, y);
-    } else if (p.kind === "lantern") {
+    } else if (p.kind === "lantern" || p.kind === "lampPost") {
       var lit = lanternIsLit();
       var flicker;
       var cozyLamp = currentScene === "house" && homeLightOn();
@@ -14360,6 +14505,8 @@
     else if (key === "bow") Assets.draw(g, "bow", x, y);
     else if (key === "pole") paintFishingPole(g, x, y);
     else if (key === "leash") Assets.draw(g, "leash", x, y);
+    else if (key === "lampKit") Assets.draw(g, "lantern", x, y);
+    else if (key === "crateKit") Assets.draw(g, "crate", x, y);
     else if (fishKindById(key)) paintFishIcon(g, x, y, key);
   }
 
@@ -15772,7 +15919,7 @@
       return;
     }
     /* BUILD-on wins over cutting soft grass on the same tile (was silent-fail walk). */
-    if (placingFenceNow() || selectedIs("stone")) {
+    if (placingFenceNow() || selectedIs("stone") || placingLampNow() || placingCrateNow()) {
       if (tryPlaceOrWalk(tx, ty)) return;
     }
     if (hitProp && isPickablePlant(hitProp)) {
