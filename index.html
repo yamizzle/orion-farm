@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831e";
+  var BUILD = "20260831f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2306,7 +2306,7 @@
             break;
           }
         }
-      } else if (rec.kind === "berryBush" || rec.kind === "toadstool" || rec.kind === "log") {
+      } else if (rec.kind === "berryBush" || rec.kind === "toadstool" || rec.kind === "log" || rec.kind === "wildflower") {
         for (i = props.length - 1; i >= 0; i--) {
           p = props[i];
           if (p.tx === rec.tx && p.ty === rec.ty && p.kind === rec.kind) props.splice(i, 1);
@@ -3089,38 +3089,38 @@
   function buildOceanGround() {
     var cols = OCEAN_COLS, rows = OCEAN_ROWS;
     var g = [], y, x, row, ch;
-    /* Painted oceanMap: walk only dirt path + sand beach + wooden dock. */
+    /* 31f stamped oceanMap: grass/dirt/sand/dock walkable (f); water solid (y). */
     var walk = [
-      "..................ff....................",
-      "..................ff....................",
-      "..................ff....................",
-      "..................ff....................",
-      "..................ff.................f..",
-      "..................f.................ff..",
-      ".................ff................fff..",
-      "..................ff...............f....",
-      "..................ff..............ff....",
-      "..................ff...........f.fff....",
-      ".................ff..........ffffff.....",
-      "...............fffff.........fffff......",
-      "............fffffffff......ffffff.......",
-      ".........fffffffffffffffffffffff........",
-      ".......fffffffffffffffffffffffff........",
-      "......ffffffffffffffffffffffffff........",
-      "...fffffffffffffffffffffffffff..........",
-      "f.fffffffffffffffffffffffffff...........",
-      "fffffffffffffffffffffffffffff...........",
-      ".ffffffffffffffffffffffffffff...........",
-      "...ffffffffffffffffffffffff.............",
-      "....fffff..fffff.fffff..................",
-      "..................f.....................",
-      "..................f.....................",
-      "..................f.....................",
-      "........................................",
-      "........................................",
-      "........................................",
-      "........................................",
-      "........................................"
+      "ffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
     ];
     for (y = 0; y < rows; y++) {
       row = [];
@@ -3135,7 +3135,33 @@
 
   function buildOceanProps() {
     return [
-      { kind: "oceanSign", tx: 20, ty: 2 }
+      { kind: "oceanSign", tx: 20, ty: 2 },
+      { kind: "pine", tx: 3, ty: 3 }, { kind: "oak", tx: 6, ty: 5 },
+      { kind: "birch", tx: 10, ty: 4 }, { kind: "pine", tx: 2, ty: 8 },
+      { kind: "oak", tx: 8, ty: 10 }, { kind: "pine", tx: 13, ty: 7 },
+      { kind: "birch", tx: 4, ty: 12 }, { kind: "oak", tx: 15, ty: 11 },
+      { kind: "pine", tx: 23, ty: 3 }, { kind: "oak", tx: 27, ty: 5 },
+      { kind: "birch", tx: 30, ty: 4 }, { kind: "pine", tx: 24, ty: 8 },
+      { kind: "oak", tx: 28, ty: 10 }, { kind: "birch", tx: 22, ty: 6 },
+      { kind: "pine", tx: 26, ty: 12 }, { kind: "oak", tx: 31, ty: 7 },
+      { kind: "berryBush", tx: 5, ty: 7 }, { kind: "berryBush", tx: 12, ty: 5 },
+      { kind: "berryBush", tx: 14, ty: 12 }, { kind: "berryBush", tx: 22, ty: 4 },
+      { kind: "berryBush", tx: 25, ty: 11 }, { kind: "berryBush", tx: 29, ty: 8 },
+      { kind: "wildflower", tx: 4, ty: 2 }, { kind: "wildflower", tx: 7, ty: 3 },
+      { kind: "wildflower", tx: 11, ty: 9 }, { kind: "wildflower", tx: 15, ty: 6 },
+      { kind: "wildflower", tx: 16, ty: 12 }, { kind: "wildflower", tx: 21, ty: 5 },
+      { kind: "wildflower", tx: 23, ty: 10 }, { kind: "wildflower", tx: 27, ty: 2 },
+      { kind: "wildflower", tx: 29, ty: 12 }, { kind: "wildflower", tx: 9, ty: 1 },
+      { kind: "fern", tx: 1, ty: 5 }, { kind: "fern", tx: 16, ty: 8 },
+      { kind: "fern", tx: 21, ty: 9 }, { kind: "fern", tx: 32, ty: 6 },
+      { kind: "toadstool", tx: 7, ty: 9 }, { kind: "toadstool", tx: 24, ty: 5 },
+      { kind: "toadstool", tx: 11, ty: 12 },
+      { kind: "rock", tx: 3, ty: 11 }, { kind: "rock", tx: 30, ty: 11 },
+      { kind: "rock", tx: 10, ty: 16 },
+      { kind: "tallGrass", tx: 6, ty: 12, regrow: true },
+      { kind: "tallGrass", tx: 13, ty: 3, regrow: true },
+      { kind: "tallGrass", tx: 22, ty: 12, regrow: true },
+      { kind: "tallGrass", tx: 28, ty: 3, regrow: true }
     ];
   }
 
@@ -3565,14 +3591,15 @@
     ])
   ];
 
-  function makeCritter(kind, tx, ty, x0, y0, x1, y1) {
+  function makeCritter(kind, tx, ty, x0, y0, x1, y1, scene) {
     return {
       kind: kind, tx: tx, ty: ty,
       x: tx * 16 + 8, y: ty * 16 + 14,
       face: "right", frame: 0,
       path: [], stepFrom: null, stepT: 0, queuedWalk: null,
       idle: 500 + Math.random() * 900, anim: 0, react: 0,
-      patio: { x0: x0, y0: y0, x1: x1, y1: y1 }
+      patio: { x0: x0, y0: y0, x1: x1, y1: y1 },
+      scene: scene || "forest"
     };
   }
 
@@ -3582,8 +3609,14 @@
     makeCritter("squirrel", 6, 53, 3, 50, 10, 57)
   ];
 
+  var oceanCritters = [
+    makeCritter("rabbit", 8, 6, 2, 2, 16, 11, "ocean"),
+    makeCritter("squirrel", 26, 6, 21, 2, 31, 11, "ocean"),
+    makeCritter("deer", 10, 9, 3, 5, 15, 12, "ocean")
+  ];
+
   function critterOk(c, tx, ty) {
-    if (currentScene !== "forest") return false;
+    if (currentScene !== (c.scene || "forest")) return false;
     if (!walkable(tx, ty) && !(tx === c.tx && ty === c.ty)) return false;
     if (tx < c.patio.x0 || tx > c.patio.x1 || ty < c.patio.y0 || ty > c.patio.y1) return false;
     if (playerOccupies(tx, ty)) return false;
@@ -3610,10 +3643,12 @@
   }
 
   function updateForestCritters(dt) {
-    var i, c, dest;
-    if (currentScene !== "forest") return;
-    for (i = 0; i < forestCritters.length; i++) {
-      c = forestCritters[i];
+    var i, c, dest, list;
+    if (currentScene === "forest") list = forestCritters;
+    else if (currentScene === "ocean") list = oceanCritters;
+    else return;
+    for (i = 0; i < list.length; i++) {
+      c = list[i];
       if (c.react > 0) c.react -= dt;
       c.anim += dt;
       if (c.anim > 240) {
@@ -5200,7 +5235,7 @@
   }
 
   function isSoftStrike(p) {
-    return p && (p.kind === "tallGrass" || p.kind === "weed" || (p.kind === "townFlower" && !p.holiday) || p.kind === "crop");
+    return p && (p.kind === "tallGrass" || p.kind === "weed" || ((p.kind === "townFlower" || p.kind === "wildflower") && !p.holiday) || p.kind === "crop");
   }
 
   function isSliceable(p) {
@@ -5208,7 +5243,7 @@
   }
 
   function isPickablePlant(p) {
-    return p && p.kind === "townFlower" && !p.holiday;
+    return p && (p.kind === "townFlower" || p.kind === "wildflower") && !p.holiday;
   }
 
   function propOccupies(p, tx, ty) {
@@ -6198,7 +6233,7 @@
 
   function finishSoftStrike(prop) {
     if (isSliceable(prop)) sliceGrass(prop);
-    else if (prop.kind === "townFlower") pickPlant(prop);
+    else if (prop.kind === "townFlower" || prop.kind === "wildflower") pickPlant(prop);
     else if (prop.kind === "crop") harvestCropAt(prop.tx, prop.ty);
   }
 
@@ -6309,12 +6344,15 @@
     if (!isPickablePlant(prop)) return false;
     i = PROPS.indexOf(prop);
     if (i >= 0) PROPS.splice(i, 1);
-    for (j = builds.length - 1; j >= 0; j--) {
-      if (builds[j].kind === "townFlower" && builds[j].tx === prop.tx && builds[j].ty === prop.ty) {
-        builds.splice(j, 1);
+    if (prop.kind === "townFlower") {
+      for (j = builds.length - 1; j >= 0; j--) {
+        if (builds[j].kind === "townFlower" && builds[j].tx === prop.tx && builds[j].ty === prop.ty) {
+          builds.splice(j, 1);
+        }
       }
+      if (!lilaDone) lilaFlowers = countGreenFlowers();
     }
-    if (!lilaDone) lilaFlowers = countGreenFlowers();
+    if (prop.kind === "wildflower") rememberHarvest(prop, "wildflower", "gone");
     spawnGroundLoot("flower", prop.tx, prop.ty, 1);
     persistSave();
     return true;
@@ -14173,6 +14211,11 @@
         list.push({ foot: forestCritters[i].y, kind: "critter", c: forestCritters[i] });
       }
     }
+    if (currentScene === "ocean") {
+      for (i = 0; i < oceanCritters.length; i++) {
+        list.push({ foot: oceanCritters[i].y, kind: "critter", c: oceanCritters[i] });
+      }
+    }
     if (currentScene === "shop") {
       list.push({ foot: tileFootY(4), kind: "shopPip" });
     }
@@ -16052,6 +16095,17 @@
         if (hitSprite(world, cr.x, cr.y, cr.kind === "deer" ? 20 : 14, cr.kind === "deer" ? 22 : 14, 8, cr.kind === "deer" ? 18 : 12)) {
           cr.react = 420;
           cr.idle = 500;
+          return;
+        }
+      }
+    }
+    if (currentScene === "ocean") {
+      var oci, ocr;
+      for (oci = 0; oci < oceanCritters.length; oci++) {
+        ocr = oceanCritters[oci];
+        if (hitSprite(world, ocr.x, ocr.y, ocr.kind === "deer" ? 20 : 14, ocr.kind === "deer" ? 22 : 14, 8, ocr.kind === "deer" ? 18 : 12)) {
+          ocr.react = 420;
+          ocr.idle = 500;
           return;
         }
       }
