@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831j";
+  var BUILD = "20260831k";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -571,7 +571,7 @@
   var climbFloor = 1;
   var minePeakStairs = { tx: 22, ty: 6 };
   var peakRocksAt = { tx: 19, ty: 4 };
-  var peakCaveAt = { tx: 20, ty: 27 };
+  var peakCaveAt = { tx: 18, ty: 25 };
   var OCEAN_COLS = 40;
   var OCEAN_ROWS = 30;
   var oceanLand = { tx: 18, ty: 2 };
@@ -2853,7 +2853,8 @@
 
   function isPeakCave(tx, ty) {
     if (currentScene !== "peak") return false;
-    return ty >= 27 && ty <= 28 && tx >= 19 && tx <= 21;
+    /* Painted cave in peakMap is ~ (18,25). Exclude peakLand (20,25) or landing re-enters STAIRS. */
+    return ty >= 24 && ty <= 26 && tx >= 17 && tx <= 19;
   }
 
   function isPeakRocks(tx, ty) {
