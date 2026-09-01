@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831k";
+  var BUILD = "20260831l";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3090,7 +3090,7 @@
   function buildOceanGround() {
     var cols = OCEAN_COLS, rows = OCEAN_ROWS;
     var g = [], y, x, row, ch;
-    /* 31i stamped oceanMap: grass/dirt/sand/dock walkable (f); foam/water solid (y). */
+    /* 31l stamped oceanMap: Imagine grass-sand + sand-foam edges; grass/dirt/sand/dock f; water y. */
     var walk = [
       "ffffffffffffffffffffffffffffffffffffffff",
       "ffffffffffffffffffffffffffffffffffffffff",
@@ -3100,20 +3100,20 @@
       "ffffffffffffffffffffffffffffffffffffffff",
       "ffffffffffffffffffffffffffffffffffffffff",
       "ffffffffffffffffffffffffffffffffffffffff",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
       "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
       "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
       "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
       "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "yyfyyyfyyyfyyyfyyyfyyyfyyyfyyyfyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffyyyyyyyy",
       "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
       "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
       "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
