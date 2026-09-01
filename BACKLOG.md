@@ -2,6 +2,7 @@
 
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
+Local 8/31 (BUILD 20260831m): ocean dirt path and pier are new Imagine tiles (31l grass-sand/sand-foam edges kept). Household save intact. Never START OVER.
 Local 8/31 (BUILD 20260831l): ocean grass-sand and sand-ocean edges are new Imagine tiles on straight rows (not 31i hard bands). Household save intact. Never START OVER.
 Local 8/31 (BUILD 20260831k): peak cave arch enters STAIRS again (31j walk-through regression). Household save intact. Never START OVER.
 Local 8/31 (BUILD 20260831j): longer readable sword swing (hits mid-arc), wider slash flash, fat-finger strike button bottom-left above the hotbar, swing faces nearest in-reach foe. LIVE 5:20pm: peak cave-down REOPEN (stranded); sword in BAG not tray, Space no slash, no strike btn on PEAK. Ocean UNTESTED. Household save intact. Never START OVER.

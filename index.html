@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831l";
+  var BUILD = "20260831m";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3090,7 +3090,7 @@
   function buildOceanGround() {
     var cols = OCEAN_COLS, rows = OCEAN_ROWS;
     var g = [], y, x, row, ch;
-    /* 31l stamped oceanMap: Imagine grass-sand + sand-foam edges; grass/dirt/sand/dock f; water y. */
+    /* 31m stamped oceanMap: Imagine dirt path + pier; grass-sand/sand-foam edges from 31l; dirt/sand/dock f; water y. */
     var walk = [
       "ffffffffffffffffffffffffffffffffffffffff",
       "ffffffffffffffffffffffffffffffffffffffff",
