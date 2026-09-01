@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831o";
+  var BUILD = "20260831p";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -355,6 +355,11 @@
           loadImage("assets/props/birdRide.png").then(function (im) { Assets.birdRide = im; }).catch(function () {}),
           loadImage("assets/actors/bird.png").then(function (im) { Assets.bird = im; }).catch(function () {}),
           loadImage("assets/tiles/treetopSky.png").then(function (im) { Assets.treetopSky = im; }).catch(function () {}),
+          loadImage("assets/tiles/treetopSkyCloud.png").then(function (im) { Assets.treetopSkyCloud = im; }).catch(function () {}),
+          loadImage("assets/tiles/treetopSkyLeafTL.png").then(function (im) { Assets.treetopSkyLeafTL = im; }).catch(function () {}),
+          loadImage("assets/tiles/treetopSkyLeafTR.png").then(function (im) { Assets.treetopSkyLeafTR = im; }).catch(function () {}),
+          loadImage("assets/tiles/treetopSkyLeafBL.png").then(function (im) { Assets.treetopSkyLeafBL = im; }).catch(function () {}),
+          loadImage("assets/tiles/treetopSkyLeafBR.png").then(function (im) { Assets.treetopSkyLeafBR = im; }).catch(function () {}),
           loadImage("assets/tiles/canopySky.png").then(function (im) { Assets.canopySky = im; }).catch(function () {}),
           loadImage("assets/tiles/canopyLeaf.png").then(function (im) { Assets.canopyLeaf = im; }).catch(function () {}),
           loadImage("assets/tiles/canopyBranch.png").then(function (im) { Assets.canopyBranch = im; }).catch(function () {}),
@@ -3852,8 +3857,46 @@
   }
 
   function drawSkyTile(g, tx, ty, dx, dy) {
-    var i, h, img;
-    img = (currentScene === "treetop" && Assets.canopySky) ? Assets.canopySky : Assets.treetopSky;
+    var i, h, img, n, e, s, w, plat, leaf;
+    /* TREETOP keeps its own canopy sky painting. */
+    if (currentScene === "treetop" && Assets.canopySky) {
+      g.drawImage(Assets.canopySky, dx, dy, 16, 16);
+      return;
+    }
+    /* TREE 1–4: clear/cloud fill; leaf corners only where sky meets wood/leaf platform. */
+    if (currentScene === "tree") {
+      n = (cell(tx, ty - 1) === "f" || cell(tx, ty - 1) === "l");
+      e = (cell(tx + 1, ty) === "f" || cell(tx + 1, ty) === "l");
+      s = (cell(tx, ty + 1) === "f" || cell(tx, ty + 1) === "l");
+      w = (cell(tx - 1, ty) === "f" || cell(tx - 1, ty) === "l");
+      plat = n || e || s || w;
+      leaf = null;
+      if (plat) {
+        if (n && w) leaf = Assets.treetopSkyLeafTL;
+        else if (n && e) leaf = Assets.treetopSkyLeafTR;
+        else if (s && w) leaf = Assets.treetopSkyLeafBL;
+        else if (s && e) leaf = Assets.treetopSkyLeafBR;
+        else if (n) leaf = Assets.treetopSkyLeafTL;
+        else if (s) leaf = Assets.treetopSkyLeafBL;
+        else if (w) leaf = Assets.treetopSkyLeafTL;
+        else if (e) leaf = Assets.treetopSkyLeafTR;
+      }
+      if (leaf) {
+        g.drawImage(leaf, dx, dy, 16, 16);
+        return;
+      }
+      /* Sparse cloud stamps in open sky; otherwise clear/light fill. */
+      if (Assets.treetopSkyCloud && hash(tx, ty, 17) > 0.88) {
+        g.drawImage(Assets.treetopSkyCloud, dx, dy, 16, 16);
+        return;
+      }
+      if (Assets.treetopSky) {
+        g.drawImage(Assets.treetopSky, dx, dy, 16, 16);
+        return;
+      }
+    }
+    /* Peak (and any other sky scene): same clear fill when available. */
+    img = Assets.treetopSky;
     if (img) {
       g.drawImage(img, dx, dy, 16, 16);
       return;
@@ -3868,7 +3911,6 @@
       if (h > 0.82) px(g, dx + ((h * 12) | 0) + 2, dy + 2 + ((hash(ty, i, 4) * 10) | 0), "#F8FCFF");
     }
   }
-
   function drawCropSprite(g, crop, x, y) {
     var id = cropSprite(crop);
     if (id === "potatoReady") { paintPotatoReady(g, x, y); return; }
