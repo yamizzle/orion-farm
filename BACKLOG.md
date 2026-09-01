@@ -2,6 +2,7 @@
 
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
+Local 8/31 (BUILD 20260831n): TREE climb-floor sky is a new Imagine tile (clouds + leaf corners) instead of the flat blue scanline fill. Walk/platform unchanged. Household save intact. Never START OVER.
 Local 8/31 (BUILD 20260831m): ocean dirt path and pier are new Imagine tiles (31l grass-sand/sand-foam edges kept). LIVE 10:20pm: first live of 31m (Jobs `20260831m`); ocean UNTESTED (PEAK spawn, cave-down first). Household save intact. Never START OVER.
 Local 8/31 (BUILD 20260831l): ocean grass-sand and sand-ocean edges are new Imagine tiles on straight rows (not 31i hard bands). LIVE 10:20pm: ocean UNTESTED (PEAK spawn). Household save intact. Never START OVER.
 Local 8/31 (BUILD 20260831k): peak cave arch enters STAIRS again (31j walk-through regression). LIVE 10:20pm BUILD 20260831m: cave-down PASS (PEAK walk-in → STAIRS 2 → 1 → MINE 6 altar). Household save intact. Never START OVER.
