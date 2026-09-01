@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831i";
+  var BUILD = "20260831j";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -482,8 +482,8 @@
     { id: "starfin", name: "STARFIN", weight: 3, slot: SLOT_STARFIN, hue: "star" }
   ];
   var fishing = null;
-  var SWING_MS = 300;
-  var SWING_HIT_AT = 0.05;
+  var SWING_MS = 500;
+  var SWING_HIT_AT = 0.20;
   var ENERGY_WALK_TILES = 0;
   var SNACK_ENERGY = 25;
   var VEGGIE_HEAL = 10;
@@ -11006,7 +11006,8 @@
   }
 
   function swordBtnRect() {
-    return { x: 268, y: 116, s: 48 };
+    /* Bottom-left above the hotbar; keep clear of DAY panel and mine OUT. */
+    return { x: 6, y: VIEW_H - 72, s: 58 };
   }
 
   function hasActionTool() {
@@ -11293,7 +11294,7 @@
   }
 
   function startSwordSwing() {
-    var dest, foe;
+    var dest, foe, i, m, best, bestD, dx, dy, d;
     if (!canSwordSwing()) return false;
     if (player.arc > 0) return false;
     dest = player.path && player.path.length ? player.path[0] : player.queuedWalk;
@@ -11307,11 +11308,27 @@
     player.y = tileFootY(player.ty);
     highlight = null;
     foe = adjacentFoe();
+    if (!foe) {
+      best = null;
+      bestD = 1e9;
+      for (i = 0; i < monsters.length; i++) {
+        m = monsters[i];
+        if (!m || m.hp <= 0) continue;
+        if (!swingReachHits(m)) continue;
+        dx = m.x - player.x;
+        dy = m.y - player.y;
+        d = dx * dx + dy * dy;
+        if (d < bestD) {
+          bestD = d;
+          best = m;
+        }
+      }
+      foe = best;
+    }
     if (foe) faceToward(player, foe.tx, foe.ty);
     cancelHit();
     player.arc = SWING_MS;
-    player.arcHit = true;
-    applySwingHits();
+    player.arcHit = false;
     playSfx("swing");
     return true;
   }
@@ -13637,7 +13654,7 @@
     g.rotate(ang);
     Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", -8, -13);
     g.restore();
-    if (u > 0.22 && u < 0.82 && Assets.spr.slash) {
+    if (u > 0.12 && u < 0.92 && Assets.spr.slash) {
       tipX = hand.x + Math.sin(ang) * 13;
       tipY = hand.y - Math.cos(ang) * 13;
       fr = u > 0.5 ? 1 : 0;
