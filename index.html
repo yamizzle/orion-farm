@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831n";
+  var BUILD = "20260831o";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3100,19 +3100,19 @@
       "ffffffffffffffffffffffffffffffffffffffff",
       "ffffffffffffffffffffffffffffffffffffffff",
       "ffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
+      "fffffffffffffffffffffffffffffffyyyyyyyyy",
       "ffffffffffffffffffffffffffffffffyyyyyyyy",
       "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
       "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
@@ -7870,18 +7870,38 @@
   }
 
   function placeToolInTrayFirst(key) {
-    var idx, i, c;
+    var idx, i, c, bagIdx, swapIdx, empty;
     if (!key) return;
     for (i = 0; i < TRAY_CELLS; i++) {
       if (trayCells[i] && trayCells[i].key === key) return;
     }
+    bagIdx = -1;
     for (i = 0; i < BAG_CELLS; i++) {
       c = bagCells[i];
-      if (!c || c.key !== key) continue;
+      if (c && c.key === key) { bagIdx = i; break; }
+    }
+    if (bagIdx >= 0) {
+      c = bagCells[bagIdx];
       idx = firstEmptyTray();
       if (idx >= 0) {
         trayCells[idx] = { key: c.key, count: c.count | 0 };
-        bagCells[i] = null;
+        bagCells[bagIdx] = null;
+        return;
+      }
+      /* Tray full: swap a non-tool stack out (prefer end of tray). */
+      swapIdx = -1;
+      for (i = TRAY_CELLS - 1; i >= 0; i--) {
+        if (trayCells[i] && !isToolKey(trayCells[i].key)) { swapIdx = i; break; }
+      }
+      if (swapIdx < 0) return; /* every tray slot is already a tool */
+      empty = firstEmptyBag();
+      if (empty >= 0) {
+        bagCells[empty] = { key: trayCells[swapIdx].key, count: trayCells[swapIdx].count | 0 };
+        trayCells[swapIdx] = { key: c.key, count: c.count | 0 };
+        bagCells[bagIdx] = null;
+      } else {
+        bagCells[bagIdx] = { key: trayCells[swapIdx].key, count: trayCells[swapIdx].count | 0 };
+        trayCells[swapIdx] = { key: c.key, count: c.count | 0 };
       }
       return;
     }
@@ -7889,6 +7909,19 @@
     if (idx >= 0) {
       trayCells[idx] = { key: key, count: 1 };
       return;
+    }
+    /* Not in bag/tray: create in tray via non-tool swap if possible. */
+    swapIdx = -1;
+    for (i = TRAY_CELLS - 1; i >= 0; i--) {
+      if (trayCells[i] && !isToolKey(trayCells[i].key)) { swapIdx = i; break; }
+    }
+    if (swapIdx >= 0) {
+      empty = firstEmptyBag();
+      if (empty >= 0) {
+        bagCells[empty] = { key: trayCells[swapIdx].key, count: trayCells[swapIdx].count | 0 };
+        trayCells[swapIdx] = { key: key, count: 1 };
+        return;
+      }
     }
     idx = firstEmptyBag();
     if (idx >= 0) bagCells[idx] = { key: key, count: 1 };
@@ -8751,6 +8784,7 @@
     if (currentScene === "cottage") return "COTTAGE";
     if (currentScene === "cottage2") return "COTTAGE 2";
     if (currentScene === "caveclimb") return "STAIRS " + climbFloor;
+    if (currentScene === "mine") return "MINE " + mineFloor;
     return "";
   }
 
@@ -9223,7 +9257,7 @@
 
   function questHint() {
     if (!quest.flowerAsked) return "SAY HI TO JUNIE";
-    if (!found.kickedBall) return "KICK THE BALL IN TOWN.";
+    if (!found.kickedBall) return "KICK THE CART IN TOWN.";
     if (!quest.flowerDone) return "BRING A MUSHROOM TO JUNIE";
     if (mineMailReady() && !mailRead.mine) return "READ THE NEW LETTER";
     if (!quest.errandDone && mailRead.mine) return "LEAVE WOOD AT NIM'S NOTE";
