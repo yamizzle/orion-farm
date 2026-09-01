@@ -2,6 +2,7 @@
 
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
+Local 9/1 (BUILD 20260831q): TREE climb-floor sky is a quiet mottled blue fill (no hashed cloud grid); leaf corners still only at the wood. Household save intact. Never START OVER.
 Local 9/1 (BUILD 20260831p): TREE 1–4 sky uses clear/cloud fill; leaf-corner tiles only on sky cells touching the wood/leaf platform (not a repeating leaf grid on every "y"). TREETOP still uses canopySky. Needs live. Household save intact. Never START OVER.
 Local 8/31 (BUILD 20260831o): owned sword swaps into the 10-tray when tray is full of non-tools; mine floors show MINE N place stamp (incl. altar floor 6); Jobs kick text says CART; ocean east foam col 31 solid on rows 8–20. LIVE 9/1 ~1:15am: first live of 31o (Jobs `20260831o`); ocean east foam FIXED; Jobs CART FIXED; sword-tray swap UNTESTED (this save owns no sword); MINE N stamp UNTESTED (overland spawn). Household save intact. Never START OVER.
 Local 8/31 (BUILD 20260831n): TREE climb-floor sky is a new Imagine tile (clouds + leaf corners) instead of the flat blue scanline fill. Walk/platform unchanged. LIVE 9/1 ~4:21am: TREE 1–4 sky FAIL — still flat solid blue with a repeating small leaf-clump grid (not Imagine clouds + leaf corners). TREETOP Imagine canopy still looks good. 1:15am had 31n code in bundle but floors untested. Household save intact. Never START OVER.

@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831p";
+  var BUILD = "20260831q";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -3885,11 +3885,7 @@
         g.drawImage(leaf, dx, dy, 16, 16);
         return;
       }
-      /* Sparse cloud stamps in open sky; otherwise clear/light fill. */
-      if (Assets.treetopSkyCloud && hash(tx, ty, 17) > 0.88) {
-        g.drawImage(Assets.treetopSkyCloud, dx, dy, 16, 16);
-        return;
-      }
+      /* Quiet mottled fill only — no hashed cloud stamps (they tiled into a grid). */
       if (Assets.treetopSky) {
         g.drawImage(Assets.treetopSky, dx, dy, 16, 16);
         return;
