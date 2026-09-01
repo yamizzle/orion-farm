@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831q";
+  var BUILD = "20260831r";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -487,7 +487,7 @@
     { id: "starfin", name: "STARFIN", weight: 3, slot: SLOT_STARFIN, hue: "star" }
   ];
   var fishing = null;
-  var SWING_MS = 500;
+  var SWING_MS = 560;
   var SWING_HIT_AT = 0.20;
   var ENERGY_WALK_TILES = 0;
   var SNACK_ENERGY = 25;
@@ -6026,6 +6026,8 @@
 
   function giveTool(key) {
     if (bagCount(key) < 1) addToBag(key, 1);
+    /* Tray-full saves: swap a non-tool out so sword/axe land in the 10-tray. */
+    placeToolInTrayFirst(key);
     selectTool(key);
   }
 
@@ -11189,15 +11191,18 @@
   }
 
   function hitSwordBtn(p) {
-    var b, pad, cx, cy, dx, dy;
+    var b, pad, cx, cy, dx, dy, r;
     if (!showStrikeBtn()) return false;
     b = swordBtnRect();
-    pad = 4;
+    pad = 8;
     cx = b.x + b.s * 0.5;
     cy = b.y + b.s * 0.5;
     dx = p.x - cx;
     dy = p.y - cy;
-    return dx * dx + dy * dy <= (b.s * 0.5 + pad) * (b.s * 0.5 + pad);
+    r = b.s * 0.5 + pad;
+    if (dx * dx + dy * dy <= r * r) return true;
+    /* Also accept the square bounds — fat finger near the rim. */
+    return p.x >= b.x - 2 && p.x < b.x + b.s + 2 && p.y >= b.y - 2 && p.y < b.y + b.s + 2;
   }
 
   function swingBusy() {
@@ -11276,7 +11281,7 @@
     if (!m) return false;
     dx = m.x - player.x;
     dy = m.y - player.y;
-    reach = 34 + (m.scale > 1.2 ? 10 : 0);
+    reach = 42 + (m.scale > 1.2 ? 10 : 0);
     return (dx * dx + dy * dy) <= reach * reach;
   }
 
@@ -13720,20 +13725,39 @@
     var hand = swordHand(sx, sy, bob);
     var ang = swingAngle();
     var u = 1 - player.arc / SWING_MS;
-    var tipX, tipY, fr;
+    var tipX, tipY, fr, i, a0, a1, aa, px, py, bright;
     g.save();
     g.imageSmoothingEnabled = false;
     g.translate(Math.round(hand.x), Math.round(hand.y));
     g.rotate(ang);
     Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", -8, -13);
     g.restore();
-    if (u > 0.12 && u < 0.92 && Assets.spr.slash) {
-      tipX = hand.x + Math.sin(ang) * 13;
-      tipY = hand.y - Math.cos(ang) * 13;
+    /* Bright crescent always — slash sprite alone is easy to miss on dark mine floors. */
+    if (u > 0.05 && u < 0.97) {
+      a0 = ang - 0.85;
+      a1 = ang + 0.55;
+      bright = u < 0.25 || u > 0.8 ? 0.55 : 0.95;
+      g.save();
+      g.imageSmoothingEnabled = false;
+      g.globalAlpha = bright;
+      for (i = 0; i <= 10; i++) {
+        aa = a0 + (a1 - a0) * (i / 10);
+        px = Math.round(hand.x + Math.sin(aa) * 16);
+        py = Math.round(hand.y - Math.cos(aa) * 16);
+        g.fillStyle = i === 5 || i === 6 ? "#FFF6A8" : "#FFE07A";
+        g.fillRect(px - 1, py - 1, 3, 3);
+        g.fillStyle = "#FFFFFF";
+        g.fillRect(px, py, 1, 1);
+      }
+      g.restore();
+    }
+    if (u > 0.08 && u < 0.95 && Assets.spr.slash) {
+      tipX = hand.x + Math.sin(ang) * 14;
+      tipY = hand.y - Math.cos(ang) * 14;
       fr = u > 0.5 ? 1 : 0;
       g.save();
       g.imageSmoothingEnabled = false;
-      g.globalAlpha = u < 0.35 || u > 0.7 ? 0.7 : 1;
+      g.globalAlpha = u < 0.3 || u > 0.75 ? 0.75 : 1;
       g.translate(Math.round(tipX), Math.round(tipY));
       g.rotate(ang);
       Assets.draw(g, "slash", 0, 0, fr);
@@ -15968,13 +15992,14 @@
     if (currentScene === "mine" && mineFloor === 1 && (isMineExit(hudTx, hudTy) || mineExitHit(hudTx, hudTy, worldHud))) {
       return false;
     }
+    /* Sword pad MUST win over stairs/holes under the button (MINE 6 UP/PEAK steal). */
+    if (hitSwordBtn(p)) {
+      startSwordSwing();
+      return true;
+    }
     if (hudWorldDoor(hudTx, hudTy, worldHud)) return false;
     if (hitPad(p.x, p.y, T.bagX, T.bagY, T.bagW, T.bagH, 4)) {
       toggleBag();
-      return true;
-    }
-    if (hitSwordBtn(p)) {
-      startSwordSwing();
       return true;
     }
     if (showFenceBuildBtn()) {
@@ -16665,8 +16690,9 @@ if (currentScene === "ocean") goExitOcean();
     updateFaint(dt);
     updateBirdFx(dt);
     updateLineNote(dt);
+    /* Sword arc keeps ticking during toasts so pad swings always finish + hit. */
+    updateSwordArc(dt);
     if (!uiPaused()) {
-      updateSwordArc(dt);
       updateArrows(dt);
       if (fishing) {
         updateFishing(dt);
