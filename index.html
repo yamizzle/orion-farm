@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831r";
+  var BUILD = "20260831s";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -7962,6 +7962,22 @@
         trayCells[swapIdx] = { key: key, count: 1 };
         return;
       }
+      /* Bag full too: merge displaced stack into an existing bag pile, else swap with a bag cell. */
+      c = trayCells[swapIdx];
+      for (i = 0; i < BAG_CELLS; i++) {
+        if (bagCells[i] && bagCells[i].key === c.key && !isToolKey(c.key)) {
+          bagCells[i].count = (bagCells[i].count | 0) + (c.count | 0);
+          trayCells[swapIdx] = { key: key, count: 1 };
+          return;
+        }
+      }
+      for (i = BAG_CELLS - 1; i >= 0; i--) {
+        if (bagCells[i] && !isToolKey(bagCells[i].key)) {
+          bagCells[i] = { key: c.key, count: c.count | 0 };
+          trayCells[swapIdx] = { key: key, count: 1 };
+          return;
+        }
+      }
     }
     idx = firstEmptyBag();
     if (idx >= 0) bagCells[idx] = { key: key, count: 1 };
@@ -11222,11 +11238,14 @@
     var oy = player.ty;
     var pix = entityTile(player);
     var face = facingTile();
+    var dx, dy;
+    /* Omnidirectional fat-finger pad: every neighbor around Orion, not a facing cone. */
     add(ox, oy);
-    add(ox - 1, oy);
-    add(ox + 1, oy);
-    add(ox, oy - 1);
-    add(ox, oy + 1);
+    for (dy = -1; dy <= 1; dy++) {
+      for (dx = -1; dx <= 1; dx++) {
+        if (dx || dy) add(ox + dx, oy + dy);
+      }
+    }
     add(face.tx, face.ty);
     if (pix.tx !== ox || pix.ty !== oy) add(pix.tx, pix.ty);
     if (player.swingDest) add(player.swingDest.tx, player.swingDest.ty);
@@ -11277,12 +11296,27 @@
   }
 
   function swingReachHits(m) {
-    var dx, dy, reach;
+    var dx, dy, reach, pt, dtx, dty;
     if (!m) return false;
     dx = m.x - player.x;
     dy = m.y - player.y;
-    reach = 42 + (m.scale > 1.2 ? 10 : 0);
-    return (dx * dx + dy * dy) <= reach * reach;
+    /* ~3 tiles any direction — pad must hit left/right/up/down equally. */
+    reach = 52 + (m.scale > 1.2 ? 10 : 0);
+    if ((dx * dx + dy * dy) <= reach * reach) return true;
+    /* Tile Chebyshev ≤ 1 from logical or interpolated tile (any facing). */
+    dtx = Math.abs(m.tx - player.tx);
+    dty = Math.abs(m.ty - player.ty);
+    if (dtx <= 1 && dty <= 1) return true;
+    pt = entityTile(m);
+    dtx = Math.abs(pt.tx - player.tx);
+    dty = Math.abs(pt.ty - player.ty);
+    if (dtx <= 1 && dty <= 1) return true;
+    if (m.path && m.path.length) {
+      dtx = Math.abs(m.path[0].tx - player.tx);
+      dty = Math.abs(m.path[0].ty - player.ty);
+      if (dtx <= 1 && dty <= 1) return true;
+    }
+    return false;
   }
 
   function stunMonster(m) {
@@ -11668,15 +11702,31 @@
   }
 
   function checkMonsterBumps() {
-    var i, m;
+    var i, m, dx, dy, rad, flying, dtx, dty, pt;
     if (currentScene !== "mine" || faintFx || iFrames > 0) return;
     for (i = 0; i < monsters.length; i++) {
       m = monsters[i];
       if (m.hp <= 0) continue;
-      if (Math.abs(m.x - player.x) < (m.scale > 1.2 ? 14 : 10) && Math.abs(m.y - player.y) < (m.scale > 1.2 ? 14 : 10)) {
+      dx = Math.abs(m.x - player.x);
+      dy = Math.abs(m.y - player.y);
+      /* TILE=16: old <10 box missed adjacent-tile bats that still look overlapped. */
+      flying = (m.kind === "bat" || m.kind === "crystalbat");
+      rad = m.scale > 1.2 ? 22 : (flying ? 20 : 18);
+      if (dx * dx + dy * dy <= rad * rad) {
         hurtPlayer(m.dmg);
         monsterYield(m);
         return;
+      }
+      /* Orthogonal/diagonal tile neighbor while centers are somewhat close. */
+      dtx = Math.abs(m.tx - player.tx);
+      dty = Math.abs(m.ty - player.ty);
+      pt = entityTile(m);
+      if ((dtx <= 1 && dty <= 1) || (Math.abs(pt.tx - player.tx) <= 1 && Math.abs(pt.ty - player.ty) <= 1)) {
+        if (dx < 22 && dy < 22) {
+          hurtPlayer(m.dmg);
+          monsterYield(m);
+          return;
+        }
       }
     }
   }
