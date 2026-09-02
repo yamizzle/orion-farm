@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831s";
+  var BUILD = "20260831t";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -11261,7 +11261,7 @@
       if (m && (m.kind === "bat" || m.kind === "crystalbat")) return 3;
       return 1;
     }
-    if (player.arc > 0 && (swordOwned || currentScene === "mine")) return ironSwordOwned ? 4 : 2;
+    if (player.arc > 0 && (swordOwned || currentScene === "mine")) return 4; /* 31t: pad/mine arc = iron damage so bats(6)/slimes(4) die in 1–2 taps */
     if (toolEquipped("pick") && m && (m.kind === "grub" || m.kind === "toughgrub")) return 3;
     if (swordEquipped()) return ironSwordOwned ? 4 : 2;
     return 1;
@@ -11738,14 +11738,14 @@
       if (shieldSkip) {
         spawnSparks(player.x, player.y - 8);
         showLineNote("BLOCKED!");
-        iFrames = 800;
+        iFrames = 1200;
         persistSave();
         return;
       }
     }
     hp -= amt | 0;
     if (hp < 0) hp = 0;
-    iFrames = 800;
+    iFrames = 1200; /* 31t: ~1.2s so a kid can swing after a bump */
     hurtFlash = 420;
     playSfx("hit");
     persistSave();
@@ -16038,14 +16038,14 @@
     var worldHud = { x: p.x + camX, y: p.y + camY };
     var hudTx = Math.floor(worldHud.x / TILE);
     var hudTy = Math.floor(worldHud.y / TILE);
-    /* Prefer MINE 1 OUT over sword/hotbar when the finger is on the ladder/OUT label. */
-    if (currentScene === "mine" && mineFloor === 1 && (isMineExit(hudTx, hudTy) || mineExitHit(hudTx, hudTy, worldHud))) {
-      return false;
-    }
-    /* Sword pad MUST win over stairs/holes under the button (MINE 6 UP/PEAK steal). */
+    /* Sword pad MUST win over OUT / stairs / holes under the button (31t: pad-over-OUT; 31r: MINE 6 UP/PEAK). */
     if (hitSwordBtn(p)) {
       startSwordSwing();
       return true;
+    }
+    /* Prefer MINE 1 OUT over hotbar when the finger is on the ladder/OUT label (not on round sword pad). */
+    if (currentScene === "mine" && mineFloor === 1 && (isMineExit(hudTx, hudTy) || mineExitHit(hudTx, hudTy, worldHud))) {
+      return false;
     }
     if (hudWorldDoor(hudTx, hudTy, worldHud)) return false;
     if (hitPad(p.x, p.y, T.bagX, T.bagY, T.bagW, T.bagH, 4)) {
