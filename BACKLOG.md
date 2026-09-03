@@ -2,6 +2,8 @@
 
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
+Local 9/3 (BUILD 20260903a): combat hotfix — pad/mine swings land damage on press (not mid-arc) at always-4 dmg; bat swing reach widened; bat contact is tight pixel-only + i-frames 2000 with lag-capped tick; owned sword forced into 10-tray (swap seed/hat/leash if needed). Mine pad still works without tray sword. Needs live — do not mark Done. Walk energy / day clock / START OVER / Orion art / grass / evening color untouched. Household save intact. Never START OVER.
+
 Local 9/2 (BUILD 20260831u): PEAK winding dirt is walkable (old mask hugged the left cliff); summit rocks stay blocked. LIVE 9/2 ~4:09–4:26pm: first live of 31u — PEAK painted dirt walk PASS/FIXED; summit rocks STILL blocked; cave arch → STAIRS 2 PASS. Pad kill STILL miss; bat KO STILL; pad-over-OUT STILL PASS; sword STILL pad-only; clock STILL races. Household save intact. Never START OVER.
 Local 9/2 (BUILD 20260831t): pad/mine arc strikeDamage always 4 (bats 6hp / slimes 4hp die in 1–2 taps; no iron / tray sword required); sword pad checked before MINE 1 OUT prefer so pad no longer steals exit; hurtPlayer i-frames 800→1200 after contact/block. LIVE 9/2 ~10:26–11:22am: first live of 31t — pad-over-OUT FIXED; OUT one-tap PASS; pad kill FAIL (2 taps knockback only); bat multi-drain KO WORSE vs 8am; sword STILL pad-only; clock STILL races. Household save intact. Never START OVER.
 Local 9/2 (BUILD 20260831s): sword pad hit is omnidirectional (8-neighbor tiles + reach 52 + Chebyshev≤1 any facing); bat/flying contact uses wider radius so adjacent-tile overlap drains hearts (i-frames kept); placeToolInTrayFirst forces sword into tray even when bag is full. LIVE 9/2 ~1:06–2:34am: first live of 31s — left/diagonal pad kill FIXED; pad crescent PASS; slime contact PASS; sword still pad-only (tray miss); bat contact UNVERIFIED (driver crash). LIVE 9/2 ~4:22–4:30am: bat contact WORSE lethal (5→KO ~10s, −1G); sword STILL pad-only; pad/slime UNTESTED (bat KO; no slime on MINE 1). LIVE 9/2 ~7:38–8:02am: bat instant-KO FIXED (1 heart + knockback); pad swings knock back but do not kill/loot; MINE 1 OUT one-tap PASS; NEW pad bottom-left edge can steal OUT exit; sword STILL pad-only; clock STILL races. Household save intact. Never START OVER.
@@ -218,6 +220,13 @@ Highest-leverage theme: LIVE 9/2 ~10:15pm BUILD 20260831u: save stranded woods (
 | Low | Done 8/27 live | Mine N/S black void bands | Mine | FIXED 8/27 8pm live BUILD 20260827f: north at DOWN and south at OUT show cave floor (no black void band). LIVE BUNDLE 8/27 11am: clamp code is in 20260827b (mine minY=0 / maxY=worldH-VIEW_H). Was UNTESTED 8/27 11am. Local 8/27 BUILD 20260827b: mine camera clamps to the cave rect (no N/S black void). 8/24 5pm: deep floor seen; void bands not re-scored (fake-hole tile is its own Medium row). 8/24 11am: underground the whole pass; void bands not re-scored. 8/24 5am: Mine 3 entered; void bands not re-scored. 8/23 11pm: mine entered; void bands not re-scored. NEW 8/23 5pm live. Surface north now clamps clean; mine still has black void bands north and south. Clamp mine camera to the cave rect. Mine not found 8pm. |
 
 
+
+## Local ship 9/3 BUILD 20260903a
+
+- Pad kill: `startSwordSwing` applies hits immediately (arcHit true on press) so crescent + damage land together; `strikeDamage` always returns 4 for mine/pad/`via=swing` (no `player.arc > 0` gate). Bat/crystalbat swing reach 72 + Chebyshev≤2.
+- Bat contact KO: flying foes use tight pixel radius only (no tile-neighbor drain); `hurtPlayer` i-frames 1200→2000; i-frame tick capped at 50ms/frame so lag cannot wipe protection.
+- Sword tray: `forceSwordIntoTray` on load/migrate/giveTool — if `swordOwned`, sword must appear in the 10-tray (swap seed/hat/leash or last slot if tray is all tools). Mine pad still works without selecting it.
+- Needs live (do not mark Done until playtest on live URL). Hard skips untouched.
 
 ## Local ship 9/2 BUILD 20260831t
 

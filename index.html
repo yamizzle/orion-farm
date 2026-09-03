@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260831u";
+  var BUILD = "20260903a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -6028,6 +6028,7 @@
     if (bagCount(key) < 1) addToBag(key, 1);
     /* Tray-full saves: swap a non-tool out so sword/axe land in the 10-tray. */
     placeToolInTrayFirst(key);
+    if (key === "sword") forceSwordIntoTray();
     selectTool(key);
   }
 
@@ -8002,7 +8003,47 @@
       n = inventory[key] | 0;
       if (n > 0) pourIntoBagOnly(key, n);
     }
+    forceSwordIntoTray();
     selectedSlot = 0;
+    syncBagCounts();
+  }
+
+  function forceSwordIntoTray() {
+    var i, swapIdx, empty, c;
+    if (!swordOwned) return;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      if (trayCells[i] && trayCells[i].key === "sword") return;
+    }
+    placeToolInTrayFirst("sword");
+    for (i = 0; i < TRAY_CELLS; i++) {
+      if (trayCells[i] && trayCells[i].key === "sword") return;
+    }
+    /* Tray still full of tools: bump a soft tool (seed/hat/leash) or last slot. */
+    swapIdx = -1;
+    for (i = TRAY_CELLS - 1; i >= 0; i--) {
+      if (!trayCells[i]) { swapIdx = i; break; }
+      c = trayCells[i];
+      if (c.key === "seed" || c.key === "potatoSeed" || c.key === "berrySeed" ||
+          c.key === "hat" || c.key === "leash") {
+        swapIdx = i;
+        break;
+      }
+    }
+    if (swapIdx < 0) swapIdx = TRAY_CELLS - 1;
+    c = trayCells[swapIdx];
+    if (c && c.key && c.key !== "sword") {
+      empty = firstEmptyBag();
+      if (empty >= 0) bagCells[empty] = { key: c.key, count: c.count | 0 };
+      else {
+        for (i = BAG_CELLS - 1; i >= 0; i--) {
+          if (bagCells[i] && !isToolKey(bagCells[i].key)) {
+            bagCells[i] = { key: c.key, count: c.count | 0 };
+            break;
+          }
+        }
+      }
+    }
+    trayCells[swapIdx] = { key: "sword", count: 1 };
     syncBagCounts();
   }
 
@@ -8018,6 +8059,7 @@
     placeToolInTrayFirst("seed");
     placeToolInTrayFirst("potatoSeed");
     placeToolInTrayFirst("berrySeed");
+    forceSwordIntoTray();
     syncBagCounts();
   }
 
@@ -11261,7 +11303,8 @@
       if (m && (m.kind === "bat" || m.kind === "crystalbat")) return 3;
       return 1;
     }
-    if (player.arc > 0 && (swordOwned || currentScene === "mine")) return 4; /* 31t: pad/mine arc = iron damage so bats(6)/slimes(4) die in 1–2 taps */
+    /* 20260903a: pad/mine swings always deal 4 — never gate on arc timer (lag/edge could zero arc mid-hit). */
+    if (via === "swing" || via === "pad" || currentScene === "mine") return 4;
     if (toolEquipped("pick") && m && (m.kind === "grub" || m.kind === "toughgrub")) return 3;
     if (swordEquipped()) return ironSwordOwned ? 4 : 2;
     return 1;
@@ -11269,6 +11312,7 @@
 
   function hitMonsterOnce(m, via) {
     if (!m || m.hp <= 0) return;
+    if (!via) via = "swing";
     m.hp -= strikeDamage(m, via);
     m.flash = 220;
     stunMonster(m);
@@ -11296,25 +11340,27 @@
   }
 
   function swingReachHits(m) {
-    var dx, dy, reach, pt, dtx, dty;
+    var dx, dy, reach, pt, dtx, dty, flying, tileR;
     if (!m) return false;
+    flying = (m.kind === "bat" || m.kind === "crystalbat");
+    tileR = flying ? 2 : 1;
     dx = m.x - player.x;
     dy = m.y - player.y;
-    /* ~3 tiles any direction — pad must hit left/right/up/down equally. */
-    reach = 52 + (m.scale > 1.2 ? 10 : 0);
+    /* ~3–4.5 tiles; bats get extra reach so mid-flight pixels still count. */
+    reach = (flying ? 72 : 56) + (m.scale > 1.2 ? 10 : 0);
     if ((dx * dx + dy * dy) <= reach * reach) return true;
-    /* Tile Chebyshev ≤ 1 from logical or interpolated tile (any facing). */
+    /* Tile Chebyshev from logical or interpolated tile (any facing). */
     dtx = Math.abs(m.tx - player.tx);
     dty = Math.abs(m.ty - player.ty);
-    if (dtx <= 1 && dty <= 1) return true;
+    if (dtx <= tileR && dty <= tileR) return true;
     pt = entityTile(m);
     dtx = Math.abs(pt.tx - player.tx);
     dty = Math.abs(pt.ty - player.ty);
-    if (dtx <= 1 && dty <= 1) return true;
+    if (dtx <= tileR && dty <= tileR) return true;
     if (m.path && m.path.length) {
       dtx = Math.abs(m.path[0].tx - player.tx);
       dty = Math.abs(m.path[0].ty - player.ty);
-      if (dtx <= 1 && dty <= 1) return true;
+      if (dtx <= tileR && dty <= tileR) return true;
     }
     return false;
   }
@@ -11440,7 +11486,9 @@
     if (foe) faceToward(player, foe.tx, foe.ty);
     cancelHit();
     player.arc = SWING_MS;
-    player.arcHit = false;
+    /* 20260903a: land damage on press (not mid-arc) so pad kills can't miss while bat flees. */
+    player.arcHit = true;
+    applySwingHits();
     playSfx("swing");
     return true;
   }
@@ -11709,20 +11757,20 @@
       if (m.hp <= 0) continue;
       dx = Math.abs(m.x - player.x);
       dy = Math.abs(m.y - player.y);
-      /* TILE=16: old <10 box missed adjacent-tile bats that still look overlapped. */
       flying = (m.kind === "bat" || m.kind === "crystalbat");
-      rad = m.scale > 1.2 ? 22 : (flying ? 20 : 18);
+      /* 20260903a: bats = tight pixel only (tile-neighbor was multi-drain KO); ground keeps soft neighbor. */
+      rad = m.scale > 1.2 ? 20 : (flying ? 12 : 16);
       if (dx * dx + dy * dy <= rad * rad) {
         hurtPlayer(m.dmg);
         monsterYield(m);
         return;
       }
-      /* Orthogonal/diagonal tile neighbor while centers are somewhat close. */
+      if (flying) continue;
       dtx = Math.abs(m.tx - player.tx);
       dty = Math.abs(m.ty - player.ty);
       pt = entityTile(m);
       if ((dtx <= 1 && dty <= 1) || (Math.abs(pt.tx - player.tx) <= 1 && Math.abs(pt.ty - player.ty) <= 1)) {
-        if (dx < 22 && dy < 22) {
+        if (dx < 20 && dy < 20) {
           hurtPlayer(m.dmg);
           monsterYield(m);
           return;
@@ -11738,14 +11786,14 @@
       if (shieldSkip) {
         spawnSparks(player.x, player.y - 8);
         showLineNote("BLOCKED!");
-        iFrames = 1200;
+        iFrames = 2000;
         persistSave();
         return;
       }
     }
     hp -= amt | 0;
     if (hp < 0) hp = 0;
-    iFrames = 1200; /* 31t: ~1.2s so a kid can swing after a bump */
+    iFrames = 2000; /* 20260903a: ~2s so a kid can swing after a bump without multi-drain KO */
     hurtFlash = 420;
     playSfx("hit");
     persistSave();
@@ -16767,7 +16815,10 @@ if (currentScene === "ocean") goExitOcean();
       updateNim(dt);
       updateCar(dt);
       updateMonsters(dt);
-      if (iFrames > 0) iFrames -= dt;
+      if (iFrames > 0) {
+        iFrames -= Math.min(dt, 50); /* lag spike can't erase a full i-frame window in one frame */
+        if (iFrames < 0) iFrames = 0;
+      }
       if (hurtFlash > 0) {
         hurtFlash -= dt;
         if (hurtFlash < 0) hurtFlash = 0;
