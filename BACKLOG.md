@@ -49,9 +49,20 @@ Local 8/31 ~3:20pm PT BUILD 20260831e: ocean overlay boats removed; new top-down
 Local 8/31 ~1:40pm PT BUILD 20260831d: peak FARM sign and south-balcony farm warp removed. Cave is the only way down. LIVE 2:46pm: FARM sign ABSENT; cave-down to MINE 6 PASS. Household save intact. Never START OVER.
 Local 8/31 ~1:35pm PT BUILD 20260831c: outdoor peak no longer draws the inside-looking-out caveMouth overlay; peakMap outdoor painting stays; cave still enterable. LIVE 2:46pm: outdoor PEAK looks outdoor (no cave overlay). Household save intact. Never START OVER.
 
-Last live pass: **2026-09-02 ~7:27–7:36pm PT** BUILD 20260831u (desktop; `?v=pt1927`). Continued box Chrome save Day 1664 SPRING MORNING→EVENING (~15 min). STAIRS 2 → STAIRS 1 → MINE 6 → bat KO house → farm/woods edge (ended 5/5♥ 17G). **WORSE:** bat contact full 5♥→KO in ~2s proximity (−1G 18→17; house wake). **NEW:** farm NPC blocks north dirt tile (sidestep needed); farm/woods overland no MINE sign reachable after KO (north dead-ends at canopy/signpost). **STILL FAIL:** pad kill knockback-only no loot (MINE 6). **UNTESTED:** MINE 1 OUT / pad-over-OUT / PEAK path (KO reset + no farm mine entrance). Sword STILL pad-only; clock STILL races (phases only, day stayed 1664); START OVER STILL in Jobs. Never START OVER. Screenshots `/workspace/playtest-1927/`.
+Last live pass: **2026-09-02 ~10:15–10:22pm PT** BUILD 20260831u (desktop; `?v=pt2215`). Continued box Chrome save Day 1684 SPRING EVENING→1685 MORNING (~15 min). Spawned woods/grass overland near dirt T + WOODS sign (5/5♥ 17G); never reached farm/house/mine. **No NEW/WORSE vs 7:27pm** — same build; bat/pad combat **UNTESTED** (no mine). **STILL:** farm/woods MINE entrance miss (stranded landmark-free woods; ~10 min sweep south/west/north/east found only WOODS sign/lamps/pond/mailboxes); sword absent from tray/BAG + no overland sword pad; clock races (EVENING→NIGHT ~1 min, Day 1685 MORNING ~3 min); START OVER under Jobs. Note (not ping): south map-edge walk draws Orion under/behind hotbar (`03b`); signpost hard-blocks path tile. Never START OVER. Screenshots `/workspace/playtest-1015pt/`.
 
-Highest-leverage theme: LIVE 9/2 ~7:27pm BUILD 20260831u: bat contact WORSE (5♥→KO ~2s); pad kill STILL knockback-only; farm MINE entrance orphaned after KO + NPC blocks north path; sword STILL pad-only; clock STILL races; START OVER still under Jobs.
+Highest-leverage theme: LIVE 9/2 ~10:15pm BUILD 20260831u: save stranded woods (no MINE/farm route) — bat KO + pad kill UNTESTED this pass; prior 7:27pm still stands for combat; sword STILL pad-only; clock STILL races; START OVER still under Jobs.
+
+## Live playtest 9/2 ~10:15–10:22pm PT (BUILD 20260831u)
+
+- Continued box Chrome save — never START OVER. Day 1684 SPRING EVENING (woods/grass overland, 5/5 hearts, 17G) → 1685 MORNING (WOODS sign, 5/5, 17G). Cache-bust `?v=pt2215`. Jobs stamp `20260831u` (`02-jobs.webp`). Same build as 7:27pm / 4:09pm.
+- **No NEW/WORSE vs 7:27pm baseline** (combat untested — no mine access).
+- **STILL:** No farm MINE entrance — ~10 min walk (S/W/N/E to map edges) found WOODS sign, lamps, pond, mailboxes, rocks only; no hole / MINE sign / house (`03-woods-sign-no-mine.webp`, `99-end.webp`).
+- **STILL:** sword not in tray/BAG (`10-bag.webp`); no overland sword pad rendered.
+- **STILL:** clock races EVENING→NIGHT ~1 min → Day 1685 MORNING within ~3 min; START OVER under Jobs (not pressed).
+- **UNTESTED this pass:** bat contact; pad kill/loot; MINE 1 OUT; pad-over-OUT; PEAK path.
+- Note (quiet): south edge camera clamps and Orion walks behind hotbar (sprite gone) (`03b-player-hidden-under-hotbar.webp`); dirt-path signpost hard-blocks the tile (Space: no text).
+- Screenshots `/workspace/playtest-1015pt/`.
 
 ## Live playtest 9/2 ~7:27–7:36pm PT (BUILD 20260831u)
 
