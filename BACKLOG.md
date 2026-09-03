@@ -2,7 +2,7 @@
 
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
-Local 9/3 (BUILD 20260903a): combat hotfix — pad/mine swings land damage on press (not mid-arc) at always-4 dmg; bat swing reach widened; bat contact is tight pixel-only + i-frames 2000 with lag-capped tick; owned sword forced into 10-tray (swap seed/hat/leash if needed). Mine pad still works without tray sword. Needs live — do not mark Done. Walk energy / day clock / START OVER / Orion art / grass / evening color untouched. Household save intact. Never START OVER.
+Local 9/3 (BUILD 20260903a): combat hotfix — pad/mine swings land damage on press (not mid-arc) at always-4 dmg; bat swing reach widened; bat contact is tight pixel-only + i-frames 2000 with lag-capped tick; owned sword forced into 10-tray (swap seed/hat/leash if needed). Mine pad still works without tray sword. LIVE 9/3 ~1:13–1:22am: first live of 03a — PEAK cave→MINE 6 FIXED (not woods-stranded); mine sword pad NEW/visible; pad kill/loot UNTESTED (1♥ spawn); bat contact still KO at 1♥ (i-frames UNTESTED); sword STILL not in tray/BAG; clock STILL races. Do not mark Done (combat claims need a full-hearts retest). Walk energy / day clock / START OVER / Orion art / grass / evening color untouched. Household save intact. Never START OVER.
 
 Local 9/2 (BUILD 20260831u): PEAK winding dirt is walkable (old mask hugged the left cliff); summit rocks stay blocked. LIVE 9/2 ~4:09–4:26pm: first live of 31u — PEAK painted dirt walk PASS/FIXED; summit rocks STILL blocked; cave arch → STAIRS 2 PASS. Pad kill STILL miss; bat KO STILL; pad-over-OUT STILL PASS; sword STILL pad-only; clock STILL races. Household save intact. Never START OVER.
 Local 9/2 (BUILD 20260831t): pad/mine arc strikeDamage always 4 (bats 6hp / slimes 4hp die in 1–2 taps; no iron / tray sword required); sword pad checked before MINE 1 OUT prefer so pad no longer steals exit; hurtPlayer i-frames 800→1200 after contact/block. LIVE 9/2 ~10:26–11:22am: first live of 31t — pad-over-OUT FIXED; OUT one-tap PASS; pad kill FAIL (2 taps knockback only); bat multi-drain KO WORSE vs 8am; sword STILL pad-only; clock STILL races. Household save intact. Never START OVER.
@@ -51,9 +51,21 @@ Local 8/31 ~3:20pm PT BUILD 20260831e: ocean overlay boats removed; new top-down
 Local 8/31 ~1:40pm PT BUILD 20260831d: peak FARM sign and south-balcony farm warp removed. Cave is the only way down. LIVE 2:46pm: FARM sign ABSENT; cave-down to MINE 6 PASS. Household save intact. Never START OVER.
 Local 8/31 ~1:35pm PT BUILD 20260831c: outdoor peak no longer draws the inside-looking-out caveMouth overlay; peakMap outdoor painting stays; cave still enterable. LIVE 2:46pm: outdoor PEAK looks outdoor (no cave overlay). Household save intact. Never START OVER.
 
-Last live pass: **2026-09-02 ~10:15–10:22pm PT** BUILD 20260831u (desktop; `?v=pt2215`). Continued box Chrome save Day 1684 SPRING EVENING→1685 MORNING (~15 min). Spawned woods/grass overland near dirt T + WOODS sign (5/5♥ 17G); never reached farm/house/mine. **No NEW/WORSE vs 7:27pm** — same build; bat/pad combat **UNTESTED** (no mine). **STILL:** farm/woods MINE entrance miss (stranded landmark-free woods; ~10 min sweep south/west/north/east found only WOODS sign/lamps/pond/mailboxes); sword absent from tray/BAG + no overland sword pad; clock races (EVENING→NIGHT ~1 min, Day 1685 MORNING ~3 min); START OVER under Jobs. Note (not ping): south map-edge walk draws Orion under/behind hotbar (`03b`); signpost hard-blocks path tile. Never START OVER. Screenshots `/workspace/playtest-1015pt/`.
+Last live pass: **2026-09-03 ~1:13–1:22am PT** BUILD 20260903a (desktop; `?v=pt0113`). Continued box Chrome save Day 1992 SPRING MORNING→AFTERNOON (~14 min). Spawned PEAK at 1/5♥ 0G. **FIXED:** PEAK cave one-tap → STAIRS 2→1→MINE 6; after KO woke HOUSE and walked to FARM (woods-stranded 10:15pm gone). **NEW:** mine sword strike pad visible bottom-left on MINE 6 (swings in place). **STILL:** sword not in tray/BAG; no overland pad; clock races (~1 min/phase); START OVER under Jobs. **UNTESTED:** pad kill/loot; bat multi-heart i-frames (spawned 1♥ → one brush KO). Never START OVER. Screenshots `/workspace/playtest-0113/`.
 
-Highest-leverage theme: LIVE 9/2 ~10:15pm BUILD 20260831u: save stranded woods (no MINE/farm route) — bat KO + pad kill UNTESTED this pass; prior 7:27pm still stands for combat; sword STILL pad-only; clock STILL races; START OVER still under Jobs.
+Highest-leverage theme: LIVE 9/3 ~1:13am BUILD 20260903a: first live of combat hotfix — mine pad present but kill/loot + bat i-frames still need a full-hearts farm→mine retest; sword STILL missing from tray; clock STILL races; START OVER still under Jobs.
+
+## Live playtest 9/3 ~1:13–1:22am PT (BUILD 20260903a)
+
+- Continued box Chrome save — never START OVER. Day 1992 SPRING MORNING (PEAK, 1/5 hearts, 0G) → AFTERNOON (~14 min). Cache-bust `?v=pt0113`. Jobs stamp `20260903a` (`02-jobs.webp`). First live of 03a. Jobs text: KICK THE CART IN TOWN.
+- **FIXED:** Not woods-stranded — PEAK cave mouth one-tap → STAIRS 2 → DOWN STAIRS 1 → MINE → MINE 6 (`04-stairs2.webp`, `05-mine6-swordpad.webp`). After KO: HOUSE → bottom door → FARM (house, NPC, chicken, mailboxes, tilled dirt) (`06-ko-sent-home.webp`, `07-farm.webp`).
+- **NEW:** Mine sword strike pad — fat-finger round pad with sword icon, bottom-left above hotbar on MINE 6; tap swings in place (no walk) (`05-mine6-swordpad.webp`).
+- **STILL:** Sword not in tray/hotbar/BAG (`03-bag.webp`: seeds, box, gem, wood×2, stone×2, flowers, mushrooms, moon crescent; no sword). No overland/farm/peak sword pad.
+- **STILL (combat claims open):** Bat contact at 1♥ = instant KO → THE MOUNTAIN SENT YOU HOME (5/5♥, same day, no gold loss seen) (`06-ko-sent-home.webp`). Multi-heart drain / i-frames UNTESTED (spawned low).
+- **UNTESTED:** Pad kill/loot — pad tapped but never adjacent to bat/slime before KO.
+- **STILL:** Clock races MORNING→AFTERNOON ~1 real min (twice); START OVER under Jobs (not pressed).
+- Next pass: start full hearts on farm → mine so bat i-frames + pad kill/loot can score the 03a hotfix.
+- Screenshots `/workspace/playtest-0113/`.
 
 ## Live playtest 9/2 ~10:15–10:22pm PT (BUILD 20260831u)
 
