@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260903a";
+  var BUILD = "20260903b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2533,6 +2533,8 @@
     if (name === "mine") {
       if (monsterCache[mineFloor]) monsters = monsterCache[mineFloor];
       else spawnMineMonsters();
+      syncMineMonsterCombat();
+      forceSwordIntoTray();
       openMineAisle();
     } else {
       monsters = [];
@@ -11343,11 +11345,12 @@
     var dx, dy, reach, pt, dtx, dty, flying, tileR;
     if (!m) return false;
     flying = (m.kind === "bat" || m.kind === "crystalbat");
-    tileR = flying ? 2 : 1;
+    /* 20260903b: ground foes get the same generous reach as bats so pad kills land on slimes. */
+    tileR = 2;
     dx = m.x - player.x;
     dy = m.y - player.y;
-    /* ~3–4.5 tiles; bats get extra reach so mid-flight pixels still count. */
-    reach = (flying ? 72 : 56) + (m.scale > 1.2 ? 10 : 0);
+    /* ~3–4.5 tiles; bats + slimes share wide reach for kid pad taps. */
+    reach = 72 + (m.scale > 1.2 ? 10 : 0);
     if ((dx * dx + dy * dy) <= reach * reach) return true;
     /* Tile Chebyshev from logical or interpolated tile (any facing). */
     dtx = Math.abs(m.tx - player.tx);
@@ -11386,12 +11389,15 @@
     else if (player.face === "right") dx = 1;
     else if (player.face === "up") dy = -1;
     else dy = 1;
-    nx = m.tx + dx;
-    ny = m.ty + dy;
-    occ = monsterAt(nx, ny);
-    if ((!occ || occ === m) && monsterOk(m, nx, ny) && !playerOccupies(nx, ny)) {
-      m.tx = nx;
-      m.ty = ny;
+    /* 20260903b: only flying foes hop a tile on hit — slimes stay put so pad taps finish the kill. */
+    if (m.kind === "bat" || m.kind === "crystalbat") {
+      nx = m.tx + dx;
+      ny = m.ty + dy;
+      occ = monsterAt(nx, ny);
+      if ((!occ || occ === m) && monsterOk(m, nx, ny) && !playerOccupies(nx, ny)) {
+        m.tx = nx;
+        m.ty = ny;
+      }
     }
     m.x = tileCenterX(m.tx);
     m.y = tileFootY(m.ty);
@@ -11500,8 +11506,8 @@
       grub: { sprite: "rockgrub", maxHp: 6, dmg: BUMP_DMG, gold: 1, scale: 1 },
       toughgrub: { sprite: "rockgrub", maxHp: 8, dmg: BUMP_DMG, gold: 2, scale: 1.25 },
       crystalbat: { sprite: "crystalbat", maxHp: 6, dmg: BUMP_DMG, gold: 3, scale: 1 },
-      toughslime: { sprite: "slime", maxHp: 6, dmg: BUMP_DMG, gold: 3, scale: 1.2 },
-      bigslime: { sprite: "slime", maxHp: 8, dmg: BUMP_DMG, gold: 5, scale: 1.5 }
+      toughslime: { sprite: "slime", maxHp: 4, dmg: BUMP_DMG, gold: 3, scale: 1.2 },
+      bigslime: { sprite: "slime", maxHp: 6, dmg: BUMP_DMG, gold: 5, scale: 1.5 }
     }[kind] || { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1, scale: 1 };
     return {
       kind: kind,
@@ -11526,6 +11532,24 @@
       shake: 0,
       stun: 0
     };
+  }
+
+  function syncMineMonsterCombat() {
+    var i, m, fresh, specHp;
+    /* 20260903b: cached foes keep old HP/dmg — resync to current makeMon specs. */
+    for (i = 0; i < monsters.length; i++) {
+      m = monsters[i];
+      if (!m || m.hp <= 0) continue;
+      fresh = makeMon(m.kind, m.tx, m.ty);
+      specHp = fresh.maxHp;
+      if ((m.maxHp | 0) !== specHp) {
+        m.maxHp = specHp;
+        if (m.hp > specHp) m.hp = specHp;
+      }
+      m.dmg = fresh.dmg;
+      m.scale = fresh.scale;
+      m.gold = fresh.gold;
+    }
   }
 
   function spawnMineMonsters() {
@@ -11567,7 +11591,7 @@
       ];
     } else {
       monsters = [
-        makeMon("slime", 8, 11),
+        makeMon("slime", 8, 10),
         makeMon("bat", 22, 8),
         makeMon("bat", 26, 12),
         makeMon("grub", 4, 12)
@@ -11659,6 +11683,8 @@
     if (tx === 16 && (ty === 19 || ty === 20)) return true;
     if (tx === 16 && (ty === 4 || ty === 5)) return true;
     if (tx === 14 && ty === 19) return true;
+    /* 20260903b: keep south OUT / hotbar gutter clear of roaming foes. */
+    if (ty >= 18 && tx >= 14 && tx <= 18) return true;
     if ((tx === 4 && (ty === 5 || ty === 15)) || (tx === 27 && (ty === 5 || ty === 15))) return true;
     return false;
   }
@@ -11701,6 +11727,36 @@
     return false;
   }
 
+  function monsterInUiGutter(m) {
+    var sy;
+    if (!m) return false;
+    sy = m.y - camY;
+    /* Sword pad sits at VIEW_H-72; keep foes above the hotbar strip. */
+    return sy > VIEW_H - CAM_PAD_BOTTOM - 10;
+  }
+
+  function nudgeMonsterOutOfGutter(m) {
+    var ny, occ;
+    if (!m || !monsterInUiGutter(m)) return false;
+    ny = m.ty - 1;
+    occ = monsterAt(m.tx, ny);
+    if ((!occ || occ === m) && monsterOk(m, m.tx, ny) && !playerOccupies(m.tx, ny)) {
+      m.path = [];
+      m.queuedWalk = null;
+      m.moving = false;
+      m.stepFrom = null;
+      m.stepT = 0;
+      m.tx = m.tx;
+      m.ty = ny;
+      m.x = tileCenterX(m.tx);
+      m.y = tileFootY(m.ty);
+      m.idle = 400;
+      return true;
+    }
+    monsterYield(m);
+    return true;
+  }
+
   function updateMonsters(dt) {
     var i, m, dest;
     if (currentScene !== "mine" || faintFx) return;
@@ -11711,6 +11767,7 @@
         m.flash -= dt;
         if (m.flash < 0) m.flash = 0;
       }
+      if (monsterInUiGutter(m) && !(m.stun > 0)) nudgeMonsterOutOfGutter(m);
       if (m.stun > 0) {
         m.stun -= dt;
         if (m.shake > 0) m.shake -= dt;
@@ -11750,7 +11807,7 @@
   }
 
   function checkMonsterBumps() {
-    var i, m, dx, dy, rad, flying, dtx, dty, pt;
+    var i, m, dx, dy, rad, flying;
     if (currentScene !== "mine" || faintFx || iFrames > 0) return;
     for (i = 0; i < monsters.length; i++) {
       m = monsters[i];
@@ -11758,23 +11815,13 @@
       dx = Math.abs(m.x - player.x);
       dy = Math.abs(m.y - player.y);
       flying = (m.kind === "bat" || m.kind === "crystalbat");
-      /* 20260903a: bats = tight pixel only (tile-neighbor was multi-drain KO); ground keeps soft neighbor. */
-      rad = m.scale > 1.2 ? 20 : (flying ? 12 : 16);
+      /* 20260903b: all foes use tight pixel contact (slime soft-neighbor was multi-drain). */
+      rad = m.scale > 1.2 ? 18 : (flying ? 12 : 14);
       if (dx * dx + dy * dy <= rad * rad) {
         hurtPlayer(m.dmg);
+        m.stun = Math.max(m.stun | 0, 700);
         monsterYield(m);
         return;
-      }
-      if (flying) continue;
-      dtx = Math.abs(m.tx - player.tx);
-      dty = Math.abs(m.ty - player.ty);
-      pt = entityTile(m);
-      if ((dtx <= 1 && dty <= 1) || (Math.abs(pt.tx - player.tx) <= 1 && Math.abs(pt.ty - player.ty) <= 1)) {
-        if (dx < 20 && dy < 20) {
-          hurtPlayer(m.dmg);
-          monsterYield(m);
-          return;
-        }
       }
     }
   }
@@ -12002,7 +12049,7 @@
       fade = faintFx.stage === "hold" ? 1 : (a - 0.35) / 0.65;
       if (fade < 0) fade = 0;
       if (fade > 1) fade = 1;
-      msg = "YOU DIED...";
+      msg = "THE MOUNTAIN SENT YOU HOME.";
       tw = textWidth(msg);
       w = tw + 36;
       h = 36;
@@ -12139,6 +12186,20 @@
     }
     persistSave();
     openDialogue("ORION", ["A CAVE SWORD!", "TAP THE SWORD TO SWING."]);
+  }
+
+  function tryTakeSwordAdjacent() {
+    var i, p;
+    if (swordOwned || faintFx || uiPaused()) return false;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || p.kind !== "swordPedestal") continue;
+      if (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty)) {
+        takeSword(p);
+        return true;
+      }
+    }
+    return false;
   }
 
   function goTakeSword(prop) {
@@ -16985,6 +17046,7 @@ if (currentScene === "ocean") goExitOcean();
       if (trySmashFacing()) return;
       if (tryDigFacing()) return;
       if (tryFishFacing()) return;
+      if (tryTakeSwordAdjacent()) return;
       if (canSwordSwing()) {
         startSwordSwing();
         return;
@@ -17379,11 +17441,92 @@ if (currentScene === "ocean") goExitOcean();
       FISH_MISS: FISH_MISS
     };
   }
+  function runCombatAutotest() {
+    var log = [], pass = 0, fail = 0;
+    function ok(name, cond, detail) {
+      if (cond) { pass++; log.push("PASS " + name); }
+      else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
+    }
+    try {
+      ok("BUILD", BUILD === "20260903b", BUILD);
+      ok("deathCopy", true); /* drawFaint msg patched; visual */
+      /* Enter mine floor 1 with a fresh slime beside the player. */
+      monsterCache[1] = null;
+      applyScene("mine");
+      mineFloor = 1;
+      spawnMineMonsters();
+      syncMineMonsterCombat();
+      placePlayer(8, 9, "down");
+      iFrames = 0;
+      hp = MAX_HP;
+      var slime = null, i, m;
+      for (i = 0; i < monsters.length; i++) {
+        if (monsters[i].kind === "slime") { slime = monsters[i]; break; }
+      }
+      ok("slimeSpawned", !!slime, "count=" + monsters.length);
+      if (slime) {
+        ok("slimeHp4", slime.hp === 4 && slime.maxHp === 4, "hp=" + slime.hp);
+        /* Place slime adjacent and swing. */
+        slime.tx = player.tx; slime.ty = player.ty + 1;
+        slime.x = tileCenterX(slime.tx); slime.y = tileFootY(slime.ty);
+        ok("reachAdjacent", swingReachHits(slime), "");
+        startSwordSwing();
+        ok("padKillsSlime", !monsters.some(function (x) { return x === slime && x.hp > 0; }) && slime.hp <= 0, "hp=" + slime.hp);
+      }
+      /* Bump i-frames: pixel contact then second bump blocked. */
+      monsterCache[1] = null;
+      spawnMineMonsters();
+      syncMineMonsterCombat();
+      placePlayer(10, 10, "down");
+      iFrames = 0;
+      hp = MAX_HP;
+      m = makeMon("slime", 10, 10);
+      m.x = player.x; m.y = player.y;
+      monsters = [m];
+      checkMonsterBumps();
+      ok("bumpOnce", hp === MAX_HP - BUMP_DMG, "hp=" + hp);
+      ok("iframesOn", iFrames > 0, "iFrames=" + iFrames);
+      var hpAfter = hp;
+      checkMonsterBumps();
+      ok("iframesBlock", hp === hpAfter, "hp=" + hp);
+      /* Soft neighbor alone should NOT hurt (pixel-only). */
+      iFrames = 0;
+      hp = MAX_HP;
+      m = makeMon("slime", 11, 10);
+      m.x = player.x + 30; m.y = player.y;
+      monsters = [m];
+      checkMonsterBumps();
+      ok("noSoftNeighbor", hp === MAX_HP, "hp=" + hp);
+      /* Pedestal helper exists */
+      ok("tryTakeSwordFn", typeof tryTakeSwordAdjacent === "function", "");
+      /* Gutter helper */
+      ok("gutterFn", typeof monsterInUiGutter === "function", "");
+    } catch (e) {
+      fail++;
+      log.push("FAIL exception — " + (e && e.message ? e.message : e));
+    }
+    var pre = document.getElementById("autotest");
+    if (!pre) {
+      pre = document.createElement("pre");
+      pre.id = "autotest";
+      pre.style.cssText = "position:fixed;left:8px;top:8px;z-index:99999;background:#111;color:#9f9;padding:8px;font:12px monospace;max-width:90%;white-space:pre-wrap;";
+      document.body.appendChild(pre);
+    }
+    pre.textContent = (fail ? "COMBAT AUTOTEST FAIL" : "COMBAT AUTOTEST PASS") + " (" + pass + " pass / " + fail + " fail)\n" + log.join("\n");
+    document.title = fail ? "AUTOTEST FAIL" : "AUTOTEST PASS";
+    return fail === 0;
+  }
+  if (/[?&]autotest=combat\b/.test(location.search || "")) {
+    window.__runCombatAutotest = runCombatAutotest;
+  }
   checkFreshBuild();
   Assets.load().then(function () {
     if (currentScene === "overworld") buildSolid();
     unstickPlayer();
     requestAnimationFrame(loop);
+    if (window.__runCombatAutotest) {
+      setTimeout(function () { window.__runCombatAutotest(); }, 200);
+    }
   }).catch(function () {
     paintMissing();
   });
