@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260904a";
+  var BUILD = "20260904b";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -5820,6 +5820,8 @@
     for (i = 0; i < TRAY_CELLS; i++) {
       c = trayCells[i];
       if (!c || !c.key) continue;
+      /* Never mirror tools into the bag grid — aliases orphan sword BAG-only. */
+      if (isToolKey(c.key)) continue;
       if (bagHoldsRec(c)) continue;
       idx = firstEmptyBag();
       if (idx < 0) break;
@@ -8039,41 +8041,40 @@
   }
 
   function forceSwordIntoTray() {
-    var i, slot, empty, c, displaced;
-    if (!swordOwned) return;
-    /* Drop every sword copy (bag aliases + dups), then pin exactly one in the 10-tray. */
-    clearKeyFromPockets("sword");
-    slot = firstEmptyTray();
-    if (slot < 0) {
-      slot = -1;
-      for (i = TRAY_CELLS - 1; i >= 0; i--) {
-        c = trayCells[i];
-        if (!c || softTrayBumpKey(c.key) || !isToolKey(c.key)) { slot = i; break; }
+    var i, empty, c, displaced;
+    /* Recover ownership if a pocket still holds a sword ghost. */
+    if (!swordOwned) {
+      for (i = 0; i < TRAY_CELLS; i++) {
+        if (trayCells[i] && trayCells[i].key === "sword") { swordOwned = true; break; }
       }
-      if (slot < 0) slot = 0;
     }
-    c = trayCells[slot];
+    if (!swordOwned) {
+      for (i = 0; i < BAG_CELLS; i++) {
+        if (bagCells[i] && bagCells[i].key === "sword") { swordOwned = true; break; }
+      }
+    }
+    if (!swordOwned) return;
+    clearKeyFromPockets("sword");
+    /* Hard-pin hotbar slot 0; relocate whatever was there. */
+    c = trayCells[0];
     if (c && c.key && c.key !== "sword") {
       displaced = { key: c.key, count: c.count | 0 };
-      empty = firstEmptyBag();
-      if (empty >= 0) bagCells[empty] = displaced;
+      empty = firstEmptyTray();
+      if (empty >= 0) trayCells[empty] = displaced;
       else {
-        for (i = BAG_CELLS - 1; i >= 0; i--) {
-          if (bagCells[i] && !isToolKey(bagCells[i].key) && bagCells[i].key !== "sword") {
-            bagCells[i] = displaced;
-            break;
+        empty = firstEmptyBag();
+        if (empty >= 0) bagCells[empty] = displaced;
+        else {
+          for (i = BAG_CELLS - 1; i >= 0; i--) {
+            if (bagCells[i] && !isToolKey(bagCells[i].key)) {
+              bagCells[i] = displaced;
+              break;
+            }
           }
         }
       }
     }
-    trayCells[slot] = { key: "sword", count: 1 };
-    /* Prefer first hotbar slot so kids see the sword without opening BAG. */
-    if (slot !== 0) {
-      c = trayCells[0];
-      trayCells[0] = trayCells[slot];
-      trayCells[slot] = c;
-      slot = 0;
-    }
+    trayCells[0] = { key: "sword", count: 1 };
     selectedSlot = 0;
     syncBagCounts();
   }
@@ -15450,6 +15451,7 @@
   }
 
   function openBag() {
+    forceSwordIntoTray();
     showOwnedGoodsInBag();
     bagOpen = true;
     pending = null;
@@ -17443,6 +17445,8 @@ if (currentScene === "ocean") goExitOcean();
       hitSwordBtn: hitSwordBtn,
       swordEquipped: swordEquipped,
       setSwordOwned: function (v) { swordOwned = !!v; },
+      forceSwordIntoTray: forceSwordIntoTray,
+      openBag: openBag,
       SLOT_SWORD: SLOT_SWORD,
       openDialogue: openDialogue,
       closeDialogue: closeDialogue,
@@ -17478,7 +17482,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260904a", BUILD);
+      ok("BUILD", BUILD === "20260904b", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -17531,6 +17535,28 @@ if (currentScene === "ocean") goExitOcean();
       ok("tryTakeSwordFn", typeof tryTakeSwordAdjacent === "function", "");
       /* Gutter helper */
       ok("gutterFn", typeof monsterInUiGutter === "function", "");
+      /* Owned cave sword must stay pinned in hotbar slot 0, never bag-only. */
+      swordOwned = true;
+      /* Fill tray like a live save (seeds in slot 0) then pin. */
+      trayCells[0] = { key: "seed", count: 1 };
+      trayCells[1] = { key: "crateKit", count: 1 };
+      trayCells[2] = { key: "berry", count: 3 };
+      bagCells[0] = { key: "sword", count: 1 }; /* bag-only ghost from old alias bug */
+      forceSwordIntoTray();
+      ok("traySwordPinned", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      var bagSword = false, bi;
+      for (bi = 0; bi < BAG_CELLS; bi++) {
+        if (bagCells[bi] && bagCells[bi].key === "sword") { bagSword = true; break; }
+      }
+      ok("bagNoSwordKey", !bagSword, bagSword ? "bag still has sword" : "");
+      openBag();
+      ok("traySwordAfterOpenBag", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      bagSword = false;
+      for (bi = 0; bi < BAG_CELLS; bi++) {
+        if (bagCells[bi] && bagCells[bi].key === "sword") { bagSword = true; break; }
+      }
+      ok("bagNoSwordAfterOpenBag", !bagSword, bagSword ? "bag mirrored sword" : "");
+      if (bagOpen) closeBag();
     } catch (e) {
       fail++;
       log.push("FAIL exception — " + (e && e.message ? e.message : e));
