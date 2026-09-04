@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260903b";
+  var BUILD = "20260904a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -5811,6 +5811,11 @@
 
   function showOwnedGoodsInBag() {
     var i, c, idx;
+    /* Drop stale tray aliases first so a moved tray item cannot linger as a bag-only ghost. */
+    for (i = 0; i < BAG_CELLS; i++) {
+      c = bagCells[i];
+      if (c && trayHoldsRec(c)) bagCells[i] = null;
+    }
     if (!pocketHasStacks(bagCells, BAG_CELLS) && !pocketHasStacks(trayCells, TRAY_CELLS)) return;
     for (i = 0; i < TRAY_CELLS; i++) {
       c = trayCells[i];
@@ -8010,42 +8015,66 @@
     syncBagCounts();
   }
 
+  function clearKeyFromPockets(key) {
+    var i;
+    if (!key) return;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      if (trayCells[i] && trayCells[i].key === key) trayCells[i] = null;
+    }
+    for (i = 0; i < BAG_CELLS; i++) {
+      if (bagCells[i] && bagCells[i].key === key) bagCells[i] = null;
+    }
+  }
+
+  function clearRecEverywhere(rec) {
+    var i;
+    if (!rec) return;
+    for (i = 0; i < TRAY_CELLS; i++) if (trayCells[i] === rec) trayCells[i] = null;
+    for (i = 0; i < BAG_CELLS; i++) if (bagCells[i] === rec) bagCells[i] = null;
+  }
+
+  function softTrayBumpKey(key) {
+    return key === "seed" || key === "potatoSeed" || key === "berrySeed" ||
+      key === "hat" || key === "leash" || key === "lampKit" || key === "crateKit";
+  }
+
   function forceSwordIntoTray() {
-    var i, swapIdx, empty, c;
+    var i, slot, empty, c, displaced;
     if (!swordOwned) return;
-    for (i = 0; i < TRAY_CELLS; i++) {
-      if (trayCells[i] && trayCells[i].key === "sword") return;
-    }
-    placeToolInTrayFirst("sword");
-    for (i = 0; i < TRAY_CELLS; i++) {
-      if (trayCells[i] && trayCells[i].key === "sword") return;
-    }
-    /* Tray still full of tools: bump a soft tool (seed/hat/leash) or last slot. */
-    swapIdx = -1;
-    for (i = TRAY_CELLS - 1; i >= 0; i--) {
-      if (!trayCells[i]) { swapIdx = i; break; }
-      c = trayCells[i];
-      if (c.key === "seed" || c.key === "potatoSeed" || c.key === "berrySeed" ||
-          c.key === "hat" || c.key === "leash") {
-        swapIdx = i;
-        break;
+    /* Drop every sword copy (bag aliases + dups), then pin exactly one in the 10-tray. */
+    clearKeyFromPockets("sword");
+    slot = firstEmptyTray();
+    if (slot < 0) {
+      slot = -1;
+      for (i = TRAY_CELLS - 1; i >= 0; i--) {
+        c = trayCells[i];
+        if (!c || softTrayBumpKey(c.key) || !isToolKey(c.key)) { slot = i; break; }
       }
+      if (slot < 0) slot = 0;
     }
-    if (swapIdx < 0) swapIdx = TRAY_CELLS - 1;
-    c = trayCells[swapIdx];
+    c = trayCells[slot];
     if (c && c.key && c.key !== "sword") {
+      displaced = { key: c.key, count: c.count | 0 };
       empty = firstEmptyBag();
-      if (empty >= 0) bagCells[empty] = { key: c.key, count: c.count | 0 };
+      if (empty >= 0) bagCells[empty] = displaced;
       else {
         for (i = BAG_CELLS - 1; i >= 0; i--) {
-          if (bagCells[i] && !isToolKey(bagCells[i].key)) {
-            bagCells[i] = { key: c.key, count: c.count | 0 };
+          if (bagCells[i] && !isToolKey(bagCells[i].key) && bagCells[i].key !== "sword") {
+            bagCells[i] = displaced;
             break;
           }
         }
       }
     }
-    trayCells[swapIdx] = { key: "sword", count: 1 };
+    trayCells[slot] = { key: "sword", count: 1 };
+    /* Prefer first hotbar slot so kids see the sword without opening BAG. */
+    if (slot !== 0) {
+      c = trayCells[0];
+      trayCells[0] = trayCells[slot];
+      trayCells[slot] = c;
+      slot = 0;
+    }
+    selectedSlot = 0;
     syncBagCounts();
   }
 
@@ -15484,7 +15513,8 @@
     }
     bagHeld = rec;
     bagHeldFrom = { place: place, i: idx };
-    setPocket(place, idx, null);
+    /* Clear every alias of this rec so tray↔bag mirror slots cannot orphan it in the bag. */
+    clearRecEverywhere(rec);
     syncBagCounts();
     playSfx("ui");
   }
@@ -17448,7 +17478,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260903b", BUILD);
+      ok("BUILD", BUILD === "20260904a", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
