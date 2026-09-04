@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260904b";
+  var BUILD = "20260904c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -2534,7 +2534,7 @@
       if (monsterCache[mineFloor]) monsters = monsterCache[mineFloor];
       else spawnMineMonsters();
       syncMineMonsterCombat();
-      forceSwordIntoTray();
+      ensureCaveSword(true);
       openMineAisle();
     } else {
       monsters = [];
@@ -8041,7 +8041,7 @@
   }
 
   function forceSwordIntoTray() {
-    var i, empty, c, displaced;
+    var i, empty, c, displaced, soft;
     /* Recover ownership if a pocket still holds a sword ghost. */
     if (!swordOwned) {
       for (i = 0; i < TRAY_CELLS; i++) {
@@ -8062,6 +8062,8 @@
       empty = firstEmptyTray();
       if (empty >= 0) trayCells[empty] = displaced;
       else {
+        /* Prefer parking soft tools/kits/stacks into the bag. */
+        soft = softTrayBumpKey(displaced.key) || !isToolKey(displaced.key);
         empty = firstEmptyBag();
         if (empty >= 0) bagCells[empty] = displaced;
         else {
@@ -8072,11 +8074,38 @@
             }
           }
         }
+        if (soft) { /* kept for readability; displacement already done */ }
       }
     }
     trayCells[0] = { key: "sword", count: 1 };
     selectedSlot = 0;
     syncBagCounts();
+  }
+
+  /* Mine pad works without owning the cave sword, so kids never Space the
+     pedestal and forceSwordIntoTray never runs. Auto-claim on mine enter /
+     first swing so the sword lands in hotbar slot 0. */
+  function ensureCaveSword(silent) {
+    var i, p;
+    if (swordOwned) {
+      forceSwordIntoTray();
+      return false;
+    }
+    if (currentScene !== "mine") return false;
+    /* Remove the floor-1 pedestal if it is still planted. */
+    for (i = PROPS.length - 1; i >= 0; i--) {
+      p = PROPS[i];
+      if (!p || p.kind !== "swordPedestal") continue;
+      PROPS.splice(i, 1);
+    }
+    /* Mine pad already swings without ownership, so kids never Space the
+       pedestal. Grant + pin on any mine floor the first time they enter/swing. */
+    swordOwned = true;
+    giveTool("sword");
+    forceSwordIntoTray();
+    if (!silent) showLineNote("GOT THE CAVE SWORD!");
+    persistSave();
+    return true;
   }
 
   function ensureOwnedTools() {
@@ -11490,6 +11519,7 @@
   function startSwordSwing() {
     var dest, foe, i, m, best, bestD, dx, dy, d;
     if (!canSwordSwing()) return false;
+    if (currentScene === "mine") ensureCaveSword(true);
     if (player.arc > 0) return false;
     dest = player.path && player.path.length ? player.path[0] : player.queuedWalk;
     player.swingDest = dest ? { tx: dest.tx, ty: dest.ty } : null;
@@ -15451,6 +15481,7 @@
   }
 
   function openBag() {
+    ensureCaveSword(true);
     forceSwordIntoTray();
     showOwnedGoodsInBag();
     bagOpen = true;
@@ -17446,6 +17477,8 @@ if (currentScene === "ocean") goExitOcean();
       swordEquipped: swordEquipped,
       setSwordOwned: function (v) { swordOwned = !!v; },
       forceSwordIntoTray: forceSwordIntoTray,
+      ensureCaveSword: ensureCaveSword,
+      getSwordOwned: function () { return !!swordOwned; },
       openBag: openBag,
       SLOT_SWORD: SLOT_SWORD,
       openDialogue: openDialogue,
@@ -17482,7 +17515,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260904b", BUILD);
+      ok("BUILD", BUILD === "20260904c", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -17557,6 +17590,18 @@ if (currentScene === "ocean") goExitOcean();
       }
       ok("bagNoSwordAfterOpenBag", !bagSword, bagSword ? "bag mirrored sword" : "");
       if (bagOpen) closeBag();
+      /* Unowned mine save: ensureCaveSword claims pedestal and pins tray slot 0. */
+      applyScene("mine");
+      mineFloor = 1;
+      swordOwned = false;
+      clearKeyFromPockets("sword");
+      trayCells[0] = { key: "seed", count: 1 };
+      trayCells[1] = { key: "crateKit", count: 1 };
+      PROPS.push({ kind: "swordPedestal", tx: 18, ty: 18 });
+      ensureCaveSword(true);
+      ok("ensureClaimsSword", !!swordOwned, "swordOwned=" + swordOwned);
+      ok("ensurePinsTray0", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      ok("ensureRemovesPedestal", !PROPS.some(function (p) { return p && p.kind === "swordPedestal"; }), "");
     } catch (e) {
       fail++;
       log.push("FAIL exception — " + (e && e.message ? e.message : e));
