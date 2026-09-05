@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905l): Imagine 32×32 tray ores/loot — copper, iron, gem, goldCoin, sapphire, moonshard. Never START OVER.
 Local 9/5 (BUILD 20260905k): Imagine 32×32 tray food/farm — honeybun, mushroom, veggie, townFlower, strawHat, sprout. Never START OVER.
 Local 9/5 (BUILD 20260905j): Imagine 32×32 tray tools — axe, pickaxe, shovel, bow, ironSword, leash. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905i): first piece-by-piece Imagine 32×32 tray icons — sword, wood, stone, seed, fishingPole (BOX/AREA downsample into ui/; atlas packed). drawUiIcon already blits larger frames into 16 logical (=32 device under BUFFER=2). More icons later. Household save intact. Never START OVER.
