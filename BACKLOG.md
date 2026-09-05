@@ -1,6 +1,6 @@
 # Moondrop Mountain backlog
 
-Local 9/5 (BUILD 20260905e): bag/tray swap rewrite — copy-on-pickup (no shared cell refs), true two-slot swap on drop, stackable merge when same key. Fixes 05d live shuffle. Household save intact. Never START OVER.
+Local 9/5 (BUILD 20260905e): bag/tray swap rewrite — copy-on-pickup (no shared cell refs), true two-slot swap on drop, stackable merge when same key. Fixes 05d live shuffle. LIVE 9/5 ~1:13–1:18pm: first live of 05e — bag drag swap **STILL FAIL / WORSE** (source emptied; target took item; displaced stack vanished — not a true swap). South camera STILL PASS; tray sword STILL FIXED. Never START OVER.
 Local 9/5 (BUILD 20260905d): bag/tray drag onto a filled cell instantly swaps (displaced item returns to the pickup slot — no second drag). LIVE 9/5 ~10:07–10:12am: first live of 05d — bag drag swap **FAIL** (cells changed but no clean instant swap); south camera **PASS** (05c); tray sword STILL FIXED; boat/chicken/fish UNTESTED (bridge NEED 8 WOOD). Never START OVER.
 Local 9/5 (BUILD 20260905c): overworld south camera uses the same CAM_PAD_BOTTOM keep-Orion-above-hotbar pull as forest/mine/ocean (was missing — sprite walked under the tray). LIVE 9/5 ~10:07–10:12am via 05d: south camera **PASS** (Orion stayed above hotbar). Farm grass / Orion / DAY_MS / walk energy / evening / START OVER untouched. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905b): fishing cast draw is a short wooden pole from the hands + thin light-blue line (no face-tongue); Imagine fishingPole tray/shop icon packed. Household save intact. Never START OVER.
@@ -90,9 +90,19 @@ Local 8/31 ~3:20pm PT BUILD 20260831e: ocean overlay boats removed; new top-down
 Local 8/31 ~1:40pm PT BUILD 20260831d: peak FARM sign and south-balcony farm warp removed. Cave is the only way down. LIVE 2:46pm: FARM sign ABSENT; cave-down to MINE 6 PASS. Household save intact. Never START OVER.
 Local 8/31 ~1:35pm PT BUILD 20260831c: outdoor peak no longer draws the inside-looking-out caveMouth overlay; peakMap outdoor painting stays; cave still enterable. LIVE 2:46pm: outdoor PEAK looks outdoor (no cave overlay). Household save intact. Never START OVER.
 
-Last live pass: **2026-09-05 ~10:07–10:12am PT** BUILD 20260905d (desktop; `?v=20260905pt1007`). First live of 05d. Continued box Chrome save Day 2417 SPRING MORNING→AFTERNOON (FARM, 4/5♥, 0G). **NEW/PASS:** overworld south camera keeps Orion above hotbar (05c). **NEW/FAIL:** bag/tray drag onto filled cell — no clean instant swap (`04-bag-before.webp`/`05-bag-after.webp`). **STILL FIXED:** tray sword slot 0. **UNTESTED:** boat / chicken / ocean fish (bridge toast NEED 8 WOOD; only 2 wood in tray; no pole). START OVER under Jobs (not pressed). Never START OVER. Screenshots `/workspace/playtest-1007/`.
+Last live pass: **2026-09-05 ~1:13–1:18pm PT** BUILD 20260905e (desktop; `?v=20260905pt1313`). First live of 05e. Continued box Chrome save Day 2440 SPRING MORNING→AFTERNOON (FARM, 5/5♥, 0G). **STILL FAIL / WORSE:** bag/tray drag onto filled cell — source emptied, target took the item, displaced stack vanished (`04-bag-before.webp`/`05-bag-after.webp`). **STILL PASS:** south camera keeps Orion above hotbar. **STILL FIXED:** tray sword slot 0. **UNTESTED:** boat / chicken / ocean fish (bridge toast NEED 8 WOOD). START OVER not pressed. Never START OVER. Screenshots `/workspace/playtest-1313/`.
 
-Highest-leverage theme: bag drag swap **FAIL** on first live of 05d; south camera **PASS**. Tray sword still good. Still open: bag swap fix; ocean fish (need pole); boat recheck; bridge wood; bat pad; day-clock races; START OVER wipe (04l claim, not pressed); dog leash.
+Highest-leverage theme: bag drag swap **STILL FAIL / WORSE** on first live of 05e (05e claim did not hold; items can vanish). South camera still good. Tray sword still good. Still open: bag swap true fix; ocean fish (need pole); boat recheck; bridge wood; bat pad; day-clock races; START OVER wipe (04l claim, not pressed); dog leash.
+
+## Live playtest 9/5 ~1:13–1:18pm PT (BUILD 20260905e)
+
+- Continued box Chrome save — never START OVER. Day 2440 SPRING MORNING (FARM, 5/5♥, 0G) → Day 2440 SPRING AFTERNOON (FARM, 5/5♥, 0G). URL cache-bust `?v=20260905pt1313`; Jobs stamp `20260905e`. First live of 05e. ~5 min; no crash; START OVER not pressed.
+- **STILL FAIL / WORSE:** Bag/tray drag onto a filled cell — source emptied, target took the dragged item, displaced stack vanished (not returned to pickup slot). `04-bag-before.webp` / `05-bag-after.webp`. 05e rewrite claim did not hold live.
+- **STILL PASS:** Overworld south camera — Orion stayed above the hotbar (`06-south-camera.webp`).
+- **STILL FIXED:** Sword hard-pinned in 10-tray hotbar slot 0 (`03-hotbar-sword.webp`).
+- **UNTESTED:** Pier rowboat / chicken scoot / ocean fishing — river bridge blocked (`THE BRIDGE IS OUT. NEED 8 WOOD.` — `07-boat-bridge-blocked.webp`); no fishing pole checked this pass.
+- **STILL:** Day clock phases race (Morning→Afternoon across short pass).
+- Screenshots `/workspace/playtest-1313/` (`01-land.webp` … `08-final.webp`).
 
 ## Live playtest 9/5 ~10:07–10:12am PT (BUILD 20260905d)
 
