@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260904i";
+  var BUILD = "20260904j";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -12879,6 +12879,7 @@
   function enterHouse() {
     applyScene("house");
     placePlayer(10, 9, "up");
+    if (hasLeash()) bringDogWithPlayer("house");
     if (found.moonshard && !quest.homeDone) {
       quest.homeDone = true;
       homeLight = true;
@@ -12892,9 +12893,29 @@
     }
   }
 
+  function bringDogWithPlayer(sceneName) {
+    if (!hasLeash()) return false;
+    dog.scene = sceneName;
+    snapDogNearPlayer();
+    return true;
+  }
+
+  function parkDogInHouse() {
+    dog.scene = "house";
+    dog.tx = dog.houseTx || 6;
+    dog.ty = dog.houseTy || 7;
+    if (!inBounds(dog.tx, dog.ty) || !walkable(dog.tx, dog.ty)) {
+      dog.tx = 6;
+      dog.ty = 7;
+    }
+    dogStop();
+  }
+
   function exitHouse() {
     applyScene("overworld");
     placePlayer(17, 29, "down");
+    /* Explicit bring-along — do not wait for updateDog scene sync. */
+    if (!bringDogWithPlayer("overworld")) parkDogInHouse();
     persistSave();
   }
 
@@ -13631,7 +13652,14 @@
 
 
   function hasLeash() {
-    return bagCount("leash") >= 1;
+    if (bagCount("leash") >= 1) return true;
+    /* Save flag can say owned while the pocket cell was lost — re-seat it. */
+    if ((inventory.leash | 0) >= 1) {
+      placeToolInTrayFirst("leash");
+      if (bagCount("leash") >= 1) return true;
+      inventory.leash = 0;
+    }
+    return false;
   }
 
   function dogSceneOk() {
@@ -13662,7 +13690,7 @@
   }
 
   function snapDogNearPlayer() {
-    var dirs, i, nx, ny, d;
+    var dirs, i, nx, ny, d, spot;
     dirs = [[0, 1], [1, 0], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
     for (i = 0; i < dirs.length; i++) {
       d = dirs[i];
@@ -13675,9 +13703,17 @@
         return;
       }
     }
-    if (dogOk(player.tx, player.ty)) {
+    /* Player tile is always "occupied", so allow overlap as last adjacent miss. */
+    if (inBounds(player.tx, player.ty) && walkable(player.tx, player.ty)) {
       dog.tx = player.tx;
       dog.ty = player.ty;
+      dogStop();
+      return;
+    }
+    spot = nearestWalkable(player.tx, player.ty);
+    if (spot) {
+      dog.tx = spot.tx;
+      dog.ty = spot.ty;
       dogStop();
     }
   }
