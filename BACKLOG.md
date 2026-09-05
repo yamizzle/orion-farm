@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/4 (BUILD 20260904h): dog runs around more inside the house (faster/shorter idle); 04g pole dedupe + chicken bump kept. Still Open: boat, bigger ocean, island Diamond Pickaxe, more trees, Pip shop. Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904g): only one fishing pole (dedupe tray/bag on load/grant); walk into / tap chicken scoots it off the tile. Darren 9/4 asks still Open (dog indoors livelier, boat, bigger ocean, island Diamond Pickaxe, more trees, Pip shop art). Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904f): ocean pier/beach fishing has a 1-in-50 Golden Swordfish (ocean-only; farm ponds unchanged). Sword swing still 300ms. Pip shop art still queued. Household save intact. Never START OVER.
 
@@ -11,7 +12,7 @@ Pick from the top. Expand the world creatively (bigger beach/ocean, fun Imagine 
 | --- | --- | --- | --- |
 | High | Local 9/4 04g | Only 1 fishing pole | Some saves show 3 poles. Cap at one forever: dedupe tray/bag/chest on load; Pip buy already OWNED; never stack count>1. |
 | High | Local 9/4 04g | Chickens move when walked into | Walk onto chicken tile should push/scare it (like ball). Today chicken tile is unwalkable so bump never fires. |
-| Medium | Open | Dog runs around inside the house | Dog already house-ok; make indoor roam livelier when home (default: roam in house; leash still for outdoors). |
+| Medium | Local 9/4 04h | Dog runs around inside the house | Dog already house-ok; make indoor roam livelier when home (default: roam in house; leash still for outdoors). |
 | Medium | Open | Boat at pier | Rideable boat at ocean pier. Get on; row; get off only at pier or shore (not deep water). |
 | Medium | Open | Bigger beach / ocean world | Extend ocean scene logically + creatively with fun Imagine graphics (cove, dunes, more pier room, south deep water toward island). Make the world feel bigger. |
 | Medium | Open | Island cave Diamond Pickaxe → peak rocks | Row boat further south into deep ocean → tiny island with cave → Diamond Pickaxe inside. Imagine-regen PEAK without painted summit rocks; place matching removable rock sprites; Diamond Pickaxe breaks them in 10 hits. Opens summit path. |

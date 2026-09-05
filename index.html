@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260904g";
+  var BUILD = "20260904h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -13684,7 +13684,7 @@
       nx = dog.tx + d[0];
       ny = dog.ty + d[1];
       if (dogOk(nx, ny)) {
-        startWalk(dog, [{ tx: nx, ty: ny }], 0.85);
+        startWalk(dog, [{ tx: nx, ty: ny }], currentScene === "house" ? 1.35 : 0.85);
         return true;
       }
     }
@@ -13771,7 +13771,9 @@
     }
     dog.idle -= dt;
     if (dog.idle > 0) return;
-    dog.idle = 1400 + Math.random() * 2200;
+    /* House: run around more; outdoors (no leash) stay calmer. */
+    if (currentScene === "house") dog.idle = 500 + Math.random() * 900;
+    else dog.idle = 1400 + Math.random() * 2200;
     dogYield();
   }
 
@@ -15620,6 +15622,7 @@
   function openBag() {
     ensureCaveSword(true);
     forceSwordIntoTray();
+    ensureOnePole();
     showOwnedGoodsInBag();
     bagOpen = true;
     pending = null;
