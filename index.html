@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905c";
+  var BUILD = "20260905d";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -15977,10 +15977,34 @@
         bagHeld = null;
         bagHeldFrom = null;
       } else {
+        /* Instant swap: drop replaces the cell; the old item goes back to where
+           we picked up from. No second drag needed. */
         tmp = rec;
         setPocket(place, idx, bagHeld);
-        bagHeld = tmp;
-        bagHeldFrom = { place: place, i: idx };
+        if (bagHeldFrom &&
+            !(bagHeldFrom.place === place && bagHeldFrom.i === idx) &&
+            !pocketAt(bagHeldFrom.place, bagHeldFrom.i)) {
+          setPocket(bagHeldFrom.place, bagHeldFrom.i, tmp);
+        } else if (!pocketAt(place, idx)) {
+          setPocket(place, idx, tmp);
+        } else {
+          var empty = firstEmptyTray();
+          if (empty >= 0) setPocket("tray", empty, tmp);
+          else {
+            empty = firstEmptyBag();
+            if (empty >= 0) setPocket("bag", empty, tmp);
+            else {
+              /* Full: keep displaced on cursor as last resort. */
+              bagHeld = tmp;
+              bagHeldFrom = { place: place, i: idx };
+              syncBagCounts();
+              playSfx("ui");
+              return;
+            }
+          }
+        }
+        bagHeld = null;
+        bagHeldFrom = null;
       }
       syncBagCounts();
       playSfx("ui");

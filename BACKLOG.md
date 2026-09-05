@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905d): bag/tray drag onto a filled cell instantly swaps (displaced item returns to the pickup slot — no second drag). Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905c): overworld south camera uses the same CAM_PAD_BOTTOM keep-Orion-above-hotbar pull as forest/mine/ocean (was missing — sprite walked under the tray). Farm grass / Orion / DAY_MS / walk energy / evening / START OVER untouched. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905b): fishing cast draw is a short wooden pole from the hands + thin light-blue line (no face-tongue); Imagine fishingPole tray/shop icon packed. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905a): rideable rowboat at the ocean pier — GET IN / row on water / GET OUT only on sand or pier (TOO DEEP out on water); leave ocean blocked while aboard. LIVE 9/5 ~1:12–1:30am: first live of 05a — boat **PASS**. LIVE 9/5 ~7:14–7:28am: recheck 05a — boat **STILL PASS**; tray sword STILL FIXED slot 0; fish STILL no pole (toast YOU NEED A FISHING POLE.); chicken scoot **PASS** (NEW vs prior UNTESTED); dog/mine UNTESTED; clock STILL races (Day 2395 Afternoon→2396 Night). START OVER under Jobs (not pressed). Never START OVER.
