@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905o): Imagine 32×32 berry/bread/pie/acorn/pinecone/copperBar (replacing code-paint in tray when sprite present). Never START OVER.
 Local 9/5 (BUILD 20260905n): Imagine 32×32 cropYoung/cropReady/crate/lantern + new apple/potato tray icons. Never START OVER.
 Local 9/5 (BUILD 20260905m): Imagine 32×32 tray misc — mooncrystal, pebble, goldPile, letter, shield, trophy. Never START OVER.
 Local 9/5 (BUILD 20260905l): Imagine 32×32 tray ores/loot — copper, iron, gem, goldCoin, sapphire, moonshard. Never START OVER.
