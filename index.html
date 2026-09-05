@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905g";
+  var BUILD = "20260905h";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4908,10 +4908,27 @@
     return false;
   }
 
+  /* Aboard: row on ocean water, or pier/sand shore (f next to y) for GET OUT. */
+  function boatOk(tx, ty) {
+    var ch, dirs, i, nx, ny;
+    if (!inBounds(tx, ty) || currentScene !== "ocean") return false;
+    ch = cell(tx, ty);
+    if (ch === "y") return true;
+    if (ch !== "f") return false;
+    dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    for (i = 0; i < dirs.length; i++) {
+      nx = tx + dirs[i][0];
+      ny = ty + dirs[i][1];
+      if (inBounds(nx, ny) && cell(nx, ny) === "y") return true;
+    }
+    return false;
+  }
+
   function walkable(tx, ty) {
     if (!inBounds(tx, ty) || solid[ty][tx]) return false;
     if (currentScene === "overworld" && hasOverRim() && overRimTile(tx, ty)) return false;
     if (carOccupies(tx, ty)) return false;
+    if (onBoat && currentScene === "ocean") return boatOk(tx, ty);
     return true;
   }
 
@@ -11441,6 +11458,7 @@
   function tryFishFacing() {
     var t, pond, spot;
     if (uiPaused() || faintFx) return false;
+    if (onBoat) return false;
     if (fishing) return true;
     t = facingTile();
     pond = farmPondAt(t.tx, t.ty);
@@ -11468,6 +11486,7 @@
     if (pond.kind !== "pond" && pond.kind !== "ocean") return false;
     if (pond.kind === "pond" && currentScene !== "overworld") return false;
     if (pond.kind === "ocean" && currentScene !== "ocean") return false;
+    if (onBoat) return false;
     if (fishing) return true;
     if (!poleOwned) {
       showLineNote("YOU NEED A FISHING POLE.");
@@ -17419,6 +17438,10 @@ if (currentScene === "ocean") goExitOcean();
       return;
     }
     if (oceanFishSpotAt(tx, ty)) {
+      if (onBoat) {
+        goWalk(tx, ty);
+        return;
+      }
       tryFishTap(oceanFishSpotAt(tx, ty), tx, ty);
       return;
     }
