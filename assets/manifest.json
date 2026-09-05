@@ -2847,6 +2847,22 @@
       "fw": 16
     },
     {
+      "id": "fishingPole",
+      "file": "ui/fishingPole.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        8,
+        16
+      ],
+      "ox": 8,
+      "oy": 16,
+      "x": 18,
+      "y": 797,
+      "fw": 16
+    },
+    {
       "id": "heart",
       "file": "ui/heart.png",
       "w": 10,
@@ -2858,7 +2874,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 18,
+      "x": 35,
       "y": 797,
       "fw": 10,
       "generated": true
@@ -2875,7 +2891,7 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 29,
+      "x": 46,
       "y": 797,
       "fw": 10,
       "generated": true
