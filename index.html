@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ab";
+  var BUILD = "20260905ac";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -585,10 +585,10 @@
   var minePeakStairs = { tx: 22, ty: 6 };
   var peakRocksAt = { tx: 19, ty: 4 };
   var peakCaveAt = { tx: 18, ty: 25 };
-  var OCEAN_COLS = 40;
-  var OCEAN_ROWS = 30;
-  var oceanLand = { tx: 18, ty: 2 };
-  var boatHome = { tx: 17, ty: 22 };
+  var OCEAN_COLS = 48;
+  var OCEAN_ROWS = 40;
+  var oceanLand = { tx: 22, ty: 2 };
+  var boatHome = { tx: 22, ty: 25 };
   var onBoat = false;
   var treetopDoor = { tx: 25, ty: 8 };
   var treetopLand = { tx: 20, ty: 21 };
@@ -2444,6 +2444,10 @@
     if (name === "house" && cached && (cached.houseTier | 0) !== (houseTier | 0)) {
       cached = null;
     }
+    /* 20260905ac: rebuild ocean when map size grows (household save) */
+    if (name === "ocean" && cached && (cached.cols !== OCEAN_COLS || cached.rows !== OCEAN_ROWS)) {
+      cached = null;
+    }
     fresh = !cached;
     if (cached) {
       COLS = cached.cols;
@@ -3118,38 +3122,48 @@
   function buildOceanGround() {
     var cols = OCEAN_COLS, rows = OCEAN_ROWS;
     var g = [], y, x, row, ch;
-    /* 31m stamped oceanMap: Imagine dirt path + pier; grass-sand/sand-foam edges from 31l; dirt/sand/dock f; water y. */
+    /* 05ac expanded oceanMap 48x40: wider beach, longer pier path, south sand island stub */
     var walk = [
-      "ffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffff",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "fffffffffffffffffffffffffffffffyyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+      "ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffyyyyyyyyyyyyyyyyyyyy",
+      "ffffffffffyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyffffffffyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyffffffffyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyffffffffyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyffffffffyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
     ];
     for (y = 0; y < rows; y++) {
       row = [];
@@ -3164,34 +3178,45 @@
 
   function buildOceanProps() {
     return [
-      { kind: "oceanSign", tx: 20, ty: 2 },
+      { kind: "oceanSign", tx: 24, ty: 2 },
       { kind: "rowboat", tx: boatHome.tx, ty: boatHome.ty },
+      /* west grove */
       { kind: "pine", tx: 3, ty: 3 }, { kind: "oak", tx: 6, ty: 5 },
       { kind: "birch", tx: 10, ty: 4 }, { kind: "pine", tx: 2, ty: 8 },
       { kind: "oak", tx: 8, ty: 10 }, { kind: "pine", tx: 13, ty: 7 },
       { kind: "birch", tx: 4, ty: 12 }, { kind: "oak", tx: 15, ty: 11 },
-      { kind: "pine", tx: 23, ty: 3 }, { kind: "oak", tx: 27, ty: 5 },
-      { kind: "birch", tx: 30, ty: 4 }, { kind: "pine", tx: 24, ty: 8 },
-      { kind: "oak", tx: 28, ty: 10 }, { kind: "birch", tx: 22, ty: 6 },
-      { kind: "pine", tx: 26, ty: 12 }, { kind: "oak", tx: 31, ty: 7 },
+      /* east grove on wider shore */
+      { kind: "pine", tx: 28, ty: 3 }, { kind: "oak", tx: 32, ty: 5 },
+      { kind: "birch", tx: 35, ty: 4 }, { kind: "pine", tx: 30, ty: 8 },
+      { kind: "oak", tx: 34, ty: 10 }, { kind: "birch", tx: 27, ty: 6 },
+      { kind: "pine", tx: 36, ty: 7 }, { kind: "oak", tx: 29, ty: 12 },
       { kind: "berryBush", tx: 5, ty: 7 }, { kind: "berryBush", tx: 12, ty: 5 },
-      { kind: "berryBush", tx: 14, ty: 12 }, { kind: "berryBush", tx: 22, ty: 4 },
-      { kind: "berryBush", tx: 25, ty: 11 }, { kind: "berryBush", tx: 29, ty: 8 },
+      { kind: "berryBush", tx: 14, ty: 12 }, { kind: "berryBush", tx: 26, ty: 4 },
+      { kind: "berryBush", tx: 31, ty: 11 }, { kind: "berryBush", tx: 35, ty: 8 },
+      { kind: "berryBush", tx: 18, ty: 9 }, { kind: "berryBush", tx: 38, ty: 6 },
       { kind: "wildflower", tx: 4, ty: 2 }, { kind: "wildflower", tx: 7, ty: 3 },
       { kind: "wildflower", tx: 11, ty: 9 }, { kind: "wildflower", tx: 15, ty: 6 },
-      { kind: "wildflower", tx: 16, ty: 12 }, { kind: "wildflower", tx: 21, ty: 5 },
-      { kind: "wildflower", tx: 23, ty: 10 }, { kind: "wildflower", tx: 27, ty: 2 },
-      { kind: "wildflower", tx: 29, ty: 12 }, { kind: "wildflower", tx: 9, ty: 1 },
+      { kind: "wildflower", tx: 16, ty: 12 }, { kind: "wildflower", tx: 25, ty: 5 },
+      { kind: "wildflower", tx: 28, ty: 10 }, { kind: "wildflower", tx: 33, ty: 2 },
+      { kind: "wildflower", tx: 36, ty: 12 }, { kind: "wildflower", tx: 9, ty: 1 },
+      { kind: "wildflower", tx: 20, ty: 8 }, { kind: "wildflower", tx: 39, ty: 9 },
       { kind: "fern", tx: 1, ty: 5 }, { kind: "fern", tx: 16, ty: 8 },
-      { kind: "fern", tx: 21, ty: 9 }, { kind: "fern", tx: 16, ty: 4 },
-      { kind: "toadstool", tx: 7, ty: 9 }, { kind: "toadstool", tx: 24, ty: 5 },
-      { kind: "toadstool", tx: 11, ty: 12 },
-      { kind: "rock", tx: 3, ty: 11 }, { kind: "rock", tx: 30, ty: 11 },
-      { kind: "rock", tx: 10, ty: 16 },
+      { kind: "fern", tx: 26, ty: 9 }, { kind: "fern", tx: 19, ty: 4 },
+      { kind: "fern", tx: 37, ty: 5 },
+      { kind: "toadstool", tx: 7, ty: 9 }, { kind: "toadstool", tx: 30, ty: 5 },
+      { kind: "toadstool", tx: 11, ty: 12 }, { kind: "toadstool", tx: 34, ty: 12 },
+      { kind: "rock", tx: 3, ty: 11 }, { kind: "rock", tx: 36, ty: 11 },
+      { kind: "rock", tx: 10, ty: 16 }, { kind: "rock", tx: 40, ty: 14 },
+      { kind: "rock", tx: 17, ty: 15 },
       { kind: "tallGrass", tx: 6, ty: 12, regrow: true },
       { kind: "tallGrass", tx: 13, ty: 3, regrow: true },
-      { kind: "tallGrass", tx: 22, ty: 12, regrow: true },
-      { kind: "tallGrass", tx: 28, ty: 3, regrow: true }
+      { kind: "tallGrass", tx: 27, ty: 12, regrow: true },
+      { kind: "tallGrass", tx: 33, ty: 3, regrow: true },
+      { kind: "tallGrass", tx: 38, ty: 10, regrow: true },
+      /* south island stub (Diamond Pickaxe cave next) */
+      { kind: "rock", tx: 22, ty: 35 }, { kind: "rock", tx: 25, ty: 36 },
+      { kind: "pine", tx: 23, ty: 35 },
+      { kind: "oceanSign", tx: 24, ty: 34, label: "ISLAND" }
     ];
   }
 
@@ -3205,7 +3230,7 @@
   }
 
   function isOceanExit(tx, ty) {
-    return currentScene === "ocean" && ty <= 0 && tx >= 17 && tx <= 20;
+    return currentScene === "ocean" && ty <= 0 && tx >= 21 && tx <= 24;
   }
 
   function enterOcean() {
@@ -3335,7 +3360,7 @@
     var spots, i, s;
     spots = [
       { tx: 18, ty: 21 }, { tx: 19, ty: 21 }, { tx: 18, ty: 24 }, { tx: 19, ty: 24 },
-      { tx: 17, ty: 21 }, { tx: 16, ty: 21 }, { tx: 20, ty: 21 }, { tx: oceanLand.tx, ty: oceanLand.ty }
+      { tx: 21, ty: 24 }, { tx: 20, ty: 24 }, { tx: 24, ty: 24 }, { tx: oceanLand.tx, ty: oceanLand.ty }
     ];
     for (i = 0; i < spots.length; i++) {
       s = spots[i];
@@ -18152,7 +18177,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ab", BUILD);
+      ok("BUILD", BUILD === "20260905ac", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
