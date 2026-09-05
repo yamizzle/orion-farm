@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/4 (BUILD 20260904i): Pip shop — LEASH + FISHING POLE moved up on the list (were below the fold with no tap-scroll); list scrolls; v MORE hint. Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904h): dog runs around more inside the house (faster/shorter idle); 04g pole dedupe + chicken bump kept. Still Open: boat, bigger ocean, island Diamond Pickaxe, more trees, Pip shop. Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904g): only one fishing pole (dedupe tray/bag on load/grant); walk into / tap chicken scoots it off the tile. Darren 9/4 asks still Open (dog indoors livelier, boat, bigger ocean, island Diamond Pickaxe, more trees, Pip shop art). Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904f): ocean pier/beach fishing has a 1-in-50 Golden Swordfish (ocean-only; farm ponds unchanged). Sword swing still 300ms. Pip shop art still queued. Household save intact. Never START OVER.

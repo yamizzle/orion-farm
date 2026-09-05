@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260904h";
+  var BUILD = "20260904i";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -1239,16 +1239,16 @@
     { id: "seeds", name: "SEED TIN", price: 5, icon: "seed" },
     { id: "potatoSeeds", name: "POTATO SEED", price: 8, icon: "potato" },
     { id: "berrySeeds", name: "BERRY SEED", price: 8, icon: "berry" },
-    { id: "flower", name: "FLOWER", price: 8, icon: "townFlower" },
     { id: "snack", name: "HONEY BUN", price: 6, icon: "honeybun" },
+    { id: "pole", name: "FISHING POLE", price: 30, icon: "fishingPole" },
+    { id: "leash", name: "LEASH", price: 40, icon: "leash" },
+    { id: "flower", name: "FLOWER", price: 8, icon: "townFlower" },
     { id: "apple", name: "APPLE", price: 4, icon: "apple" },
     { id: "bread", name: "BREAD", price: 8, icon: "bread" },
     { id: "pie", name: "BERRY PIE", price: 14, icon: "pie" },
     { id: "hat", name: "STRAW HAT", price: 25, icon: "strawHat" },
     { id: "fence", name: "FENCE KIT", price: 12, icon: "wood" },
     { id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" },
-    { id: "pole", name: "FISHING POLE", price: 30, icon: "fishingPole" },
-    { id: "leash", name: "LEASH", price: 40, icon: "leash" },
     { id: "houseKit", name: "HOUSE KIT", price: 0, icon: "rug" },
     { id: "lampKit", name: "LAMP KIT", price: 10, icon: "lantern" },
     { id: "crateKit", name: "CRATE KIT", price: 10, icon: "crate" }
@@ -10600,7 +10600,8 @@
     var w = 280, h = 200;
     var x = ((VIEW_W - w) / 2) | 0;
     var y = 3;
-    return { x: x, y: y, w: w, h: h, listY: y + 16, rowH: 14, buyX: x + 16, buyY: y + 182, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14 };
+    /* rowH 12 → ~13 visible rows so pole/leash sit on the first screen. */
+    return { x: x, y: y, w: w, h: h, listY: y + 16, rowH: 12, buyX: x + 16, buyY: y + 182, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14 };
   }
 
   function buyShopItem(item) {
@@ -10800,7 +10801,16 @@
     for (i = 0; i < vis; i++) {
       rowY = L.listY + i * L.rowH;
       if (p.x >= L.x + 8 && p.x <= L.x + L.w - 8 && p.y >= rowY && p.y < rowY + L.rowH) {
-        if (start + i < SHOP_ITEMS.length) shopSel = start + i;
+        if (start + i < SHOP_ITEMS.length) {
+          /* Bottom row + more below → scroll down (touch had no way to reach leash). */
+          if (i === vis - 1 && start + vis < SHOP_ITEMS.length && shopSel === start + i) {
+            shopSel = Math.min(SHOP_ITEMS.length - 1, shopSel + 1);
+          } else if (i === 0 && start > 0 && shopSel === start) {
+            shopSel = Math.max(0, shopSel - 1);
+          } else {
+            shopSel = start + i;
+          }
+        }
         return true;
       }
     }
@@ -10861,6 +10871,8 @@
       else price = (item.id === "hat" && hatOwned) || (item.id === "pole" && poleOwned) ? "0G" : (shopItemPrice(item) + "G");
       drawText(g, price, L.x + L.w - textWidth(price) - 12, rowY + 4, C.woodSh);
     }
+    if (start > 0) drawText(g, "^ MORE", L.x + L.w - textWidth("^ MORE") - 12, L.listY - 1, C.woodSh);
+    if (start + vis < SHOP_ITEMS.length) drawText(g, "v MORE", L.x + L.w - textWidth("v MORE") - 12, L.buyY - 12, C.woodSh);
     woodPanel(g, L.buyX, L.buyY, L.buyW, L.btnH);
     drawText(g, "BUY", L.buyX + ((L.buyW - textWidth("BUY")) / 2) | 0, L.buyY + 3, C.parch);
     woodPanel(g, L.byeX, L.buyY, L.byeW, L.btnH);
@@ -17196,6 +17208,11 @@ if (currentScene === "ocean") goExitOcean();
       e.preventDefault();
       return;
     }
+    if (shopOpen && !e.repeat && (e.code === "Space" || e.key === " " || e.code === "Enter" || e.key === "Enter")) {
+      e.preventDefault();
+      buyShopItem(SHOP_ITEMS[shopSel | 0]);
+      return;
+    }
     dismissKey = e.code === "Escape" || e.code === "Space" || e.code === "Enter" ||
       e.key === "Escape" || e.key === "Esc" || e.key === " " || e.key === "Enter";
     if (!e.repeat && dismissKey) {
@@ -17203,6 +17220,21 @@ if (currentScene === "ocean") goExitOcean();
       if (dismissTopDialog()) return;
       if (e.code === "Escape" || e.key === "Escape" || e.key === "Esc") {
         if (fillMode) leaveFill();
+        return;
+      }
+    }
+    if (shopOpen) {
+      mk = moveKey(e);
+      if (mk) {
+        e.preventDefault();
+        if (e.repeat) return;
+        if (mk.dy > 0) shopSel = Math.min(SHOP_ITEMS.length - 1, (shopSel | 0) + 1);
+        else if (mk.dy < 0) shopSel = Math.max(0, (shopSel | 0) - 1);
+        return;
+      }
+      if (!e.repeat && (e.code === "Space" || e.key === " " || e.code === "Enter" || e.key === "Enter")) {
+        e.preventDefault();
+        buyShopItem(SHOP_ITEMS[shopSel | 0]);
         return;
       }
     }
