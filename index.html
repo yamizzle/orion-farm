@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260904l";
+  var BUILD = "20260905a";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -582,6 +582,8 @@
   var OCEAN_COLS = 40;
   var OCEAN_ROWS = 30;
   var oceanLand = { tx: 18, ty: 2 };
+  var boatHome = { tx: 17, ty: 22 };
+  var onBoat = false;
   var treetopDoor = { tx: 25, ty: 8 };
   var treetopLand = { tx: 20, ty: 21 };
   var treetopExit = { tx: 17, ty: 21 };
@@ -2532,6 +2534,11 @@
     }
     if (name === "overworld") applyPipLantern(PROPS);
     if (name === "treetop" && found.birdArrived) ensureGiantBirdLanded();
+    if (name !== "ocean") {
+      onBoat = false;
+    } else {
+      ensureOceanBoat();
+    }
     if (fresh && name !== "house") applyHarvestState((name === "mine" || name === "tree" || name === "caveclimb") ? harvestSceneName() : name, PROPS);
     if (name === "mine" || name === "caveclimb") ensureMineDecor(PROPS, sceneCacheKey(name));
     if (name === "mine") {
@@ -3148,6 +3155,7 @@
   function buildOceanProps() {
     return [
       { kind: "oceanSign", tx: 20, ty: 2 },
+      { kind: "rowboat", tx: boatHome.tx, ty: boatHome.ty },
       { kind: "pine", tx: 3, ty: 3 }, { kind: "oak", tx: 6, ty: 5 },
       { kind: "birch", tx: 10, ty: 4 }, { kind: "pine", tx: 2, ty: 8 },
       { kind: "oak", tx: 8, ty: 10 }, { kind: "pine", tx: 13, ty: 7 },
@@ -3197,6 +3205,10 @@
   }
 
   function exitOcean() {
+    if (onBoat) {
+      showLineNote("GET OUT FIRST.");
+      return;
+    }
     applyScene("overworld");
     placePlayer(14, 36, "down");
     persistSave();
@@ -3218,6 +3230,10 @@
   }
 
   function goExitOcean() {
+    if (onBoat) {
+      showLineNote("GET OUT FIRST.");
+      return;
+    }
     highlight = { tx: oceanLand.tx, ty: 0 };
     if (isOceanExit(player.tx, player.ty)) {
       exitOcean();
@@ -3277,20 +3293,151 @@
     startWalk(player, path, 3.5);
   }
 
+  function findRowboat() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "rowboat") return p;
+    }
+    return null;
+  }
+
+  function ensureOceanBoat() {
+    var b = findRowboat();
+    if (!b) {
+      PROPS.push({ kind: "rowboat", tx: boatHome.tx, ty: boatHome.ty });
+      b = findRowboat();
+    }
+    if (!b) return null;
+    b.tx = boatHome.tx;
+    b.ty = boatHome.ty;
+    if (onBoat) {
+      b.hidden = true;
+      b.aboard = true;
+    } else {
+      b.hidden = false;
+      b.aboard = false;
+    }
+    return b;
+  }
+
+  function boatShoreSpot() {
+    var spots, i, s;
+    spots = [
+      { tx: 18, ty: 21 }, { tx: 19, ty: 21 }, { tx: 18, ty: 24 }, { tx: 19, ty: 24 },
+      { tx: 17, ty: 21 }, { tx: 16, ty: 21 }, { tx: 20, ty: 21 }, { tx: oceanLand.tx, ty: oceanLand.ty }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      s = spots[i];
+      if (inBounds(s.tx, s.ty) && cell(s.tx, s.ty) === "f" && walkable(s.tx, s.ty)) return s;
+    }
+    for (i = 0; i < spots.length; i++) {
+      s = spots[i];
+      if (inBounds(s.tx, s.ty) && cell(s.tx, s.ty) === "f") return s;
+    }
+    return { tx: oceanLand.tx, ty: oceanLand.ty };
+  }
+
+  function boardBoat() {
+    var b, wx, wy;
+    if (onBoat || currentScene !== "ocean") return;
+    b = ensureOceanBoat();
+    if (!b) return;
+    onBoat = true;
+    b.hidden = true;
+    b.aboard = true;
+    pending = null;
+    highlight = null;
+    player.path = [];
+    player.queuedWalk = null;
+    player.moving = false;
+    buildSolid();
+    wx = b.tx;
+    wy = b.ty + 1;
+    if (!inBounds(wx, wy) || cell(wx, wy) !== "y") {
+      wx = b.tx;
+      wy = b.ty;
+    }
+    if (!walkable(wx, wy)) {
+      wx = b.tx - 1;
+      wy = b.ty;
+    }
+    if (!walkable(wx, wy)) {
+      wx = b.tx + 3;
+      wy = b.ty;
+    }
+    placePlayer(wx, wy, player.face || "down");
+    showLineNote("YOU'RE ROWING!");
+    playSfx("talk");
+  }
+
+  function leaveBoat() {
+    var b, spot;
+    if (!onBoat || currentScene !== "ocean") return;
+    if (cell(player.tx, player.ty) !== "f") {
+      showLineNote("TOO DEEP.");
+      return;
+    }
+    onBoat = false;
+    b = ensureOceanBoat();
+    if (b) {
+      b.hidden = false;
+      b.aboard = false;
+    }
+    pending = null;
+    highlight = null;
+    player.path = [];
+    player.queuedWalk = null;
+    player.moving = false;
+    buildSolid();
+    spot = boatShoreSpot();
+    if (!walkable(spot.tx, spot.ty)) {
+      buildSolid();
+      spot = boatShoreSpot();
+    }
+    placePlayer(spot.tx, spot.ty, "up");
+    showLineNote("BACK ON SHORE.");
+    playSfx("talk");
+  }
+
   function talkBoat() {
-    openDialogue("A BOAT.", ["MAYBE LATER."]);
+    if (currentScene !== "ocean") return;
+    if (onBoat) {
+      if (cell(player.tx, player.ty) === "f") {
+        openDialogue("BOAT", ["GET OUT?"], [
+          { id: "leaveBoat", label: "GET OUT" },
+          { id: "boatNope", label: "NOPE" }
+        ]);
+      } else {
+        showLineNote("TOO DEEP.");
+      }
+      return;
+    }
+    openDialogue("BOAT", ["GET IN?"], [
+      { id: "boardBoat", label: "GET IN" },
+      { id: "boatNope", label: "NOPE" }
+    ]);
   }
 
   function goTalkBoat(p) {
     var dest, path;
-    if (!p) return;
+    if (onBoat) {
+      talkBoat();
+      return;
+    }
+    if (!p) p = findRowboat();
+    if (!p || p.hidden) return;
     highlight = { tx: p.tx, ty: p.ty };
-    if (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty)) {
+    if (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty) ||
+        propOccupies(p, player.tx, player.ty) || nearProp(p)) {
       pending = null;
       talkBoat();
       return;
     }
     dest = nearestAdjacent(p.tx, p.ty);
+    if (!dest) dest = nearestAdjacent(p.tx + 1, p.ty);
+    if (!dest) dest = nearestAdjacent(p.tx + 2, p.ty);
+    if (!dest) dest = nearestAdjacent(p.tx + 1, p.ty + 1);
     if (!dest) {
       talkBoat();
       return;
@@ -3320,6 +3467,10 @@
       return false;
     }
     if (currentScene !== "ocean") return false;
+    if (onBoat) {
+      talkBoat();
+      return true;
+    }
     if (isOceanExit(player.tx, player.ty)) {
       exitOcean();
       return true;
@@ -4598,7 +4749,8 @@
     for (y = 0; y < ROWS; y++) {
       solid[y] = [];
       for (x = 0; x < COLS; x++) {
-        solid[y][x] = cell(x, y) === "#" || cell(x, y) === "y" || cell(x, y) === "w";
+        solid[y][x] = cell(x, y) === "#" || cell(x, y) === "w" ||
+          (cell(x, y) === "y" && !(onBoat && currentScene === "ocean"));
       }
     }
     function block(tx, ty) {
@@ -4666,6 +4818,7 @@
       ) {
         block(p.tx, p.ty);
       } else if (p.kind === "rowboat") {
+        if (p.hidden || p.aboard) continue;
         for (y = 0; y < 2; y++) {
           for (x = 0; x < 3; x++) block(p.tx + x, p.ty + y);
         }
@@ -5168,9 +5321,18 @@
   }
 
   function nearProp(prop) {
-    if (!prop) return false;
+    var x, y;
+    if (!prop || prop.hidden) return false;
     if (isNear(player.tx, player.ty, prop.tx, prop.ty) || (player.tx === prop.tx && player.ty === prop.ty)) return true;
     if (prop.kind === "log" && (isNear(player.tx, player.ty, prop.tx + 1, prop.ty) || (player.tx === prop.tx + 1 && player.ty === prop.ty))) return true;
+    if (prop.kind === "rowboat") {
+      for (y = 0; y < 2; y++) {
+        for (x = 0; x < 3; x++) {
+          if (isNear(player.tx, player.ty, prop.tx + x, prop.ty + y) ||
+              (player.tx === prop.tx + x && player.ty === prop.ty + y)) return true;
+        }
+      }
+    }
     return false;
   }
 
@@ -5304,7 +5466,7 @@
   }
 
   function propOccupies(p, tx, ty) {
-    if (!p) return false;
+    if (!p || p.hidden) return false;
     if (p.kind === "house") return tx >= p.tx && tx < p.tx + 5 && ty >= p.ty && ty < p.ty + 4;
     if (p.kind === "shopHouse") return tx >= p.tx && tx < p.tx + 6 && ty >= p.ty && ty < p.ty + 4;
     if (p.kind === "townHouseA" || p.kind === "townHouseC") return tx >= p.tx && tx < p.tx + 4 && ty >= p.ty && ty < p.ty + 5;
@@ -12108,6 +12270,7 @@
   function beginFaint() {
     var i, ang;
     if (faintFx) return;
+    onBoat = false;
     dialogue = null;
     pending = null;
     highlight = null;
@@ -13330,6 +13493,7 @@
       if (p && p.kind === "peakRocks") { talkPeakRocks(); return true; }
       if (isPeakRocks(player.tx, player.ty) || isPeakRocks(face.tx, face.ty)) { talkPeakRocks(); return true; }
     } else if (currentScene === "ocean") {
+      if (onBoat) { talkBoat(); return true; }
       face = facingTile();
       p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
       if (p && p.kind === "rowboat") { talkBoat(); return true; }
@@ -14038,7 +14202,11 @@
 
   function drawPlayer(g) {
     if (birdRideFx) return;
-    var bob, sx, sy, amp;
+    var bob, sx, sy, amp, boatBob;
+    if (onBoat && currentScene === "ocean") {
+      boatBob = Math.round(Math.sin(tick / 220) * 1);
+      Assets.draw(g, "rowboat", Math.round(player.x - 24), Math.round(player.y - 24 + boatBob));
+    }
     if (faintFx && faintFx.stage === "out") {
       drawShadow(g, player.x, player.y, 6);
       if (Assets.spr["player-faint"]) Assets.draw(g, "player-faint", player.x, player.y);
@@ -14511,8 +14679,10 @@
   }
 
   function drawProp(g, p) {
-    var x = p.tx * TILE;
-    var y = p.ty * TILE;
+    var x, y;
+    if (!p || p.hidden) return;
+    x = p.tx * TILE;
+    y = p.ty * TILE;
     if (p.shake > 0) {
       x += ((tick / 40) | 0) % 2 ? 1 : -1;
     }
@@ -14751,6 +14921,7 @@
     var i, p, b;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
+      if (p.hidden) continue;
       b = propBounds(p);
       if (onScreen(b)) list.push({ foot: propFoot(p), kind: "prop", p: p });
     }
@@ -15107,7 +15278,10 @@
         r = L.choiceRects[i];
         if (p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h) {
           dialogue = null;
-          if (r.id) beginBirdRide(r.id);
+          if (r.id === "boardBoat") boardBoat();
+          else if (r.id === "leaveBoat") leaveBoat();
+          else if (r.id === "boatNope") { /* dismiss */ }
+          else if (r.id) beginBirdRide(r.id);
           return true;
         }
       }
@@ -17686,6 +17860,13 @@ if (currentScene === "ocean") goExitOcean();
       wantedTune: wantedTune,
       applyScene: applyScene,
       placePlayer: placePlayer,
+      boardBoat: boardBoat,
+      leaveBoat: leaveBoat,
+      talkBoat: talkBoat,
+      findRowboat: findRowboat,
+      onBoat: function () { return onBoat; },
+      showLineNote: showLineNote,
+      lineNote: function () { return lineNote; },
       loadSave: loadSave,
       persistSave: persistSave,
       migrateOldForestHarvest: migrateOldForestHarvest,
@@ -17793,7 +17974,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260904c", BUILD);
+      ok("BUILD", BUILD === "20260905a", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

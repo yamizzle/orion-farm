@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905a): rideable rowboat at the ocean pier — GET IN / row on water / GET OUT only on sand or pier (TOO DEEP out on water); leave ocean blocked while aboard. Needs live. Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904l): START OVER really wipes — block pagehide/visibility persist that rewrote the old save after removeItem; session wipe flag; bigger YES/NO. WARNING: wipes that browser's save (household Chrome too if used there). Never START OVER on the household save unless you mean it. LIVE 9/4 ~10:15–10:40pm: first live of 04l — tray sword STILL FIXED (slot 0; no sword in BAG grid); slime pad kill **PASS** (NEW vs 04e UNTESTED; ~3 Space/pad taps); contact i-frames PASS; OUT one-tap PASS; OCEAN reached PASS; ocean fish UNTESTED (no pole — toast YOU NEED A FISHING POLE); bat pad / chicken / dog UNTESTED; clock STILL races (Day 2328→2331). START OVER under Jobs (not pressed). Never START OVER.
 Local 9/4 (BUILD 20260904k): dog follows outside only while LEASH is in the 10-tray; taking it out of the tray sends them home. Leaving the house with tray leash warps dog to the porch. Talk tip: PUT THE LEASH ON THE TRAY. Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904j): dog follows out of the house when you own a leash (explicit bring on exit/enter; leash re-seats from save flag; snap never strands on porch). Household save intact. Never START OVER.
@@ -17,7 +18,7 @@ Pick from the top. Expand the world creatively (bigger beach/ocean, fun Imagine 
 | High | Local 9/4 04g | Only 1 fishing pole | Some saves show 3 poles. Cap at one forever: dedupe tray/bag/chest on load; Pip buy already OWNED; never stack count>1. |
 | High | Local 9/4 04g | Chickens move when walked into | Walk onto chicken tile should push/scare it (like ball). Today chicken tile is unwalkable so bump never fires. |
 | Medium | Local 9/4 04h | Dog runs around inside the house | Dog already house-ok; make indoor roam livelier when home (default: roam in house; leash still for outdoors). |
-| Medium | Open | Boat at pier | Rideable boat at ocean pier. Get on; row; get off only at pier or shore (not deep water). |
+| Medium | Local 9/5 05a | Boat at pier | Rideable boat at ocean pier. Get on; row; get off only at pier or shore (not deep water). Needs live. |
 | Medium | Open | Bigger beach / ocean world | Extend ocean scene logically + creatively with fun Imagine graphics (cove, dunes, more pier room, south deep water toward island). Make the world feel bigger. |
 | Medium | Open | Island cave Diamond Pickaxe → peak rocks | Row boat further south into deep ocean → tiny island with cave → Diamond Pickaxe inside. Imagine-regen PEAK without painted summit rocks; place matching removable rock sprites; Diamond Pickaxe breaks them in 10 hits. Opens summit path. |
 | Medium | Open | More Imagine trees everywhere | Extra tree types (palm/cove, farm rim, town, woods fillers) via Grok Imagine + BOX/AREA downsample; props not painted-in. |
