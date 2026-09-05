@@ -1,6 +1,23 @@
 # Moondrop Mountain backlog
 
 Local 9/4 (BUILD 20260904f): ocean pier/beach fishing has a 1-in-50 Golden Swordfish (ocean-only; farm ponds unchanged). Sword swing still 300ms. Pip shop art still queued. Household save intact. Never START OVER.
+
+## Queued 9/4 evening (Darren asks)
+
+Pick from the top. Expand the world creatively (bigger beach/ocean, fun Imagine art) — not a thin strip. Household save; never START OVER. Frozen: Orion art, farm grass0–3, evening color, walk energy, DAY_MS, peak summit rocks until the Diamond Pickaxe island slice lands.
+
+| Priority | Status | Item | Notes |
+| --- | --- | --- | --- |
+| High | Open | Only 1 fishing pole | Some saves show 3 poles. Cap at one forever: dedupe tray/bag/chest on load; Pip buy already OWNED; never stack count>1. |
+| High | Open | Chickens move when walked into | Walk onto chicken tile should push/scare it (like ball). Today chicken tile is unwalkable so bump never fires. |
+| Medium | Open | Dog runs around inside the house | Dog already house-ok; make indoor roam livelier when home (default: roam in house; leash still for outdoors). |
+| Medium | Open | Boat at pier | Rideable boat at ocean pier. Get on; row; get off only at pier or shore (not deep water). |
+| Medium | Open | Bigger beach / ocean world | Extend ocean scene logically + creatively with fun Imagine graphics (cove, dunes, more pier room, south deep water toward island). Make the world feel bigger. |
+| Medium | Open | Island cave Diamond Pickaxe → peak rocks | Row boat further south into deep ocean → tiny island with cave → Diamond Pickaxe inside. Imagine-regen PEAK without painted summit rocks; place matching removable rock sprites; Diamond Pickaxe breaks them in 10 hits. Opens summit path. |
+| Medium | Open | More Imagine trees everywhere | Extra tree types (palm/cove, farm rim, town, woods fillers) via Grok Imagine + BOX/AREA downsample; props not painted-in. |
+| Low | Open | Pip shop glow-up | Still queued from earlier (Imagine enhance shopHouse). |
+
+
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
 Local 9/4 (BUILD 20260904e): sword swing back to 300ms; fish from OCEAN pier/beach water with the pole (same cast loop as farm ponds). Pip shop art still queued. Household save intact. LIVE 9/4 ~7:14–7:34pm: first live of 04e — tray sword STILL FIXED (slot 0); Space+hotbar swing **PASS** (NEW); bat i-frames PASS; slime contact STILL PASS; bat/slime pad kills UNTESTED this pass (swings fired, foes fled); OUT one-tap PASS; clock STILL races. Never START OVER.
