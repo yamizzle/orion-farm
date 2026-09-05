@@ -1,6 +1,6 @@
 # Moondrop Mountain backlog
 
-Local 9/4 (BUILD 20260904l): START OVER really wipes — block pagehide/visibility persist that rewrote the old save after removeItem; session wipe flag; bigger YES/NO. WARNING: wipes that browser's save (household Chrome too if used there). Never START OVER on the household save unless you mean it.
+Local 9/4 (BUILD 20260904l): START OVER really wipes — block pagehide/visibility persist that rewrote the old save after removeItem; session wipe flag; bigger YES/NO. WARNING: wipes that browser's save (household Chrome too if used there). Never START OVER on the household save unless you mean it. LIVE 9/4 ~10:15–10:40pm: first live of 04l — tray sword STILL FIXED (slot 0; no sword in BAG grid); slime pad kill **PASS** (NEW vs 04e UNTESTED; ~3 Space/pad taps); contact i-frames PASS; OUT one-tap PASS; OCEAN reached PASS; ocean fish UNTESTED (no pole — toast YOU NEED A FISHING POLE); bat pad / chicken / dog UNTESTED; clock STILL races (Day 2328→2331). START OVER under Jobs (not pressed). Never START OVER.
 Local 9/4 (BUILD 20260904k): dog follows outside only while LEASH is in the 10-tray; taking it out of the tray sends them home. Leaving the house with tray leash warps dog to the porch. Talk tip: PUT THE LEASH ON THE TRAY. Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904j): dog follows out of the house when you own a leash (explicit bring on exit/enter; leash re-seats from save flag; snap never strands on porch). Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904i): Pip shop — LEASH + FISHING POLE moved up on the list (were below the fold with no tap-scroll); list scrolls; v MORE hint. Household save intact. Never START OVER.
@@ -85,9 +85,21 @@ Local 8/31 ~3:20pm PT BUILD 20260831e: ocean overlay boats removed; new top-down
 Local 8/31 ~1:40pm PT BUILD 20260831d: peak FARM sign and south-balcony farm warp removed. Cave is the only way down. LIVE 2:46pm: FARM sign ABSENT; cave-down to MINE 6 PASS. Household save intact. Never START OVER.
 Local 8/31 ~1:35pm PT BUILD 20260831c: outdoor peak no longer draws the inside-looking-out caveMouth overlay; peakMap outdoor painting stays; cave still enterable. LIVE 2:46pm: outdoor PEAK looks outdoor (no cave overlay). Household save intact. Never START OVER.
 
-Last live pass: **2026-09-04 ~7:14–7:34pm PT** BUILD 20260904e (desktop; `?v=20260904pt1914`). First live of 04e. Continued box Chrome save Day 2307 MINE 1 (5♥, 0G) → Day 2308 FARM (2♥, 0G). **STILL FIXED:** tray sword slot 0 pinned (no bag dup). **NEW/PASS:** Space+hotbar swing with slot 0 selected (`34-space-hotbar-swing.png`). **PASS:** bat i-frames (one hit then hold ~4s); slime contact (one hit then hold ~4s); MINE 1 OUT one-tap. Bat/slime pad kills UNTESTED (swings fired, foes fled). START OVER under Jobs (not pressed). Clock STILL races. Never START OVER. Screenshots `/workspace/playtest-1914/`.
+Last live pass: **2026-09-04 ~10:15–10:40pm PT** BUILD 20260904l (desktop; `?v=20260904pt2215`). First live of 04l (04f–04l shipped since 04e). Continued box Chrome save Day 2328 WOODS (2♥, 0G) → Day 2331 OCEAN (2♥, 0G). Route WOODS → MINE 1 → OCEAN. **STILL FIXED:** tray sword slot 0. **PASS (NEW vs 04e UNTESTED):** slime pad kill (~3 Space/pad). **PASS:** contact i-frames (~4.5s hold); MINE 1 OUT one-tap; OCEAN reach. Ocean fish UNTESTED (no pole; toast YOU NEED A FISHING POLE). Bat pad / chicken / dog UNTESTED. Clock STILL races (2328→2331). START OVER under Jobs (not pressed). Never START OVER. Screenshots `/workspace/playtest-2215/`.
 
-Highest-leverage theme: Space+hotbar swing **PASS** on first live 20260904e (tray sword still FIXED). Still open: bat/slime pad kill reconfirm this build; day-clock races; START OVER placement; Pip shop 04d + ocean fish 04e untested.
+Highest-leverage theme: first live **20260904l** — slime pad kill **PASS**; tray sword still FIXED. Still open: bat pad kill; ocean fish (need pole); day-clock races; START OVER wipe (04l claim, not pressed); chicken scoot / dog leash / Pip shop scroll.
+
+## Live playtest 9/4 ~10:15–10:40pm PT (BUILD 20260904l)
+
+- Continued box Chrome save — never START OVER. Day 2328 SPRING EVENING (WOODS, 2/5♥, 0G) → Day 2331 SPRING EVENING (OCEAN, 2/5♥, 0G). URL cache-bust `?v=20260904pt2215`; Jobs stamp `20260904l`. First live of 04l. ~20–25 min; no crash; START OVER seen in Jobs, not pressed.
+- **STILL FIXED:** Sword hard-pinned in 10-tray hotbar slot 0; BAG 90-grid had no sword icon (`04-bag.png`, `05-mine1-hotbar.png`).
+- **PASS (was UNTESTED on 04e):** Slime pad/Space kill — slime gone after ~3 inputs (`06-slime-kill.png`).
+- **PASS:** Contact i-frames — hold ~4.5s adjacent, no multi-drain (`07-contact-iframe.png`).
+- **PASS:** MINE 1 OUT one-tap (`08-out-pass.png`).
+- **PASS:** Reached OCEAN from farm path (`09-ocean-shoreline.png`).
+- **UNTESTED:** Ocean pier/beach fishing — no fishing pole in tray/bag; water tap toast `YOU NEED A FISHING POLE.` (`11-fishing-no-pole.png`). Bat pad kill; chicken scoot; dog/leash.
+- **STILL:** Day clock races (2328→2331 across short pass). START OVER under Jobs (04l wipe claim not pressed).
+- Screenshots `/workspace/playtest-2215/`.
 
 ## Live playtest 9/4 ~7:14–7:34pm PT (BUILD 20260904e)
 
