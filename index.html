@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905z";
+  var BUILD = "20260905aa";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -18147,7 +18147,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905z", BUILD);
+      ok("BUILD", BUILD === "20260905aa", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
