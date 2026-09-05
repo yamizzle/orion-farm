@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905e";
+  var BUILD = "20260905f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -5935,11 +5935,16 @@
   }
 
   function setPocket(place, i, rec) {
-    if (!rec || !rec.key || (rec.count | 0) < 1) rec = null;
+    var out = null;
+    if (rec && rec.key) {
+      /* Always store a fresh copy so tray↔bag never share one object. */
+      if (isToolKey(rec.key)) out = { key: rec.key, count: 1 };
+      else if ((rec.count | 0) >= 1) out = { key: rec.key, count: rec.count | 0 };
+    }
     if (place === "tray") {
-      if (i >= 0 && i < TRAY_CELLS) trayCells[i] = rec;
+      if (i >= 0 && i < TRAY_CELLS) trayCells[i] = out;
     } else if (i >= 0 && i < BAG_CELLS) {
-      bagCells[i] = rec;
+      bagCells[i] = out;
     }
   }
 
@@ -5990,22 +5995,12 @@
   }
 
   function showOwnedGoodsInBag() {
-    var i, c, idx;
-    /* Drop stale tray aliases first so a moved tray item cannot linger as a bag-only ghost. */
+    var i, c;
+    /* Bag grid is bag-only. Strip any tray↔bag shared-object aliases left in old saves.
+       Do NOT re-mirror tray stacks into bagCells — shared refs broke one-tap swaps. */
     for (i = 0; i < BAG_CELLS; i++) {
       c = bagCells[i];
       if (c && trayHoldsRec(c)) bagCells[i] = null;
-    }
-    if (!pocketHasStacks(bagCells, BAG_CELLS) && !pocketHasStacks(trayCells, TRAY_CELLS)) return;
-    for (i = 0; i < TRAY_CELLS; i++) {
-      c = trayCells[i];
-      if (!c || !c.key) continue;
-      /* Never mirror tools into the bag grid — aliases orphan sword BAG-only. */
-      if (isToolKey(c.key)) continue;
-      if (bagHoldsRec(c)) continue;
-      idx = firstEmptyBag();
-      if (idx < 0) break;
-      bagCells[idx] = c;
     }
   }
 
@@ -15962,6 +15957,13 @@
     return idx;
   }
 
+  function pocketCopy(rec) {
+    if (!rec || !rec.key) return null;
+    if (isToolKey(rec.key)) return { key: rec.key, count: 1 };
+    if ((rec.count | 0) < 1) return null;
+    return { key: rec.key, count: rec.count | 0 };
+  }
+
   function tapPocket(place, idx) {
     var rec, tmp, max, fromPlace, fromIdx, empty, room, take, cap;
     max = place === "tray" ? TRAY_CELLS : BAG_CELLS;
@@ -15991,6 +15993,7 @@
             bagHeld = null;
             bagHeldFrom = null;
           }
+          /* Clear leftover aliases of this stack after mutating count. */
           syncBagCounts();
           playSfx("ui");
           return;
@@ -16004,28 +16007,34 @@
         playSfx("ui");
         return;
       }
-      /* Clean two-slot swap: target gets held; origin gets displaced. */
-      tmp = { key: rec.key, count: rec.count | 0 };
+      /* True one-tap swap: copy displaced, wipe all aliases of it, place held,
+         put displaced copy back at the pickup slot (or park / keep on cursor). */
+      tmp = pocketCopy(rec);
+      clearRecEverywhere(rec);
       setPocket(place, idx, bagHeld);
       if (fromPlace && fromIdx >= 0 && !(fromPlace === place && fromIdx === idx)) {
         setPocket(fromPlace, fromIdx, tmp);
+        bagHeld = null;
+        bagHeldFrom = null;
       } else {
         empty = firstEmptyTray();
-        if (empty >= 0) setPocket("tray", empty, tmp);
-        else {
+        if (empty >= 0) {
+          setPocket("tray", empty, tmp);
+          bagHeld = null;
+          bagHeldFrom = null;
+        } else {
           empty = firstEmptyBag();
-          if (empty >= 0) setPocket("bag", empty, tmp);
-          else {
+          if (empty >= 0) {
+            setPocket("bag", empty, tmp);
+            bagHeld = null;
+            bagHeldFrom = null;
+          } else {
+            /* Full: never lose the displaced stack — keep it on the cursor. */
             bagHeld = tmp;
             bagHeldFrom = { place: place, i: idx };
-            syncBagCounts();
-            playSfx("ui");
-            return;
           }
         }
       }
-      bagHeld = null;
-      bagHeldFrom = null;
       syncBagCounts();
       playSfx("ui");
       return;
@@ -16034,10 +16043,16 @@
       playSfx("ui");
       return;
     }
-    /* Copy out of the cell — shared object refs made swaps shuffle aliases. */
-    bagHeld = { key: rec.key, count: rec.count | 0 };
+    /* Copy out, then wipe every alias of this object (old tray↔bag mirrors). */
+    bagHeld = pocketCopy(rec);
+    if (!bagHeld) {
+      clearRecEverywhere(rec);
+      syncBagCounts();
+      playSfx("ui");
+      return;
+    }
     bagHeldFrom = { place: place, i: idx };
-    setPocket(place, idx, null);
+    clearRecEverywhere(rec);
     syncBagCounts();
     playSfx("ui");
   }
