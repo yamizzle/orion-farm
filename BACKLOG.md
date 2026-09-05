@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905j): Imagine 32×32 tray tools — axe, pickaxe, shovel, bow, ironSword, leash. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905i): first piece-by-piece Imagine 32×32 tray icons — sword, wood, stone, seed, fishingPole (BOX/AREA downsample into ui/; atlas packed). drawUiIcon already blits larger frames into 16 logical (=32 device under BUFFER=2). More icons later. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905h): boat row fix — aboard ocean taps path/row on water (boatOk: water y + pier/sand f next to water); fishing / YOU NEED A FISHING POLE blocked while onBoat so water taps no longer steal the row. GET OUT still pier/shore only. Keeps 05g 2× BUFFER. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905g): 2× internal canvas buffer (640×384 backing; CSS still VIEW_W/H × scale) so tray/bag icons can later show real 32×32 detail at the same on-screen window. Existing 16×16 art NN-scaled by the buffer (looks the same); drawUiIcon scales denser atlas frames → 16 logical. Icons still 16 this ship — Imagine regen piece-by-piece next. Household save intact. Never START OVER.
