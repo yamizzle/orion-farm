@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ac";
+  var BUILD = "20260905ad";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -589,6 +589,8 @@
   var OCEAN_ROWS = 40;
   var oceanLand = { tx: 22, ty: 2 };
   var boatHome = { tx: 22, ty: 25 };
+  /* Last docked shore spot — boat stays here so kids aren't stranded on the island */
+  var boatDock = { tx: 22, ty: 25 };
   var onBoat = false;
   var treetopDoor = { tx: 25, ty: 8 };
   var treetopLand = { tx: 20, ty: 21 };
@@ -2552,6 +2554,14 @@
       onBoat = false;
     } else {
       ensureOceanBoat();
+      /* Apply last dock so a rebuilt ocean still finds the boat on the island */
+      if (boatDock && !onBoat) {
+        var _ob = findRowboat();
+        if (_ob) {
+          _ob.tx = boatDock.tx;
+          _ob.ty = boatDock.ty;
+        }
+      }
     }
     if (fresh && name !== "house") applyHarvestState((name === "mine" || name === "tree" || name === "caveclimb") ? harvestSceneName() : name, PROPS);
     if (name === "mine" || name === "caveclimb") ensureMineDecor(PROPS, sceneCacheKey(name));
@@ -3339,13 +3349,14 @@
 
   function ensureOceanBoat() {
     var b = findRowboat();
+    var home;
     if (!b) {
-      PROPS.push({ kind: "rowboat", tx: boatHome.tx, ty: boatHome.ty });
+      home = boatDock || boatHome;
+      PROPS.push({ kind: "rowboat", tx: home.tx, ty: home.ty });
       b = findRowboat();
     }
     if (!b) return null;
-    b.tx = boatHome.tx;
-    b.ty = boatHome.ty;
+    /* 20260905ad: never snap an existing boat back to the pier — it stays where you got off */
     if (onBoat) {
       b.hidden = true;
       b.aboard = true;
@@ -3353,6 +3364,37 @@
       b.hidden = false;
       b.aboard = false;
     }
+    return b;
+  }
+
+  function dockBoatAt(tx, ty) {
+    var b, nx, ny, trySpots, i, s;
+    b = ensureOceanBoat();
+    if (!b) return null;
+    trySpots = [
+      { tx: tx, ty: ty },
+      { tx: tx - 1, ty: ty },
+      { tx: tx - 2, ty: ty },
+      { tx: tx, ty: ty - 1 },
+      { tx: tx - 1, ty: ty - 1 }
+    ];
+    for (i = 0; i < trySpots.length; i++) {
+      s = trySpots[i];
+      if (!inBounds(s.tx, s.ty)) continue;
+      /* Prefer shore (f) so the hull sits on the beach/pier next to you */
+      if (cell(s.tx, s.ty) === "f") {
+        nx = s.tx;
+        ny = s.ty;
+        break;
+      }
+    }
+    if (nx === undefined) {
+      nx = tx;
+      ny = ty;
+    }
+    b.tx = nx;
+    b.ty = ny;
+    boatDock = { tx: nx, ty: ny };
     return b;
   }
 
@@ -3407,14 +3449,16 @@
   }
 
   function leaveBoat() {
-    var b, spot;
+    var b, stayTx, stayTy;
     if (!onBoat || currentScene !== "ocean") return;
     if (cell(player.tx, player.ty) !== "f") {
       showLineNote("TOO DEEP.");
       return;
     }
+    stayTx = player.tx;
+    stayTy = player.ty;
     onBoat = false;
-    b = ensureOceanBoat();
+    b = dockBoatAt(stayTx, stayTy);
     if (b) {
       b.hidden = false;
       b.aboard = false;
@@ -3425,14 +3469,11 @@
     player.queuedWalk = null;
     player.moving = false;
     buildSolid();
-    spot = boatShoreSpot();
-    if (!walkable(spot.tx, spot.ty)) {
-      buildSolid();
-      spot = boatShoreSpot();
-    }
-    placePlayer(spot.tx, spot.ty, "up");
-    showLineNote("BACK ON SHORE.");
+    /* Stay on this shore — do not teleport back to the pier */
+    placePlayer(stayTx, stayTy, player.face || "up");
+    showLineNote("BOAT STAYS HERE.");
     playSfx("talk");
+    persistSave();
   }
 
   function talkBoat() {
@@ -7197,6 +7238,9 @@
       swordOwned = !!data.swordOwned;
       axeOwned = !!data.axeOwned;
       shovelOwned = !!data.shovelOwned;
+      if (data.boatDock && typeof data.boatDock.tx === "number" && typeof data.boatDock.ty === "number") {
+        boatDock = { tx: data.boatDock.tx | 0, ty: data.boatDock.ty | 0 };
+      }
       poleOwned = !!data.poleOwned;
       pickaxeOwned = !!data.pickaxeOwned;
       shieldOwned = !!data.shieldOwned;
@@ -7569,6 +7613,7 @@
         swordOwned: !!swordOwned,
         axeOwned: !!axeOwned,
         shovelOwned: !!shovelOwned,
+        boatDock: { tx: (boatDock && boatDock.tx) | 0, ty: (boatDock && boatDock.ty) | 0 },
         poleOwned: !!poleOwned,
         pickaxeOwned: !!pickaxeOwned,
         shieldOwned: !!shieldOwned,
@@ -18177,7 +18222,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ac", BUILD);
+      ok("BUILD", BUILD === "20260905ad", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
