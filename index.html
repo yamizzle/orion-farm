@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260904k";
+  var BUILD = "20260904l";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -724,6 +724,7 @@
   var builds = [];
   var pendingRestore = null;
   var loadingSave = false;
+  var persistBlocked = false; /* true during START OVER so pagehide cannot rewrite the wipe */
   var mailRead = { welcome: false, mine: false, thanks: false };
   var quest = {
     flowerAsked: false,
@@ -7218,7 +7219,7 @@
   }
 
   function persistSave() {
-    if (loadingSave || persistSave.busy) return;
+    if (loadingSave || persistBlocked || persistSave.busy) return;
     persistSave.busy = true;
     try {
       flushPickups();
@@ -8737,13 +8738,13 @@
   }
 
   function wipeLayout() {
-    var w = 208, h = 62;
+    var w = 220, h = 70;
     var x = ((VIEW_W - w) / 2) | 0;
-    var y = 60;
-    var yesW = 44, noW = 36, bh = 16;
-    var yesX = x + 28;
-    var noX = x + w - 28 - noW;
-    var by = y + 36;
+    var y = 56;
+    var yesW = 56, noW = 44, bh = 18;
+    var yesX = x + 24;
+    var noX = x + w - 24 - noW;
+    var by = y + 40;
     return { x: x, y: y, w: w, h: h, yesX: yesX, noX: noX, by: by, yesW: yesW, noW: noW, bh: bh };
   }
 
@@ -8752,9 +8753,12 @@
   }
 
   function wipeAndReload() {
+    /* Block pagehide/visibility persist — they used to rewrite the save after removeItem. */
+    persistBlocked = true;
     try { localStorage.removeItem(SAVE_KEY); } catch (err) {}
+    try { sessionStorage.setItem("moondrop-wipe", "1"); } catch (err) {}
     var path = location.pathname || "/";
-    location.href = path + "?v=" + Date.now();
+    location.replace(path + "?v=" + encodeURIComponent(BUILD + "-new-" + Date.now()));
   }
 
   function tapWipeAsk(p) {
@@ -17227,6 +17231,13 @@ if (currentScene === "ocean") goExitOcean();
 
   paintLoading();
   initFreshBag();
+  try {
+    if (sessionStorage.getItem("moondrop-wipe") === "1") {
+      sessionStorage.removeItem("moondrop-wipe");
+      localStorage.removeItem(SAVE_KEY);
+      persistBlocked = false;
+    }
+  } catch (err) {}
   loadSave();
   applyScene("overworld");
   applyRestore();
