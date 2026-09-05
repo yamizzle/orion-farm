@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905t): restore pickaxe/carrot (and other icons over-scrubbed in 05s) from Imagine with safer magenta key — no pink bg, icons intact. Never START OVER.
 Local 9/5 (BUILD 20260905s): scrub leftover magenta/pink chroma on pickaxe + carrot (veggie) tray icons (and any other ui/*.png still leaking pink). Never START OVER.
 Local 9/5 (BUILD 20260905r): Imagine 32×32 fish icons for all FISH_KINDS (minnow→goldenSwordfish); paintFishIcon prefers sprite. Bare flower/berry/acorn already in 05q. Never START OVER.
 Local 9/5 (BUILD 20260905q): re-Imagine tray flower/berry/acorn/pinecone/apple/carrot as bare items (no picture-frame / plate / UI box). Never START OVER.
