@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/4 (BUILD 20260904k): dog follows outside only while LEASH is in the 10-tray; taking it out of the tray sends them home. Leaving the house with tray leash warps dog to the porch. Talk tip: PUT THE LEASH ON THE TRAY. Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904j): dog follows out of the house when you own a leash (explicit bring on exit/enter; leash re-seats from save flag; snap never strands on porch). Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904i): Pip shop — LEASH + FISHING POLE moved up on the list (were below the fold with no tap-scroll); list scrolls; v MORE hint. Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904h): dog runs around more inside the house (faster/shorter idle); 04g pole dedupe + chicken bump kept. Still Open: boat, bigger ocean, island Diamond Pickaxe, more trees, Pip shop. Household save intact. Never START OVER.

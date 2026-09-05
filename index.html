@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260904j";
+  var BUILD = "20260904k";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -12879,7 +12879,8 @@
   function enterHouse() {
     applyScene("house");
     placePlayer(10, 9, "up");
-    if (hasLeash()) bringDogWithPlayer("house");
+    if (dogOnLeash()) bringDogWithPlayer("house");
+    else if (dog.scene !== "house") parkDogInHouse();
     if (found.moonshard && !quest.homeDone) {
       quest.homeDone = true;
       homeLight = true;
@@ -12894,27 +12895,52 @@
   }
 
   function bringDogWithPlayer(sceneName) {
-    if (!hasLeash()) return false;
+    var nx, ny;
+    if (!dogOnLeash()) return false;
     dog.scene = sceneName;
-    snapDogNearPlayer();
+    dog.path = [];
+    dog.queuedWalk = null;
+    /* Prefer the tile south of Orion (house exit faces down). */
+    nx = player.tx;
+    ny = player.ty + 1;
+    if (inBounds(nx, ny) && walkable(nx, ny) && !playerOccupies(nx, ny)) {
+      dog.tx = nx;
+      dog.ty = ny;
+      dogStop();
+    } else {
+      snapDogNearPlayer();
+    }
+    /* Guaranteed visible: if still nowhere valid, stand on Orion. */
+    if (dog.scene === sceneName && (dog.tx !== player.tx || dog.ty !== player.ty)) {
+      if (!inBounds(dog.tx, dog.ty) || !walkable(dog.tx, dog.ty)) {
+        dog.tx = player.tx;
+        dog.ty = player.ty;
+        dogStop();
+      }
+    }
     return true;
   }
 
   function parkDogInHouse() {
+    /* Do not walkable-check against the outdoor map — just remember house coords. */
     dog.scene = "house";
-    dog.tx = dog.houseTx || 6;
-    dog.ty = dog.houseTy || 7;
-    if (!inBounds(dog.tx, dog.ty) || !walkable(dog.tx, dog.ty)) {
-      dog.tx = 6;
-      dog.ty = 7;
-    }
-    dogStop();
+    dog.tx = (dog.houseTx | 0) || 6;
+    dog.ty = (dog.houseTy | 0) || 7;
+    dog.path = [];
+    dog.queuedWalk = null;
+    dog.stepFrom = null;
+    dog.stepT = 0;
+    dog.moving = false;
+    dog.frame = 0;
+    /* x/y only matter when the house scene loads; set anyway for consistency. */
+    dog.x = dog.tx * TILE + 8;
+    dog.y = dog.ty * TILE + 14;
   }
 
   function exitHouse() {
     applyScene("overworld");
     placePlayer(17, 29, "down");
-    /* Explicit bring-along — do not wait for updateDog scene sync. */
+    /* Tray leash → dog comes outside. Bag-only / no leash → dog stays home. */
     if (!bringDogWithPlayer("overworld")) parkDogInHouse();
     persistSave();
   }
@@ -13651,9 +13677,9 @@
   }
 
 
-  function hasLeash() {
+  function ownsLeash() {
+    if (bagHeld && bagHeld.key === "leash") return true;
     if (bagCount("leash") >= 1) return true;
-    /* Save flag can say owned while the pocket cell was lost — re-seat it. */
     if ((inventory.leash | 0) >= 1) {
       placeToolInTrayFirst("leash");
       if (bagCount("leash") >= 1) return true;
@@ -13662,9 +13688,27 @@
     return false;
   }
 
+  /* Dog walks outside only while the leash sits in the 10-tray (hotbar). */
+  function leashInTray() {
+    var i;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      if (trayCells[i] && trayCells[i].key === "leash") return true;
+    }
+    return false;
+  }
+
+  function dogOnLeash() {
+    return leashInTray();
+  }
+
+  function hasLeash() {
+    /* Shop / dialogue: owned anywhere. Walking the dog: dogOnLeash(). */
+    return ownsLeash();
+  }
+
   function dogSceneOk() {
     if (currentScene === "house") return true;
-    if (!hasLeash()) return false;
+    if (!dogOnLeash()) return false;
     return currentScene === "overworld" || currentScene === "ocean" || currentScene === "forest";
   }
 
@@ -13683,7 +13727,7 @@
     if (!inBounds(tx, ty) || !walkable(tx, ty)) return false;
     if (playerOccupies(tx, ty)) return false;
     if (currentScene === "house") {
-      if (!hasLeash() && isHouseExit(tx, ty)) return false;
+      if (!dogOnLeash() && isHouseExit(tx, ty)) return false;
       return true;
     }
     return true;
@@ -13764,26 +13808,32 @@
   }
 
   function talkDog() {
-    if (hasLeash()) openDialogue("DOG", ["WOOF.", "LET'S GO!"]);
+    if (dogOnLeash()) openDialogue("DOG", ["WOOF.", "LET'S GO!"]);
+    else if (ownsLeash()) openDialogue("DOG", ["WOOF.", "PUT THE LEASH ON THE TRAY."]);
     else openDialogue("DOG", ["WOOF.", "NEEDS A LEASH."]);
   }
 
   function updateDog(dt) {
     var dest;
+    /* Outside without a tray leash → dog is home (not invisible outdoors). */
+    if (currentScene !== "house" && !dogOnLeash()) {
+      if (dog.scene !== "house") parkDogInHouse();
+      return;
+    }
     if (!dogSceneOk()) return;
     if (dog.scene !== currentScene) {
-      if (currentScene === "house" && !hasLeash() && dog.houseTx) {
+      if (currentScene === "house" && !dogOnLeash() && dog.houseTx) {
         dog.tx = dog.houseTx;
         dog.ty = dog.houseTy;
-        if (!dogOk(dog.tx, dog.ty)) {
-          dog.tx = 6;
-          dog.ty = 7;
-        }
         dogStop();
-      } else {
+      } else if (dogOnLeash()) {
         snapDogNearPlayer();
+        dog.scene = currentScene;
+      } else {
+        parkDogInHouse();
+        return;
       }
-      dog.scene = currentScene;
+      if (dogOnLeash()) dog.scene = currentScene;
     }
     if (currentScene === "house") {
       dog.houseTx = dog.tx;
@@ -13803,7 +13853,7 @@
       advanceWalk(dog, dt);
       return;
     }
-    if (hasLeash() && (currentScene === "overworld" || currentScene === "ocean" || currentScene === "forest" || currentScene === "house")) {
+    if (dogOnLeash() && (currentScene === "overworld" || currentScene === "ocean" || currentScene === "forest" || currentScene === "house")) {
       dog.idle -= dt;
       if (dog.idle > 0) {
         dogFollow();
