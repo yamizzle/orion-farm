@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905o";
+  var BUILD = "20260905p";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4101,8 +4101,8 @@
   }
 
   function drawItemIcon(g, id, x, y) {
-    if (id === "silver") { paintSilver(g, x, y); return; }
-    if (id === "goldore") { paintGoldore(g, x, y); return; }
+    if (id === "silver") { if (drawUiIcon(g, "silver", x, y)) return; paintSilver(g, x, y); return; }
+    if (id === "goldore") { if (drawUiIcon(g, "goldore", x, y)) return; paintGoldore(g, x, y); return; }
     if (id === "potato") { if (drawUiIcon(g, "potato", x, y)) return; paintPotato(g, x, y); return; }
     if (id === "berry") { if (drawUiIcon(g, "berry", x, y)) return; paintBerry(g, x, y); return; }
     if (id === "acorn") { if (drawUiIcon(g, "acorn", x, y)) return; paintAcorn(g, x, y); return; }
@@ -4111,8 +4111,8 @@
     if (id === "bread") { if (drawUiIcon(g, "bread", x, y)) return; paintBread(g, x, y); return; }
     if (id === "pie") { if (drawUiIcon(g, "pie", x, y)) return; paintPie(g, x, y); return; }
     if (id === "copperBar") { if (drawUiIcon(g, "copperBar", x, y)) return; paintCopperBar(g, x, y); return; }
-    if (id === "silverBar") { paintSilverBar(g, x, y); return; }
-    if (id === "goldBar") { paintGoldBar(g, x, y); return; }
+    if (id === "silverBar") { if (drawUiIcon(g, "silverBar", x, y)) return; paintSilverBar(g, x, y); return; }
+    if (id === "goldBar") { if (drawUiIcon(g, "goldBar", x, y)) return; paintGoldBar(g, x, y); return; }
     if (id === "fishingPole") {
       if (drawUiIcon(g, "fishingPole", x, y)) return;
       paintFishingPole(g, x, y); return;
@@ -15860,17 +15860,17 @@
   function drawBagKey(g, key, x, y) {
     if (!key) return;
     if (key === "seed") drawUiIcon(g, "seed", x, y);
-    else if (key === "potatoSeed") paintPotatoSeed(g, x, y);
-    else if (key === "berrySeed") paintBerrySeed(g, x, y);
+    else if (key === "potatoSeed") { if (!drawUiIcon(g, "potatoSeed", x, y)) paintPotatoSeed(g, x, y); }
+    else if (key === "berrySeed") { if (!drawUiIcon(g, "berrySeed", x, y)) paintBerrySeed(g, x, y); }
     else if (key === "wood") drawUiIcon(g, "wood", x, y);
     else if (key === "stone") drawUiIcon(g, "stoneItem", x, y);
     else if (key === "iron") drawUiIcon(g, "iron", x, y);
     else if (key === "copper") drawUiIcon(g, "copper", x, y);
-    else if (key === "silver") paintSilver(g, x, y);
-    else if (key === "goldore") paintGoldore(g, x, y);
+    else if (key === "silver") { if (!drawUiIcon(g, "silver", x, y)) paintSilver(g, x, y); }
+    else if (key === "goldore") { if (!drawUiIcon(g, "goldore", x, y)) paintGoldore(g, x, y); }
     else if (key === "copperBar") { if (!drawUiIcon(g, "copperBar", x, y)) paintCopperBar(g, x, y); }
-    else if (key === "silverBar") paintSilverBar(g, x, y);
-    else if (key === "goldBar") paintGoldBar(g, x, y);
+    else if (key === "silverBar") { if (!drawUiIcon(g, "silverBar", x, y)) paintSilverBar(g, x, y); }
+    else if (key === "goldBar") { if (!drawUiIcon(g, "goldBar", x, y)) paintGoldBar(g, x, y); }
     else if (key === "mushroom") drawUiIcon(g, "mushroom", x, y);
     else if (key === "moonshard") drawUiIcon(g, "moonshard", x, y);
     else if (key === "veggie") drawUiIcon(g, "veggie", x, y);
