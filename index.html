@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905b";
+  var BUILD = "20260905c";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -5052,7 +5052,7 @@
           camY = minY;
         }
       }
-      if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
+      if ((currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
         camY = Math.round(player.y - (VIEW_H - CAM_PAD_BOTTOM));
         if (camY > maxY) camY = maxY;
       }
@@ -18004,7 +18004,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905a", BUILD);
+      ok("BUILD", BUILD === "20260905c", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
