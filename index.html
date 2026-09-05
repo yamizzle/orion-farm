@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905aa";
+  var BUILD = "20260905ab";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4376,9 +4376,14 @@
 
   function drawWoodsTreeImg(g, img, x, y, hurt, ox, oy, dw, dh) {
     var prev = g.globalAlpha;
+    var smooth = g.imageSmoothingEnabled;
     if (hurt >= 2) g.globalAlpha = prev * 0.52;
     else if (hurt) g.globalAlpha = prev * 0.74;
+    /* 20260905ab: props are 2× source (e.g. birch 80×128 into 40×64 logical);
+       with BUFFER=2 that maps 1:1 on device — keep NN so density stays sharp */
+    g.imageSmoothingEnabled = false;
     g.drawImage(img, x + ox, y + oy, dw, dh);
+    g.imageSmoothingEnabled = smooth;
     g.globalAlpha = prev;
   }
 
@@ -18147,7 +18152,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905aa", BUILD);
+      ok("BUILD", BUILD === "20260905ab", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
