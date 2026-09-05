@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/4 (BUILD 20260904f): ocean pier/beach fishing has a 1-in-50 Golden Swordfish (ocean-only; farm ponds unchanged). Sword swing still 300ms. Pip shop art still queued. Household save intact. Never START OVER.
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
 Local 9/4 (BUILD 20260904e): sword swing back to 300ms; fish from OCEAN pier/beach water with the pole (same cast loop as farm ponds). Pip shop art still queued. Household save intact. LIVE 9/4 ~7:14–7:34pm: first live of 04e — tray sword STILL FIXED (slot 0); Space+hotbar swing **PASS** (NEW); bat i-frames PASS; slime contact STILL PASS; bat/slime pad kills UNTESTED this pass (swings fired, foes fled); OUT one-tap PASS; clock STILL races. Never START OVER.

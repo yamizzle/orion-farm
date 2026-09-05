@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260904e";
+  var BUILD = "20260904f";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -410,7 +410,7 @@
   var LOOT_POP_MS = 280;
   var selectedSlot = 0;
   var fenceBuildOn = false;
-  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, leash: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, leash: 0 };
   var BAG_CELLS = 90;
   var TRAY_CELLS = 10;
   var BAG_COLS = 15;
@@ -457,11 +457,12 @@
   var SLOT_GOLDEN_CARP = 32;
   var SLOT_MOONFISH = 33;
   var SLOT_STARFIN = 34;
-  var HUD_SLOTS = 34;
+  var SLOT_GOLDEN_SWORDFISH = 35;
+  var HUD_SLOTS = 35;
   var SLOT_ORDER = [
     SLOT_SEED, SLOT_POTATO_SEED, SLOT_BERRY_SEED, SLOT_WOOD, SLOT_STONE, SLOT_IRON, SLOT_COPPER, SLOT_SILVER, SLOT_GOLDORE, SLOT_COPPER_BAR, SLOT_SILVER_BAR, SLOT_GOLD_BAR, SLOT_MUSH, SLOT_MOON,
     SLOT_VEGGIE, SLOT_POTATO, SLOT_BERRY, SLOT_FLOWER, SLOT_SNACK, SLOT_HAT, SLOT_SWORD, SLOT_BOW, SLOT_SHOVEL, SLOT_AXE, SLOT_PICK, SLOT_POLE,
-    SLOT_MINNOW, SLOT_BLUEGILL, SLOT_PERCH, SLOT_CATFISH, SLOT_TROUT, SLOT_BASS, SLOT_GOLDEN_CARP, SLOT_MOONFISH, SLOT_STARFIN
+    SLOT_MINNOW, SLOT_BLUEGILL, SLOT_PERCH, SLOT_CATFISH, SLOT_TROUT, SLOT_BASS, SLOT_GOLDEN_CARP, SLOT_MOONFISH, SLOT_STARFIN, SLOT_GOLDEN_SWORDFISH
   ];
   var MAX_HP = 50;
   var HEARTS = 5;
@@ -484,7 +485,8 @@
     { id: "bass", name: "BASS", weight: 10, slot: SLOT_BASS, hue: "green" },
     { id: "goldenCarp", name: "GOLDEN CARP", weight: 6, slot: SLOT_GOLDEN_CARP, hue: "gold" },
     { id: "moonfish", name: "MOONFISH", weight: 6, slot: SLOT_MOONFISH, hue: "moon" },
-    { id: "starfin", name: "STARFIN", weight: 3, slot: SLOT_STARFIN, hue: "star" }
+    { id: "starfin", name: "STARFIN", weight: 3, slot: SLOT_STARFIN, hue: "star" },
+    { id: "goldenSwordfish", name: "GOLDEN SWORDFISH", weight: 0, slot: SLOT_GOLDEN_SWORDFISH, hue: "goldSword", oceanOnly: true }
   ];
   var fishing = null;
   var SWING_MS = 300;
@@ -659,7 +661,7 @@
   var BAG_STACK = 150;
   var CHEST_STACK = 500;
   var CROP_STACK = 1000;
-  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0 };
+  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0 };
   var chestOpen = false;
   var chestSel = 0;
   var chestMsg = "";
@@ -696,7 +698,8 @@
     { key: "bass", name: "BASS", icon: "bass" },
     { key: "goldenCarp", name: "GOLDEN CARP", icon: "goldenCarp" },
     { key: "moonfish", name: "MOONFISH", icon: "moonfish" },
-    { key: "starfin", name: "STARFIN", icon: "starfin" }
+    { key: "starfin", name: "STARFIN", icon: "starfin" },
+    { key: "goldenSwordfish", name: "GOLDEN SWORDFISH", icon: "goldenSwordfish" }
   ];
   var shieldSkip = false;
   var arrows = [];
@@ -3981,6 +3984,7 @@
     else if (id === "goldenCarp") { body = "#E8B028"; belly = "#F8E070"; fin = "#C47A38"; }
     else if (id === "moonfish") { body = "#A8D4E8"; belly = "#F0F0F8"; fin = "#4A96C8"; }
     else if (id === "starfin") { body = "#E8C888"; belly = "#F8E070"; fin = "#8B1A1A"; }
+    else if (id === "goldenSwordfish") { body = "#E8B028"; belly = "#FFF0A8"; fin = "#C47A10"; }
     fill(g, x + 3, y + 7, 9, 4, body);
     fill(g, x + 4, y + 6, 7, 2, belly);
     fill(g, x + 5, y + 10, 5, 1, belly);
@@ -3997,6 +4001,12 @@
       px(g, x + 7, y + 5, "#F8E070");
       px(g, x + 6, y + 4, "#F8E070");
       px(g, x + 8, y + 4, "#F8E070");
+    }
+    if (id === "goldenSwordfish") {
+      fill(g, x + 0, y + 7, 3, 2, "#F8E070");
+      px(g, x + 0, y + 8, "#E8B028");
+      px(g, x + 7, y + 5, "#FFF8C8");
+      px(g, x + 9, y + 7, "#FFF8C8");
     }
     if (id === "moonfish") px(g, x + 8, y + 7, "#F8FCFF");
     if (id === "perch") {
@@ -5710,7 +5720,7 @@
         kind === "acorn" || kind === "pinecone" || kind === "apple" || kind === "bread" || kind === "pie" ||
         kind === "copperBar" || kind === "silverBar" || kind === "goldBar" ||
         kind === "minnow" || kind === "bluegill" || kind === "perch" || kind === "catfish" ||
-        kind === "trout" || kind === "bass" || kind === "goldenCarp" || kind === "moonfish" || kind === "starfin" ||
+        kind === "trout" || kind === "bass" || kind === "goldenCarp" || kind === "moonfish" || kind === "starfin" || kind === "goldenSwordfish" ||
         kind === "lampKit" || kind === "crateKit") {
       return kind;
     }
@@ -5910,7 +5920,7 @@
     return Math.max(0, chestCap(key) - chestCount(key));
   }
 
-  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","leash"];
+  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","goldenSwordfish","leash"];
 
   function addInvCount(k, n) {
     if (Object.prototype.hasOwnProperty.call(inventory, k)) inventory[k] = (inventory[k] | 0) + (n | 0);
@@ -6993,6 +7003,7 @@
         inventory.goldenCarp = clampCount(data.inventory.goldenCarp);
         inventory.moonfish = clampCount(data.inventory.moonfish);
         inventory.starfin = clampCount(data.inventory.starfin);
+        inventory.goldenSwordfish = clampCount(data.inventory.goldenSwordfish);
         inventory.leash = clampCount(data.inventory.leash);
       } else {
         if (typeof data.veggie === "number" && data.veggie > 0) inventory.veggie = clampCount(data.veggie);
@@ -7031,6 +7042,7 @@
         chest.goldenCarp = clampCount(data.chest.goldenCarp);
         chest.moonfish = clampCount(data.chest.moonfish);
         chest.starfin = clampCount(data.chest.starfin);
+        chest.goldenSwordfish = clampCount(data.chest.goldenSwordfish);
       }
       loadPocketsFromSave(data);
       overflowBagToChest();
@@ -7261,6 +7273,7 @@
           goldenCarp: inventory.goldenCarp | 0,
           moonfish: inventory.moonfish | 0,
           starfin: inventory.starfin | 0,
+          goldenSwordfish: inventory.goldenSwordfish | 0,
           leash: (bagCount("leash") >= 1 || (inventory.leash | 0) >= 1) ? 1 : 0
         },
         tray: serializePocket(trayCells, TRAY_CELLS),
@@ -7296,7 +7309,8 @@
           bass: chest.bass | 0,
           goldenCarp: chest.goldenCarp | 0,
           moonfish: chest.moonfish | 0,
-          starfin: chest.starfin | 0
+          starfin: chest.starfin | 0,
+          goldenSwordfish: chest.goldenSwordfish | 0
         },
         hatOwned: !!hatOwned,
         hatOn: !!hatOn,
@@ -11008,10 +11022,16 @@
   }
 
   function pickCatchFish() {
-    var i, total = 0, roll, acc = 0;
-    for (i = 0; i < FISH_KINDS.length; i++) total += FISH_KINDS[i].weight;
+    var i, total = 0, roll, acc = 0, ocean;
+    ocean = !!(fishing && fishing.waterKind === "ocean");
+    if (ocean && Math.random() < 1 / 50) return fishKindById("goldenSwordfish");
+    for (i = 0; i < FISH_KINDS.length; i++) {
+      if (FISH_KINDS[i].oceanOnly) continue;
+      total += FISH_KINDS[i].weight;
+    }
     roll = Math.random() * total;
     for (i = 0; i < FISH_KINDS.length; i++) {
+      if (FISH_KINDS[i].oceanOnly) continue;
       acc += FISH_KINDS[i].weight;
       if (roll < acc) return FISH_KINDS[i];
     }
@@ -11053,6 +11073,7 @@
       pondTy: pond.ty,
       tileTx: tx,
       tileTy: ty,
+      waterKind: pond.kind || "pond",
       phase: "cast",
       age: 0,
       castMs: 420,
@@ -11077,7 +11098,8 @@
     player.swing = 0;
     if (fish) {
       addItem(fish.id, 1);
-      showLineNote("YUM! A " + fish.name + ".");
+      if (fish.id === "goldenSwordfish") showLineNote("WOW! A GOLDEN SWORDFISH!");
+      else showLineNote("YUM! A " + fish.name + ".");
       playSfx("pickup");
     } else {
       showLineNote("NOTHING THIS TIME.");
