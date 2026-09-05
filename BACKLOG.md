@@ -2,6 +2,7 @@
 
 Playtest issues from the live game ([yamizzle.github.io/orion-farm](https://yamizzle.github.io/orion-farm/)). Both Grok Build and Grok Bot should pick from the top. Do not close an item without a playtest on the live URL.
 
+Local 9/4 (BUILD 20260904e): sword swing back to 300ms; fish from OCEAN pier/beach water with the pole (same cast loop as farm ponds). Pip shop art still queued. Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904d): Pip shop door is the painted opening (not the stoop square below); tap walks to shopIn then enters (no instant warp). Household save intact. Never START OVER.
 Local 9/4 BUILD 20260904c tray-sword claim — mine enter/swing/openBag auto-grants cave sword (removes pedestal) and hard-pins hotbar slot 0; pad no longer leaves swordOwned false forever. Walk energy / day clock / START OVER / Orion art / grass / evening color untouched. LIVE 9/4 ~4:21–4:57pm: first live of 04c — tray sword **FIXED** (slot 0 pinned; also in BAG); slime contact STILL PASS; slime pad STILL PASS (~2–3 taps); bat pad UNTESTED. Space+hotbar still UNTESTED. Never START OVER.
 

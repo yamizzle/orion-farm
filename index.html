@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260904d";
+  var BUILD = "20260904e";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -487,7 +487,7 @@
     { id: "starfin", name: "STARFIN", weight: 3, slot: SLOT_STARFIN, hue: "star" }
   ];
   var fishing = null;
-  var SWING_MS = 560;
+  var SWING_MS = 300;
   var SWING_HIT_AT = 0.20;
   var ENERGY_WALK_TILES = 0;
   var SNACK_ENERGY = 25;
@@ -10923,6 +10923,37 @@
     return null;
   }
 
+  /* Ocean water is walk cell "y". Beach sand + pier dock are "f". */
+  function isOceanWater(tx, ty) {
+    return currentScene === "ocean" && inBounds(tx, ty) && cell(tx, ty) === "y";
+  }
+
+  function oceanFishSpotAt(tx, ty) {
+    if (!isOceanWater(tx, ty)) return null;
+    return { kind: "ocean", tx: tx, ty: ty };
+  }
+
+  function standingByOceanWater(tx, ty) {
+    return !!(isOceanWater(tx, ty) && orthoNearTile(player.tx, player.ty, tx, ty) && cell(player.tx, player.ty) === "f");
+  }
+
+  function nearestOceanBank(tx, ty) {
+    var dirs, i, nx, ny, best = null, bestD = 999, d;
+    if (!isOceanWater(tx, ty)) return null;
+    dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    for (i = 0; i < dirs.length; i++) {
+      nx = tx + dirs[i][0];
+      ny = ty + dirs[i][1];
+      if (!inBounds(nx, ny) || cell(nx, ny) !== "f") continue;
+      d = Math.abs(nx - player.tx) + Math.abs(ny - player.ty);
+      if (d < bestD) {
+        bestD = d;
+        best = { tx: nx, ty: ny };
+      }
+    }
+    return best;
+  }
+
   function orthoNearTile(ax, ay, bx, by) {
     return (ax === bx && Math.abs(ay - by) === 1) || (ay === by && Math.abs(ax - bx) === 1);
   }
@@ -11117,12 +11148,13 @@
   }
 
   function tryFishFacing() {
-    var t, pond;
+    var t, pond, spot;
     if (uiPaused() || faintFx) return false;
     if (fishing) return true;
     t = facingTile();
     pond = farmPondAt(t.tx, t.ty);
-    if (!pond) return false;
+    spot = oceanFishSpotAt(t.tx, t.ty);
+    if (!pond && !spot) return false;
     if (!poleOwned) {
       showLineNote("YOU NEED A FISHING POLE.");
       return true;
@@ -11131,21 +11163,27 @@
       showLineNote("SELECT THE FISHING POLE.");
       return true;
     }
-    if (!standingByPond(pond)) return false;
-    return beginFishing(pond, t.tx, t.ty);
+    if (pond) {
+      if (!standingByPond(pond)) return false;
+      return beginFishing(pond, t.tx, t.ty);
+    }
+    if (!standingByOceanWater(t.tx, t.ty)) return false;
+    return beginFishing(spot, t.tx, t.ty);
   }
 
   function tryFishTap(pond, tx, ty) {
     var dest, path;
-    if (!pond || pond.kind !== "pond") return false;
-    if (currentScene !== "overworld") return false;
+    if (!pond) return false;
+    if (pond.kind !== "pond" && pond.kind !== "ocean") return false;
+    if (pond.kind === "pond" && currentScene !== "overworld") return false;
+    if (pond.kind === "ocean" && currentScene !== "ocean") return false;
     if (fishing) return true;
     if (!poleOwned) {
       showLineNote("YOU NEED A FISHING POLE.");
       return true;
     }
     if (!toolEquipped("pole")) {
-      dest = nearestPondBank(pond);
+      dest = pond.kind === "ocean" ? nearestOceanBank(tx, ty) : nearestPondBank(pond);
       if (dest && (dest.tx !== player.tx || dest.ty !== player.ty)) {
         highlight = { tx: dest.tx, ty: dest.ty };
         goWalk(dest.tx, dest.ty);
@@ -11153,6 +11191,17 @@
         showLineNote("SELECT THE FISHING POLE.");
       }
       return true;
+    }
+    if (pond.kind === "ocean") {
+      if (!standingByOceanWater(tx, ty)) {
+        dest = nearestOceanBank(tx, ty);
+        if (!dest) return true;
+        highlight = { tx: dest.tx, ty: dest.ty };
+        path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+        if (path.length) startWalk(player, path, 3.5);
+        return true;
+      }
+      return beginFishing(pond, tx, ty);
     }
     if (!standingByPond(pond)) {
       dest = nearestPondBank(pond);
@@ -16902,6 +16951,10 @@ if (currentScene === "ocean") goExitOcean();
     }
     if ((hitProp && hitProp.kind === "pond") || farmPondAt(tx, ty)) {
       tryFishTap(hitProp && hitProp.kind === "pond" ? hitProp : farmPondAt(tx, ty), tx, ty);
+      return;
+    }
+    if (oceanFishSpotAt(tx, ty)) {
+      tryFishTap(oceanFishSpotAt(tx, ty), tx, ty);
       return;
     }
     if (selectedIs("shovel") && shovelOwned && canDigOn(tx, ty)) {
