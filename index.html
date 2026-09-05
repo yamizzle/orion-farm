@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905m";
+  var BUILD = "20260905n";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -1259,8 +1259,8 @@
     { id: "fence", name: "FENCE KIT", price: 12, icon: "wood" },
     { id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" },
     { id: "houseKit", name: "HOUSE KIT", price: 0, icon: "rug" },
-    { id: "lampKit", name: "LAMP KIT", price: 10, icon: "lantern" },
-    { id: "crateKit", name: "CRATE KIT", price: 10, icon: "crate" }
+    { id: "lampKit", name: "LAMP KIT", price: 10, icon: "lanternIcon" },
+    { id: "crateKit", name: "CRATE KIT", price: 10, icon: "crateIcon" }
   ];
 
   function hash(x, y, s) {
@@ -4103,11 +4103,11 @@
   function drawItemIcon(g, id, x, y) {
     if (id === "silver") { paintSilver(g, x, y); return; }
     if (id === "goldore") { paintGoldore(g, x, y); return; }
-    if (id === "potato") { paintPotato(g, x, y); return; }
+    if (id === "potato") { if (drawUiIcon(g, "potato", x, y)) return; paintPotato(g, x, y); return; }
     if (id === "berry") { paintBerry(g, x, y); return; }
     if (id === "acorn") { paintAcorn(g, x, y); return; }
     if (id === "pinecone") { paintPinecone(g, x, y); return; }
-    if (id === "apple") { paintApple(g, x, y); return; }
+    if (id === "apple") { if (drawUiIcon(g, "apple", x, y)) return; paintApple(g, x, y); return; }
     if (id === "bread") { paintBread(g, x, y); return; }
     if (id === "pie") { paintPie(g, x, y); return; }
     if (id === "copperBar") { paintCopperBar(g, x, y); return; }
@@ -15874,11 +15874,11 @@
     else if (key === "mushroom") drawUiIcon(g, "mushroom", x, y);
     else if (key === "moonshard") drawUiIcon(g, "moonshard", x, y);
     else if (key === "veggie") drawUiIcon(g, "veggie", x, y);
-    else if (key === "potato") paintPotato(g, x, y);
+    else if (key === "potato") { if (!drawUiIcon(g, "potato", x, y)) paintPotato(g, x, y); }
     else if (key === "berry") paintBerry(g, x, y);
     else if (key === "acorn") paintAcorn(g, x, y);
     else if (key === "pinecone") paintPinecone(g, x, y);
-    else if (key === "apple") paintApple(g, x, y);
+    else if (key === "apple") { if (!drawUiIcon(g, "apple", x, y)) paintApple(g, x, y); }
     else if (key === "bread") paintBread(g, x, y);
     else if (key === "pie") paintPie(g, x, y);
     else if (key === "flower") drawUiIcon(g, "townFlower", x, y);
@@ -15891,8 +15891,8 @@
     else if (key === "bow") drawUiIcon(g, "bow", x, y);
     else if (key === "pole") { if (!drawUiIcon(g, "fishingPole", x, y)) paintFishingPole(g, x, y); }
     else if (key === "leash") drawUiIcon(g, "leash", x, y);
-    else if (key === "lampKit") drawUiIcon(g, "lantern", x, y);
-    else if (key === "crateKit") drawUiIcon(g, "crate", x, y);
+    else if (key === "lampKit") drawUiIcon(g, "lanternIcon", x, y);
+    else if (key === "crateKit") drawUiIcon(g, "crateIcon", x, y);
     else if (fishKindById(key)) paintFishIcon(g, x, y, key);
   }
 
