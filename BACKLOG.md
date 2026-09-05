@@ -1,5 +1,7 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905x): atomic bag/tray index swap — pickup clears one slot only; drop snapshots held+target then writes both; pocketCopy never nulls a keyed stack (count<1→1). Fixes live 05v wood→silverBar vanish (05d/05e/05f claimed fixes). Bag swap still needs live verify. Never START OVER.
+
 Local 9/5 (BUILD 20260905t): restore pickaxe/carrot (and other icons over-scrubbed in 05s) from Imagine with safer magenta key — no pink bg, icons intact. Never START OVER.
 Local 9/5 (BUILD 20260905s): scrub leftover magenta/pink chroma on pickaxe + carrot (veggie) tray icons (and any other ui/*.png still leaking pink). Never START OVER.
 Local 9/5 (BUILD 20260905r): Imagine 32×32 fish icons for all FISH_KINDS (minnow→goldenSwordfish); paintFishIcon prefers sprite. Bare flower/berry/acorn already in 05q. Never START OVER.

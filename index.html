@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905w";
+  var BUILD = "20260905x";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -16016,14 +16016,17 @@
   }
 
   function pocketCopy(rec) {
+    var n;
     if (!rec || !rec.key) return null;
     if (isToolKey(rec.key)) return { key: rec.key, count: 1 };
-    if ((rec.count | 0) < 1) return null;
-    return { key: rec.key, count: rec.count | 0 };
+    /* Key present still draws even if count is bad/zero — never return null. */
+    n = rec.count | 0;
+    if (n < 1) n = 1;
+    return { key: rec.key, count: n };
   }
 
   function tapPocket(place, idx) {
-    var rec, tmp, max, fromPlace, fromIdx, empty, room, take, cap;
+    var rec, heldSnap, targetSnap, max, fromPlace, fromIdx, empty, room, take, cap;
     max = place === "tray" ? TRAY_CELLS : BAG_CELLS;
     if (idx < 0 || idx >= max) return;
     rec = pocketAt(place, idx);
@@ -16045,13 +16048,12 @@
         room = cap - (rec.count | 0);
         if (room > 0) {
           take = (bagHeld.count | 0) < room ? (bagHeld.count | 0) : room;
-          rec.count = (rec.count | 0) + take;
+          setPocket(place, idx, { key: rec.key, count: (rec.count | 0) + take });
           bagHeld.count = (bagHeld.count | 0) - take;
           if ((bagHeld.count | 0) < 1) {
             bagHeld = null;
             bagHeldFrom = null;
           }
-          /* Clear leftover aliases of this stack after mutating count. */
           syncBagCounts();
           playSfx("ui");
           return;
@@ -16065,30 +16067,43 @@
         playSfx("ui");
         return;
       }
-      /* True one-tap swap: copy displaced, wipe all aliases of it, place held,
-         put displaced copy back at the pickup slot (or park / keep on cursor). */
-      tmp = pocketCopy(rec);
-      clearRecEverywhere(rec);
-      setPocket(place, idx, bagHeld);
+      /* Atomic index swap: snapshot held + target first, then write both cells.
+         Never clearRecEverywhere / never discard displaced. */
+      heldSnap = pocketCopy(bagHeld);
+      targetSnap = pocketCopy(rec);
+      if (!heldSnap) {
+        syncBagCounts();
+        playSfx("ui");
+        return;
+      }
+      if (!targetSnap) {
+        setPocket(place, idx, heldSnap);
+        bagHeld = null;
+        bagHeldFrom = null;
+        syncBagCounts();
+        playSfx("ui");
+        return;
+      }
+      setPocket(place, idx, heldSnap);
       if (fromPlace && fromIdx >= 0 && !(fromPlace === place && fromIdx === idx)) {
-        setPocket(fromPlace, fromIdx, tmp);
+        setPocket(fromPlace, fromIdx, targetSnap);
         bagHeld = null;
         bagHeldFrom = null;
       } else {
         empty = firstEmptyTray();
         if (empty >= 0) {
-          setPocket("tray", empty, tmp);
+          setPocket("tray", empty, targetSnap);
           bagHeld = null;
           bagHeldFrom = null;
         } else {
           empty = firstEmptyBag();
           if (empty >= 0) {
-            setPocket("bag", empty, tmp);
+            setPocket("bag", empty, targetSnap);
             bagHeld = null;
             bagHeldFrom = null;
           } else {
             /* Full: never lose the displaced stack — keep it on the cursor. */
-            bagHeld = tmp;
+            bagHeld = targetSnap;
             bagHeldFrom = { place: place, i: idx };
           }
         }
@@ -16101,16 +16116,16 @@
       playSfx("ui");
       return;
     }
-    /* Copy out, then wipe every alias of this object (old tray↔bag mirrors). */
+    /* Pickup: copy value, clear THIS slot only (index-based). */
     bagHeld = pocketCopy(rec);
     if (!bagHeld) {
-      clearRecEverywhere(rec);
+      setPocket(place, idx, null);
       syncBagCounts();
       playSfx("ui");
       return;
     }
     bagHeldFrom = { place: place, i: idx };
-    clearRecEverywhere(rec);
+    setPocket(place, idx, null);
     syncBagCounts();
     playSfx("ui");
   }
@@ -18132,7 +18147,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905w", BUILD);
+      ok("BUILD", BUILD === "20260905x", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
