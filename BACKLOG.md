@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905e): bag/tray swap rewrite — copy-on-pickup (no shared cell refs), true two-slot swap on drop, stackable merge when same key. Fixes 05d live shuffle. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905d): bag/tray drag onto a filled cell instantly swaps (displaced item returns to the pickup slot — no second drag). LIVE 9/5 ~10:07–10:12am: first live of 05d — bag drag swap **FAIL** (cells changed but no clean instant swap); south camera **PASS** (05c); tray sword STILL FIXED; boat/chicken/fish UNTESTED (bridge NEED 8 WOOD). Never START OVER.
 Local 9/5 (BUILD 20260905c): overworld south camera uses the same CAM_PAD_BOTTOM keep-Orion-above-hotbar pull as forest/mine/ocean (was missing — sprite walked under the tray). LIVE 9/5 ~10:07–10:12am via 05d: south camera **PASS** (Orion stayed above hotbar). Farm grass / Orion / DAY_MS / walk energy / evening / START OVER untouched. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905b): fishing cast draw is a short wooden pole from the hands + thin light-blue line (no face-tongue); Imagine fishingPole tray/shop icon packed. Household save intact. Never START OVER.

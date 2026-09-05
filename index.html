@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905d";
+  var BUILD = "20260905e";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var TILE = 16;
@@ -15963,49 +15963,69 @@
   }
 
   function tapPocket(place, idx) {
-    var rec, tmp, max;
+    var rec, tmp, max, fromPlace, fromIdx, empty, room, take, cap;
     max = place === "tray" ? TRAY_CELLS : BAG_CELLS;
     if (idx < 0 || idx >= max) return;
     rec = pocketAt(place, idx);
     if (bagHeld) {
-      if (bagHeldFrom && bagHeldFrom.place === place && bagHeldFrom.i === idx && !rec) {
+      fromPlace = bagHeldFrom ? bagHeldFrom.place : null;
+      fromIdx = bagHeldFrom ? (bagHeldFrom.i | 0) : -1;
+      /* Drop back on the same empty pickup cell. */
+      if (fromPlace === place && fromIdx === idx && !rec) {
         setPocket(place, idx, bagHeld);
         bagHeld = null;
         bagHeldFrom = null;
-      } else if (!rec) {
+        syncBagCounts();
+        playSfx("ui");
+        return;
+      }
+      /* Same stackable key → merge into the target (leftover stays held). */
+      if (rec && rec.key === bagHeld.key && !isToolKey(rec.key)) {
+        cap = stackCap(rec.key);
+        room = cap - (rec.count | 0);
+        if (room > 0) {
+          take = (bagHeld.count | 0) < room ? (bagHeld.count | 0) : room;
+          rec.count = (rec.count | 0) + take;
+          bagHeld.count = (bagHeld.count | 0) - take;
+          if ((bagHeld.count | 0) < 1) {
+            bagHeld = null;
+            bagHeldFrom = null;
+          }
+          syncBagCounts();
+          playSfx("ui");
+          return;
+        }
+      }
+      if (!rec) {
         setPocket(place, idx, bagHeld);
         bagHeld = null;
         bagHeldFrom = null;
+        syncBagCounts();
+        playSfx("ui");
+        return;
+      }
+      /* Clean two-slot swap: target gets held; origin gets displaced. */
+      tmp = { key: rec.key, count: rec.count | 0 };
+      setPocket(place, idx, bagHeld);
+      if (fromPlace && fromIdx >= 0 && !(fromPlace === place && fromIdx === idx)) {
+        setPocket(fromPlace, fromIdx, tmp);
       } else {
-        /* Instant swap: drop replaces the cell; the old item goes back to where
-           we picked up from. No second drag needed. */
-        tmp = rec;
-        setPocket(place, idx, bagHeld);
-        if (bagHeldFrom &&
-            !(bagHeldFrom.place === place && bagHeldFrom.i === idx) &&
-            !pocketAt(bagHeldFrom.place, bagHeldFrom.i)) {
-          setPocket(bagHeldFrom.place, bagHeldFrom.i, tmp);
-        } else if (!pocketAt(place, idx)) {
-          setPocket(place, idx, tmp);
-        } else {
-          var empty = firstEmptyTray();
-          if (empty >= 0) setPocket("tray", empty, tmp);
+        empty = firstEmptyTray();
+        if (empty >= 0) setPocket("tray", empty, tmp);
+        else {
+          empty = firstEmptyBag();
+          if (empty >= 0) setPocket("bag", empty, tmp);
           else {
-            empty = firstEmptyBag();
-            if (empty >= 0) setPocket("bag", empty, tmp);
-            else {
-              /* Full: keep displaced on cursor as last resort. */
-              bagHeld = tmp;
-              bagHeldFrom = { place: place, i: idx };
-              syncBagCounts();
-              playSfx("ui");
-              return;
-            }
+            bagHeld = tmp;
+            bagHeldFrom = { place: place, i: idx };
+            syncBagCounts();
+            playSfx("ui");
+            return;
           }
         }
-        bagHeld = null;
-        bagHeldFrom = null;
       }
+      bagHeld = null;
+      bagHeldFrom = null;
       syncBagCounts();
       playSfx("ui");
       return;
@@ -16014,10 +16034,10 @@
       playSfx("ui");
       return;
     }
-    bagHeld = rec;
+    /* Copy out of the cell — shared object refs made swaps shuffle aliases. */
+    bagHeld = { key: rec.key, count: rec.count | 0 };
     bagHeldFrom = { place: place, i: idx };
-    /* Clear every alias of this rec so tray↔bag mirror slots cannot orphan it in the bag. */
-    clearRecEverywhere(rec);
+    setPocket(place, idx, null);
     syncBagCounts();
     playSfx("ui");
   }
