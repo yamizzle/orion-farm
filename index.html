@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905u";
+  var BUILD = "20260905v";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -2091,8 +2091,12 @@
   }
 
   function ensureMineDecor(props, floorKey) {
-    var plan, kinds, ki, kind, spots, si, tx, ty, item;
+    var plan, kinds, ki, kind, spots, si, tx, ty, item, pi;
     if (!props || !floorKey) return;
+    /* 20260905v: old saves tagged mine mushrooms deco — clear so kids can pick them */
+    for (pi = 0; pi < props.length; pi++) {
+      if (props[pi] && props[pi].kind === "mushroom" && props[pi].deco) delete props[pi].deco;
+    }
     plan = MINE_DECOR_SPOTS[floorKey];
     if (!plan) return;
     kinds = ["crate", "lantern", "mushroom"];
@@ -2105,7 +2109,7 @@
         ty = spots[si][1];
         if (mineDecorBlocked(props, floorKey, tx, ty, kind)) continue;
         item = { kind: kind, tx: tx, ty: ty };
-        if (kind === "mushroom") item.deco = true;
+        /* 20260905v: mushrooms are snacks to pick, not scenery */
         if (kind === "lantern") item.walk = true;
         props.push(item);
       }
@@ -14890,15 +14894,16 @@
     } else if (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
                p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
                p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore") {
-      if (p.deco) {
-        Assets.draw(g, p.kind, x, y);
+      if (p.kind === "chest") {
+        Assets.draw(g, "chest", x, y);
       } else {
-        var bob = Math.round(Math.sin(tick / 280) * 1);
+        var bob = p.deco ? 0 : Math.round(Math.sin(tick / 280) * 1);
         if (p.kind === "moonshard" || p.kind === "mooncrystal" || p.kind === "gem" || p.kind === "sapphire") {
           g.fillStyle = p.kind === "sapphire" ? "rgba(60,90,200,0.22)" : (p.kind === "gem" ? "rgba(92,188,154,0.20)" : "rgba(232,240,255,0.22)");
           g.fillRect(x - 2, y - 2 + bob, 20, 20);
         }
-        Assets.draw(g, p.kind, x, y + bob);
+        /* 20260905v: tray icons are 32px — drawUiIcon shrinks to one tile in the world */
+        if (!drawUiIcon(g, p.kind, x, y + bob)) Assets.draw(g, p.kind, x, y + bob, 0, 0.5);
       }
     } else if (p.kind === "shopHouse") {
       Assets.draw(g, "shopHouse", x, y);
@@ -18120,7 +18125,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905u", BUILD);
+      ok("BUILD", BUILD === "20260905v", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
