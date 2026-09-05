@@ -1,6 +1,6 @@
 # Moondrop Mountain backlog
 
-Local 9/5 (BUILD 20260905a): rideable rowboat at the ocean pier — GET IN / row on water / GET OUT only on sand or pier (TOO DEEP out on water); leave ocean blocked while aboard. Needs live. Household save intact. Never START OVER.
+Local 9/5 (BUILD 20260905a): rideable rowboat at the ocean pier — GET IN / row on water / GET OUT only on sand or pier (TOO DEEP out on water); leave ocean blocked while aboard. LIVE 9/5 ~1:12–1:30am: first live of 05a — boat **PASS** (GET IN, row, TOO DEEP on deep water, BACK ON SHORE / get out on shore; leave-ocean blocked while aboard — GET OUT FIRST.). Tray sword STILL FIXED slot 0; fish UNTESTED (no pole); mine UNTESTED; clock phases raced (Day 2352 Morning→Evening, no day rollover). START OVER under Jobs (not pressed). Never START OVER.
 Local 9/4 (BUILD 20260904l): START OVER really wipes — block pagehide/visibility persist that rewrote the old save after removeItem; session wipe flag; bigger YES/NO. WARNING: wipes that browser's save (household Chrome too if used there). Never START OVER on the household save unless you mean it. LIVE 9/4 ~10:15–10:40pm: first live of 04l — tray sword STILL FIXED (slot 0; no sword in BAG grid); slime pad kill **PASS** (NEW vs 04e UNTESTED; ~3 Space/pad taps); contact i-frames PASS; OUT one-tap PASS; OCEAN reached PASS; ocean fish UNTESTED (no pole — toast YOU NEED A FISHING POLE); bat pad / chicken / dog UNTESTED; clock STILL races (Day 2328→2331). START OVER under Jobs (not pressed). Never START OVER.
 Local 9/4 (BUILD 20260904k): dog follows outside only while LEASH is in the 10-tray; taking it out of the tray sends them home. Leaving the house with tray leash warps dog to the porch. Talk tip: PUT THE LEASH ON THE TRAY. Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904j): dog follows out of the house when you own a leash (explicit bring on exit/enter; leash re-seats from save flag; snap never strands on porch). Household save intact. Never START OVER.
@@ -18,7 +18,7 @@ Pick from the top. Expand the world creatively (bigger beach/ocean, fun Imagine 
 | High | Local 9/4 04g | Only 1 fishing pole | Some saves show 3 poles. Cap at one forever: dedupe tray/bag/chest on load; Pip buy already OWNED; never stack count>1. |
 | High | Local 9/4 04g | Chickens move when walked into | Walk onto chicken tile should push/scare it (like ball). Today chicken tile is unwalkable so bump never fires. |
 | Medium | Local 9/4 04h | Dog runs around inside the house | Dog already house-ok; make indoor roam livelier when home (default: roam in house; leash still for outdoors). |
-| Medium | Local 9/5 05a | Boat at pier | Rideable boat at ocean pier. Get on; row; get off only at pier or shore (not deep water). Needs live. |
+| Medium | Done 9/5 1:30am live | Boat at pier | LIVE 9/5 ~1:12–1:30am BUILD 20260905a: GET IN / row / TOO DEEP on deep water / get out on shore PASS; leave-ocean while aboard blocked (GET OUT FIRST.). |
 | Medium | Open | Bigger beach / ocean world | Extend ocean scene logically + creatively with fun Imagine graphics (cove, dunes, more pier room, south deep water toward island). Make the world feel bigger. |
 | Medium | Open | Island cave Diamond Pickaxe → peak rocks | Row boat further south into deep ocean → tiny island with cave → Diamond Pickaxe inside. Imagine-regen PEAK without painted summit rocks; place matching removable rock sprites; Diamond Pickaxe breaks them in 10 hits. Opens summit path. |
 | Medium | Open | More Imagine trees everywhere | Extra tree types (palm/cove, farm rim, town, woods fillers) via Grok Imagine + BOX/AREA downsample; props not painted-in. |
@@ -86,9 +86,18 @@ Local 8/31 ~3:20pm PT BUILD 20260831e: ocean overlay boats removed; new top-down
 Local 8/31 ~1:40pm PT BUILD 20260831d: peak FARM sign and south-balcony farm warp removed. Cave is the only way down. LIVE 2:46pm: FARM sign ABSENT; cave-down to MINE 6 PASS. Household save intact. Never START OVER.
 Local 8/31 ~1:35pm PT BUILD 20260831c: outdoor peak no longer draws the inside-looking-out caveMouth overlay; peakMap outdoor painting stays; cave still enterable. LIVE 2:46pm: outdoor PEAK looks outdoor (no cave overlay). Household save intact. Never START OVER.
 
-Last live pass: **2026-09-04 ~10:15–10:40pm PT** BUILD 20260904l (desktop; `?v=20260904pt2215`). First live of 04l (04f–04l shipped since 04e). Continued box Chrome save Day 2328 WOODS (2♥, 0G) → Day 2331 OCEAN (2♥, 0G). Route WOODS → MINE 1 → OCEAN. **STILL FIXED:** tray sword slot 0. **PASS (NEW vs 04e UNTESTED):** slime pad kill (~3 Space/pad). **PASS:** contact i-frames (~4.5s hold); MINE 1 OUT one-tap; OCEAN reach. Ocean fish UNTESTED (no pole; toast YOU NEED A FISHING POLE). Bat pad / chicken / dog UNTESTED. Clock STILL races (2328→2331). START OVER under Jobs (not pressed). Never START OVER. Screenshots `/workspace/playtest-2215/`.
+Last live pass: **2026-09-05 ~1:12–1:30am PT** BUILD 20260905a (desktop; `?v=20260905pt0112`). First live of 05a. Continued box Chrome save Day 2352 SPRING MORNING (overworld near OCEAN, 2/5♥, 0G) → Day 2352 SPRING EVENING (same area, 2/5♥, 0G). **NEW/PASS:** pier rowboat — GET IN, row on water, TOO DEEP on deep water, get out on shore; leave-ocean while aboard blocked (GET OUT FIRST.). **STILL FIXED:** tray sword slot 0. Fish UNTESTED (no pole in tray/bag). Mine / bat pad / chicken / dog UNTESTED. Clock phases raced (Morning→Evening same day; no day rollover this short pass). START OVER under Jobs (not pressed). Never START OVER. Screenshots `/workspace/playtest-0112/`.
 
-Highest-leverage theme: first live **20260904l** — slime pad kill **PASS**; tray sword still FIXED. Still open: bat pad kill; ocean fish (need pole); day-clock races; START OVER wipe (04l claim, not pressed); chicken scoot / dog leash / Pip shop scroll.
+Highest-leverage theme: first live **20260905a** — pier boat **PASS**. Still open: ocean fish (need pole); bat pad; day-clock races; START OVER wipe (04l claim, not pressed); chicken scoot / dog leash / Pip shop scroll; bigger ocean / island pickaxe.
+
+## Live playtest 9/5 ~1:12–1:30am PT (BUILD 20260905a)
+
+- Continued box Chrome save — never START OVER. Day 2352 SPRING MORNING (overworld near OCEAN sign, 2/5♥, 0G) → Day 2352 SPRING EVENING (same, 2/5♥, 0G). URL cache-bust `?v=20260905pt0112`; Jobs stamp `20260905a`. First live of 05a. ~15–20 min; no crash; START OVER seen in Jobs, not pressed.
+- **NEW/PASS:** Pier rowboat — GET IN, row on water, TOO DEEP on deep water, BACK ON SHORE / get out on sand or pier; leave-ocean exit blocked while aboard (GET OUT FIRST.).
+- **STILL FIXED:** Sword hard-pinned in 10-tray hotbar slot 0 (`03-hotbar.png`).
+- **UNTESTED:** Ocean fishing (no pole in tray/bag); MINE / bat pad / slime; chicken scoot; dog/leash.
+- **STILL:** Day clock phases race (Morning→Evening across navigation; no day number rollover this pass). START OVER under Jobs (04l wipe claim not pressed).
+- Screenshots `/workspace/playtest-0112/` (`02-jobs.png`, `03-hotbar.png`, `09-fish.png`).
 
 ## Live playtest 9/4 ~10:15–10:40pm PT (BUILD 20260904l)
 
