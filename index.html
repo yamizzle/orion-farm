@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905v";
+  var BUILD = "20260905w";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -5726,7 +5726,13 @@
       if (!spot || woodsDugAt(tx, ty)) return false;
       return true;
     }
-    return false;
+    /* 20260905w: farm grass dig was dropped when woods dig landed — restore it */
+    if (currentScene !== "overworld") return false;
+    if (cell(tx, ty) !== "g") return false;
+    if (tx === npc.tx && ty === npc.ty) return false;
+    if (tx === chicken.tx && ty === chicken.ty) return false;
+    if (carOccupies(tx, ty)) return false;
+    return true;
   }
 
   function tryDig(tx, ty) {
@@ -14310,7 +14316,8 @@
     if (!(iFrames > 0 && ((tick / 80) | 0) % 2 === 0)) {
       Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
       if (hatOn) {
-        Assets.draw(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 34 + bob + sy));
+        /* 20260905w: tray strawHat is 32px — draw 16px so it sits on the head, not a billboard */
+        drawUiIcon(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy));
       }
     }
     if (hurtFlash > 0) {
@@ -18125,7 +18132,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905v", BUILD);
+      ok("BUILD", BUILD === "20260905w", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
