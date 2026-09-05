@@ -1,7 +1,7 @@
 # Moondrop Mountain backlog
 
-Local 9/5 (BUILD 20260905d): bag/tray drag onto a filled cell instantly swaps (displaced item returns to the pickup slot — no second drag). Household save intact. Never START OVER.
-Local 9/5 (BUILD 20260905c): overworld south camera uses the same CAM_PAD_BOTTOM keep-Orion-above-hotbar pull as forest/mine/ocean (was missing — sprite walked under the tray). Farm grass / Orion / DAY_MS / walk energy / evening / START OVER untouched. Household save intact. Never START OVER.
+Local 9/5 (BUILD 20260905d): bag/tray drag onto a filled cell instantly swaps (displaced item returns to the pickup slot — no second drag). LIVE 9/5 ~10:07–10:12am: first live of 05d — bag drag swap **FAIL** (cells changed but no clean instant swap); south camera **PASS** (05c); tray sword STILL FIXED; boat/chicken/fish UNTESTED (bridge NEED 8 WOOD). Never START OVER.
+Local 9/5 (BUILD 20260905c): overworld south camera uses the same CAM_PAD_BOTTOM keep-Orion-above-hotbar pull as forest/mine/ocean (was missing — sprite walked under the tray). LIVE 9/5 ~10:07–10:12am via 05d: south camera **PASS** (Orion stayed above hotbar). Farm grass / Orion / DAY_MS / walk energy / evening / START OVER untouched. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905b): fishing cast draw is a short wooden pole from the hands + thin light-blue line (no face-tongue); Imagine fishingPole tray/shop icon packed. Household save intact. Never START OVER.
 Local 9/5 (BUILD 20260905a): rideable rowboat at the ocean pier — GET IN / row on water / GET OUT only on sand or pier (TOO DEEP out on water); leave ocean blocked while aboard. LIVE 9/5 ~1:12–1:30am: first live of 05a — boat **PASS**. LIVE 9/5 ~7:14–7:28am: recheck 05a — boat **STILL PASS**; tray sword STILL FIXED slot 0; fish STILL no pole (toast YOU NEED A FISHING POLE.); chicken scoot **PASS** (NEW vs prior UNTESTED); dog/mine UNTESTED; clock STILL races (Day 2395 Afternoon→2396 Night). START OVER under Jobs (not pressed). Never START OVER.
 Local 9/4 (BUILD 20260904l): START OVER really wipes — block pagehide/visibility persist that rewrote the old save after removeItem; session wipe flag; bigger YES/NO. WARNING: wipes that browser's save (household Chrome too if used there). Never START OVER on the household save unless you mean it. LIVE 9/4 ~10:15–10:40pm: first live of 04l — tray sword STILL FIXED (slot 0; no sword in BAG grid); slime pad kill **PASS** (NEW vs 04e UNTESTED; ~3 Space/pad taps); contact i-frames PASS; OUT one-tap PASS; OCEAN reached PASS; ocean fish UNTESTED (no pole — toast YOU NEED A FISHING POLE); bat pad / chicken / dog UNTESTED; clock STILL races (Day 2328→2331). START OVER under Jobs (not pressed). Never START OVER.
@@ -89,9 +89,19 @@ Local 8/31 ~3:20pm PT BUILD 20260831e: ocean overlay boats removed; new top-down
 Local 8/31 ~1:40pm PT BUILD 20260831d: peak FARM sign and south-balcony farm warp removed. Cave is the only way down. LIVE 2:46pm: FARM sign ABSENT; cave-down to MINE 6 PASS. Household save intact. Never START OVER.
 Local 8/31 ~1:35pm PT BUILD 20260831c: outdoor peak no longer draws the inside-looking-out caveMouth overlay; peakMap outdoor painting stays; cave still enterable. LIVE 2:46pm: outdoor PEAK looks outdoor (no cave overlay). Household save intact. Never START OVER.
 
-Last live pass: **2026-09-05 ~7:14–7:28am PT** BUILD 20260905a (desktop; `?v=20260905pt0714`). Recheck of 05a. Continued box Chrome save Day 2395 SPRING AFTERNOON (overworld near OCEAN, ~2–5♥, 0G) → Day 2396 SPRING NIGHT (TOWN, 5♥, 0G). **STILL PASS:** pier rowboat (GET IN / row / GET OUT on pier). **STILL FIXED:** tray sword slot 0. **NEW/PASS:** chicken scoot on contact (first live of 04g). **STILL:** fish no pole (toast YOU NEED A FISHING POLE.); clock races (2395→2396 across short pass). Dog / mine / bat pad UNTESTED. START OVER under Jobs (not pressed). Never START OVER. Screenshots `/workspace/playtest-0714/`.
+Last live pass: **2026-09-05 ~10:07–10:12am PT** BUILD 20260905d (desktop; `?v=20260905pt1007`). First live of 05d. Continued box Chrome save Day 2417 SPRING MORNING→AFTERNOON (FARM, 4/5♥, 0G). **NEW/PASS:** overworld south camera keeps Orion above hotbar (05c). **NEW/FAIL:** bag/tray drag onto filled cell — no clean instant swap (`04-bag-before.webp`/`05-bag-after.webp`). **STILL FIXED:** tray sword slot 0. **UNTESTED:** boat / chicken / ocean fish (bridge toast NEED 8 WOOD; only 2 wood in tray; no pole). START OVER under Jobs (not pressed). Never START OVER. Screenshots `/workspace/playtest-1007/`.
 
-Highest-leverage theme: chicken scoot **PASS** (first live). Boat + tray sword still good. Still open: ocean fish (need pole); bat pad; day-clock races; START OVER wipe (04l claim, not pressed); dog leash / Pip shop scroll; bigger ocean / island pickaxe.
+Highest-leverage theme: bag drag swap **FAIL** on first live of 05d; south camera **PASS**. Tray sword still good. Still open: bag swap fix; ocean fish (need pole); boat recheck; bridge wood; bat pad; day-clock races; START OVER wipe (04l claim, not pressed); dog leash.
+
+## Live playtest 9/5 ~10:07–10:12am PT (BUILD 20260905d)
+
+- Continued box Chrome save — never START OVER. Day 2417 SPRING MORNING (FARM, 4/5♥, 0G) → Day 2417 SPRING AFTERNOON (FARM, 4/5♥, 0G). URL cache-bust `?v=20260905pt1007`; Jobs stamp `20260905d`. First live of 05d. ~5 min; no crash; START OVER seen in Jobs, not pressed.
+- **NEW/PASS:** Overworld south camera — Orion stayed above the hotbar at the south edge (`06-south-edge.webp`). First live of 05c claim.
+- **NEW/FAIL:** Bag/tray drag onto a filled cell — cells changed (wood stack/hotbar shuffled) but no clear instant swap with displaced item returning to the pickup slot (`04-bag-before.webp`, `05-bag-after.webp`). First live of 05d claim.
+- **STILL FIXED:** Sword hard-pinned in 10-tray hotbar slot 0 (`03-hotbar.webp`).
+- **UNTESTED:** Pier rowboat / chicken scoot / ocean fishing — river bridge blocked (`THE BRIDGE IS OUT. NEED 8 WOOD.` — `07-bridge-blocker.webp`); no fishing pole in tray/bag.
+- **STILL:** Day clock phases race (Morning→Afternoon across short pass). START OVER under Jobs (04l wipe claim not pressed).
+- Screenshots `/workspace/playtest-1007/` (`01-land.webp` … `08-final.webp`).
 
 ## Live playtest 9/5 ~7:14–7:28am PT (BUILD 20260905a)
 
