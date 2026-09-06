@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ep";
+  var BUILD = "20260905eq";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7980,12 +7980,24 @@
 
   function selectedKey() {
     var c = trayCells[selectedSlot];
-    return (c && c.key) ? c.key : "";
+    if (c && c.key) return c.key;
+    /* 20260905eq: mid-drag ghost from this tray slot still counts as selected
+       (spendSelected 05en already spends bagHeld; gates used selectedHas/Is). */
+    if (bagHeld && bagHeld.key && bagHeldFrom && bagHeldFrom.place === "tray" &&
+        (bagHeldFrom.i | 0) === (selectedSlot | 0)) {
+      return bagHeld.key;
+    }
+    return "";
   }
 
   function selectedCount() {
     var c = trayCells[selectedSlot];
-    return c ? (c.count | 0) : 0;
+    var n = c ? (c.count | 0) : 0;
+    if (bagHeld && bagHeld.key && bagHeldFrom && bagHeldFrom.place === "tray" &&
+        (bagHeldFrom.i | 0) === (selectedSlot | 0) && (!c || c.key === bagHeld.key)) {
+      n += bagHeld.count | 0;
+    }
+    return n;
   }
 
   function selectedIs(key) {
@@ -7994,8 +8006,18 @@
 
   function selectedHas(key, n) {
     var c = trayCells[selectedSlot];
+    var have = 0;
     n = n | 0;
-    return !!(c && c.key === key && (c.count | 0) >= n);
+    if (!key || n <= 0) return false;
+    if (c && c.key === key) have += c.count | 0;
+    /* 20260905eq: same-key mid-drag stack counts for fence/flower/kits/eat gates */
+    if (bagHeld && bagHeld.key === key) {
+      if (!c || c.key === key ||
+          (bagHeldFrom && bagHeldFrom.place === "tray" && (bagHeldFrom.i | 0) === (selectedSlot | 0))) {
+        have += bagHeld.count | 0;
+      }
+    }
+    return have >= n;
   }
 
   function bagCount(key) {
@@ -23689,6 +23711,16 @@ if (currentScene === "ocean") goExitOcean();
       ok("spendSelectedHeld", spentFl === 1 && bagHeld && (bagHeld.count | 0) === 1, "spent=" + spentFl + " left=" + (bagHeld && bagHeld.count));
       spendSelected("flower", 1);
       ok("spendSelectedHeldClear", !bagHeld, !!bagHeld);
+      bagHeld = null; bagHeldFrom = null;
+      syncBagCounts();
+      /* 20260905eq: selectedHas/Key see mid-drag tray ghost */
+      selectedSlot = 0;
+      trayCells[0] = null;
+      bagHeld = { key: "wood", count: 2 };
+      bagHeldFrom = { place: "tray", i: 0 };
+      ok("selectedKeyHeld", selectedKey() === "wood", selectedKey());
+      ok("selectedHasHeld", selectedHas("wood", 2) && selectedHas("wood", 1) && !selectedHas("wood", 3), "count=" + selectedCount());
+      ok("selectedIsHeld", selectedIs("wood"), selectedKey());
       bagHeld = null; bagHeldFrom = null;
       syncBagCounts();
       /* 20260905eo: gem/sapphire kill loot grants gold */
