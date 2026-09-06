@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ca";
+  var BUILD = "20260905cb";
   var ASSET_REV = "452632";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -8314,6 +8314,8 @@
       ensureSelectedSlot();
     } catch (err) {}
     loadingSave = false;
+    /* 20260905cb: after load unlocks persist — mid-night three lights start Moondrop */
+    maybeThreeLightsReady();
   }
 
   function serializeNodes() {
@@ -10290,6 +10292,7 @@
     var h = townHoliday();
     if (h === "market") return "MARKET DAY";
     if (h === "flower") return "FLOWER DAY";
+    if (festivalOn && clockPhaseName() === "NIGHT") return "MOONDROP NIGHT";
     if (h === "lantern" && !festivalOn) return "LANTERN EVE";
     return "";
   }
@@ -10549,6 +10552,8 @@
       }
       /* 20260905br: evening/night can top-up shy daytime farm slugs once per phase flip. */
       if (outdoorSlugScene()) ensureOutdoorSlugs(currentScene);
+      /* 20260905cb: three lights + night → Moondrop Night toast */
+      maybeMoondropNight();
       /* Defer save so a sync localStorage hitch cannot nest inside the tick. */
       setTimeout(function () { persistSave(); }, 0);
     }
@@ -10938,6 +10943,16 @@
   }
 
   function noteLines() {
+    /* 20260905cb: Nim notes nudge Home / Town / Peak after the house glows */
+    if (homeLightOn() && threeLightsOn() && !festivalOn) {
+      return ["THREE LIGHTS GLOW.", "FIND ME AT NIGHT", "BY THE STATUE."];
+    }
+    if (homeLightOn() && (pipDone || unlocked.shopGlow) && !(found.peakLight || unlocked.peakGlow)) {
+      return ["TWO LIGHTS GLOW.", "THE PEAK ALTAR", "WAITS UP HIGH."];
+    }
+    if (homeLightOn() && !(pipDone || unlocked.shopGlow)) {
+      return ["HOME IS LIT.", "PIP'S TOWN LAMP", "NEEDS COPPER."];
+    }
     if (quest.errandDone && allFound()) {
       return ["YOU FOUND THEM ALL.", "THANKS FOR THE WOOD.", "THE MOUNTAIN HUMS."];
     }
@@ -10959,17 +10974,20 @@
     if (mineMailReady() && !mailRead.mine) return "READ THE NEW LETTER";
     if (!quest.errandDone && mailRead.mine) return "LEAVE WOOD AT NIM'S NOTE";
     if (quest.errandDone && !mailRead.thanks) return "READ THE NEW LETTER";
-    if (found.moonshard && !quest.homeDone) return "TAKE THE SHARD HOME";
-    if (!found.moonshard) return "FIND A MOON SHARD";
+    /* 20260905cb: three-lights story spine — Home / Town / Peak then night */
+    if (!homeLightOn()) {
+      if (found.moonshard) return "LIGHT THE HOME LAMP.";
+      return "FIND A MOON SHARD";
+    }
+    if (!(pipDone || unlocked.shopGlow)) return "LIGHT THE TOWN LAMP.";
+    if (!(found.peakLight || unlocked.peakGlow)) return "LIGHT THE PEAK LAMP.";
+    if (!festivalOn && threeLightsOn()) return "A SHY GLOW WAITS AT NIGHT.";
+    if (festivalOn) return "MOONDROP NIGHT SHINES.";
     if (!lilaDone) return "PLANT FLOWERS WITH LILA";
-    if (!pipDone) return "BRING COPPER TO PIP";
     if (!reedDone) return "HELP REED'S CAR";
     /* 20260905bv: nest bird cozy loop */
     if (found.birdArrived && !found.birdNestFixed) return "BRING 10 WOOD TO THE NEST BIRD";
     if (found.birdNestFixed && !unlocked.birdRideTip) return "ASK THE BIRD FOR A RIDE";
-    if (!found.peakLight) return "THE PEAK LIGHT WAITS.";
-    if (!festivalOn && threeLightsOn()) return "A SHY GLOW WAITS AT NIGHT.";
-    if (festivalOn) return "MOONDROP NIGHT SHINES.";
     if ((houseTier | 0) < 2) return "PIP SELLS A HOUSE KIT.";
     return "THE PEAK GLOWS.";
   }
@@ -11038,13 +11056,23 @@
     if (!quest.errandDone) {
       return ["NIM WANTS WOOD.", "LEAVE SOME AT", "THE MINE NOTE."];
     }
-    if (found.moonshard && !quest.homeDone) {
-      return ["TAKE THE SHARD", "INSIDE YOUR HOUSE.", "IT LIKES HOME."];
-    }
-    if (!found.moonshard) {
+    /* 20260905cb: Junie tips Home / Town / Peak night-lights */
+    if (!homeLightOn()) {
+      if (found.moonshard) {
+        return ["TAKE THE SHARD", "INSIDE YOUR HOUSE.", "HOME LIGHT!"];
+      }
       return ["NIM LEFT A SHARD", "IN THE CAVE.", "BRING IT HOME."];
     }
-    return ["THE HOUSE GLOWS.", "THE TOWN STATUE", "IS STILL DARK."];
+    if (!(pipDone || unlocked.shopGlow)) {
+      return ["HOME GLOWS!", "BRING COPPER TO PIP", "FOR THE TOWN LAMP."];
+    }
+    if (!(found.peakLight || unlocked.peakGlow)) {
+      return ["TOWN GLOWS TOO!", "CLIMB THE PEAK.", "LIGHT THE ALTAR."];
+    }
+    if (!festivalOn) {
+      return ["THREE LIGHTS!", "WAIT FOR NIGHT.", "SAY HI TO NIM."];
+    }
+    return ["MOONDROP NIGHT!", "THE MOUNTAIN", "SHINES FOR US."];
   }
 
   function talkNeighbor() {
@@ -11265,6 +11293,7 @@
     persistSave();
     unlockAch("shopGlow");
     ensureSelectedSlot();
+    maybeThreeLightsReady();
   }
 
   function pipLines() {
@@ -11275,7 +11304,7 @@
       finishPipJob();
       return ["A REAL COPPER!", "THE SHOP LANTERN", "IS UP."];
     }
-    return ["NIM USED TO BUY HONEY BUNS.", "BRING ME ONE COPPER", "FOR A SHOP LANTERN."];
+    return ["THE TOWN NEEDS A LAMP.", "BRING ME ONE COPPER", "FOR THE SHOP LANTERN."];
   }
 
   function talkPip() {
@@ -11376,8 +11405,41 @@
   }
 
 
+  function townLightOn() {
+    return !!(pipDone || unlocked.shopGlow);
+  }
+
+  function peakLightOn() {
+    return !!(found.peakLight || unlocked.peakGlow);
+  }
+
   function threeLightsOn() {
-    return !!(homeLightOn() && (pipDone || unlocked.shopGlow) && (found.peakLight || unlocked.peakGlow));
+    return !!(homeLightOn() && townLightOn() && peakLightOn());
+  }
+
+  /* 20260905cb: third light ready — day toast; night starts Moondrop Night */
+  function maybeThreeLightsReady() {
+    if (!threeLightsOn()) return;
+    if (festivalOn) return;
+    if (clockPhaseName() === "NIGHT") {
+      maybeMoondropNight();
+      return;
+    }
+    if (!unlocked.threeLightsTip) {
+      unlocked.threeLightsTip = true;
+      persistSave();
+      showLineNote("THREE LIGHTS ON. WAIT FOR NIGHT.");
+    }
+  }
+
+  function maybeMoondropNight() {
+    if (festivalOn) return;
+    if (!threeLightsOn()) return;
+    if (clockPhaseName() !== "NIGHT") return;
+    festivalOn = true;
+    persistSave();
+    unlockAch("moondropNight");
+    showLineNote("MOONDROP NIGHT!");
   }
 
   function nimVisible() {
@@ -11393,9 +11455,13 @@
     else nim.face = "down";
     if (!festivalOn) {
       festivalOn = true;
-      nimMet = true;
       persistSave();
       unlockAch("moondropNight");
+      showLineNote("MOONDROP NIGHT!");
+    }
+    if (!nimMet) {
+      nimMet = true;
+      persistSave();
       openDialogue("NIM", ["THANKS.", "THE MOUNTAIN CAN", "SHINE NOW."]);
       return;
     }
@@ -11776,7 +11842,8 @@
     found.peakLight = true;
     persistSave();
     unlockAch("peakGlow");
-    openDialogue("ORION", ["THE PEAK LIGHT.", "THE MOUNTAIN GLOWS."]);
+    openDialogue("ORION", ["THE PEAK LIGHT!", "HOME, TOWN, PEAK."]);
+    maybeThreeLightsReady();
   }
 
   function goPeakAltar(prop) {
@@ -14766,7 +14833,8 @@
       persistSave();
       unlockAch("homeGlow");
       ensureSelectedSlot();
-      openDialogue("ORION", ["THE SHARD GLOWS.", "I AM HOME."]);
+      openDialogue("ORION", ["THE SHARD GLOWS.", "HOME LIGHT ON!"]);
+      maybeThreeLightsReady();
     } else {
       if (homeLightOn()) homeLight = true;
       persistSave();
@@ -20578,7 +20646,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ca", BUILD);
+      ok("BUILD", BUILD === "20260905cb", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
