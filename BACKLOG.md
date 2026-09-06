@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905eb): number keys ignored while Stars/Jobs/shop/craft/chest/wipe open so tray cannot swap under panels (bag tray still selectable); wipe NO/outside soft ui click (YES still careful silent reload); soft sparkle when Stars opens. No Jobs tip spam. Never START OVER.
+
 Local 9/5 (BUILD 20260905ea): Stars X matches craft/Jobs/BAG/talk (13x12 corner) + Pip shop X Y aligned; Nim note boards already share talk-panel X from 05dy (verified, no change). Wipe confirm untouched. Never START OVER.
 
 Local 9/5 (BUILD 20260905dz): empty tray slot soft click (quieter screen sparks + short rim; filled slots keep 05dx select juice) + number keys ignored while talk is open so tray cannot swap under dialogue. Never START OVER.

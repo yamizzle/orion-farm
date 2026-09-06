@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ea";
+  var BUILD = "20260905eb";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -11460,11 +11460,14 @@
       return "yes";
     }
     if (hitPad(p.x, p.y, L.noX, L.by, L.noW, L.bh, 6)) {
+      /* 20260905eb: soft click on cancel — YES path stays careful/silent reload */
+      playSfx("ui");
       wipeAsk = false;
       return "no";
     }
     /* Outside the confirm box — cancel, same as NO (swallow in tap). */
     if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
+      playSfx("ui");
       wipeAsk = false;
       return "outside";
     }
@@ -21422,6 +21425,8 @@
       playSfx("ui");
       if (bagOpen) closeBag();
       achieveOpen = !achieveOpen;
+      /* 20260905eb: soft gold sparkle when Stars opens */
+      if (achieveOpen) spawnMuteClickSparks(VIEW_W / 2, 40);
       questOpen = false;
       achieveScroll = 0;
       achieveDrag = null;
@@ -22470,6 +22475,11 @@ if (currentScene === "ocean") goExitOcean();
     }
     /* 20260905dz: don't swap tray under an open talk panel */
     if (dialogue && slotN >= 1 && slotN <= 10) {
+      e.preventDefault();
+      return;
+    }
+    /* 20260905eb: same for Stars/Jobs/shop/craft/chest/wipe (bag kept — tray is part of bag UI) */
+    if ((achieveOpen || questOpen || wipeAsk || shopOpen || craftOpen || chestOpen) && slotN >= 1 && slotN <= 10) {
       e.preventDefault();
       return;
     }
