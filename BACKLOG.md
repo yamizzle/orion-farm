@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905hg): world 2× density vs tray — evening/morning outdoor grade scratch canvases were 1× (no BUFFER), so drawAtlas2x / half-scale props + washed actors lost half their pixels then soft-upscaled; tray/BAG drawUiIcon on main BUFFER stayed crisp. Scratch + mask + wash now BUFFER-dense; farm grass0–3 / Orion / DAY_MS / walk energy / evening color untouched. Never START OVER.
+
 Local 9/6 (BUILD 20260905hf): town house C/D knock — tapping townHouseC / townHouseD or Space / J / E at the stoop finally knocks (KNOCK float; HOUSE dialogue; tall cottage A + L-house B already enter; C/D were silent solids after knock was removed). Never START OVER.
 
 Local 9/6 (BUILD 20260905he): cottage bed sleep — tapping a cottage / tall-cottage / L-house bed or Space / J / E next to it finally sleeps (day+1 + hearts/energy; SLEEP float already showed; was house-only so those beds were silent solids while the farmhouse bed worked). Never START OVER.
