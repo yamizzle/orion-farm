@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gr): collectible pick equips — picking a mushroom / toadstool / copper / moonshard / silver / goldore / iron pins + selects it (tray-tap eat / Pip lantern / smelt / HOME tip need selected; pick left bag-only or unselected — same ground-loot equip gap as 05gn); gem→copper and iron deep finds grant immediately + equip (were fly-in-only). Never START OVER.
+
 Local 9/6 (BUILD 20260905gq): fence pick-up equips wood — picking up a placed fence pins + selects the wood (TAP BUILD needs selected wood; pick left wood bag-only or unselected — same fence-kit buy equip gap as 05fi). Never START OVER.
 
 Local 9/6 (BUILD 20260905gp): craft recipe equip + boat Space adjacent leftover — workbench craft pins + selects the axe/shovel/pick/bow/sword (tray-full / wood-selected crafts left tool bag-only or unselected — same cook/catch equip gap); OWNED recipe tap arms the tool too; tryOceanDoors finally talks the rowboat from an adjacent hull tile (facing/underfoot existed; side was only via later tryTalkAdjacent). Never START OVER.

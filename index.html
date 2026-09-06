@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gq";
+  var BUILD = "20260905gr";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -17784,7 +17784,13 @@
     if (i >= 0) PROPS.splice(i, 1);
     if (prop.kind === "gem") {
       found.gem = true;
-      if (!pipDone) spawnPickup("copper", prop.tx, prop.ty, 1);
+      if (!pipDone) {
+        addItem("copper", 1);
+        spawnPickup("copper", prop.tx, prop.ty, 0);
+        /* 20260905gr: pin + select gem-copper (Pip lantern; was fly-in bag-only). */
+        placeToolInTrayFirst("copper");
+        selectTool("copper");
+      }
       spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
       persistSave();
       openDialogue("ORION", ["A SHINY GEM!", "IT TWINKLES LIKE", "NIM'S LANTERN."]);
@@ -17792,7 +17798,11 @@
     }
     if (prop.kind === "iron") {
       found.iron = true;
-      spawnPickup("iron", prop.tx, prop.ty, 1);
+      addItem("iron", 1);
+      spawnPickup("iron", prop.tx, prop.ty, 0);
+      /* 20260905gr: pin + select iron (craft tip; was fly-in-only so never selected). */
+      placeToolInTrayFirst("iron");
+      selectTool("iron");
       /* 20260905dc: metal pickup sparkle */
       spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, "iron");
       persistSave();
@@ -17828,7 +17838,7 @@
   }
 
   function pickupCollectible(prop) {
-    var i;
+    var i, key;
     if (!isCollectible(prop)) return;
     if (prop.kind === "diamondPickaxe") {
       if (found.diamondPick || diamondPickOwned) return;
@@ -17848,6 +17858,10 @@
       if (i >= 0) PROPS.splice(i, 1);
       addItem("mushroom", 1);
       spawnPickup("mushroom", prop.tx, prop.ty, 0);
+      /* 20260905gr: pin + select collectible — tray-tap eat needs selected;
+         tray-full picks left mushroom bag-only or unselected (same ground-loot equip gap as 05gn). */
+      placeToolInTrayFirst("mushroom");
+      selectTool("mushroom");
       spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
       rememberHarvest(prop, "toadstool", "gone");
       unlockAch("caveSnack");
@@ -17869,6 +17883,12 @@
       if (i >= 0) PROPS.splice(i, 1);
       addItem(prop.kind, 1);
       spawnPickup(prop.kind, prop.tx, prop.ty, 0);
+      /* 20260905gr: pin + select ore/loose find (smelt / tray-tap; same 05gn equip gap). */
+      key = stackKey(prop.kind);
+      if (key) {
+        placeToolInTrayFirst(key);
+        selectTool(key);
+      }
       /* 20260905dc: metal pickup sparkle */
       if (isMetalLoot(prop.kind)) spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, prop.kind);
       else spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
@@ -17881,6 +17901,13 @@
     found[prop.kind] = true;
     addItem(prop.kind, 1);
     spawnPickup(prop.kind, prop.tx, prop.ty, 0);
+    /* 20260905gr: pin + select copper/mushroom/moonshard (Pip / eat / HOME tip;
+       tray-full left bag-only or unselected — same 05gn equip gap). */
+    key = stackKey(prop.kind);
+    if (key) {
+      placeToolInTrayFirst(key);
+      selectTool(key);
+    }
     /* 20260905dc: metal pickup sparkle (copper / iron) */
     if (isMetalLoot(prop.kind)) spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, prop.kind);
     else spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
@@ -25038,6 +25065,46 @@ if (currentScene === "ocean") goExitOcean();
       ok("fencePickupPresent", !!fenceAt(_fx, _fy), "fence");
       ok("fencePickupEquipsWood", !!breakFence(fenceAt(_fx, _fy)) && selectedIs("wood") && bagCount("wood") >= 1,
         "sel=" + selectedKey() + " n=" + bagCount("wood"));
+
+      /* 20260905gr: collectible pick pins + selects (tray-tap eat / Pip / smelt tip). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      axeOwned = true;
+      found.mushroom = false;
+      syncBagCounts();
+      var _cp = { kind: "mushroom", tx: player.tx, ty: player.ty };
+      PROPS.push(_cp);
+      pickupCollectible(_cp);
+      ok("collectiblePickPinnedSelected", selectedIs("mushroom") && bagCount("mushroom") >= 1,
+        "sel=" + selectedKey() + " n=" + bagCount("mushroom"));
+      /* toadstool → mushroom equip */
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      syncBagCounts();
+      var _ts = { kind: "toadstool", tx: player.tx, ty: player.ty };
+      PROPS.push(_ts);
+      pickupCollectible(_ts);
+      ok("toadstoolPickEquipsMush", selectedIs("mushroom") && bagCount("mushroom") >= 1,
+        "sel=" + selectedKey() + " n=" + bagCount("mushroom"));
+      /* iron deep find immediate + select */
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      found.iron = false;
+      syncBagCounts();
+      var _ir = { kind: "iron", tx: player.tx, ty: player.ty };
+      PROPS.push(_ir);
+      pickupCollectible(_ir);
+      ok("ironDeepFindEquips", selectedIs("iron") && bagCount("iron") >= 1 && !!found.iron,
+        "sel=" + selectedKey() + " n=" + bagCount("iron"));
+      if (typeof closeDialogue === "function") closeDialogue();
+      talkOpen = false;
 
       /* 20260905fl: Space plant seed / flower / path place facing. */
       applyScene("overworld");
