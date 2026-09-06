@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905de";
+  var BUILD = "20260905df";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7093,6 +7093,24 @@
     }
   }
 
+  /* 20260905df: soft warm pulse sparks when home / town / peak glow turns on */
+  function spawnLampPulse(x, y) {
+    var i, ang, cols;
+    cols = ["#FFE9A0", "#FFF8E0", "#F0C060", "#FFFDF4", "#FFD78A", "#E8C84A", "#FFE070", "#FFF3C0", "#FFB040"];
+    for (i = 0; i < 11; i++) {
+      ang = (i / 11) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: x + (Math.random() * 6 - 3),
+        y: y + (Math.random() * 5 - 2.5),
+        vx: Math.cos(ang) * (0.02 + Math.random() * 0.024),
+        vy: Math.sin(ang) * 0.01 - 0.048 - Math.random() * 0.024,
+        age: 0,
+        life: 520 + Math.random() * 280,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
 
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
@@ -12381,6 +12399,8 @@
     persistSave();
     unlockAch("shopGlow");
     ensureSelectedSlot();
+    /* 20260905df: soft warm pulse when the town shop lamp turns on */
+    spawnLampPulse(pipLanternAt.tx * TILE + 8, pipLanternAt.ty * TILE + 2);
     maybeThreeLightsReady();
   }
 
@@ -12943,6 +12963,8 @@
     found.peakLight = true;
     persistSave();
     unlockAch("peakGlow");
+    /* 20260905df: soft warm pulse when the peak glow turns on */
+    spawnLampPulse(16 * TILE + 8, 5 * TILE + 4);
     openDialogue("ORION", ["THE PEAK LIGHT!", "HOME, TOWN, PEAK."]);
     maybeThreeLightsReady();
   }
@@ -16084,6 +16106,8 @@
         persistSave();
         unlockAch("homeGlow");
         ensureSelectedSlot();
+        /* 20260905df: soft warm pulse when the home glow turns on */
+        spawnLampPulse(16 * TILE + 8, 3 * TILE + 2);
         openDialogue("ORION", ["THE SHARD GLOWS.", "HOME LIGHT ON!"]);
         maybeThreeLightsReady();
       } else {
@@ -17733,10 +17757,11 @@
     Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", -8, -13);
     g.restore();
     /* 20260905bz: bigger bright crescent + soft omni ring so pad hits read any facing */
+    /* 20260905df: pad crescent a bit brighter so dark floors still read the slash */
     if (u > 0.02 && u < 0.98) {
       a0 = ang - 1.05;
       a1 = ang + 0.75;
-      bright = u < 0.2 || u > 0.85 ? 0.7 : 1;
+      bright = u < 0.2 || u > 0.85 ? 0.85 : 1;
       g.save();
       g.imageSmoothingEnabled = false;
       g.globalAlpha = bright;
@@ -17744,7 +17769,7 @@
         aa = a0 + (a1 - a0) * (i / 14);
         px = Math.round(hand.x + Math.sin(aa) * 20);
         py = Math.round(hand.y - Math.cos(aa) * 20);
-        g.fillStyle = (i === 7 || i === 8) ? "#FFFCE0" : "#FFE07A";
+        g.fillStyle = (i === 7 || i === 8) ? "#FFFFF0" : "#FFE99A";
         g.fillRect(px - 1, py - 1, 3, 3);
         g.fillStyle = "#FFFFFF";
         g.fillRect(px, py, 1, 1);
@@ -17753,12 +17778,12 @@
       if (u < 0.55) {
         ox = Math.round(sx);
         oy = Math.round(sy - 6);
-        g.globalAlpha = 0.55 * (1 - u / 0.55);
+        g.globalAlpha = 0.68 * (1 - u / 0.55);
         for (i = 0; i < 8; i++) {
           aa = (Math.PI * 2 * i) / 8 + u * 0.6;
           px = Math.round(ox + Math.cos(aa) * 14);
           py = Math.round(oy + Math.sin(aa) * 14);
-          g.fillStyle = "#FFF6A8";
+          g.fillStyle = "#FFF8C0";
           g.fillRect(px, py, 2, 2);
         }
       }
@@ -18342,8 +18367,12 @@
       var holidayLan = !!(p.holiday && townHoliday() === "lantern") || (festivalOn && lit);
       if (lit) {
         /* 20260905cz: soft pulse — a little warmer/slower on holiday lanterns */
-        flicker = (cozyLamp ? 0.14 : 0.10) + (cozyLamp ? 0.08 : 0.08) * (0.5 + 0.5 * Math.sin(tick / 140 + p.tx * 0.8));
+        /* 20260905df: home glow + town pip lamp pulse a touch stronger when story lights are on */
+        flicker = (cozyLamp ? 0.18 : 0.10) + (cozyLamp ? 0.10 : 0.08) * (0.5 + 0.5 * Math.sin(tick / 140 + p.tx * 0.8));
         if (holidayLan) flicker += 0.05 * (0.5 + 0.5 * Math.sin(tick / 200 + p.ty * 0.6));
+        if (townLightOn() && p.tx === pipLanternAt.tx && p.ty === pipLanternAt.ty) {
+          flicker += 0.06 * (0.5 + 0.5 * Math.sin(tick / 170 + p.tx));
+        }
         g.fillStyle = "rgba(240,192,96," + flicker.toFixed(3) + ")";
         g.fillRect(x - (cozyLamp ? 10 : 12), y - (cozyLamp ? 14 : 16), cozyLamp ? 36 : 40, cozyLamp ? 36 : 40);
         if (holidayLan) {
@@ -18395,9 +18424,10 @@
       if (currentScene === "mine") drawShaftLabel(g, p, "DOWN");
     } else if (p.kind === "moonAltar") {
       if (found.peakLight) {
-        var peakGlow = 0.12 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 160));
-        g.fillStyle = "rgba(255,214,120," + peakGlow.toFixed(3) + ")";
-        g.fillRect(x - 6, y - 18, 28, 36);
+        /* 20260905df: a touch brighter soft pulse so peak glow reads after lighting */
+        var peakGlow = 0.16 + 0.11 * (0.5 + 0.5 * Math.sin(tick / 150));
+        g.fillStyle = "rgba(255,220,140," + peakGlow.toFixed(3) + ")";
+        g.fillRect(x - 7, y - 19, 30, 38);
       }
       if (!drawAtlas2x(g, "moonAltar", x, y)) Assets.draw(g, "moonAltar", x, y);
     } else if (p.kind === "swordPedestal") {
@@ -22200,7 +22230,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905de", BUILD);
+      ok("BUILD", BUILD === "20260905df", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

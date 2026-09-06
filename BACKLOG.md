@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905df): home/town/peak lamp soft warm pulse sparks when each glow turns on (+ slightly stronger lit pulse); pad sword crescent a bit brighter. Never START OVER.
+
 Local 9/5 (BUILD 20260905de): bridge fix wood/gold celebration sparkle when 8 wood spent; soccer kickball dust puff on kick. Never START OVER.
 
 Local 9/5 (BUILD 20260905dd): tree fall leaf/dust puff when chop finishes to stump; chicken feather puff on scoot/hop. Never START OVER.
