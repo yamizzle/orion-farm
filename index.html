@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bn";
+  var BUILD = "20260905bo";
   var ASSET_REV = "451204";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -2537,6 +2537,10 @@
 
   function applyScene(name, floor) {
     var fresh, key, cached;
+    /* 20260905bo: leaving ocean while aboard — dock on shore BEFORE saveScene so boatDock + cache keep the boat */
+    if (currentScene === "ocean" && name !== "ocean" && onBoat) {
+      dockBoatBeforeLeavingOcean();
+    }
     if (currentScene === "mine") monsterCache[mineFloor] = monsters;
     saveScene();
     if (name !== currentScene) cancelFishing();
@@ -2680,6 +2684,8 @@
         if (_ob) {
           _ob.tx = boatDock.tx;
           _ob.ty = boatDock.ty;
+          _ob.hidden = false;
+          _ob.aboard = false;
         }
       }
     }
@@ -3429,6 +3435,12 @@
   }
 
   function enterIslandCave() {
+    /* 20260905bo: if still rowing, auto-get-out so the boat stays on the island beach */
+    if (onBoat && currentScene === "ocean") {
+      dockBoatBeforeLeavingOcean();
+      showLineNote("BOAT STAYS HERE.");
+      playSfx("talk");
+    }
     applyScene("islandCave");
     placePlayer(islandCaveOut.tx, islandCaveOut.ty - 1, "up");
     persistSave();
@@ -3436,6 +3448,8 @@
 
   function exitIslandCave() {
     applyScene("ocean");
+    /* 20260905bo: boat must be visible where you docked on the island (not missing / not only at pier) */
+    ensureBoatVisibleAtDock();
     placePlayer(islandCaveIn.tx, islandCaveIn.ty + 1, "down");
     if (!walkable(player.tx, player.ty)) {
       placePlayer(islandCaveIn.tx, islandCaveIn.ty, "down");
@@ -3583,6 +3597,59 @@
     }
     pending = { type: "talkBridge", prop: p };
     startWalk(player, path, 3.5);
+  }
+
+
+  /* 20260905bo: nearest sand/pier tile for docking the boat on the island */
+  function nearestShoreF(tx, ty) {
+    var r, x, y, nx, ny, maxR;
+    tx = tx | 0;
+    ty = ty | 0;
+    if (inBounds(tx, ty) && cell(tx, ty) === "f") return { tx: tx, ty: ty };
+    maxR = 16;
+    for (r = 1; r <= maxR; r++) {
+      for (x = -r; x <= r; x++) {
+        y = r - Math.abs(x);
+        nx = tx + x;
+        ny = ty + y;
+        if (inBounds(nx, ny) && cell(nx, ny) === "f") return { tx: nx, ty: ny };
+        if (y) {
+          ny = ty - y;
+          if (inBounds(nx, ny) && cell(nx, ny) === "f") return { tx: nx, ty: ny };
+        }
+      }
+    }
+    return { tx: islandCaveIn.tx, ty: islandCaveIn.ty + 1 };
+  }
+
+  /* Dock + show boat on current ocean shore before leaving the scene while aboard */
+  function dockBoatBeforeLeavingOcean() {
+    var spot, b;
+    if (!onBoat || currentScene !== "ocean") return;
+    spot = nearestShoreF(player.tx, player.ty);
+    b = dockBoatAt(spot.tx, spot.ty);
+    if (b) {
+      b.hidden = false;
+      b.aboard = false;
+    }
+    onBoat = false;
+    buildSolid();
+  }
+
+  /* After returning to ocean, boat must be visible at boatDock (island if that is where you left it) */
+  function ensureBoatVisibleAtDock() {
+    var b, spot;
+    if (currentScene !== "ocean") return;
+    if (!boatDock || typeof boatDock.tx !== "number" || typeof boatDock.ty !== "number") {
+      spot = nearestShoreF(islandCaveIn.tx, islandCaveIn.ty);
+      boatDock = { tx: spot.tx, ty: spot.ty };
+    }
+    b = ensureOceanBoat();
+    if (!b) return;
+    b.tx = boatDock.tx;
+    b.ty = boatDock.ty;
+    b.hidden = false;
+    b.aboard = false;
   }
 
   function findRowboat() {
@@ -5353,19 +5420,13 @@
     return false;
   }
 
-  /* Aboard: row on ocean water, or pier/sand shore (f next to y) for GET OUT. */
+  /* 20260905bo: aboard — row on water OR any pier/sand "f" (whole island beach) so kids can GET OUT anywhere on land. */
   function boatOk(tx, ty) {
-    var ch, dirs, i, nx, ny;
+    var ch;
     if (!inBounds(tx, ty) || currentScene !== "ocean") return false;
     ch = cell(tx, ty);
     if (ch === "y") return true;
-    if (ch !== "f") return false;
-    dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-    for (i = 0; i < dirs.length; i++) {
-      nx = tx + dirs[i][0];
-      ny = ty + dirs[i][1];
-      if (inBounds(nx, ny) && cell(nx, ny) === "y") return true;
-    }
+    if (ch === "f") return true;
     return false;
   }
 
