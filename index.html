@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bx";
+  var BUILD = "20260905by";
   var ASSET_REV = "452632";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -551,7 +551,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, islandCave: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, islandCave: null };
   var tick = 0;
   var lastTs = 0;
   /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
@@ -593,9 +593,20 @@
   var cottage2In = { tx: 61, ty: 26 };
   var cottage2Out = { tx: 6, ty: 6 };
   var cottage2Land = { tx: 61, ty: 27 };
+  /* 20260905by: tall cottage (townHouseA) + L-house (townHouseB) cozy rooms */
+  var TALL_COTTAGE_COLS = 16;
+  var TALL_COTTAGE_ROWS = 10;
+  var L_HOUSE_COLS = 14;
+  var L_HOUSE_ROWS = 10;
+  var tallCottageIn = { tx: 51, ty: 26 };
+  var tallCottageOut = { tx: 8, ty: 8 };
+  var tallCottageLand = { tx: 51, ty: 27 };
+  var lHouseIn = { tx: 61, ty: 32 };
+  var lHouseOut = { tx: 7, ty: 8 };
+  var lHouseLand = { tx: 61, ty: 33 };
 
   function isCozyInterior() {
-    return currentScene === "house" || currentScene === "shop" || currentScene === "cottage" || currentScene === "cottage2";
+    return currentScene === "house" || currentScene === "shop" || currentScene === "cottage" || currentScene === "cottage2" || currentScene === "tallCottage" || currentScene === "lHouse";
   }
   var FOREST_COLS = 28;
   var FOREST_ROWS = 66;
@@ -2328,6 +2339,62 @@
     ];
   }
 
+  function buildTallCottageGround() {
+    var cols = TALL_COTTAGE_COLS, rows = TALL_COTTAGE_ROWS;
+    var g = [], y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) row[x] = (x === 0 || y === 0 || x === cols - 1 || y === rows - 1) ? "#" : "f";
+      g[y] = row;
+    }
+    return g;
+  }
+
+  function buildTallCottageProps() {
+    return [
+      { kind: "bed", tx: 2, ty: 2 },
+      { kind: "window", tx: 4, ty: 0 },
+      { kind: "window", tx: 11, ty: 0 },
+      { kind: "flowerbox", tx: 4, ty: 2 },
+      { kind: "desk", tx: 6, ty: 2 },
+      { kind: "chair", tx: 6, ty: 3 },
+      { kind: "table", tx: 11, ty: 4 },
+      { kind: "lantern", tx: 13, ty: 3 },
+      { kind: "rug", tx: 7, ty: 5 },
+      { kind: "housePlant", tx: 2, ty: 7 },
+      { kind: "crate", tx: 13, ty: 7 },
+      { kind: "doormat", tx: 8, ty: 8 },
+      { kind: "inndoor", tx: 8, ty: 9 }
+    ];
+  }
+
+  function buildLHouseGround() {
+    var cols = L_HOUSE_COLS, rows = L_HOUSE_ROWS;
+    var g = [], y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) row[x] = (x === 0 || y === 0 || x === cols - 1 || y === rows - 1) ? "#" : "f";
+      g[y] = row;
+    }
+    return g;
+  }
+
+  function buildLHouseProps() {
+    return [
+      { kind: "bed", tx: 2, ty: 2 },
+      { kind: "window", tx: 5, ty: 0 },
+      { kind: "window", tx: 9, ty: 0 },
+      { kind: "table", tx: 9, ty: 4 },
+      { kind: "chair", tx: 9, ty: 5 },
+      { kind: "rug", tx: 4, ty: 4 },
+      { kind: "lantern", tx: 11, ty: 3 },
+      { kind: "housePlant", tx: 2, ty: 6 },
+      { kind: "crate", tx: 11, ty: 6 },
+      { kind: "doormat", tx: 7, ty: 8 },
+      { kind: "inndoor", tx: 7, ty: 9 }
+    ];
+  }
+
   function buildShopGround() {
     var cols = SHOP_COLS, rows = SHOP_ROWS;
     var g = [];
@@ -2660,6 +2727,16 @@
       ROWS = COTTAGE2_ROWS;
       GROUND = buildCottage2Ground();
       PROPS = buildCottage2Props();
+    } else if (name === "tallCottage") {
+      COLS = TALL_COTTAGE_COLS;
+      ROWS = TALL_COTTAGE_ROWS;
+      GROUND = buildTallCottageGround();
+      PROPS = buildTallCottageProps();
+    } else if (name === "lHouse") {
+      COLS = L_HOUSE_COLS;
+      ROWS = L_HOUSE_ROWS;
+      GROUND = buildLHouseGround();
+      PROPS = buildLHouseProps();
     } else if (name === "forest") {
       COLS = FOREST_COLS;
       ROWS = FOREST_ROWS;
@@ -7659,7 +7736,7 @@
   }
 
   function isEntrance(tx, ty) {
-    return isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || isShopEntrance(tx, ty) || isForestEntrance(tx, ty) || isTreetopEntrance(tx, ty) || isOceanEntrance(tx, ty) || isCottageEntrance(tx, ty) || isCottage2Entrance(tx, ty) || isIslandCaveEntrance(tx, ty);
+    return isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || isShopEntrance(tx, ty) || isForestEntrance(tx, ty) || isTreetopEntrance(tx, ty) || isOceanEntrance(tx, ty) || isCottageEntrance(tx, ty) || isCottage2Entrance(tx, ty) || isTallCottageEntrance(tx, ty) || isLHouseEntrance(tx, ty) || isIslandCaveEntrance(tx, ty);
   }
 
   function isMineExit(tx, ty) {
@@ -7690,7 +7767,7 @@
     if (isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || houseDoorHit(tx, ty, world)) return true;
     if (isForestEntrance(tx, ty) || isForestExit(tx, ty)) return true;
     if (isOceanEntrance(tx, ty) || isOceanExit(tx, ty)) return true;
-    if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world)) return true;
+    if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world)) return true;
     if (isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty)) return true;
     if (isPeakCave(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty)) return true;
     return false;
@@ -7769,7 +7846,8 @@
       isMineDown(tx, ty) || isMineUp(tx, ty) || isMinePeakStairs(tx, ty) ||
       isPeakCave(tx, ty) || isPeakFarmExit(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) ||
       isOceanEntrance(tx, ty) || isOceanExit(tx, ty) ||
-      isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty);
+      isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) ||
+      isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty);
   }
 
   function mineDownSpot() {
@@ -8176,10 +8254,10 @@
         }
       }
       syncLilaFlowers();
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down"
@@ -8538,6 +8616,8 @@
       else if (scene === "ocean") { tx = oceanLand.tx; ty = oceanLand.ty; face = "down"; }
       else if (scene === "cottage") { tx = 8; ty = 7; face = "up"; }
       else if (scene === "cottage2") { tx = 6; ty = 5; face = "up"; }
+      else if (scene === "tallCottage") { tx = 8; ty = 7; face = "up"; }
+      else if (scene === "lHouse") { tx = 7; ty = 7; face = "up"; }
       else if (scene === "caveclimb") {
         if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
         else { tx = 5; ty = 7; face = "up"; }
@@ -10281,6 +10361,8 @@
     if (currentScene === "ocean") return "OCEAN";
     if (currentScene === "cottage") return "COTTAGE";
     if (currentScene === "cottage2") return "COTTAGE 2";
+    if (currentScene === "tallCottage") return "TALL COTTAGE";
+    if (currentScene === "lHouse") return "L HOUSE";
     if (currentScene === "caveclimb") return "STAIRS " + climbFloor;
     if (currentScene === "mine") return "MINE " + mineFloor;
     return "";
@@ -10530,7 +10612,7 @@
   }
 
   function lanternIsLit() {
-    if (currentScene === "house" || currentScene === "cottage" || currentScene === "cottage2") return true;
+    if (currentScene === "house" || currentScene === "cottage" || currentScene === "cottage2" || currentScene === "tallCottage" || currentScene === "lHouse") return true;
     return lanternGlowAmt() > 0.12;
   }
 
@@ -11635,7 +11717,6 @@
     var p = propAt(tx, ty);
     if (!p) return null;
     if (p.kind === "statue" || p.kind === "fountain") return p;
-    if (p.kind === "townHouseA" || p.kind === "townHouseB") return p;
     return null;
   }
 
@@ -11680,8 +11761,6 @@
       else openDialogue("STATUE", ["A MOON KID HOLDS", "UP THE NIGHT."]);
     } else if (p.kind === "fountain") {
       openDialogue("FOUNTAIN", ["COOL WATER SPLASHES.", "MAKE A WISH!"]);
-    } else {
-      openDialogue("HOUSE", ["KNOCK KNOCK...", "SOMEONE IS HOME."]);
     }
   }
 
@@ -11690,14 +11769,6 @@
     tx = p.tx;
     ty = p.ty;
     if (p.kind === "fountain") { tx = p.tx; ty = p.ty + 1; }
-    if (p.kind === "townHouseA") {
-      tx = p.tx + 1;
-      ty = p.ty + 5;
-    }
-    if (p.kind === "townHouseB") {
-      tx = p.tx + 3;
-      ty = p.ty + 4;
-    }
     highlight = { tx: tx, ty: ty };
     if (isNear(player.tx, player.ty, p.tx, p.ty) || isNear(player.tx, player.ty, tx, ty) ||
         (p.kind === "fountain" && isNear(player.tx, player.ty, p.tx + 1, p.ty))) {
@@ -11814,6 +11885,121 @@
     startWalk(player, path, 3.5);
   }
 
+  function isTallCottageEntrance(tx, ty) {
+    return currentScene === "overworld" && tx === tallCottageIn.tx && ty === tallCottageIn.ty;
+  }
+
+  function isTallCottageExit(tx, ty) {
+    return currentScene === "tallCottage" && tx === tallCottageOut.tx && ty === tallCottageOut.ty;
+  }
+
+  function isLHouseEntrance(tx, ty) {
+    return currentScene === "overworld" && tx === lHouseIn.tx && ty === lHouseIn.ty;
+  }
+
+  function isLHouseExit(tx, ty) {
+    return currentScene === "lHouse" && tx === lHouseOut.tx && ty === lHouseOut.ty;
+  }
+
+  function tallCottageDoorHit(tx, ty, world) {
+    if (currentScene !== "overworld") return false;
+    /* Painted door above stoop — stoop itself is walk-only (shop/house pattern). */
+    if (tx === tallCottageIn.tx && ty === tallCottageIn.ty) return false;
+    if (tx === tallCottageIn.tx && ty === tallCottageIn.ty - 1) return true;
+    if (tx === tallCottageIn.tx + 1 && ty === tallCottageIn.ty - 1) return true;
+    if (tx === tallCottageIn.tx - 1 && ty === tallCottageIn.ty - 1) return true;
+    return false;
+  }
+
+  function lHouseDoorHit(tx, ty, world) {
+    if (currentScene !== "overworld") return false;
+    if (tx === lHouseIn.tx && ty === lHouseIn.ty) return false;
+    if (tx === lHouseIn.tx && ty === lHouseIn.ty - 1) return true;
+    if (tx === lHouseIn.tx + 1 && ty === lHouseIn.ty - 1) return true;
+    if (tx === lHouseIn.tx - 1 && ty === lHouseIn.ty - 1) return true;
+    return false;
+  }
+
+  function enterTallCottage() {
+    applyScene("tallCottage");
+    placePlayer(8, 7, "up");
+    persistSave();
+  }
+
+  function exitTallCottage() {
+    applyScene("overworld");
+    placePlayer(tallCottageLand.tx, tallCottageLand.ty, "down");
+    persistSave();
+  }
+
+  function enterLHouse() {
+    applyScene("lHouse");
+    placePlayer(7, 7, "up");
+    persistSave();
+  }
+
+  function exitLHouse() {
+    applyScene("overworld");
+    placePlayer(lHouseLand.tx, lHouseLand.ty, "down");
+    persistSave();
+  }
+
+  function goEnterTallCottage() {
+    var path;
+    highlight = { tx: tallCottageIn.tx, ty: tallCottageIn.ty };
+    if (player.tx === tallCottageIn.tx && player.ty === tallCottageIn.ty) {
+      enterTallCottage();
+      return;
+    }
+    path = findPath(player.tx, player.ty, tallCottageIn.tx, tallCottageIn.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, tallCottageIn.tx, tallCottageIn.ty)) enterTallCottage();
+      return;
+    }
+    pending = { type: "enterTallCottage" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goEnterLHouse() {
+    var path;
+    highlight = { tx: lHouseIn.tx, ty: lHouseIn.ty };
+    if (player.tx === lHouseIn.tx && player.ty === lHouseIn.ty) {
+      enterLHouse();
+      return;
+    }
+    path = findPath(player.tx, player.ty, lHouseIn.tx, lHouseIn.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, lHouseIn.tx, lHouseIn.ty)) enterLHouse();
+      return;
+    }
+    pending = { type: "enterLHouse" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitTallCottage() {
+    highlight = { tx: tallCottageOut.tx, ty: tallCottageOut.ty };
+    if (player.tx === tallCottageOut.tx && player.ty === tallCottageOut.ty) {
+      exitTallCottage();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, tallCottageOut.tx, tallCottageOut.ty);
+    if (!path.length) return;
+    pending = { type: "exitTallCottage" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitLHouse() {
+    highlight = { tx: lHouseOut.tx, ty: lHouseOut.ty };
+    if (player.tx === lHouseOut.tx && player.ty === lHouseOut.ty) {
+      exitLHouse();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, lHouseOut.tx, lHouseOut.ty);
+    if (!path.length) return;
+    pending = { type: "exitLHouse" };
+    startWalk(player, path, 3.5);
+  }
+
   function talkLuna() {
     openDialogue("LUNA", withHolidayLines("luna", ["NICE TO MEET YOU."]));
   }
@@ -11840,6 +12026,23 @@
       }
       if (cottage2DoorHit(f.tx, f.ty, null) || isCottage2Entrance(f.tx, f.ty)) {
         goEnterCottage2();
+        return true;
+      }
+      if (isTallCottageEntrance(player.tx, player.ty) || tallCottageDoorHit(player.tx, player.ty, null)) {
+        enterTallCottage();
+        return true;
+      }
+      if (isLHouseEntrance(player.tx, player.ty) || lHouseDoorHit(player.tx, player.ty, null)) {
+        enterLHouse();
+        return true;
+      }
+      f = facingTile();
+      if (tallCottageDoorHit(f.tx, f.ty, null) || isTallCottageEntrance(f.tx, f.ty)) {
+        goEnterTallCottage();
+        return true;
+      }
+      if (lHouseDoorHit(f.tx, f.ty, null) || isLHouseEntrance(f.tx, f.ty)) {
+        goEnterLHouse();
         return true;
       }
       return false;
@@ -11874,6 +12077,31 @@
         talkMaple();
         return true;
       }
+      return false;
+    }
+    if (currentScene === "tallCottage") {
+      if (isTallCottageExit(player.tx, player.ty)) {
+        exitTallCottage();
+        return true;
+      }
+      f = facingTile();
+      if (isTallCottageExit(f.tx, f.ty)) {
+        goExitTallCottage();
+        return true;
+      }
+      return false;
+    }
+    if (currentScene === "lHouse") {
+      if (isLHouseExit(player.tx, player.ty)) {
+        exitLHouse();
+        return true;
+      }
+      f = facingTile();
+      if (isLHouseExit(f.tx, f.ty)) {
+        goExitLHouse();
+        return true;
+      }
+      return false;
     }
     if (currentScene === "islandCave") {
       if (isIslandCaveExit(player.tx, player.ty)) {
@@ -14604,6 +14832,26 @@
       exitCottage2();
       return;
     }
+    if (isTallCottageEntrance(player.tx, player.ty)) {
+      pending = null;
+      enterTallCottage();
+      return;
+    }
+    if (isTallCottageExit(player.tx, player.ty)) {
+      pending = null;
+      exitTallCottage();
+      return;
+    }
+    if (isLHouseEntrance(player.tx, player.ty)) {
+      pending = null;
+      enterLHouse();
+      return;
+    }
+    if (isLHouseExit(player.tx, player.ty)) {
+      pending = null;
+      exitLHouse();
+      return;
+    }
     if (isIslandCaveEntrance(player.tx, player.ty)) {
       pending = null;
       enterIslandCave();
@@ -14806,6 +15054,14 @@
       exitCottage();
     } else if (act.type === "exitCottage2") {
       exitCottage2();
+    } else if (act.type === "enterTallCottage") {
+      enterTallCottage();
+    } else if (act.type === "exitTallCottage") {
+      exitTallCottage();
+    } else if (act.type === "enterLHouse") {
+      enterLHouse();
+    } else if (act.type === "exitLHouse") {
+      exitLHouse();
     } else if (act.type === "enterForest") {
       enterForest();
     } else if (act.type === "exitForest") {
@@ -16363,7 +16619,7 @@
       if (!drawAtlas2x(g, "doormat", x, y)) Assets.draw(g, "doormat", x, y);
       /* 05bd: house/shop/cave exit mat shows OUT like mine ladder */
       if (currentScene === "house" || currentScene === "shop" || currentScene === "cottage" ||
-          currentScene === "cottage2") {
+          currentScene === "cottage2" || currentScene === "tallCottage" || currentScene === "lHouse") {
         drawShaftLabel(g, p, "OUT");
       }
     } else if (p.kind === "inndoor") {
@@ -18707,6 +18963,14 @@
         goEnterCottage2();
         return;
       }
+      if (tallCottageDoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty)) {
+        goEnterTallCottage();
+        return;
+      }
+      if (lHouseDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty)) {
+        goEnterLHouse();
+        return;
+      }
       if (carSpriteHit(world)) {
         goTapCar();
         return;
@@ -18739,6 +19003,18 @@
       }
       if (isCottage2Exit(tx, ty)) {
         goExitCottage2();
+        return;
+      }
+    }
+    if (currentScene === "tallCottage") {
+      if (isTallCottageExit(tx, ty)) {
+        goExitTallCottage();
+        return;
+      }
+    }
+    if (currentScene === "lHouse") {
+      if (isLHouseExit(tx, ty)) {
+        goExitLHouse();
         return;
       }
     }
@@ -18897,6 +19173,22 @@
       goEnterShop();
       return;
     }
+    if (currentScene === "overworld" && tx === tallCottageIn.tx && ty === tallCottageIn.ty) {
+      goWalk(tx, ty);
+      return;
+    }
+    if (tallCottageDoorHit(tx, ty, world)) {
+      goEnterTallCottage();
+      return;
+    }
+    if (currentScene === "overworld" && tx === lHouseIn.tx && ty === lHouseIn.ty) {
+      goWalk(tx, ty);
+      return;
+    }
+    if (lHouseDoorHit(tx, ty, world)) {
+      goEnterLHouse();
+      return;
+    }
     if (cottageDoorHit(tx, ty, world) || isCottageEntrance(tx, ty)) {
       goEnterCottage();
       return;
@@ -18999,6 +19291,14 @@
     }
     if (isCottage2Exit(tx, ty) || (currentScene === "cottage2" && tx === cottage2Out.tx && ty === cottage2Out.ty + 1)) {
       goExitCottage2();
+      return;
+    }
+    if (isTallCottageExit(tx, ty) || (currentScene === "tallCottage" && tx === tallCottageOut.tx && ty === tallCottageOut.ty + 1)) {
+      goExitTallCottage();
+      return;
+    }
+    if (isLHouseExit(tx, ty) || (currentScene === "lHouse" && tx === lHouseOut.tx && ty === lHouseOut.ty + 1)) {
+      goExitLHouse();
       return;
     }
     if (isIslandCaveExit(tx, ty)) {
@@ -19109,6 +19409,8 @@
       if (currentScene === "shop") goExitShop();
       else if (currentScene === "cottage") goExitCottage();
       else if (currentScene === "cottage2") goExitCottage2();
+      else if (currentScene === "tallCottage") goExitTallCottage();
+      else if (currentScene === "lHouse") goExitLHouse();
       else if (currentScene === "islandCave") goExitIslandCave();
       else goExitHouse();
       return;
@@ -19133,7 +19435,15 @@
       goTapCar();
       return;
     }
-    if (currentScene === "overworld" && hitProp && (hitProp.kind === "statue" || hitProp.kind === "fountain" || hitProp.kind === "townHouseA" || hitProp.kind === "townHouseB")) {
+    if (currentScene === "overworld" && hitProp && hitProp.kind === "townHouseA") {
+      goEnterTallCottage();
+      return;
+    }
+    if (currentScene === "overworld" && hitProp && hitProp.kind === "townHouseB") {
+      goEnterLHouse();
+      return;
+    }
+    if (currentScene === "overworld" && hitProp && (hitProp.kind === "statue" || hitProp.kind === "fountain")) {
       goLandmark(hitProp);
       return;
     }
