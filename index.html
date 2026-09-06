@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cf";
+  var BUILD = "20260905cg";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -803,6 +803,7 @@
   ];
   var iFrames = 0;
   var hurtFlash = 0;
+  var iframeFlash = 0; /* 20260905cg: brief kid-visible white flash on contact */
   var faintFx = null;
   var monsters = [];
   var monsterCache = { 1: null, 2: null, 3: null, 4: null, 5: null, 6: null };
@@ -5769,7 +5770,8 @@
   function tileCenterX(tx) { return tx * TILE + 8; }
   function tileFootY(ty) { return ty * TILE + 14; }
 
-  var CAM_PAD_BOTTOM = 36;
+  /* 20260905cg: taller south pad so OUT / doors / ground stay above hotbar (sword pad stays fat). */
+  var CAM_PAD_BOTTOM = 52;
   var CAM_PAD_TOP = 32;
   var CAM_PLAYER_H = 32;
   function updateCamera() {
@@ -5789,7 +5791,8 @@
       minX = 0;
       maxX = Math.max(0, worldW - VIEW_W);
       minY = 0;
-      maxY = Math.max(0, worldH - VIEW_H);
+      /* 20260905cg: same bottom overscroll as overworld so south pad can clear hotbar */
+      maxY = Math.max(0, worldH - VIEW_H + CAM_PAD_BOTTOM);
     }
     if (currentScene === "mine") {
       minX = 0;
@@ -13307,7 +13310,8 @@
   }
 
   function swordBtnRect() {
-    /* Bottom-left above the hotbar; keep clear of DAY panel and mine OUT. */
+    /* Bottom-left above the hotbar; keep clear of DAY panel and mine OUT.
+       20260905cg: keep fat-finger size — camera pad clears world under tray, not a tinier pad. */
     return { x: 6, y: VIEW_H - 72, s: 58 };
   }
 
@@ -13991,8 +13995,8 @@
     if (tx === 16 && (ty === 19 || ty === 20)) return true;
     if (tx === 16 && (ty === 4 || ty === 5)) return true;
     if (tx === 14 && ty === 19) return true;
-    /* 20260903b: keep south OUT / hotbar gutter clear of roaming foes. */
-    if (ty >= 18 && tx >= 14 && tx <= 18) return true;
+    /* 20260903b / 20260905cg: keep south OUT / hotbar gutter clear of roaming foes. */
+    if (ty >= 17 && tx >= 13 && tx <= 19) return true;
     if ((tx === 4 && (ty === 5 || ty === 15)) || (tx === 27 && (ty === 5 || ty === 15))) return true;
     return false;
   }
@@ -14154,6 +14158,8 @@
         spawnSparks(player.x, player.y - 8);
         showLineNote("BLOCKED!");
         iFrames = 2000;
+        iframeFlash = 220;
+        hurtFlash = 280;
         persistSave();
         return;
       }
@@ -14162,6 +14168,7 @@
     if (hp < 0) hp = 0;
     iFrames = 2000; /* 20260903a: ~2s so a kid can swing after a bump without multi-drain KO */
     hurtFlash = 420;
+    iframeFlash = 320; /* 20260905cg: bright white flash so i-frames read for kids */
     playSfx("hit");
     persistSave();
     if (hp <= 0) beginFaint();
@@ -16508,7 +16515,14 @@
         drawUiIcon(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy));
       }
     }
-    if (hurtFlash > 0) {
+    if (iframeFlash > 0) {
+      /* 20260905cg: opaque white/cream bloom on Orion — kid-visible i-frame juice */
+      var flashA = Math.min(0.92, 0.35 + iframeFlash / 280);
+      g.fillStyle = "rgba(255,252,240," + flashA.toFixed(3) + ")";
+      g.fillRect(Math.round(player.x - 9 + sx), Math.round(player.y - 33 + bob + sy), 18, 34);
+      g.fillStyle = "rgba(255,255,255," + Math.min(0.75, iframeFlash / 400).toFixed(3) + ")";
+      g.fillRect(Math.round(player.x - 6 + sx), Math.round(player.y - 28 + bob + sy), 12, 22);
+    } else if (hurtFlash > 0) {
       g.fillStyle = "rgba(232,72,72," + (0.25 + 0.35 * (hurtFlash / 420)).toFixed(3) + ")";
       g.fillRect(Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy), 16, 32);
     }
@@ -18695,6 +18709,16 @@
     drawText(g, BUILD, r.x + r.pad, r.y + 2, C.parch);
   }
 
+  function drawIframeFlash(g) {
+    var a;
+    if (iframeFlash <= 0) return;
+    /* Full-view soft white wash — peaks hard then fades; HUD draws after so hearts stay readable. */
+    a = Math.min(0.55, iframeFlash / 260);
+    if (iframeFlash > 200) a = Math.min(0.7, 0.4 + (iframeFlash - 200) / 200);
+    g.fillStyle = "rgba(255,252,245," + a.toFixed(3) + ")";
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+  }
+
   function drawHUD(g) {
     woodPanel(g, 4, 3, 18, 18);
     /* 05bd: small starBadge in wood panel — not full 32px trophy over hearts */
@@ -19074,6 +19098,7 @@
       drawDayTint(g);
       drawBirdRideOverlay(g);
     }
+    drawIframeFlash(g);
     drawHUD(g);
     drawBag(g);
     drawDialogue(g);
@@ -19352,7 +19377,7 @@
       }
       return true;
     }
-    if (inHud(p, 46, 3, 68, 18, 2)) return true;
+    /* 20260905cg: hearts/energy + DAY panels are display-only — do not swallow world taps. */
     if (inHud(p, 4, 3, 18, 18, 3)) {
       playSfx("ui");
       if (bagOpen) closeBag();
@@ -19369,7 +19394,6 @@
       achieveOpen = false;
       return true;
     }
-    if (inHud(p, 206, 4, 114, 21, 2)) return true;
     return false;
   }
 
@@ -20224,6 +20248,10 @@ if (currentScene === "ocean") goExitOcean();
         hurtFlash -= dt;
         if (hurtFlash < 0) hurtFlash = 0;
       }
+      if (iframeFlash > 0) {
+        iframeFlash -= dt;
+        if (iframeFlash < 0) iframeFlash = 0;
+      }
       updatePickups(dt);
       updateGroundLoot(dt);
       updateFx(dt);
@@ -20878,7 +20906,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cf", BUILD);
+      ok("BUILD", BUILD === "20260905cg", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -20938,6 +20966,7 @@ if (currentScene === "ocean") goExitOcean();
       checkMonsterBumps();
       ok("bumpOnce", hp === MAX_HP - BUMP_DMG, "hp=" + hp);
       ok("iframesOn", iFrames > 0, "iFrames=" + iFrames);
+      ok("iframeFlashOn", iframeFlash > 0, "iframeFlash=" + iframeFlash);
       var hpAfter = hp;
       checkMonsterBumps();
       ok("iframesBlock", hp === hpAfter, "hp=" + hp);
