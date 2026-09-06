@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905as";
+  var BUILD = "20260905at";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -10366,8 +10366,8 @@
     /* Door / stoop taps enter the shop even when the truck sprite overlaps. */
     if (shopDoorHit(tx, ty, world)) return false;
     face = car.face || "right";
-    if (face === "up" || face === "down") return hitSprite(world, car.x, car.y, 32, 40, 16, 36);
-    return hitSprite(world, car.x, car.y, 48, 32, 24, 28);
+    if (face === "up" || face === "down") return hitSprite(world, car.x, car.y, 48, 60, 24, 54);
+    return hitSprite(world, car.x, car.y, 72, 48, 36, 42);
   }
 
   function carLampSpots() {
@@ -14829,9 +14829,27 @@
   function drawCarSpr(g) {
     var face = car.face || "right";
     var sid = "car-" + face;
+    var s, fr, ax, ay, sc, smooth;
     if (!Assets.spr[sid]) sid = "car-right";
-    drawShadow(g, car.x, car.y, (face === "up" || face === "down") ? 11 : 16);
-    Assets.draw(g, sid, car.x, car.y, car.frame || 0, 2);
+    drawShadow(g, car.x, car.y, (face === "up" || face === "down") ? 16 : 22);
+    s = Assets.spr[sid];
+    if (s && Assets.img) {
+      /* 20260905at: 2× denser car + ~1.5× on-screen (scale 1.5 of 2× frames ≈ old scale-3) */
+      fr = car.frame || 0;
+      ax = (s.anchor && s.anchor[0]) || 0;
+      ay = (s.anchor && s.anchor[1]) || 0;
+      sc = 1.5;
+      smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(
+        Assets.img, s.x + fr * s.fw, s.y, s.fw, s.h,
+        Math.round(car.x - ax * sc), Math.round(car.y - ay * sc),
+        Math.round(s.fw * sc), Math.round(s.h * sc)
+      );
+      g.imageSmoothingEnabled = smooth;
+    } else {
+      Assets.draw(g, sid, car.x, car.y, car.frame || 0, 3);
+    }
     if (reedDone && lanternGlowAmt() > 0.12) {
       var spots = carLampSpots();
       var glow = 0.55 + 0.35 * lanternGlowAmt();
@@ -18487,7 +18505,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905as", BUILD);
+      ok("BUILD", BUILD === "20260905at", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
