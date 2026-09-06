@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bf";
+  var BUILD = "20260905bg";
   var ASSET_REV = "451204";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7816,6 +7816,7 @@
       }
       loadPocketsFromSave(data);
       overflowBagToChest();
+      ensureOnePole();
       if (data.crops && typeof data.crops === "object") {
         var ck, cv, stage, plantTime;
         crops = {};
@@ -8990,6 +8991,8 @@
     syncBagCounts();
   }
 
+  /* 20260905bg — forever only 1 fishing pole across tray/bag/chest/held.
+     Pip buy stays OWNED; tools never stack count>1. */
   function ensureOnePole() {
     var i, c, saw;
     saw = false;
@@ -9003,9 +9006,17 @@
         if (c && c.key === "pole") { saw = true; break; }
       }
     }
+    if (!saw && bagHeld && bagHeld.key === "pole") saw = true;
+    if (!saw && ((chest.pole | 0) > 0)) saw = true;
     if (saw) poleOwned = true;
+    /* Tools are not chest rows — wipe any legacy chest.pole extras. */
+    if ((chest.pole | 0) > 0) chest.pole = 0;
     if (!poleOwned) return;
     clearKeyFromPockets("pole");
+    if (bagHeld && bagHeld.key === "pole") {
+      bagHeld = null;
+      bagHeldFrom = null;
+    }
     placeToolInTrayFirst("pole");
     /* Hard-cap: never leave count>1 or a second copy. */
     saw = false;
@@ -9020,6 +9031,18 @@
       if (!c || c.key !== "pole") continue;
       if (!saw) { c.count = 1; saw = true; }
       else bagCells[i] = null;
+    }
+    if (!saw) {
+      i = firstEmptyBag();
+      if (i >= 0) bagCells[i] = { key: "pole", count: 1 };
+      else {
+        for (i = BAG_CELLS - 1; i >= 0; i--) {
+          if (!bagCells[i] || !isToolKey(bagCells[i].key)) {
+            bagCells[i] = { key: "pole", count: 1 };
+            break;
+          }
+        }
+      }
     }
     syncBagCounts();
   }
@@ -9191,6 +9214,11 @@
 
   function putInChest(key, amount) {
     var n, have, room, move;
+    /* 20260905bg: fishing pole is never a chest stack — keep one forever in tray/bag. */
+    if (key === "pole") {
+      ensureOnePole();
+      return 0;
+    }
     n = amount | 0;
     if (n < 0) n = bagCount(key);
     have = bagCount(key);
@@ -11551,7 +11579,9 @@
       shopMsgT = 1200;
       return;
     }
-    if (item.id === "pole" && poleOwned) {
+    if (item.id === "pole" && (poleOwned || bagCount("pole") >= 1)) {
+      poleOwned = true;
+      ensureOnePole();
       shopMsg = "YOU ALREADY HAVE ONE.";
       shopMsgT = 1200;
       return;
@@ -11795,7 +11825,7 @@
       drawItemIcon(g, item.icon, L.x + 10, rowY - 1);
       label = item.name;
       if (item.id === "hat" && hatOwned) label = hatOn ? "HAT  ON" : "HAT  OFF";
-      if (item.id === "pole" && poleOwned) label = "POLE  OWNED";
+      if (item.id === "pole" && (poleOwned || bagCount("pole") >= 1)) label = "POLE  OWNED";
       if (item.id === "leash" && bagCount("leash") >= 1) label = "LEASH  OWNED";
       if (item.id === "seeds" && extraPlots >= 4) label = "GARDEN FULL";
       if (item.id === "potatoSeeds" && bagCount("potatoSeed") >= 1) label = "POTATO  HAVE";
@@ -11808,7 +11838,7 @@
         else price = "20W 12S";
       } else if (item.id === "leash") price = bagCount("leash") >= 1 ? "OWNED" : "40C";
       else if ((item.id === "potatoSeeds" && bagCount("potatoSeed") >= 1) || (item.id === "berrySeeds" && bagCount("berrySeed") >= 1)) price = "HAVE";
-      else price = (item.id === "hat" && hatOwned) || (item.id === "pole" && poleOwned) ? "0G" : (shopItemPrice(item) + "G");
+      else price = (item.id === "hat" && hatOwned) || (item.id === "pole" && (poleOwned || bagCount("pole") >= 1)) ? "0G" : (shopItemPrice(item) + "G");
       drawText(g, price, L.x + L.w - textWidth(price) - 12, rowY + 4, C.woodSh);
     }
     if (start > 0) drawText(g, "^ MORE", L.x + L.w - textWidth("^ MORE") - 12, L.listY - 1, C.woodSh);
@@ -16801,6 +16831,7 @@
     bagHeld = null;
     bagHeldFrom = null;
     enforceOneWeaponInTray(stashPrefer);
+    ensureOnePole();
     syncBagCounts();
   }
 
@@ -16861,6 +16892,7 @@
     function finishPocketDrop() {
       /* One weapon in the 10-tray: newly dropped weapon wins; else first stays. */
       enforceOneWeaponInTray(preferWeapon);
+      ensureOnePole();
       syncBagCounts();
       playSfx("ui");
     }
@@ -19051,6 +19083,7 @@ if (currentScene === "ocean") goExitOcean();
       dismissTopDialog: dismissTopDialog,
       poleOwned: function () { return poleOwned; },
       setPoleOwned: function (v) { poleOwned = !!v; if (poleOwned) giveTool("pole"); },
+      ensureOnePole: ensureOnePole,
       SLOT_POLE: SLOT_POLE,
       fishing: function () { return fishing; },
       beginFishing: beginFishing,
@@ -19070,7 +19103,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bf", BUILD);
+      ok("BUILD", BUILD === "20260905bg", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -19181,6 +19214,40 @@ if (currentScene === "ocean") goExitOcean();
         if (trayCells[bj] && trayCells[bj].key === "bow") { trayBow = true; break; }
       }
       ok("forceSwordNoTrayBow", !trayBow, trayBow ? "bow still in tray" : "");
+      /* 20260905bg: only 1 fishing pole forever (tray/bag/chest/held). */
+      poleOwned = true;
+      trayCells[3] = { key: "pole", count: 3 };
+      trayCells[4] = { key: "pole", count: 1 };
+      bagCells[2] = { key: "pole", count: 2 };
+      bagCells[3] = { key: "pole", count: 1 };
+      chest.pole = 5;
+      bagHeld = { key: "pole", count: 1 };
+      bagHeldFrom = { place: "bag", i: 2 };
+      ensureOnePole();
+      var poleN = 0, pi, poleCntBad = false;
+      for (pi = 0; pi < TRAY_CELLS; pi++) {
+        if (trayCells[pi] && trayCells[pi].key === "pole") {
+          poleN++;
+          if ((trayCells[pi].count | 0) !== 1) poleCntBad = true;
+        }
+      }
+      for (pi = 0; pi < BAG_CELLS; pi++) {
+        if (bagCells[pi] && bagCells[pi].key === "pole") {
+          poleN++;
+          if ((bagCells[pi].count | 0) !== 1) poleCntBad = true;
+        }
+      }
+      ok("onePoleTotal", poleN === 1, "copies=" + poleN);
+      ok("onePoleCount1", !poleCntBad, poleCntBad ? "count>1" : "");
+      ok("onePoleNoChest", (chest.pole | 0) === 0, "chest.pole=" + (chest.pole | 0));
+      ok("onePoleNoHeld", !(bagHeld && bagHeld.key === "pole"), bagHeld && bagHeld.key);
+      ok("onePoleOwned", !!poleOwned, "poleOwned=" + poleOwned);
+      ok("onePoleBagCount", bagCount("pole") === 1, "bagCount=" + bagCount("pole"));
+      /* Second grant must not add another. */
+      giveTool("pole");
+      ok("onePoleAfterGrant", bagCount("pole") === 1, "bagCount=" + bagCount("pole"));
+      var putPole = putInChest("pole", 1);
+      ok("onePolePutChestBlocked", putPole === 0 && bagCount("pole") === 1, "put=" + putPole + " bag=" + bagCount("pole"));
     } catch (e) {
       fail++;
       log.push("FAIL exception — " + (e && e.message ? e.message : e));

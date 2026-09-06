@@ -1,3 +1,4 @@
+Local 9/5 (BUILD 20260905bg): only 1 fishing pole forever — dedupe tray/bag/chest/held on load/grant/bag drop/stash; Pip buy already OWNED (bagCount too); putInChest blocks pole; never stack count>1. Needs live verify. Bag swap left alone (05be live FIXED). Never START OVER.
 LIVE 9/5 ~7:10–7:23pm (BUILD 20260905be, household Day 2484→2485 Spring): first live of 05be — bag drag swap **FIXED** (wood×2↔silver; neither vanished; verifies 05x); OCEAN floating door-sign label **PASS** (05az); farm dig mounds visible **PASS** (05ax visual); panel world-tap dismiss **PASS** (05bc, Orion did not walk); tray icons STILL dense/no pink plates; tray sword STILL FIXED slot 0; south camera STILL PASS; clock STILL races (2484 Eve→2485); stove/woods/chicken/mine/fish UNTESTED. Screenshots `/workspace/playtest-1910/`. Never START OVER.
 Local 9/5 (BUILD 20260905bf): Imagine stove prop + cooked-fish plate UI icons (BOX downsample, atlas 2×); stove gameplay from 05be kept. Never START OVER.
 Local 9/5 (BUILD 20260905be): house stove cooks fish (select raw → tap/Space STOVE → cooked twin); cooked heals more; Pip sells cookedTrout; chest/save keys; stump chroma already clean in atlas. LIVE 9/5 ~7:10–7:23pm: first live — bag swap **FIXED**; door signs/dig mounds/panel dismiss PASS; stove UNTESTED (no raw fish); clock STILL races. Never START OVER.
@@ -64,7 +65,7 @@ Pick from the top. Expand the world creatively (bigger beach/ocean, fun Imagine 
 
 | Priority | Status | Item | Notes |
 | --- | --- | --- | --- |
-| High | Local 9/4 04g | Only 1 fishing pole | Some saves show 3 poles. Cap at one forever: dedupe tray/bag/chest on load; Pip buy already OWNED; never stack count>1. |
+| High | Local 9/5 05bg | Only 1 fishing pole | Cap at one forever: dedupe tray/bag/chest/held on load/grant/drop; Pip buy OWNED; never stack count>1; putInChest blocked. **Needs live verify.** |
 | High | Done 9/5 7:28am live | Chickens move when walked into | LIVE 9/5 ~7:14–7:28am BUILD 20260905a: walk/tap scoot **PASS** (first live of 04g claim). |
 | Medium | Local 9/4 04h | Dog runs around inside the house | Dog already house-ok; make indoor roam livelier when home (default: roam in house; leash still for outdoors). |
 | Medium | Done 9/5 1:30am live | Boat at pier | LIVE 9/5 ~1:12–1:30am BUILD 20260905a: GET IN / row / TOO DEEP on deep water / get out on shore PASS; leave-ocean while aboard blocked (GET OUT FIRST.). |
