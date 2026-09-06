@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hl";
-  var ASSET_REV = "467501";
+  var BUILD = "20260905hm";
+  var ASSET_REV = "467520";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -456,6 +456,9 @@
   var BAG_ROWS = 6;
   var bagCells = [];
   var trayCells = [];
+  /* 20260905hm: one-weapon dock (sword/bow only) — never mixed into tray slots */
+  var weaponDock = null;
+  var SLOT_WEAPON_DOCK = -1;
   var bagOpen = false;
   var bagHeld = null;
   var bagHeldFrom = null;
@@ -8449,41 +8452,87 @@
     bagCells[BAG_CELLS - 1] = out;
   }
 
-  /* Keep at most one weapon in the 10-tray. preferKey wins when present;
-     otherwise the first weapon found stays. Extra weapons go to the bag
-     (swap). Does not run mid setPocket swap — call after a full tray write. */
-  function enforceOneWeaponInTray(preferKey) {
-    var i, c, keep, keepIdx;
-    keep = null;
-    keepIdx = -1;
-    if (preferKey && isWeaponKey(preferKey)) {
-      for (i = 0; i < TRAY_CELLS; i++) {
-        c = trayCells[i];
-        if (c && c.key === preferKey) {
-          keep = preferKey;
-          keepIdx = i;
-          break;
-        }
-      }
+  /* 20260905hm: weapons live ONLY in weaponDock. Scrub tray of sword/bow;
+     preferKey wins the dock; extras park in the bag. Tray stays tools/seeds/food. */
+  function enforceWeaponDock(preferKey) {
+    var i, c, keys, seen, keepKey, k;
+    keys = [];
+    seen = {};
+    function note(key) {
+      if (!isWeaponKey(key) || seen[key]) return;
+      seen[key] = true;
+      keys.push(key);
     }
-    if (keep == null) {
-      for (i = 0; i < TRAY_CELLS; i++) {
-        c = trayCells[i];
-        if (c && isWeaponKey(c.key)) {
-          keep = c.key;
-          keepIdx = i;
-          break;
-        }
-      }
-    }
-    if (keep == null) return;
     for (i = 0; i < TRAY_CELLS; i++) {
       c = trayCells[i];
-      if (!c || !isWeaponKey(c.key)) continue;
-      if (c.key === keep && i === keepIdx) continue;
-      trayCells[i] = null;
-      if (c.key !== keep) parkRecInBag(c);
+      if (c && isWeaponKey(c.key)) {
+        note(c.key);
+        trayCells[i] = null;
+      }
     }
+    if (weaponDock && weaponDock.key) note(weaponDock.key);
+    if (bagHeld && isWeaponKey(bagHeld.key) && bagHeldFrom && bagHeldFrom.place === "dock") {
+      note(bagHeld.key);
+    }
+    keepKey = null;
+    if (preferKey && isWeaponKey(preferKey) && seen[preferKey]) keepKey = preferKey;
+    else if (preferKey && isWeaponKey(preferKey)) keepKey = preferKey;
+    else if (keys.length) keepKey = keys[0];
+    if (!keepKey) {
+      weaponDock = null;
+      if (selectedSlot === SLOT_WEAPON_DOCK) selectedSlot = 0;
+      return;
+    }
+    for (i = 0; i < keys.length; i++) {
+      k = keys[i];
+      if (k !== keepKey) parkRecInBag({ key: k, count: 1 });
+    }
+    /* Drop bag copies of the docked weapon so we never mint twins. */
+    clearKeyFromPockets(keepKey);
+    if (bagHeld && bagHeld.key === keepKey) {
+      bagHeld = null;
+      bagHeldFrom = null;
+    }
+    weaponDock = { key: keepKey, count: 1 };
+  }
+
+  /* Back-compat name used across 05ay+ call sites — now docks the weapon. */
+  function enforceOneWeaponInTray(preferKey) {
+    enforceWeaponDock(preferKey);
+  }
+
+  function equipWeaponToDock(key) {
+    var old;
+    if (!isWeaponKey(key)) return false;
+    if (weaponDock && weaponDock.key === key) {
+      clearKeyFromPockets(key);
+      if (bagHeld && bagHeld.key === key) {
+        bagHeld = null;
+        bagHeldFrom = null;
+      }
+      return true;
+    }
+    old = weaponDock;
+    clearKeyFromPockets(key);
+    if (bagHeld && bagHeld.key === key) {
+      bagHeld = null;
+      bagHeldFrom = null;
+    }
+    if (old && old.key && old.key !== key) parkRecInBag(old);
+    weaponDock = { key: key, count: 1 };
+    enforceWeaponDock(key);
+    return true;
+  }
+
+  function selectWeaponDock() {
+    if (!(weaponDock && weaponDock.key)) {
+      selectedSlot = 0;
+      return false;
+    }
+    selectedSlot = SLOT_WEAPON_DOCK;
+    setFenceBuildOn(false);
+    if (fishing) cancelFishing();
+    return true;
   }
 
   function isStackKey(key) {
@@ -8513,6 +8562,7 @@
   }
 
   function pocketAt(place, i) {
+    if (place === "dock") return (i === 0) ? weaponDock : null;
     if (place === "tray") return (i >= 0 && i < TRAY_CELLS) ? trayCells[i] : null;
     return (i >= 0 && i < BAG_CELLS) ? bagCells[i] : null;
   }
@@ -8524,8 +8574,32 @@
       if (isToolKey(rec.key)) out = { key: rec.key, count: 1 };
       else if ((rec.count | 0) >= 1) out = { key: rec.key, count: rec.count | 0 };
     }
+    if (place === "dock") {
+      if (i !== 0) return;
+      if (out && isWeaponKey(out.key)) {
+        if (weaponDock && weaponDock.key && weaponDock.key !== out.key) {
+          parkRecInBag(weaponDock);
+        }
+        weaponDock = { key: out.key, count: 1 };
+        enforceWeaponDock(out.key);
+      } else if (!out) {
+        weaponDock = null;
+      } else {
+        /* Non-weapon cannot live in the dock — park into bag/tray. */
+        parkRecInBag(out);
+      }
+      return;
+    }
     if (place === "tray") {
-      if (i >= 0 && i < TRAY_CELLS) trayCells[i] = out;
+      if (i >= 0 && i < TRAY_CELLS) {
+        /* Weapons landing in tray get bounced into the dock. */
+        if (out && isWeaponKey(out.key)) {
+          trayCells[i] = null;
+          equipWeaponToDock(out.key);
+        } else {
+          trayCells[i] = out;
+        }
+      }
     } else if (i >= 0 && i < BAG_CELLS) {
       bagCells[i] = out;
     }
@@ -8555,6 +8629,7 @@
     var i;
     if (!rec) return false;
     for (i = 0; i < TRAY_CELLS; i++) if (trayCells[i] === rec) return true;
+    if (weaponDock === rec) return true;
     return false;
   }
 
@@ -8575,6 +8650,7 @@
       c = bagCells[i];
       if (c && (c.count | 0) < 1) bagCells[i] = null;
     }
+    if (weaponDock && (!(weaponDock.key) || (weaponDock.count | 0) < 1)) weaponDock = null;
   }
 
   function showOwnedGoodsInBag() {
@@ -8602,7 +8678,15 @@
   }
 
   function selectedKey() {
-    var c = trayCells[selectedSlot];
+    var c;
+    if (selectedSlot === SLOT_WEAPON_DOCK) {
+      if (weaponDock && weaponDock.key) return weaponDock.key;
+      if (bagHeld && bagHeld.key && bagHeldFrom && bagHeldFrom.place === "dock") {
+        return bagHeld.key;
+      }
+      return "";
+    }
+    c = trayCells[selectedSlot];
     if (c && c.key) return c.key;
     /* 20260905eq: mid-drag ghost from this tray slot still counts as selected
        (spendSelected 05en already spends bagHeld; gates used selectedHas/Is). */
@@ -8614,8 +8698,16 @@
   }
 
   function selectedCount() {
-    var c = trayCells[selectedSlot];
-    var n = c ? (c.count | 0) : 0;
+    var c, n;
+    if (selectedSlot === SLOT_WEAPON_DOCK) {
+      n = (weaponDock && weaponDock.key) ? 1 : 0;
+      if (bagHeld && bagHeld.key && bagHeldFrom && bagHeldFrom.place === "dock") {
+        n += bagHeld.count | 0;
+      }
+      return n;
+    }
+    c = trayCells[selectedSlot];
+    n = c ? (c.count | 0) : 0;
     if (bagHeld && bagHeld.key && bagHeldFrom && bagHeldFrom.place === "tray" &&
         (bagHeldFrom.i | 0) === (selectedSlot | 0) && (!c || c.key === bagHeld.key)) {
       n += bagHeld.count | 0;
@@ -8628,10 +8720,19 @@
   }
 
   function selectedHas(key, n) {
-    var c = trayCells[selectedSlot];
-    var have = 0;
+    var c, have;
     n = n | 0;
     if (!key || n <= 0) return false;
+    if (selectedSlot === SLOT_WEAPON_DOCK) {
+      have = 0;
+      if (weaponDock && weaponDock.key === key) have += 1;
+      if (bagHeld && bagHeld.key === key && bagHeldFrom && bagHeldFrom.place === "dock") {
+        have += bagHeld.count | 0;
+      }
+      return have >= n;
+    }
+    c = trayCells[selectedSlot];
+    have = 0;
     if (c && c.key === key) have += c.count | 0;
     /* 20260905eq: same-key mid-drag stack counts for fence/flower/kits/eat gates */
     if (bagHeld && bagHeld.key === key) {
@@ -8655,6 +8756,7 @@
     }
     for (i = 0; i < TRAY_CELLS; i++) add(trayCells[i]);
     for (i = 0; i < BAG_CELLS; i++) add(bagCells[i]);
+    add(weaponDock);
     /* 20260905ej: mid-drag cursor stack still counts — else OWNED/giveTool/craft
        think the held tool/stack vanished and can mint a duplicate. */
     add(bagHeld);
@@ -8726,6 +8828,7 @@
     }
     for (i = 0; i < TRAY_CELLS; i++) add(trayCells[i]);
     for (i = 0; i < BAG_CELLS; i++) add(bagCells[i]);
+    add(weaponDock);
     /* 20260905ej: held cursor item is still yours while dragging */
     add(bagHeld);
   }
@@ -8750,6 +8853,11 @@
     if (!key || n <= 0) return 0;
     if (isToolKey(key)) {
       if (bagCount(key) > 0) return 0;
+      if (isWeaponKey(key)) {
+        equipWeaponToDock(key);
+        syncBagCounts();
+        return 1;
+      }
       idx = firstEmptyTray();
       if (idx >= 0) {
         trayCells[idx] = { key: key, count: 1 };
@@ -8804,6 +8912,12 @@
       left -= take;
       if (c.count < 1) trayCells[i] = null;
     }
+    if (left > 0 && weaponDock && weaponDock.key === key) {
+      take = left < 1 ? left : 1;
+      left -= take;
+      weaponDock = null;
+      if (selectedSlot === SLOT_WEAPON_DOCK) selectedSlot = 0;
+    }
     /* 20260905ej: spend the mid-drag cursor stack too (craft/bridge/bird) */
     if (left > 0 && bagHeld && bagHeld.key === key) {
       take = left < (bagHeld.count | 0) ? left : (bagHeld.count | 0);
@@ -8850,6 +8964,14 @@
 
   function selectTool(key) {
     var i;
+    if (isWeaponKey(key)) {
+      if (weaponDock && weaponDock.key === key) {
+        selectedSlot = SLOT_WEAPON_DOCK;
+        setFenceBuildOn(false);
+        return true;
+      }
+      return false;
+    }
     for (i = 0; i < TRAY_CELLS; i++) {
       if (trayCells[i] && trayCells[i].key === key) {
         selectedSlot = i;
@@ -8861,10 +8983,21 @@
   }
 
   function giveTool(key) {
+    if (isWeaponKey(key)) {
+      if (bagCount(key) < 1) {
+        /* Mint ownership into the dock, not a tray slot. */
+        equipWeaponToDock(key);
+      } else {
+        equipWeaponToDock(key);
+      }
+      if (key === "sword") forceSwordIntoTray();
+      selectTool(key);
+      syncBagCounts();
+      return;
+    }
     if (bagCount(key) < 1) addToBag(key, 1);
-    /* Tray-full saves: swap a non-tool out so sword/axe land in the 10-tray. */
+    /* Tray-full saves: swap a non-tool out so axe/pick land in the 10-tray. */
     placeToolInTrayFirst(key);
-    if (key === "sword") forceSwordIntoTray();
     if (key === "pole") ensureOnePole();
     selectTool(key);
   }
@@ -9577,7 +9710,17 @@
   }
 
   function pickHotbarSlot(id) {
-    var key = (id >= 0 && id < TRAY_CELLS && trayCells[id]) ? trayCells[id].key : "";
+    var key;
+    if (id === SLOT_WEAPON_DOCK) {
+      selectWeaponDock();
+      maybeStoveCookTip();
+      maybeFireplaceSmeltTip();
+      maybePlantSeedTip();
+      maybeFenceBuildTip();
+      maybeShovelDigTip();
+      return;
+    }
+    key = (id >= 0 && id < TRAY_CELLS && trayCells[id]) ? trayCells[id].key : "";
     if (key === "wood" && selectedSlot === id) {
       toggleFenceBuild();
       return;
@@ -10419,6 +10562,7 @@
         },
         tray: serializePocket(trayCells, TRAY_CELLS),
         bag: serializePocket(bagCells, BAG_CELLS, true),
+        weaponDock: (weaponDock && weaponDock.key) ? { key: weaponDock.key, count: 1 } : null,
         selectedSlot: selectedSlot | 0,
         chest: {
           wood: chest.wood | 0,
@@ -11562,9 +11706,14 @@
   function placeToolInTrayFirst(key) {
     var idx, i, c, bagIdx, swapIdx, empty;
     function done() {
-      if (isWeaponKey(key)) enforceOneWeaponInTray(key);
+      if (isWeaponKey(key)) enforceWeaponDock(key);
     }
     if (!key) return;
+    /* 20260905hm: sword/bow never occupy a regular tray cell — dock only. */
+    if (isWeaponKey(key)) {
+      equipWeaponToDock(key);
+      return;
+    }
     for (i = 0; i < TRAY_CELLS; i++) {
       if (trayCells[i] && trayCells[i].key === key) { done(); return; }
     }
@@ -11687,6 +11836,7 @@
     for (i = 0; i < BAG_CELLS; i++) {
       if (bagCells[i] && bagCells[i].key === key) bagCells[i] = null;
     }
+    if (weaponDock && weaponDock.key === key) weaponDock = null;
   }
 
   function clearRecEverywhere(rec) {
@@ -11694,6 +11844,7 @@
     if (!rec) return;
     for (i = 0; i < TRAY_CELLS; i++) if (trayCells[i] === rec) trayCells[i] = null;
     for (i = 0; i < BAG_CELLS; i++) if (bagCells[i] === rec) bagCells[i] = null;
+    if (weaponDock === rec) weaponDock = null;
   }
 
   function softTrayBumpKey(key) {
@@ -11702,8 +11853,8 @@
   }
 
   function forceSwordIntoTray() {
-    var i, empty, c, displaced, soft;
-    /* Recover ownership if a pocket / mid-drag ghost still holds a sword. */
+    var i;
+    /* Recover ownership if a pocket / dock / mid-drag ghost still holds a sword. */
     if (!swordOwned) {
       for (i = 0; i < TRAY_CELLS; i++) {
         if (trayCells[i] && trayCells[i].key === "sword") { swordOwned = true; break; }
@@ -11714,41 +11865,23 @@
         if (bagCells[i] && bagCells[i].key === "sword") { swordOwned = true; break; }
       }
     }
+    if (!swordOwned && weaponDock && weaponDock.key === "sword") swordOwned = true;
     /* 20260905el: bagHeld sword still counts as owned — else openBag pin mints #2. */
     if (!swordOwned && bagHeld && bagHeld.key === "sword") swordOwned = true;
     if (!swordOwned) return;
     clearKeyFromPockets("sword");
-    /* 20260905el: same as ensureOnePole — drop the cursor copy before pinning slot 0. */
+    /* 20260905el: same as ensureOnePole — drop the cursor copy before pinning. */
     if (bagHeld && bagHeld.key === "sword") {
       bagHeld = null;
       bagHeldFrom = null;
     }
-    /* Hard-pin hotbar slot 0; relocate whatever was there. */
-    c = trayCells[0];
-    if (c && c.key && c.key !== "sword") {
-      displaced = { key: c.key, count: c.count | 0 };
-      empty = firstEmptyTray();
-      if (empty >= 0) trayCells[empty] = displaced;
-      else {
-        /* Prefer parking soft tools/kits/stacks into the bag. */
-        soft = softTrayBumpKey(displaced.key) || !isToolKey(displaced.key);
-        empty = firstEmptyBag();
-        if (empty >= 0) bagCells[empty] = displaced;
-        else {
-          for (i = BAG_CELLS - 1; i >= 0; i--) {
-            if (bagCells[i] && !isToolKey(bagCells[i].key)) {
-              bagCells[i] = displaced;
-              break;
-            }
-          }
-        }
-        if (soft) { /* kept for readability; displacement already done */ }
-      }
+    /* 20260905hm: hard-pin the weapon DOCK (not tray slot 0). Old dock weapon → bag. */
+    if (weaponDock && weaponDock.key && weaponDock.key !== "sword") {
+      parkRecInBag(weaponDock);
     }
-    trayCells[0] = { key: "sword", count: 1 };
-    /* Cave sword hard-pin wins: bow (or any other weapon) leaves the tray. */
-    enforceOneWeaponInTray("sword");
-    selectedSlot = 0;
+    weaponDock = { key: "sword", count: 1 };
+    enforceWeaponDock("sword");
+    selectedSlot = SLOT_WEAPON_DOCK;
     syncBagCounts();
   }
 
@@ -11857,17 +11990,29 @@
   }
 
   function loadPocketsFromSave(data) {
+    var dk;
     if (data && pocketArrOk(data.tray, TRAY_CELLS) && pocketArrOk(data.bag, BAG_CELLS)) {
       trayCells = readPocketArr(data.tray, TRAY_CELLS);
       bagCells = readPocketArr(data.bag, BAG_CELLS);
+      weaponDock = null;
+      if (data.weaponDock && data.weaponDock.key && isWeaponKey(data.weaponDock.key)) {
+        weaponDock = { key: data.weaponDock.key, count: 1 };
+      }
       if (typeof data.selectedSlot === "number") {
         selectedSlot = data.selectedSlot | 0;
-        if (selectedSlot < 0 || selectedSlot >= TRAY_CELLS) selectedSlot = 0;
+        if (selectedSlot === SLOT_WEAPON_DOCK) {
+          if (!(weaponDock && weaponDock.key)) selectedSlot = 0;
+        } else if (selectedSlot < 0 || selectedSlot >= TRAY_CELLS) {
+          selectedSlot = 0;
+        }
       }
+      /* Migrate pre-05hm saves that still had sword/bow in tray slots. */
+      enforceWeaponDock(weaponDock && weaponDock.key);
       ensureOwnedTools();
       showOwnedGoodsInBag();
       return;
     }
+    weaponDock = null;
     migrateOldInventoryToPockets();
     showOwnedGoodsInBag();
   }
@@ -22873,7 +23018,11 @@
   }
 
   function ensureSelectedSlot() {
-    if (selectedSlot < 0 || selectedSlot >= TRAY_CELLS) selectedSlot = 0;
+    if (selectedSlot === SLOT_WEAPON_DOCK) {
+      if (!(weaponDock && weaponDock.key)) selectedSlot = 0;
+    } else if (selectedSlot < 0 || selectedSlot >= TRAY_CELLS) {
+      selectedSlot = 0;
+    }
     if (!selectedIs("wood")) setFenceBuildOn(false);
   }
 
@@ -22881,8 +23030,13 @@
   function spawnHotbarSelectSparks(n) {
     var T, sx, sy, i, ang, cols;
     T = trayLayout();
-    sx = T.bx + n * (T.slot + T.gap) + ((T.slot / 2) | 0);
-    sy = T.by + ((T.slot / 2) | 0) - 2;
+    if (n === SLOT_WEAPON_DOCK) {
+      sx = T.dockX + ((T.dockW / 2) | 0);
+      sy = T.dockY + ((T.dockH / 2) | 0) - 2;
+    } else {
+      sx = T.bx + n * (T.slot + T.gap) + ((T.slot / 2) | 0);
+      sy = T.by + ((T.slot / 2) | 0) - 2;
+    }
     cols = ["#FFF8E0", "#FFE9A0", "#E8C888", "#FFFDF4", "#F0D090", "#FFD0A0", "#E8B060", "#FFF0C8"];
     for (i = 0; i < 7; i++) {
       ang = (i / 7) * Math.PI * 2 + Math.random() * 0.4;
@@ -22903,8 +23057,13 @@
   function spawnEmptyTrayClickSparks(n) {
     var T, sx, sy, i, ang, cols;
     T = trayLayout();
-    sx = T.bx + n * (T.slot + T.gap) + ((T.slot / 2) | 0);
-    sy = T.by + ((T.slot / 2) | 0) - 2;
+    if (n === SLOT_WEAPON_DOCK) {
+      sx = T.dockX + ((T.dockW / 2) | 0);
+      sy = T.dockY + ((T.dockH / 2) | 0) - 2;
+    } else {
+      sx = T.bx + n * (T.slot + T.gap) + ((T.slot / 2) | 0);
+      sy = T.by + ((T.slot / 2) | 0) - 2;
+    }
     cols = ["#FFF8E0", "#E8E0D0", "#C8D8E8", "#FFE9A0", "#FFFDF4", "#D0D8E0"];
     for (i = 0; i < 5; i++) {
       ang = (i / 5) * Math.PI * 2 + Math.random() * 0.45;
@@ -22922,20 +23081,27 @@
   }
 
   function notifyHotbarSelect(n) {
-    if (n < 0 || n >= TRAY_CELLS) return;
+    if (n !== SLOT_WEAPON_DOCK && (n < 0 || n >= TRAY_CELLS)) return;
     hotbarPop = 260;
     hotbarPopSlot = n;
     spawnHotbarSelectSparks(n);
   }
 
   function notifyEmptyTrayClick(n) {
-    if (n < 0 || n >= TRAY_CELLS) return;
+    if (n !== SLOT_WEAPON_DOCK && (n < 0 || n >= TRAY_CELLS)) return;
     hotbarPop = 140;
     hotbarPopSlot = n;
     spawnEmptyTrayClickSparks(n);
   }
 
   function selectHotbarIndex(n) {
+    if (n === SLOT_WEAPON_DOCK) {
+      pickHotbarSlot(SLOT_WEAPON_DOCK);
+      playSfx("ui");
+      if (weaponDock && weaponDock.key) notifyHotbarSelect(SLOT_WEAPON_DOCK);
+      else notifyEmptyTrayClick(SLOT_WEAPON_DOCK);
+      return true;
+    }
     if (n < 0 || n >= TRAY_CELLS) return false;
     pickHotbarSlot(n);
     playSfx("ui");
@@ -22947,13 +23113,22 @@
   function trayLayout() {
     var slot = 18, gap = 1, slots = TRAY_CELLS;
     var barW = slots * slot + (slots - 1) * gap;
-    var bx = ((VIEW_W - barW) / 2) | 0;
+    var dock = 22, dockGap = 4;
+    var totalW = dock + dockGap + barW + 5 + 32;
+    var left = ((VIEW_W - totalW) / 2) | 0;
+    if (left < 2) left = 2;
+    var dockX = left;
+    var bx = left + dock + dockGap;
     var by = VIEW_H - 22;
     var bagW = 32, bagH = 22;
     var bagX = bx + barW + 5;
     var bagY = by - 2;
     if (bagX + bagW > VIEW_W - 2) bagX = VIEW_W - bagW - 2;
-    return { slot: slot, gap: gap, slots: slots, barW: barW, bx: bx, by: by, bagX: bagX, bagY: bagY, bagW: bagW, bagH: bagH };
+    return {
+      slot: slot, gap: gap, slots: slots, barW: barW, bx: bx, by: by,
+      bagX: bagX, bagY: bagY, bagW: bagW, bagH: bagH,
+      dock: dock, dockX: dockX, dockY: by - 2, dockW: dock, dockH: 22
+    };
   }
 
   function bagLayout() {
@@ -22961,17 +23136,24 @@
     var gridW = cols * cell + (cols - 1) * gap;
     var gridH = rows * cell + (rows - 1) * gap;
     var pad = 8;
-    var head = 14;
+    var head = 12;
+    var dockH = 24;
+    var toolsH = 0; /* tray below is the tools strip */
     var w = gridW + pad * 2;
-    var h = gridH + pad + head + 12;
+    var h = head + dockH + 4 + gridH + pad;
     var x = ((VIEW_W - w) / 2) | 0;
-    var y = 26;
+    var y = 12;
+    var dockW = 48;
+    var dockX = x + ((w - dockW) / 2) | 0;
+    var dockY = y + head;
     return {
       x: x, y: y, w: w, h: h,
-      gridX: x + pad, gridY: y + head + 8,
+      gridX: x + pad, gridY: dockY + dockH + 6,
       cell: cell, gap: gap, cols: cols, rows: rows,
       gridW: gridW, gridH: gridH,
-      closeX: x + w - 16, closeY: y + 2, closeW: 13, closeH: 12
+      closeX: x + w - 16, closeY: y + 2, closeW: 13, closeH: 12,
+      dockX: dockX, dockY: dockY, dockW: dockW, dockH: dockH,
+      toolsH: toolsH
     };
   }
 
@@ -23157,14 +23339,21 @@
 
   function tapPocket(place, idx) {
     var rec, heldSnap, targetSnap, max, fromPlace, fromIdx, empty, room, take, cap, preferWeapon;
-    max = place === "tray" ? TRAY_CELLS : BAG_CELLS;
+    if (place === "dock") {
+      max = 1;
+      idx = 0;
+    } else {
+      max = place === "tray" ? TRAY_CELLS : BAG_CELLS;
+    }
     if (idx < 0 || idx >= max) return;
     rec = pocketAt(place, idx);
     preferWeapon = null;
-    if (bagHeld && place === "tray" && isWeaponKey(bagHeld.key)) preferWeapon = bagHeld.key;
+    if (bagHeld && isWeaponKey(bagHeld.key) && (place === "tray" || place === "dock")) {
+      preferWeapon = bagHeld.key;
+    }
     function finishPocketDrop() {
-      /* One weapon in the 10-tray: newly dropped weapon wins; else first stays. */
-      enforceOneWeaponInTray(preferWeapon);
+      /* One weapon in the dock: newly dropped weapon wins; extras → bag. */
+      enforceWeaponDock(preferWeapon);
       ensureOnePole();
       syncBagCounts();
       playSfx("ui");
@@ -23290,6 +23479,12 @@
       playSfx("ui");
       return true;
     }
+    /* Big BAG dock + HUD dock both swap via tapPocket("dock"). */
+    if (hitPad(p.x, p.y, L.dockX, L.dockY, L.dockW, L.dockH, 2) ||
+        hitPad(p.x, p.y, T.dockX, T.dockY, T.dockW, T.dockH, 2)) {
+      tapPocket("dock", 0);
+      return true;
+    }
     idx = bagCellAt(p);
     if (idx >= 0) {
       tapPocket("bag", idx);
@@ -23307,8 +23502,54 @@
     return true;
   }
 
+  /* 20260905hm: weapon dock cell — frame sprite + icon or faint WEAPON ghost */
+  function drawWeaponDockCell(g, x, y, w, h, big) {
+    var sel, spr, ix, iy, iconS, prev, heldHere;
+    sel = selectedSlot === SLOT_WEAPON_DOCK;
+    heldHere = pocketHeldHere("dock", 0, weaponDock);
+    woodPanel(g, x, y, w, h);
+    fill(g, x + 1, y + 1, w - 2, h - 2, sel ? C.woodHi : C.woodSh);
+    fill(g, x + 2, y + 2, w - 4, h - 4, C.slot);
+    fill(g, x + 3, y + 3, w - 6, h - 6, sel ? "#6A4420" : "#4A2E14");
+    spr = Assets.spr.weaponDockFrame;
+    if (spr && Assets.img) {
+      prev = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(Assets.img, spr.x, spr.y, spr.fw || spr.w, spr.h,
+        x + ((w - 20) / 2) | 0, y + ((h - 20) / 2) | 0, 20, 20);
+      g.imageSmoothingEnabled = prev;
+    }
+    if (sel) {
+      fill(g, x, y, w, 1, "#FFF8E0");
+      fill(g, x, y + h - 1, w, 1, "#FFF8E0");
+      fill(g, x, y, 1, h, "#FFF8E0");
+      fill(g, x + w - 1, y, 1, h, "#FFF8E0");
+    }
+    if (heldHere) {
+      fill(g, x + 5, y + 5, w - 10, h - 10, "#3A2410");
+      return;
+    }
+    if (weaponDock && weaponDock.key) {
+      iconS = big ? 16 : 16;
+      ix = x + ((w - iconS) / 2) | 0;
+      iy = y + ((h - iconS) / 2) | 0;
+      if (hotbarPop > 0 && hotbarPopSlot === SLOT_WEAPON_DOCK && sel) iy -= 1;
+      drawBagKey(g, weaponDock.key, ix, iy);
+    } else {
+      spr = Assets.spr.weaponDockEmpty;
+      if (spr && Assets.img) {
+        prev = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.img, spr.x, spr.y, spr.fw || spr.w, spr.h,
+          x + ((w - 16) / 2) | 0, y + ((h - 16) / 2) | 0, 16, 16);
+        g.imageSmoothingEnabled = prev;
+      }
+      if (big) drawText(g, "WEAPON", x + ((w - textWidth("WEAPON")) / 2) | 0, y + h - 9, C.woodSh);
+    }
+  }
+
   function drawBag(g) {
-    var L, T, i, col, row, sx, sy, rec;
+    var L, T, i, col, row, sx, sy, rec, spr, prev;
     if (!bagOpen) return;
     T = trayLayout();
     g.fillStyle = "rgba(20,12,8,0.45)";
@@ -23318,9 +23559,19 @@
     fill(g, L.x + 3, L.y + 3, L.w - 6, L.h - 6, C.parch);
     woodPanel(g, L.x + 8, L.y - 6, 38, 11);
     drawText(g, "BAG", L.x + 14, L.y - 3, C.parch);
-    drawText(g, "TRAY BELOW", L.gridX, L.y + 4, C.woodSh);
     woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
     drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
+    /* Big weapon dock at top — kids see the one-weapon rule. */
+    spr = Assets.spr.bagWeaponBanner;
+    if (spr && Assets.img) {
+      prev = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(Assets.img, spr.x, spr.y, spr.fw || spr.w, spr.h,
+        L.dockX, L.dockY + 6, L.dockW, 14);
+      g.imageSmoothingEnabled = prev;
+    }
+    drawWeaponDockCell(g, L.dockX + 12, L.dockY, 24, L.dockH, true);
+    drawText(g, "TOOLS + SEEDS IN TRAY", L.gridX, L.dockY + L.dockH - 2, C.woodSh);
     for (i = 0; i < BAG_CELLS; i++) {
       col = i % L.cols;
       row = (i / L.cols) | 0;
@@ -23407,6 +23658,7 @@
     ensureSelectedSlot();
     var T = trayLayout();
     var n, rec, sx, sy, sel;
+    drawWeaponDockCell(g, T.dockX, T.dockY, T.dockW, T.dockH, false);
     woodPanel(g, T.bx - 3, T.by - 3, T.barW + 6, 24);
     for (n = 0; n < TRAY_CELLS; n++) {
       rec = trayCells[n];
@@ -24049,6 +24301,14 @@
     if (hudWorldDoor(hudTx, hudTy, worldHud)) return false;
     if (hitPad(p.x, p.y, T.bagX, T.bagY, T.bagW, T.bagH, 4)) {
       toggleBag();
+      return true;
+    }
+    if (hitPad(p.x, p.y, T.dockX, T.dockY, T.dockW, T.dockH, 2)) {
+      if (bagOpen) {
+        tapPocket("dock", 0);
+        return true;
+      }
+      selectHotbarIndex(SLOT_WEAPON_DOCK);
       return true;
     }
     if (showFenceBuildBtn()) {
@@ -25958,7 +26218,8 @@ if (currentScene === "ocean") goExitOcean();
       /* Sword kill outdoor slug for small loot path. */
       placePlayer(monsters[0].tx, monsters[0].ty + 1, "up");
       swordOwned = true;
-      trayCells[0] = { key: "sword", count: 1 };
+      weaponDock = { key: "sword", count: 1 };
+      selectedSlot = SLOT_WEAPON_DOCK;
       var slug0 = monsters[0];
       player.arc = 0;
       player.arcHit = false;
@@ -25966,14 +26227,16 @@ if (currentScene === "ocean") goExitOcean();
       startSwordSwing();
       ok("slugSwordKill", slug0.hp <= 0, "hp=" + slug0.hp);
 
-      /* 20260905ay: at most one weapon in the 10-tray (sword + bow). */
+      /* 20260905hm: weapons leave the tray for the dock (bow wins prefer). */
       bowOwned = true;
       trayCells[0] = { key: "sword", count: 1 };
       trayCells[1] = { key: "bow", count: 1 };
       trayCells[2] = { key: "axe", count: 1 };
+      weaponDock = null;
       enforceOneWeaponInTray("bow");
-      ok("oneWeaponKeepsBow", !!(trayCells[1] && trayCells[1].key === "bow"), trayCells[1] && trayCells[1].key);
-      ok("oneWeaponDropsSword", !(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      ok("oneWeaponDocksBow", !!(weaponDock && weaponDock.key === "bow"), weaponDock && weaponDock.key);
+      ok("oneWeaponScrubsTraySword", !(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      ok("oneWeaponScrubsTrayBow", !(trayCells[1] && trayCells[1].key === "bow"), trayCells[1] && trayCells[1].key);
       ok("oneWeaponKeepsAxe", !!(trayCells[2] && trayCells[2].key === "axe"), trayCells[2] && trayCells[2].key);
       var bagBowOrSword = 0, bj;
       for (bj = 0; bj < BAG_CELLS; bj++) {
@@ -25981,17 +26244,19 @@ if (currentScene === "ocean") goExitOcean();
       }
       ok("oneWeaponParkedPrior", bagBowOrSword >= 1, "parked=" + bagBowOrSword);
       forceSwordIntoTray();
-      ok("forceSwordEvictsBow", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
-      var trayBow = false;
+      ok("forceSwordDocksSword", !!(weaponDock && weaponDock.key === "sword"), weaponDock && weaponDock.key);
+      var trayBow = false, traySword = false;
       for (bj = 0; bj < TRAY_CELLS; bj++) {
-        if (trayCells[bj] && trayCells[bj].key === "bow") { trayBow = true; break; }
+        if (trayCells[bj] && trayCells[bj].key === "bow") trayBow = true;
+        if (trayCells[bj] && trayCells[bj].key === "sword") traySword = true;
       }
       ok("forceSwordNoTrayBow", !trayBow, trayBow ? "bow still in tray" : "");
+      ok("forceSwordNoTraySword", !traySword, traySword ? "sword still in tray" : "");
       /* 20260905ez: selected bow fires an arrow (shootArrow was dead code). */
       bowOwned = true;
       for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = null;
-      trayCells[0] = { key: "bow", count: 1 };
-      selectedSlot = 0;
+      weaponDock = { key: "bow", count: 1 };
+      selectedSlot = SLOT_WEAPON_DOCK;
       arrows = [];
       player.face = "right";
       placePlayer(10, 10, "right");
@@ -26011,21 +26276,21 @@ if (currentScene === "ocean") goExitOcean();
       ok("diamondRockDmg", nodeStrikeDmg(_dpRock) === 3, "dmg=" + nodeStrikeDmg(_dpRock));
       ok("diamondRockDrop", harvestDropFor(_dpRock) === 2, "drop=" + harvestDropFor(_dpRock));
 
-      /* 20260905fb: craft iron sword pins + selects sword (upgrade was owned-only). */
+      /* 20260905fb / 05hm: craft iron sword pins + selects docked sword (upgrade was owned-only). */
       swordOwned = true;
       ironSwordOwned = false;
       bowOwned = true;
       for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = null;
       for (bj = 0; bj < BAG_CELLS; bj++) bagCells[bj] = null;
-      trayCells[0] = { key: "bow", count: 1 };
+      weaponDock = { key: "bow", count: 1 };
       bagCells[0] = { key: "sword", count: 1 };
-      selectedSlot = 0;
+      selectedSlot = SLOT_WEAPON_DOCK;
       bagCells[1] = { key: "wood", count: 10 };
       bagCells[2] = { key: "iron", count: 10 };
       syncBagCounts();
       doCraft({ id: "ironSword", name: "IRON SWORD", wood: 4, iron: 3, icon: "ironSword", needSword: true, made: "YOU MADE AN IRON SWORD!" });
       ok("ironSwordOwnedCraft", !!ironSwordOwned, "owned=" + ironSwordOwned);
-      ok("ironSwordPinned", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      ok("ironSwordPinned", !!(weaponDock && weaponDock.key === "sword"), weaponDock && weaponDock.key);
       ok("ironSwordSelected", !!swordEquipped() && selectedIs("sword"), "sel=" + selectedKey());
 
       /* 20260905gp: craft axe pins + selects (tray-full wood / wood-selected gap). */
@@ -28033,18 +28298,20 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("takeFromHeld", took === 3 && bagHeld && (bagHeld.count | 0) === 2, "took=" + took + " left=" + (bagHeld && bagHeld.count));
       bagHeld = null; bagHeldFrom = null;
       syncBagCounts();
-      /* 20260905el: forceSword / placeTool must not mint while bagHeld holds the tool */
+      /* 20260905el / 05hm: forceSword / placeTool must not mint while bagHeld holds the tool */
       swordOwned = true;
+      weaponDock = null;
       for (var si = 0; si < TRAY_CELLS; si++) if (trayCells[si] && trayCells[si].key === "sword") trayCells[si] = null;
       for (si = 0; si < BAG_CELLS; si++) if (bagCells[si] && bagCells[si].key === "sword") bagCells[si] = null;
       bagHeld = { key: "sword", count: 1 };
-      bagHeldFrom = { place: "tray", i: 0 };
+      bagHeldFrom = { place: "dock", i: 0 };
       forceSwordIntoTray();
       var swords = 0;
       for (si = 0; si < TRAY_CELLS; si++) if (trayCells[si] && trayCells[si].key === "sword") swords++;
       for (si = 0; si < BAG_CELLS; si++) if (bagCells[si] && bagCells[si].key === "sword") swords++;
+      if (weaponDock && weaponDock.key === "sword") swords++;
       if (bagHeld && bagHeld.key === "sword") swords++;
-      ok("forceSwordNoDupHeld", swords === 1 && !bagHeld && trayCells[0] && trayCells[0].key === "sword", "swords=" + swords + " held=" + !!bagHeld);
+      ok("forceSwordNoDupHeld", swords === 1 && !bagHeld && weaponDock && weaponDock.key === "sword", "swords=" + swords + " held=" + !!bagHeld + " dock=" + (weaponDock && weaponDock.key));
       axeOwned = true;
       for (si = 0; si < TRAY_CELLS; si++) if (trayCells[si] && trayCells[si].key === "axe") trayCells[si] = null;
       for (si = 0; si < BAG_CELLS; si++) if (bagCells[si] && bagCells[si].key === "axe") bagCells[si] = null;

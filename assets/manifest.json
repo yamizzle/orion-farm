@@ -262,23 +262,6 @@
       "fw": 96
     },
     {
-      "id": "ladder",
-      "file": "props/ladder.png",
-      "w": 48,
-      "h": 72,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": -8,
-      "oy": -40,
-      "x": 98,
-      "y": 179,
-      "fw": 48,
-      "generated": true
-    },
-    {
       "id": "tree",
       "file": "props/tree.png",
       "w": 48,
@@ -290,7 +273,7 @@
       ],
       "ox": -16,
       "oy": -48,
-      "x": 147,
+      "x": 98,
       "y": 179,
       "fw": 48,
       "generated": true
@@ -307,8 +290,8 @@
       ],
       "ox": 0,
       "oy": -16,
-      "x": 1,
-      "y": 260,
+      "x": 147,
+      "y": 179,
       "fw": 48,
       "generated": true
     },
@@ -324,7 +307,7 @@
       ],
       "ox": -16,
       "oy": -48,
-      "x": 98,
+      "x": 1,
       "y": 260,
       "fw": 48
     },
@@ -340,7 +323,7 @@
       ],
       "ox": -16,
       "oy": -48,
-      "x": 147,
+      "x": 50,
       "y": 260,
       "fw": 48
     },
@@ -356,8 +339,8 @@
       ],
       "ox": -32,
       "oy": -48,
-      "x": 1,
-      "y": 325,
+      "x": 99,
+      "y": 260,
       "fw": 80
     },
     {
@@ -372,177 +355,9 @@
       ],
       "ox": -40,
       "oy": -48,
-      "x": 82,
+      "x": 1,
       "y": 325,
       "fw": 96
-    },
-    {
-      "id": "well",
-      "file": "props/well.png",
-      "w": 32,
-      "h": 64,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -32,
-      "x": 179,
-      "y": 325,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "mailboxUp",
-      "file": "props/mailbox-up.png",
-      "w": 32,
-      "h": 64,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -32,
-      "x": 212,
-      "y": 325,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "moonAltar",
-      "file": "props/moonAltar.png",
-      "w": 32,
-      "h": 64,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -32,
-      "x": 1,
-      "y": 390,
-      "fw": 32
-    },
-    {
-      "id": "houseLamp",
-      "file": "props/houseLamp.png",
-      "w": 32,
-      "h": 64,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -32,
-      "x": 34,
-      "y": 390,
-      "fw": 32
-    },
-    {
-      "id": "fenceH",
-      "file": "props/fenceH.png",
-      "w": 32,
-      "h": 64,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -32,
-      "x": 67,
-      "y": 390,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "fenceL",
-      "file": "props/fenceL.png",
-      "w": 32,
-      "h": 64,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -32,
-      "x": 100,
-      "y": 390,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "fenceR",
-      "file": "props/fenceR.png",
-      "w": 32,
-      "h": 64,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -32,
-      "x": 133,
-      "y": 390,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "statue",
-      "file": "props/statue.png",
-      "w": 32,
-      "h": 64,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -32,
-      "x": 166,
-      "y": 390,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "car-up",
-      "file": "actors/car-up-{n}.png",
-      "w": 48,
-      "h": 60,
-      "frames": 2,
-      "anchor": [
-        24,
-        54
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 1,
-      "y": 455,
-      "fw": 48,
-      "generated": true
-    },
-    {
-      "id": "car-down",
-      "file": "actors/car-down-{n}.png",
-      "w": 48,
-      "h": 60,
-      "frames": 2,
-      "anchor": [
-        24,
-        54
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 98,
-      "y": 455,
-      "fw": 48,
-      "generated": true
     },
     {
       "id": "cave",
@@ -556,8 +371,8 @@
       ],
       "ox": 0,
       "oy": -16,
-      "x": 1,
-      "y": 516,
+      "x": 98,
+      "y": 325,
       "fw": 64,
       "generated": true
     },
@@ -573,8 +388,8 @@
       ],
       "ox": 0,
       "oy": -16,
-      "x": 66,
-      "y": 516,
+      "x": 163,
+      "y": 325,
       "fw": 48,
       "generated": true
     },
@@ -590,8 +405,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 115,
-      "y": 516,
+      "x": 1,
+      "y": 390,
       "fw": 64,
       "generated": true
     },
@@ -607,8 +422,8 @@
       ],
       "ox": -24,
       "oy": -32,
-      "x": 180,
-      "y": 516,
+      "x": 66,
+      "y": 390,
       "fw": 64
     },
     {
@@ -623,8 +438,8 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 1,
-      "y": 565,
+      "x": 131,
+      "y": 390,
       "fw": 80
     },
     {
@@ -639,128 +454,9 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 82,
-      "y": 565,
-      "fw": 80
-    },
-    {
-      "id": "lantern",
-      "file": "props/lantern.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 163,
-      "y": 565,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "lanternOff",
-      "file": "props/lantern-off.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 196,
-      "y": 565,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "tallGrass0",
-      "file": "props/tallGrass0.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
       "x": 1,
-      "y": 614,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "tallGrass1",
-      "file": "props/tallGrass1.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 34,
-      "y": 614,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "mailbox",
-      "file": "props/mailbox.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 67,
-      "y": 614,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "swordPedestal",
-      "file": "props/swordPedestal.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 100,
-      "y": 614,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "hole",
-      "file": "props/hole.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 133,
-      "y": 614,
-      "fw": 32,
-      "generated": true
+      "y": 439,
+      "fw": 80
     },
     {
       "id": "dog",
@@ -774,43 +470,9 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 166,
-      "y": 614,
+      "x": 82,
+      "y": 439,
       "fw": 48
-    },
-    {
-      "id": "window",
-      "file": "props/window.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 215,
-      "y": 614,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "chair",
-      "file": "props/chair.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 1,
-      "y": 663,
-      "fw": 32,
-      "generated": true
     },
     {
       "id": "stove",
@@ -824,94 +486,9 @@
       ],
       "ox": 0,
       "oy": -16,
-      "x": 34,
-      "y": 663,
+      "x": 131,
+      "y": 439,
       "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "housePlant",
-      "file": "props/housePlant.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 67,
-      "y": 663,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "inndoor",
-      "file": "props/inndoor.png",
-      "w": 32,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 100,
-      "y": 663,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "counter",
-      "file": "props/counter.png",
-      "w": 96,
-      "h": 48,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": -16,
-      "x": 133,
-      "y": 663,
-      "fw": 96,
-      "generated": true
-    },
-    {
-      "id": "car-right",
-      "file": "actors/car-right-{n}.png",
-      "w": 72,
-      "h": 48,
-      "frames": 2,
-      "anchor": [
-        36,
-        42
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 1,
-      "y": 712,
-      "fw": 72,
-      "generated": true
-    },
-    {
-      "id": "car-left",
-      "file": "actors/car-left-{n}.png",
-      "w": 72,
-      "h": 48,
-      "frames": 2,
-      "anchor": [
-        36,
-        42
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 1,
-      "y": 761,
-      "fw": 72,
       "generated": true
     },
     {
@@ -926,9 +503,43 @@
       ],
       "ox": -8,
       "oy": 0,
-      "x": 146,
-      "y": 761,
+      "x": 164,
+      "y": 439,
       "fw": 32,
+      "generated": true
+    },
+    {
+      "id": "well",
+      "file": "props/well.png",
+      "w": 16,
+      "h": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 197,
+      "y": 439,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "mailboxUp",
+      "file": "props/mailbox-up.png",
+      "w": 16,
+      "h": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 214,
+      "y": 439,
+      "fw": 16,
       "generated": true
     },
     {
@@ -943,8 +554,8 @@
       ],
       "ox": -2,
       "oy": 0,
-      "x": 179,
-      "y": 761,
+      "x": 1,
+      "y": 488,
       "fw": 36,
       "generated": true
     },
@@ -960,8 +571,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 216,
-      "y": 761,
+      "x": 38,
+      "y": 488,
       "fw": 16,
       "generated": true
     },
@@ -977,8 +588,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 810,
+      "x": 71,
+      "y": 488,
       "fw": 16,
       "generated": true
     },
@@ -994,8 +605,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 810,
+      "x": 104,
+      "y": 488,
       "fw": 16,
       "generated": true
     },
@@ -1011,8 +622,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 810,
+      "x": 137,
+      "y": 488,
       "fw": 16,
       "generated": true
     },
@@ -1028,8 +639,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 100,
-      "y": 810,
+      "x": 170,
+      "y": 488,
       "fw": 16,
       "generated": true
     },
@@ -1045,8 +656,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 133,
-      "y": 810,
+      "x": 203,
+      "y": 488,
       "fw": 16,
       "generated": true
     },
@@ -1062,8 +673,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 166,
-      "y": 810,
+      "x": 1,
+      "y": 521,
       "fw": 16,
       "generated": true
     },
@@ -1079,8 +690,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 199,
-      "y": 810,
+      "x": 34,
+      "y": 521,
       "fw": 16,
       "generated": true
     },
@@ -1096,8 +707,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 843,
+      "x": 67,
+      "y": 521,
       "fw": 32,
       "generated": true
     },
@@ -1113,8 +724,8 @@
       ],
       "ox": 0,
       "oy": -16,
-      "x": 34,
-      "y": 843,
+      "x": 100,
+      "y": 521,
       "fw": 32,
       "generated": true
     },
@@ -1130,8 +741,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 843,
+      "x": 133,
+      "y": 521,
       "fw": 48,
       "generated": true
     },
@@ -1147,9 +758,26 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 116,
-      "y": 843,
+      "x": 182,
+      "y": 521,
       "fw": 32,
+      "generated": true
+    },
+    {
+      "id": "statue",
+      "file": "props/statue.png",
+      "w": 16,
+      "h": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 1,
+      "y": 554,
+      "fw": 16,
       "generated": true
     },
     {
@@ -1164,8 +792,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 181,
-      "y": 843,
+      "x": 18,
+      "y": 554,
       "fw": 16,
       "generated": true
     },
@@ -1181,8 +809,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 214,
-      "y": 843,
+      "x": 51,
+      "y": 554,
       "fw": 16,
       "generated": true
     },
@@ -1198,8 +826,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 876,
+      "x": 84,
+      "y": 554,
       "fw": 16,
       "generated": true
     },
@@ -1215,8 +843,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 876,
+      "x": 117,
+      "y": 554,
       "fw": 16,
       "generated": true
     },
@@ -1232,8 +860,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 876,
+      "x": 150,
+      "y": 554,
       "fw": 16,
       "generated": true
     },
@@ -1249,8 +877,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 100,
-      "y": 876,
+      "x": 183,
+      "y": 554,
       "fw": 16,
       "generated": true
     },
@@ -1266,8 +894,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 133,
-      "y": 876,
+      "x": 216,
+      "y": 554,
       "fw": 16,
       "generated": true
     },
@@ -1283,8 +911,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 166,
-      "y": 876,
+      "x": 1,
+      "y": 587,
       "fw": 16,
       "generated": true
     },
@@ -1300,8 +928,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 199,
-      "y": 876,
+      "x": 34,
+      "y": 587,
       "fw": 16,
       "generated": true
     },
@@ -1317,8 +945,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 909,
+      "x": 67,
+      "y": 587,
       "fw": 16,
       "generated": true
     },
@@ -1334,8 +962,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 909,
+      "x": 100,
+      "y": 587,
       "fw": 16,
       "generated": true
     },
@@ -1351,10 +979,26 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 909,
+      "x": 133,
+      "y": 587,
       "fw": 16,
       "generated": true
+    },
+    {
+      "id": "moonAltar",
+      "file": "props/moonAltar.png",
+      "w": 16,
+      "h": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 166,
+      "y": 587,
+      "fw": 16
     },
     {
       "id": "nim-down",
@@ -1368,8 +1012,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 100,
-      "y": 909,
+      "x": 183,
+      "y": 587,
       "fw": 16,
       "generated": true
     },
@@ -1385,8 +1029,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 133,
-      "y": 909,
+      "x": 216,
+      "y": 587,
       "fw": 16,
       "generated": true
     },
@@ -1402,8 +1046,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 166,
-      "y": 909,
+      "x": 1,
+      "y": 620,
       "fw": 16,
       "generated": true
     },
@@ -1419,10 +1063,26 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 199,
-      "y": 909,
+      "x": 34,
+      "y": 620,
       "fw": 16,
       "generated": true
+    },
+    {
+      "id": "houseLamp",
+      "file": "props/houseLamp.png",
+      "w": 16,
+      "h": 32,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -16,
+      "x": 67,
+      "y": 620,
+      "fw": 16
     },
     {
       "id": "workbench",
@@ -1436,8 +1096,8 @@
       ],
       "ox": 0,
       "oy": -8,
-      "x": 1,
-      "y": 942,
+      "x": 84,
+      "y": 620,
       "fw": 32,
       "generated": true
     },
@@ -1453,8 +1113,8 @@
       ],
       "ox": -8,
       "oy": -16,
-      "x": 34,
-      "y": 942,
+      "x": 117,
+      "y": 620,
       "fw": 32
     },
     {
@@ -1469,77 +1129,9 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 942,
+      "x": 150,
+      "y": 620,
       "fw": 48
-    },
-    {
-      "id": "seed",
-      "file": "ui/seed.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 116,
-      "y": 942,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "wood",
-      "file": "ui/wood.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 149,
-      "y": 942,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "stoneItem",
-      "file": "ui/stone.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 182,
-      "y": 942,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "sword",
-      "file": "ui/sword.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 215,
-      "y": 942,
-      "fw": 32,
-      "generated": true
     },
     {
       "id": "fishingPole",
@@ -1553,60 +1145,9 @@
       ],
       "ox": 8,
       "oy": 16,
-      "x": 1,
-      "y": 975,
+      "x": 199,
+      "y": 620,
       "fw": 32
-    },
-    {
-      "id": "axe",
-      "file": "ui/axe.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 34,
-      "y": 975,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "shovel",
-      "file": "ui/shovel.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 67,
-      "y": 975,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "pickaxe",
-      "file": "ui/pickaxe.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 100,
-      "y": 975,
-      "fw": 32,
-      "generated": true
     },
     {
       "id": "diamondPickaxe",
@@ -1620,42 +1161,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 133,
-      "y": 975,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "ironSword",
-      "file": "ui/ironSword.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 166,
-      "y": 975,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "bow",
-      "file": "ui/bow.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 199,
-      "y": 975,
+      "x": 1,
+      "y": 653,
       "fw": 32,
       "generated": true
     },
@@ -1671,345 +1178,9 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 1008,
-      "fw": 32
-    },
-    {
-      "id": "sprout",
-      "file": "ui/sprout.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
       "x": 34,
-      "y": 1008,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "veggie",
-      "file": "ui/veggie.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 67,
-      "y": 1008,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "mushroom",
-      "file": "ui/mushroom.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 100,
-      "y": 1008,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "strawHat",
-      "file": "ui/strawHat.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 133,
-      "y": 1008,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "honeybun",
-      "file": "ui/honeybun.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 166,
-      "y": 1008,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "townFlower",
-      "file": "ui/townFlower.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 199,
-      "y": 1008,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "copper",
-      "file": "ui/copper.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 1,
-      "y": 1041,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "moonshard",
-      "file": "ui/moonshard.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 34,
-      "y": 1041,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "goldCoin",
-      "file": "ui/goldCoin.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 67,
-      "y": 1041,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "gem",
-      "file": "ui/gem.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 100,
-      "y": 1041,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "iron",
-      "file": "ui/iron.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 133,
-      "y": 1041,
+      "y": 653,
       "fw": 32
-    },
-    {
-      "id": "sapphire",
-      "file": "ui/sapphire.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 166,
-      "y": 1041,
-      "fw": 32
-    },
-    {
-      "id": "letter",
-      "file": "ui/letter.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 199,
-      "y": 1041,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "trophy",
-      "file": "ui/trophy.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 1,
-      "y": 1074,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "mooncrystal",
-      "file": "ui/mooncrystal.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 34,
-      "y": 1074,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "pebble",
-      "file": "ui/pebble.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 67,
-      "y": 1074,
-      "fw": 32
-    },
-    {
-      "id": "goldPile",
-      "file": "ui/goldPile.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 100,
-      "y": 1074,
-      "fw": 32
-    },
-    {
-      "id": "shield",
-      "file": "ui/shield.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 133,
-      "y": 1074,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "cropYoung",
-      "file": "ui/cropYoung.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 166,
-      "y": 1074,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "cropReady",
-      "file": "ui/cropReady.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 199,
-      "y": 1074,
-      "fw": 32,
-      "generated": true
     },
     {
       "id": "apple",
@@ -2023,8 +1194,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 1107,
+      "x": 67,
+      "y": 653,
       "fw": 32,
       "generated": true
     },
@@ -2040,8 +1211,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 1107,
+      "x": 100,
+      "y": 653,
       "fw": 32,
       "generated": true
     },
@@ -2057,8 +1228,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 1107,
+      "x": 133,
+      "y": 653,
       "fw": 32,
       "generated": true
     },
@@ -2074,8 +1245,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 100,
-      "y": 1107,
+      "x": 166,
+      "y": 653,
       "fw": 32,
       "generated": true
     },
@@ -2091,8 +1262,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 133,
-      "y": 1107,
+      "x": 199,
+      "y": 653,
       "fw": 32,
       "generated": true
     },
@@ -2108,8 +1279,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 166,
-      "y": 1107,
+      "x": 1,
+      "y": 686,
       "fw": 32,
       "generated": true
     },
@@ -2125,8 +1296,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 199,
-      "y": 1107,
+      "x": 34,
+      "y": 686,
       "fw": 32,
       "generated": true
     },
@@ -2142,8 +1313,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 1140,
+      "x": 67,
+      "y": 686,
       "fw": 32,
       "generated": true
     },
@@ -2159,8 +1330,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 1140,
+      "x": 100,
+      "y": 686,
       "fw": 32,
       "generated": true
     },
@@ -2176,8 +1347,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 1140,
+      "x": 133,
+      "y": 686,
       "fw": 32,
       "generated": true
     },
@@ -2193,8 +1364,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 100,
-      "y": 1140,
+      "x": 166,
+      "y": 686,
       "fw": 32,
       "generated": true
     },
@@ -2210,8 +1381,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 133,
-      "y": 1140,
+      "x": 199,
+      "y": 686,
       "fw": 32,
       "generated": true
     },
@@ -2227,8 +1398,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 166,
-      "y": 1140,
+      "x": 1,
+      "y": 719,
       "fw": 32,
       "generated": true
     },
@@ -2244,8 +1415,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 199,
-      "y": 1140,
+      "x": 34,
+      "y": 719,
       "fw": 32,
       "generated": true
     },
@@ -2261,8 +1432,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 1173,
+      "x": 67,
+      "y": 719,
       "fw": 32,
       "generated": true
     },
@@ -2278,8 +1449,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 1173,
+      "x": 100,
+      "y": 719,
       "fw": 32,
       "generated": true
     },
@@ -2295,8 +1466,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 1173,
+      "x": 133,
+      "y": 719,
       "fw": 32,
       "generated": true
     },
@@ -2312,8 +1483,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 100,
-      "y": 1173,
+      "x": 166,
+      "y": 719,
       "fw": 32,
       "generated": true
     },
@@ -2329,8 +1500,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 133,
-      "y": 1173,
+      "x": 199,
+      "y": 719,
       "fw": 32,
       "generated": true
     },
@@ -2346,8 +1517,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 166,
-      "y": 1173,
+      "x": 1,
+      "y": 752,
       "fw": 32,
       "generated": true
     },
@@ -2363,8 +1534,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 199,
-      "y": 1173,
+      "x": 34,
+      "y": 752,
       "fw": 32,
       "generated": true
     },
@@ -2380,8 +1551,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 1206,
+      "x": 67,
+      "y": 752,
       "fw": 32,
       "generated": true
     },
@@ -2397,8 +1568,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 1206,
+      "x": 100,
+      "y": 752,
       "fw": 32,
       "generated": true
     },
@@ -2414,8 +1585,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 1206,
+      "x": 133,
+      "y": 752,
       "fw": 32,
       "generated": true
     },
@@ -2431,8 +1602,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 100,
-      "y": 1206,
+      "x": 166,
+      "y": 752,
       "fw": 32,
       "generated": true
     },
@@ -2448,8 +1619,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 133,
-      "y": 1206,
+      "x": 199,
+      "y": 752,
       "fw": 32,
       "generated": true
     },
@@ -2465,8 +1636,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 166,
-      "y": 1206,
+      "x": 1,
+      "y": 785,
       "fw": 32,
       "generated": true
     },
@@ -2482,8 +1653,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 199,
-      "y": 1206,
+      "x": 34,
+      "y": 785,
       "fw": 32,
       "generated": true
     },
@@ -2499,8 +1670,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 1239,
+      "x": 67,
+      "y": 785,
       "fw": 32,
       "generated": true
     },
@@ -2516,8 +1687,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 1239,
+      "x": 100,
+      "y": 785,
       "fw": 32,
       "generated": true
     },
@@ -2533,8 +1704,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 1239,
+      "x": 133,
+      "y": 785,
       "fw": 32,
       "generated": true
     },
@@ -2550,8 +1721,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 100,
-      "y": 1239,
+      "x": 166,
+      "y": 785,
       "fw": 32,
       "generated": true
     },
@@ -2567,8 +1738,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 133,
-      "y": 1239,
+      "x": 199,
+      "y": 785,
       "fw": 32,
       "generated": true
     },
@@ -2584,8 +1755,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 166,
-      "y": 1239,
+      "x": 1,
+      "y": 818,
       "fw": 32,
       "generated": true
     },
@@ -2601,8 +1772,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 199,
-      "y": 1239,
+      "x": 34,
+      "y": 818,
       "fw": 32,
       "generated": true
     },
@@ -2618,8 +1789,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 1272,
+      "x": 67,
+      "y": 818,
       "fw": 32,
       "generated": true
     },
@@ -2635,76 +1806,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 1272,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "crate",
-      "file": "props/crate.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 67,
-      "y": 1272,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "rock0",
-      "file": "props/rock0.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
       "x": 100,
-      "y": 1272,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "rock1",
-      "file": "props/rock1.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 133,
-      "y": 1272,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "stump",
-      "file": "props/stump.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 166,
-      "y": 1272,
+      "y": 818,
       "fw": 32,
       "generated": true
     },
@@ -2720,8 +1823,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 199,
-      "y": 1272,
+      "x": 133,
+      "y": 818,
       "fw": 32
     },
     {
@@ -2736,8 +1839,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 1305,
+      "x": 166,
+      "y": 818,
       "fw": 32
     },
     {
@@ -2752,8 +1855,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 34,
-      "y": 1305,
+      "x": 199,
+      "y": 818,
       "fw": 32
     },
     {
@@ -2768,161 +1871,280 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 67,
-      "y": 1305,
+      "x": 1,
+      "y": 851,
       "fw": 32
     },
     {
-      "id": "weed0",
-      "file": "props/weed0.png",
-      "w": 32,
-      "h": 32,
+      "id": "mailbox",
+      "file": "props/mailbox.png",
+      "w": 16,
+      "h": 24,
       "frames": 1,
       "anchor": [
         0,
         0
       ],
       "ox": 0,
-      "oy": 0,
-      "x": 100,
-      "y": 1305,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "weed1",
-      "file": "props/weed1.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 133,
-      "y": 1305,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "chest",
-      "file": "props/chest.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 166,
-      "y": 1305,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "note",
-      "file": "props/note.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 199,
-      "y": 1305,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "shopSign",
-      "file": "props/shopSign.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
-      "x": 1,
-      "y": 1338,
-      "fw": 32,
-      "generated": true
-    },
-    {
-      "id": "doormat",
-      "file": "props/doormat.png",
-      "w": 32,
-      "h": 32,
-      "frames": 1,
-      "anchor": [
-        0,
-        0
-      ],
-      "ox": 0,
-      "oy": 0,
+      "oy": -8,
       "x": 34,
-      "y": 1338,
-      "fw": 32,
+      "y": 851,
+      "fw": 16,
       "generated": true
     },
     {
-      "id": "flowerbox",
-      "file": "props/flowerbox.png",
-      "w": 64,
-      "h": 32,
+      "id": "tallGrass0",
+      "file": "props/tallGrass0.png",
+      "w": 16,
+      "h": 24,
       "frames": 1,
       "anchor": [
         0,
         0
       ],
-      "ox": -16,
-      "oy": 0,
-      "x": 67,
-      "y": 1338,
-      "fw": 64,
+      "ox": 0,
+      "oy": -8,
+      "x": 51,
+      "y": 851,
+      "fw": 16,
       "generated": true
     },
     {
-      "id": "chicken-right",
-      "file": "actors/chicken-right-{n}.png",
-      "w": 32,
-      "h": 32,
-      "frames": 2,
+      "id": "tallGrass1",
+      "file": "props/tallGrass1.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
       "anchor": [
-        16,
-        28
+        0,
+        0
       ],
       "ox": 0,
-      "oy": 0,
-      "x": 132,
-      "y": 1338,
-      "fw": 32,
+      "oy": -8,
+      "x": 68,
+      "y": 851,
+      "fw": 16,
       "generated": true
     },
     {
-      "id": "chicken-left",
-      "file": "actors/chicken-left-{n}.png",
-      "w": 32,
-      "h": 32,
-      "frames": 2,
+      "id": "lantern",
+      "file": "props/lantern.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
       "anchor": [
-        16,
-        28
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 85,
+      "y": 851,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "lanternOff",
+      "file": "props/lantern-off.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 102,
+      "y": 851,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "ladder",
+      "file": "props/ladder.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 119,
+      "y": 851,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "window",
+      "file": "props/window.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
       ],
       "ox": 0,
       "oy": 0,
+      "x": 136,
+      "y": 851,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "inndoor",
+      "file": "props/inndoor.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 153,
+      "y": 851,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "counter",
+      "file": "props/counter.png",
+      "w": 48,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 170,
+      "y": 851,
+      "fw": 48,
+      "generated": true
+    },
+    {
+      "id": "swordPedestal",
+      "file": "props/swordPedestal.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 219,
+      "y": 851,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "hole",
+      "file": "props/hole.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 236,
+      "y": 851,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "chair",
+      "file": "props/chair.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
       "x": 1,
-      "y": 1371,
-      "fw": 32,
+      "y": 884,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "housePlant",
+      "file": "props/housePlant.png",
+      "w": 16,
+      "h": 24,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": -8,
+      "x": 18,
+      "y": 884,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "car-up",
+      "file": "actors/car-up-{n}.png",
+      "w": 16,
+      "h": 20,
+      "frames": 2,
+      "anchor": [
+        8,
+        18
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 35,
+      "y": 884,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "car-down",
+      "file": "actors/car-down-{n}.png",
+      "w": 16,
+      "h": 20,
+      "frames": 2,
+      "anchor": [
+        8,
+        18
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 68,
+      "y": 884,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "weaponDockFrame",
+      "file": "ui/weaponDockFrame.png",
+      "w": 20,
+      "h": 20,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 101,
+      "y": 884,
+      "fw": 20,
       "generated": true
     },
     {
@@ -2937,8 +2159,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 66,
-      "y": 1371,
+      "x": 122,
+      "y": 884,
       "fw": 16,
       "generated": true
     },
@@ -2954,8 +2176,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 83,
-      "y": 1371,
+      "x": 139,
+      "y": 884,
       "fw": 16,
       "generated": true
     },
@@ -2971,8 +2193,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 100,
-      "y": 1371,
+      "x": 156,
+      "y": 884,
       "fw": 16,
       "generated": true
     },
@@ -2988,8 +2210,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 117,
-      "y": 1371,
+      "x": 173,
+      "y": 884,
       "fw": 16,
       "generated": true
     },
@@ -3005,8 +2227,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 134,
-      "y": 1371,
+      "x": 190,
+      "y": 884,
       "fw": 16,
       "generated": true
     },
@@ -3022,8 +2244,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 151,
-      "y": 1371,
+      "x": 207,
+      "y": 884,
       "fw": 16,
       "generated": true
     },
@@ -3039,8 +2261,297 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 168,
-      "y": 1371,
+      "x": 224,
+      "y": 884,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "letter",
+      "file": "ui/letter.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 1,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "crate",
+      "file": "props/crate.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 18,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "rock0",
+      "file": "props/rock0.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 35,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "rock1",
+      "file": "props/rock1.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 52,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "weed0",
+      "file": "props/weed0.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 69,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "weed1",
+      "file": "props/weed1.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 86,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "fenceH",
+      "file": "props/fenceH.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 103,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "fenceL",
+      "file": "props/fenceL.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 120,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "fenceR",
+      "file": "props/fenceR.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 137,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "seed",
+      "file": "ui/seed.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 154,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "sprout",
+      "file": "ui/sprout.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 171,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "cropYoung",
+      "file": "ui/cropYoung.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 188,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "cropReady",
+      "file": "ui/cropReady.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 205,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "veggie",
+      "file": "ui/veggie.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 222,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "stump",
+      "file": "props/stump.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 239,
+      "y": 909,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "wood",
+      "file": "ui/wood.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 1,
+      "y": 926,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "stoneItem",
+      "file": "ui/stone.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 18,
+      "y": 926,
       "fw": 16,
       "generated": true
     },
@@ -3056,8 +2567,42 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 185,
-      "y": 1371,
+      "x": 35,
+      "y": 926,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "chicken-right",
+      "file": "actors/chicken-right-{n}.png",
+      "w": 16,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        8,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 52,
+      "y": 926,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "chicken-left",
+      "file": "actors/chicken-left-{n}.png",
+      "w": 16,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        8,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 85,
+      "y": 926,
       "fw": 16,
       "generated": true
     },
@@ -3073,8 +2618,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 202,
-      "y": 1371,
+      "x": 118,
+      "y": 926,
       "fw": 16,
       "generated": true
     },
@@ -3090,8 +2635,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 219,
-      "y": 1371,
+      "x": 135,
+      "y": 926,
       "fw": 16,
       "generated": true
     },
@@ -3107,8 +2652,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 236,
-      "y": 1371,
+      "x": 152,
+      "y": 926,
       "fw": 16,
       "generated": true
     },
@@ -3124,8 +2669,93 @@
       ],
       "ox": 0,
       "oy": 0,
+      "x": 169,
+      "y": 926,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "copper",
+      "file": "ui/copper.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 186,
+      "y": 926,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "mushroom",
+      "file": "ui/mushroom.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 203,
+      "y": 926,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "moonshard",
+      "file": "ui/moonshard.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 220,
+      "y": 926,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "note",
+      "file": "props/note.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 237,
+      "y": 926,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "trophy",
+      "file": "ui/trophy.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
       "x": 1,
-      "y": 1404,
+      "y": 943,
       "fw": 16,
       "generated": true
     },
@@ -3142,7 +2772,7 @@
       "ox": 0,
       "oy": 0,
       "x": 18,
-      "y": 1404,
+      "y": 943,
       "fw": 16,
       "generated": true
     },
@@ -3159,7 +2789,7 @@
       "ox": 0,
       "oy": 0,
       "x": 67,
-      "y": 1404,
+      "y": 943,
       "fw": 16,
       "generated": true
     },
@@ -3176,7 +2806,24 @@
       "ox": 0,
       "oy": 0,
       "x": 84,
-      "y": 1404,
+      "y": 943,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "doormat",
+      "file": "props/doormat.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 101,
+      "y": 943,
       "fw": 16,
       "generated": true
     },
@@ -3192,8 +2839,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 101,
-      "y": 1404,
+      "x": 118,
+      "y": 943,
       "fw": 16,
       "generated": true
     },
@@ -3209,8 +2856,144 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 118,
-      "y": 1404,
+      "x": 135,
+      "y": 943,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "car-right",
+      "file": "actors/car-right-{n}.png",
+      "w": 24,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        12,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 152,
+      "y": 943,
+      "fw": 24,
+      "generated": true
+    },
+    {
+      "id": "car-left",
+      "file": "actors/car-left-{n}.png",
+      "w": 24,
+      "h": 16,
+      "frames": 2,
+      "anchor": [
+        12,
+        14
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 201,
+      "y": 943,
+      "fw": 24,
+      "generated": true
+    },
+    {
+      "id": "shopSign",
+      "file": "props/shopSign.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 1,
+      "y": 960,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "strawHat",
+      "file": "ui/strawHat.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 18,
+      "y": 960,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "honeybun",
+      "file": "ui/honeybun.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 35,
+      "y": 960,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "townFlower",
+      "file": "ui/townFlower.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 52,
+      "y": 960,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "sword",
+      "file": "ui/sword.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 69,
+      "y": 960,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "goldCoin",
+      "file": "ui/goldCoin.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 86,
+      "y": 960,
       "fw": 16,
       "generated": true
     },
@@ -3226,8 +3009,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 135,
-      "y": 1404,
+      "x": 103,
+      "y": 960,
       "fw": 16,
       "generated": true
     },
@@ -3243,8 +3026,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 168,
-      "y": 1404,
+      "x": 136,
+      "y": 960,
       "fw": 16,
       "generated": true
     },
@@ -3260,8 +3043,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 201,
-      "y": 1404,
+      "x": 169,
+      "y": 960,
       "fw": 16,
       "generated": true
     },
@@ -3277,8 +3060,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 1421,
+      "x": 202,
+      "y": 960,
       "fw": 24,
       "generated": true
     },
@@ -3294,8 +3077,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 26,
-      "y": 1421,
+      "x": 1,
+      "y": 977,
       "fw": 16,
       "generated": true
     },
@@ -3311,9 +3094,60 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 75,
-      "y": 1421,
+      "x": 50,
+      "y": 977,
       "fw": 24,
+      "generated": true
+    },
+    {
+      "id": "gem",
+      "file": "ui/gem.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 99,
+      "y": 977,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "chest",
+      "file": "props/chest.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 116,
+      "y": 977,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "mooncrystal",
+      "file": "ui/mooncrystal.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 133,
+      "y": 977,
+      "fw": 16,
       "generated": true
     },
     {
@@ -3328,8 +3162,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 124,
-      "y": 1421,
+      "x": 150,
+      "y": 977,
       "fw": 16
     },
     {
@@ -3344,8 +3178,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 141,
-      "y": 1421,
+      "x": 167,
+      "y": 977,
       "fw": 16
     },
     {
@@ -3360,8 +3194,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 158,
-      "y": 1421,
+      "x": 184,
+      "y": 977,
       "fw": 16
     },
     {
@@ -3376,8 +3210,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 175,
-      "y": 1421,
+      "x": 201,
+      "y": 977,
       "fw": 16
     },
     {
@@ -3392,8 +3226,72 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 192,
-      "y": 1421,
+      "x": 218,
+      "y": 977,
+      "fw": 16
+    },
+    {
+      "id": "iron",
+      "file": "ui/iron.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 235,
+      "y": 977,
+      "fw": 16
+    },
+    {
+      "id": "sapphire",
+      "file": "ui/sapphire.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 1,
+      "y": 994,
+      "fw": 16
+    },
+    {
+      "id": "pebble",
+      "file": "ui/pebble.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 18,
+      "y": 994,
+      "fw": 16
+    },
+    {
+      "id": "goldPile",
+      "file": "ui/goldPile.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 35,
+      "y": 994,
       "fw": 16
     },
     {
@@ -3408,9 +3306,128 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 209,
-      "y": 1421,
+      "x": 52,
+      "y": 994,
       "fw": 16
+    },
+    {
+      "id": "flowerbox",
+      "file": "props/flowerbox.png",
+      "w": 32,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": -8,
+      "oy": 0,
+      "x": 85,
+      "y": 994,
+      "fw": 32,
+      "generated": true
+    },
+    {
+      "id": "axe",
+      "file": "ui/axe.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 118,
+      "y": 994,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "shovel",
+      "file": "ui/shovel.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 135,
+      "y": 994,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "pickaxe",
+      "file": "ui/pickaxe.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 152,
+      "y": 994,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "shield",
+      "file": "ui/shield.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 169,
+      "y": 994,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "ironSword",
+      "file": "ui/ironSword.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 186,
+      "y": 994,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "bow",
+      "file": "ui/bow.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 203,
+      "y": 994,
+      "fw": 16,
+      "generated": true
     },
     {
       "id": "arrow",
@@ -3424,8 +3441,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 1,
-      "y": 1438,
+      "x": 220,
+      "y": 994,
       "fw": 16,
       "generated": true
     },
@@ -3441,8 +3458,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 18,
-      "y": 1438,
+      "x": 237,
+      "y": 994,
       "fw": 16
     },
     {
@@ -3457,8 +3474,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 35,
-      "y": 1438,
+      "x": 1,
+      "y": 1011,
       "fw": 16
     },
     {
@@ -3473,8 +3490,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 52,
-      "y": 1438,
+      "x": 18,
+      "y": 1011,
       "fw": 16
     },
     {
@@ -3489,8 +3506,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 69,
-      "y": 1438,
+      "x": 35,
+      "y": 1011,
       "fw": 16
     },
     {
@@ -3505,8 +3522,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 86,
-      "y": 1438,
+      "x": 52,
+      "y": 1011,
       "fw": 16
     },
     {
@@ -3521,9 +3538,43 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 103,
-      "y": 1438,
+      "x": 69,
+      "y": 1011,
       "fw": 16
+    },
+    {
+      "id": "weaponDockEmpty",
+      "file": "ui/weaponDockEmpty.png",
+      "w": 16,
+      "h": 16,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 86,
+      "y": 1011,
+      "fw": 16,
+      "generated": true
+    },
+    {
+      "id": "bagWeaponBanner",
+      "file": "ui/bagWeaponBanner.png",
+      "w": 48,
+      "h": 14,
+      "frames": 1,
+      "anchor": [
+        0,
+        0
+      ],
+      "ox": 0,
+      "oy": 0,
+      "x": 103,
+      "y": 1011,
+      "fw": 48,
+      "generated": true
     },
     {
       "id": "heart",
@@ -3537,8 +3588,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 120,
-      "y": 1438,
+      "x": 152,
+      "y": 1011,
       "fw": 10,
       "generated": true
     },
@@ -3554,8 +3605,8 @@
       ],
       "ox": 0,
       "oy": 0,
-      "x": 131,
-      "y": 1438,
+      "x": 163,
+      "y": 1011,
       "fw": 10,
       "generated": true
     }
