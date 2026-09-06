@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905dg): critter hop juice — rabbit/squirrel bounce higher + soft hop dust when they flee Orion (walk-into or tap); idle wander stays quiet; deer hop react unchanged. Never START OVER.
+
 Local 9/5 (BUILD 20260905df): home/town/peak lamp soft warm pulse sparks when each glow turns on (+ slightly stronger lit pulse); pad sword crescent a bit brighter. Never START OVER.
 
 Local 9/5 (BUILD 20260905de): bridge fix wood/gold celebration sparkle when 8 wood spent; soccer kickball dust puff on kick. Never START OVER.
