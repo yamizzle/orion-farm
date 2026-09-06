@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905br";
-  var ASSET_REV = "445667";
+  var BUILD = "20260905bs";
+  var ASSET_REV = "452632";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -2841,6 +2841,18 @@
   function isTreeUp(tx, ty) {
     var d = treeUpSpot();
     return !!(d && tx === d.tx && ty === d.ty);
+  }
+
+  function treeLadderWorldHit(world) {
+    var i, p, bb;
+    if (currentScene !== "tree" || !world) return false;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind !== "ladder") continue;
+      bb = propBounds(p);
+      if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) return true;
+    }
+    return false;
   }
 
   function enterTree() {
@@ -15940,7 +15952,12 @@
     if (p.kind === "moonAltar") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "fern") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "tallGrass") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
-    if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "lampPost" || p.kind === "ladder" || p.kind === "hole" || p.kind === "swordPedestal") {
+    if (p.kind === "ladder") {
+      /* 20260905bs: fat-finger climb for a 7yo — taller tap target, bigger on TREE */
+      if (currentScene === "tree") return { x: p.tx * TILE - 12, y: p.ty * TILE - 40, w: 40, h: 56 };
+      return { x: p.tx * TILE - 8, y: p.ty * TILE - 20, w: 32, h: 40 };
+    }
+    if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "lampPost" || p.kind === "hole" || p.kind === "swordPedestal") {
       if (p.kind === "lantern" && currentScene === "house") {
         return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
       }
@@ -15994,6 +16011,23 @@
       Math.round(x + ox / 2), Math.round(y + oy / 2),
       dw, dh
     );
+    g.imageSmoothingEnabled = smooth;
+    return true;
+  }
+
+  function drawAtlasLadderTree(g, x, y) {
+    /* 20260905bs: big-tree climb ladder — denser 48×72 art at 32×48 (not tiny half-scale) */
+    var s = Assets.spr.ladder;
+    var fw, dw, dh, dx, dy, smooth;
+    if (!s || !Assets.img) return false;
+    fw = s.fw || s.w;
+    dw = 32;
+    dh = 48;
+    dx = x + ((TILE - dw) / 2 | 0);
+    dy = y + TILE - dh;
+    smooth = g.imageSmoothingEnabled;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(Assets.img, s.x, s.y, fw, s.h, dx, dy, dw, dh);
     g.imageSmoothingEnabled = smooth;
     return true;
   }
@@ -16177,7 +16211,14 @@
         Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
       }
     } else if (p.kind === "ladder") {
-      if (!drawAtlas2x(g, "ladder", x, y)) Assets.draw(g, "ladder", x, y);
+      /* 20260905bs: TREE climb uses denser bigger draw; mine/others keep atlas half-scale */
+      if (currentScene === "tree") {
+        if (!drawAtlasLadderTree(g, x, y)) {
+          if (!drawAtlas2x(g, "ladder", x, y)) Assets.draw(g, "ladder", x, y);
+        }
+      } else if (!drawAtlas2x(g, "ladder", x, y)) {
+        Assets.draw(g, "ladder", x, y);
+      }
       if (currentScene === "mine") drawShaftLabel(g, p, mineFloor === 1 ? "OUT" : "UP");
       if (currentScene === "tree") drawShaftLabel(g, p, "UP");
     } else if (p.kind === "peakRocks") {
@@ -18587,7 +18628,7 @@
       goTreeShaft(false);
       return;
     }
-    if (currentScene === "tree" && (isTreeUp(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "ladder"))) {
+    if (currentScene === "tree" && (isTreeUp(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "ladder") || treeLadderWorldHit(world))) {
       goTreeShaft(true);
       return;
     }
@@ -18691,7 +18732,7 @@
       goTreeShaft(false);
       return;
     }
-    if (currentScene === "tree" && (isTreeUp(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "ladder"))) {
+    if (currentScene === "tree" && (isTreeUp(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "ladder") || treeLadderWorldHit(world))) {
       goTreeShaft(true);
       return;
     }
@@ -18813,6 +18854,10 @@
     }
     if (hitProp && hitProp.kind === "mailbox") {
       goMail();
+      return;
+    }
+    if (currentScene === "tree" && hitProp && hitProp.kind === "ladder") {
+      goTreeShaft(true);
       return;
     }
     if (currentScene === "tree" && hitProp && hitProp.kind === "nest" && hitProp.eggs) {
@@ -19647,7 +19692,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905br", BUILD);
+      ok("BUILD", BUILD === "20260905bs", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
