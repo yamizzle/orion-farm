@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dh";
+  var BUILD = "20260905di";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -4457,7 +4457,8 @@
         /* 20260905dg: hop juice only when fleeing Orion (bump/tap), not idle wander */
         if (hopJuice) {
           c.react = 480;
-          if (c.kind === "rabbit" || c.kind === "squirrel") {
+          /* 20260905di: deer also puffs soft dust when fleeing Orion */
+          if (c.kind === "rabbit" || c.kind === "squirrel" || c.kind === "deer") {
             spawnCritterHopDust(c.x, c.y - 4, c.kind);
           }
         }
@@ -5487,9 +5488,13 @@
     x = Math.round(c.x);
     y = Math.round(c.y);
     /* 20260905dg: rabbit/squirrel bounce higher while fleeing */
+    /* 20260905di: deer gets a soft hop too (smaller than rabbit) */
     if (c.react > 0 && (c.kind === "rabbit" || c.kind === "squirrel")) {
       rt = Math.min(1, c.react / 480);
       hop = -Math.round(3 + 5 * rt);
+    } else if (c.react > 0 && c.kind === "deer") {
+      rt = Math.min(1, c.react / 480);
+      hop = -Math.round(2 + 3 * rt);
     } else {
       hop = c.react > 0 ? -3 : 0;
     }
@@ -7054,16 +7059,22 @@
   }
 
   /* 20260905dg: soft hop dust when rabbit/squirrel flee from Orion */
+  /* 20260905di: deer soft tan/dirt dust puff */
   function spawnCritterHopDust(x, y, kind) {
-    var i, ang, cols;
+    var i, ang, cols, n;
     if (kind === "squirrel") {
       cols = ["#C47A38", "#E8B060", "#A86C14", "#F3D2A3", "#8B5A28", "#FFE9A0", "#5A3A18", "#D4A060"];
+      n = 7;
+    } else if (kind === "deer") {
+      cols = ["#C4A060", "#E0C888", "#8A6A38", "#D4B078", "#F3E0B8", "#A89058", "#FFF3C0", "#5A3A18", "#E8D0A0"];
+      n = 9;
     } else {
       /* rabbit (and default): soft cream / dirt hop puff */
       cols = ["#F3EDE0", "#E8D0B0", "#D4C4A0", "#FFF8E8", "#C9B896", "#FFE8D0", "#A89070", "#FFFDF8"];
+      n = 7;
     }
-    for (i = 0; i < 7; i++) {
-      ang = (i / 7) * Math.PI * 2 + Math.random() * 0.45;
+    for (i = 0; i < n; i++) {
+      ang = (i / n) * Math.PI * 2 + Math.random() * 0.45;
       sparks.push({
         x: x + (Math.random() * 5 - 2.5),
         y: y + (Math.random() * 3 - 1),
@@ -21060,11 +21071,11 @@
       for (ci = 0; ci < forestCritters.length; ci++) {
         cr = forestCritters[ci];
         if (hitSprite(world, cr.x, cr.y, cr.kind === "deer" ? 20 : 14, cr.kind === "deer" ? 22 : 14, 8, cr.kind === "deer" ? 18 : 12)) {
-          /* 20260905dg: tap makes critters hop-flee (rabbit/squirrel dust) */
+          /* 20260905dg/di: tap makes critters hop-flee (rabbit/squirrel/deer dust) */
           cr.idle = 700;
           if (!critterYield(cr, true)) {
             cr.react = 480;
-            if (cr.kind === "rabbit" || cr.kind === "squirrel") spawnCritterHopDust(cr.x, cr.y - 4, cr.kind);
+            if (cr.kind === "rabbit" || cr.kind === "squirrel" || cr.kind === "deer") spawnCritterHopDust(cr.x, cr.y - 4, cr.kind);
           }
           return;
         }
@@ -21075,11 +21086,11 @@
       for (oci = 0; oci < oceanCritters.length; oci++) {
         ocr = oceanCritters[oci];
         if (hitSprite(world, ocr.x, ocr.y, ocr.kind === "deer" ? 20 : 14, ocr.kind === "deer" ? 22 : 14, 8, ocr.kind === "deer" ? 18 : 12)) {
-          /* 20260905dg: tap makes critters hop-flee (rabbit/squirrel dust) */
+          /* 20260905dg/di: tap makes critters hop-flee (rabbit/squirrel/deer dust) */
           ocr.idle = 700;
           if (!critterYield(ocr, true)) {
             ocr.react = 480;
-            if (ocr.kind === "rabbit" || ocr.kind === "squirrel") spawnCritterHopDust(ocr.x, ocr.y - 4, ocr.kind);
+            if (ocr.kind === "rabbit" || ocr.kind === "squirrel" || ocr.kind === "deer") spawnCritterHopDust(ocr.x, ocr.y - 4, ocr.kind);
           }
           return;
         }

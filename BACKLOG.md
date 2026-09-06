@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905di): deer flee soft tan/dirt dust + soft hop when Orion bumps/taps (rabbit/squirrel hop juice kept). Never START OVER.
+
 Local 9/5 (BUILD 20260905dh): shop buy gold sparkle at BUY when a purchase succeeds; tiny SAVE toast on sleep day-rollover persist only (not every save — no spam). Never START OVER.
 
 Local 9/5 (BUILD 20260905dg): critter hop juice — rabbit/squirrel bounce higher + soft hop dust when they flee Orion (walk-into or tap); idle wander stays quiet; deer hop react unchanged. Never START OVER.
