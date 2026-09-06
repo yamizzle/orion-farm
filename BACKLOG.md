@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fv): Space beep car — standing next to the town car, Space / J / E finally beeps CAR (tap already walked-to-beep; NPC talk Space existed; car Space was a silent no-op). Never START OVER.
+
 Local 9/6 (BUILD 20260905fu): Space sleep at bed — standing next to the house bed, Space / J / E finally sleeps (tap already walked-to-sleep; cook/smelt/craft/chest Space existed; bed Space was a silent no-op). Never START OVER.
 
 Local 9/6 (BUILD 20260905ft): Space statue/fountain + peak altar — standing next to the town Moon Kid statue or plaza fountain, Space / J / E finally talks (tap already walked-to-landmark; NPC talk Space existed; plaza Space was a silent no-op); standing next to the MINE 6 moon altar, Space / J / E finally lights/talks PEAK GLOW (tap already goPeakAltar'd). Never START OVER.

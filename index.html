@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fu";
+  var BUILD = "20260905fv";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -13303,6 +13303,18 @@
     openDialogue("CAR", ["BEEP."]);
   }
 
+
+  /* 20260905fv: Space/J/E beep adjacent town car (tap already goTapCar'd;
+     NPC talk Space existed; car Space was a silent no-op). */
+  function tryCarAdjacent() {
+    if (uiPaused() || faintFx) return false;
+    if (currentScene !== "overworld") return false;
+    if (!nearCar()) return false;
+    pending = null;
+    beepCar();
+    return true;
+  }
+
   function goTapCar() {
     var dest, path;
     if (currentScene !== "overworld") return;
@@ -23265,6 +23277,8 @@ if (currentScene === "ocean") goExitOcean();
       /* 20260905ft: Space talk statue/fountain + peak altar (tap already worked). */
       if (tryLandmarkAdjacent()) return;
       if (tryPeakAltarAdjacent()) return;
+      /* 20260905fv: Space beep car (tap already goTapCar'd). */
+      if (tryCarAdjacent()) return;
       if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
@@ -23731,7 +23745,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fu", BUILD);
+      ok("BUILD", BUILD === "20260905fv", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24420,6 +24434,26 @@ if (currentScene === "ocean") goExitOcean();
           placePlayer(_astand.tx, _astand.ty, _astand.face);
           var _altarOk = tryPeakAltarAdjacent();
           ok("spacePeakAltar", !!_altarOk && !!found.peakLight && !!(dialogue && dialogue.title), "open=" + _altarOk + " lit=" + !!found.peakLight + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
+      }
+
+      /* 20260905fv: Space beeps adjacent town car (tap already goTapCar'd). */
+      applyScene("overworld");
+      closeDialogue();
+      carTapped = false;
+      ok("spaceCarPresent", !!(car && typeof car.tx === "number"), "car");
+      if (car && typeof car.tx === "number") {
+        var _cstand = null;
+        if (walkable(car.tx, car.ty + 1)) _cstand = { tx: car.tx, ty: car.ty + 1, face: "up" };
+        else if (walkable(car.tx + 1, car.ty)) _cstand = { tx: car.tx + 1, ty: car.ty, face: "left" };
+        else if (walkable(car.tx - 1, car.ty)) _cstand = { tx: car.tx - 1, ty: car.ty, face: "right" };
+        else if (walkable(car.tx, car.ty - 1)) _cstand = { tx: car.tx, ty: car.ty - 1, face: "down" };
+        ok("spaceCarStand", !!_cstand, "stand");
+        if (_cstand) {
+          placePlayer(_cstand.tx, _cstand.ty, _cstand.face);
+          var _carOk = tryCarAdjacent();
+          ok("spaceBeepCar", !!_carOk && !!(dialogue && dialogue.title === "CAR"), "open=" + _carOk + " title=" + (dialogue ? dialogue.title : ""));
           closeDialogue();
         }
       }
