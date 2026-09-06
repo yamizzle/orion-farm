@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cj";
+  var BUILD = "20260905ck";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -3751,7 +3751,12 @@
       return;
     }
     if (bagCount("wood") < 8) {
-      openDialogue("THE BRIDGE IS OUT.", ["NEED 8 WOOD."]);
+      /* 20260905ck: say how many you still need so kids know what to chop */
+      openDialogue("THE BRIDGE IS OUT.", [
+        "NEED 8 WOOD.",
+        "YOU HAVE " + bagCount("wood") + ".",
+        "CHOP TREES FOR MORE."
+      ]);
       return;
     }
     takeFromBag("wood", 8);
@@ -11319,6 +11324,10 @@
   function questHint() {
     /* 20260905bx: while underground, Jobs points kids to UP → OUT ladders */
     if (currentScene === "mine") return "FOLLOW UP SIGNS TO OUT";
+    /* 20260905ck: ocean fishing without a pole — send kids to Pip */
+    if (currentScene === "ocean" && !poleOwned) return "BUY A FISHING POLE AT PIP'S.";
+    /* 20260905ck: bridge ready to fix once you have the wood */
+    if (!found.bridgeFixed && bagCount("wood") >= 8) return "FIX THE BRIDGE WITH 8 WOOD.";
     if (hasAnyRawFish()) return "COOK FISH ON THE STOVE";
     if (hasAnySmeltOre()) return "SMELT ORE AT THE FIREPLACE";
     if (!quest.flowerAsked) return "SAY HI TO JUNIE";
@@ -13410,7 +13419,7 @@
     spot = oceanFishSpotAt(t.tx, t.ty);
     if (!pond && !spot) return false;
     if (!poleOwned) {
-      showLineNote("YOU NEED A FISHING POLE.");
+      showLineNote("BUY A FISHING POLE AT PIP'S.");
       return true;
     }
     if (!toolEquipped("pole")) {
@@ -13434,7 +13443,7 @@
     if (onBoat) return false;
     if (fishing) return true;
     if (!poleOwned) {
-      showLineNote("YOU NEED A FISHING POLE.");
+      showLineNote("BUY A FISHING POLE AT PIP'S.");
       return true;
     }
     if (!toolEquipped("pole")) {
@@ -17541,8 +17550,16 @@
       Assets.draw(g, "townHouseD", x, y);
     } else if (p.kind === "brokenBridge" || p.kind === "fixedBridge") {
       Assets.draw(g, p.kind, x, y);
+      /* 20260905ck: floating cue so the east river gap is obvious */
+      if (p.kind === "brokenBridge" && !found.bridgeFixed) {
+        drawShaftLabel(g, { tx: p.tx + 2, ty: p.ty }, bagCount("wood") >= 8 ? "FIX!" : "8 WOOD");
+      }
     } else if (p.kind === "rowboat") {
       Assets.draw(g, "rowboat", x, y);
+      /* 20260905ck: clear GET IN on the rideable pier boat (decor boats stay paint-only) */
+      if (!onBoat && currentScene === "ocean" && !p.hidden) {
+        drawShaftLabel(g, { tx: p.tx + 1, ty: p.ty }, "GET IN");
+      }
     } else if (p.kind === "oceanSign") {
       drawWoodsSign(g, x, y, p.label || "OCEAN");
     } else if (p.kind === "townHouseB") {
@@ -21188,7 +21205,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cj", BUILD);
+      ok("BUILD", BUILD === "20260905ck", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
