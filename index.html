@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cz";
+  var BUILD = "20260905da";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6909,6 +6909,44 @@
     }
   }
 
+  /* 20260905da: tiny rising hearts when Orion eats honey bun / food */
+  function spawnEatHearts(x, y) {
+    var i, cols, ox, oy;
+    cols = ["#FF6B8A", "#FFB4C8", "#FF8FA3", "#FFE0E8", "#FF5A7A", "#FFD0DC", "#FFF0F4"];
+    ox = x;
+    oy = y;
+    for (i = 0; i < 7; i++) {
+      sparks.push({
+        x: ox + (Math.random() * 14 - 7),
+        y: oy + (Math.random() * 4 - 2),
+        vx: (Math.random() - 0.5) * 0.03,
+        vy: -0.04 - Math.random() * 0.03,
+        age: 0,
+        life: 540 + Math.random() * 260,
+        col: cols[i % cols.length],
+        heart: true
+      });
+    }
+  }
+
+  /* 20260905da: gold coin / gold pile pickup sparkle */
+  function spawnCoinSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#FFE9A0", "#FFF8E0", "#E8C84A", "#FFFDF4", "#F0C060", "#FFD78A", "#C9A227", "#FFF3C0", "#FFE070"];
+    for (i = 0; i < 9; i++) {
+      ang = (i / 9) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: x + (Math.random() * 5 - 2.5),
+        y: y + (Math.random() * 3 - 1.5),
+        vx: Math.cos(ang) * (0.03 + Math.random() * 0.032),
+        vy: Math.sin(ang) * 0.014 - 0.046 - Math.random() * 0.022,
+        age: 0,
+        life: 400 + Math.random() * 220,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
     n = big ? 12 : 8;
@@ -7071,7 +7109,12 @@
     }
     persistSave();
     spawnPickup(pile.kind, pile.tx, pile.ty, take);
-    spawnSparks(pile.tx * TILE + 8, pile.ty * TILE + 6);
+    /* 20260905da: gold coins get warm sparkle; other loot keeps soft sparks */
+    if (pile.kind === "gold" || pile.kind === "goldPile") {
+      spawnCoinSparks(pile.tx * TILE + 8, pile.ty * TILE + 6);
+    } else {
+      spawnSparks(pile.tx * TILE + 8, pile.ty * TILE + 6);
+    }
     return take;
   }
 
@@ -8045,6 +8088,10 @@
       t = pk.age / pk.life;
       if (t >= 1) {
         addItem(pk.kind, pk.amount);
+        /* 20260905da: coin sparkle pops at Orion when gold flies in */
+        if (pk.kind === "gold" || pk.kind === "goldPile") {
+          spawnCoinSparks(player.x, player.y - 8);
+        }
         pickups.splice(i, 1);
         playSfx("pickup");
         continue;
@@ -15371,6 +15418,8 @@
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
+    /* 20260905da: yum hearts float up from honey bun */
+    if (player) spawnEatHearts(player.x, player.y - 12);
     openDialogue("ORION", (hp >= MAX_HP && energy >= MAX_ENERGY) ? ["YUM! A HONEY BUN.", "ALL BETTER!"] : ["YUM! A HONEY BUN.", "THAT HELPED."]);
     return true;
   }
@@ -15383,6 +15432,8 @@
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
+    /* 20260905da: yum hearts for any food eat */
+    if (player) spawnEatHearts(player.x, player.y - 12);
     openDialogue("ORION", lines);
     ensureSelectedSlot();
     return true;
@@ -15408,6 +15459,7 @@
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
+    if (player) spawnEatHearts(player.x, player.y - 12);
     openDialogue("ORION", ["YUM! A CARROT."]);
     return true;
   }
@@ -15420,6 +15472,7 @@
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
+    if (player) spawnEatHearts(player.x, player.y - 12);
     openDialogue("ORION", ["YUM! A CAVE MUSHROOM."]);
     ensureSelectedSlot();
     return true;
@@ -21962,7 +22015,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cx", BUILD);
+      ok("BUILD", BUILD === "20260905da", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

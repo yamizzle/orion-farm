@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905da): honey bun / food eat floating pink hearts + gold coin / gold pile pickup warm sparkle (ground collect + fly-in pop). Never START OVER.
+
 Local 9/5 (BUILD 20260905cz): fountain soft water pulse + sparkle; holiday/festival lantern warmer soft pulse; mail open parchment sparks. Never START OVER.
 
 Local 9/5 (BUILD 20260905cy): treasure chest open gold/warm sparkle burst + ore node ready twinkle (copper/silver/gold/iron world + woods silver/gold). Never START OVER.
