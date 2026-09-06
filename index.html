@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ew";
+  var BUILD = "20260905ex";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -3785,7 +3785,9 @@
       return;
     }
     applyScene("overworld");
-    placePlayer(14, 36, "down");
+    /* 20260905ex: was (14,36) — only 1 tile north of beach gate (ty>=37);
+       one south step auto-reentered OCEAN. 2-tile gap like outdoor doors 05ew. */
+    placePlayer(14, 35, "down");
     persistSave();
   }
 
@@ -9989,7 +9991,8 @@
         return { tx: shopIn.tx, ty: shopIn.ty + 2, face: "down" };
       }
       if (isOceanEntrance(tx, ty)) {
-        return { tx: 14, ty: 36, face: "down" };
+        /* 20260905ex: match exitOcean 2-tile landing */
+        return { tx: 14, ty: 35, face: "down" };
       }
       if (isCottageEntrance(tx, ty)) {
         return { tx: cottageLand.tx, ty: cottageLand.ty, face: "down" };
@@ -23339,7 +23342,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ew", BUILD);
+      ok("BUILD", BUILD === "20260905ex", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23764,7 +23767,8 @@ if (currentScene === "ocean") goExitOcean();
       ok("tallCottageLandGap", !!(tallCottageLand.ty === tallCottageIn.ty + 2), tallCottageLand.tx + "," + tallCottageLand.ty);
       ok("lHouseLandGap", !!(lHouseLand.ty === lHouseIn.ty + 2), lHouseLand.tx + "," + lHouseLand.ty);
       var oe = nudgeRestoreOffGate(14, 37, "down");
-      ok("beachGateNudge", !!(oe && oe.tx === 14 && oe.ty === 36), oe && (oe.tx + "," + oe.ty));
+      ok("beachGateNudge", !!(oe && oe.tx === 14 && oe.ty === 35), oe && (oe.tx + "," + oe.ty));
+      ok("beachExitLandGap", !!(35 <= 36 && (37 - 35) >= 2 && !isOceanEntrance(14, 35)), "14,35");
       applyScene("ocean");
       var ox = nudgeRestoreOffGate(oceanLand.tx, 0, "up");
       ok("oceanPierNudge", !!(ox && ox.tx === oceanLand.tx && ox.ty === oceanLand.ty), ox && (ox.tx + "," + ox.ty));
