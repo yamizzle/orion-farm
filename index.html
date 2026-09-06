@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hd";
+  var BUILD = "20260905he";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10638,9 +10638,16 @@
     return false;
   }
 
+  /* 20260905he: beds in cottage / tall / L finally sleep (SLEEP float already
+     showed; house-only gate left those beds silent solids). */
+  function sleepSceneOk() {
+    return currentScene === "house" || currentScene === "cottage" ||
+           currentScene === "tallCottage" || currentScene === "lHouse";
+  }
+
   function bedHit(tx, ty, world) {
     var bed, b;
-    if (currentScene !== "house") return false;
+    if (!sleepSceneOk()) return false;
     bed = findBed();
     if (!bed) return false;
     if (propOccupies(bed, tx, ty)) return true;
@@ -12147,7 +12154,7 @@
 
   function beginSleep() {
     var i;
-    if (sleepFx || currentScene !== "house") return;
+    if (sleepFx || !sleepSceneOk()) return;
     dialogue = null;
     pending = null;
     highlight = null;
@@ -12188,7 +12195,7 @@
      cook/smelt/craft/chest Space existed; bed Space was a silent no-op). */
   function trySleepHere() {
     if (uiPaused() || faintFx) return false;
-    if (currentScene !== "house" || sleepFx) return false;
+    if (!sleepSceneOk() || sleepFx) return false;
     if (!nearBed()) return false;
     pending = null;
     beginSleep();
@@ -12197,7 +12204,7 @@
 
   function goSleep() {
     var bed, dest, path, x, y, best, d, cand;
-    if (currentScene !== "house" || sleepFx) return;
+    if (!sleepSceneOk() || sleepFx) return;
     bed = findBed();
     highlight = bed ? { tx: bed.tx, ty: bed.ty } : null;
     if (!bed || nearBed()) {
@@ -24124,7 +24131,8 @@
         }
       }
     }
-    if (currentScene === "house" && (bedHit(tx, ty, world) || (hitProp && hitProp.kind === "bed"))) {
+    /* 20260905he: tap bed sleep in cottage / tall / L too (SLEEP float was a lie). */
+    if (sleepSceneOk() && (bedHit(tx, ty, world) || (hitProp && hitProp.kind === "bed"))) {
       goSleep();
       return;
     }
@@ -25179,7 +25187,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hd", BUILD);
+      ok("BUILD", BUILD === "20260905he", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26077,6 +26085,28 @@ if (currentScene === "ocean") goExitOcean();
           sleepFx = null;
         }
       }
+
+      /* 20260905he: Space sleeps at tall-cottage bed (SLEEP float; was house-only silent). */
+      applyScene("tallCottage");
+      sleepFx = null;
+      closeDialogue();
+      var _tcBed = findBed();
+      ok("tallCottageBedFound", !!_tcBed, "bed");
+      if (_tcBed) {
+        var _tcStand = null;
+        if (walkable(_tcBed.tx, _tcBed.ty + 2)) _tcStand = { tx: _tcBed.tx, ty: _tcBed.ty + 2, face: "up" };
+        else if (walkable(_tcBed.tx + 1, _tcBed.ty + 2)) _tcStand = { tx: _tcBed.tx + 1, ty: _tcBed.ty + 2, face: "up" };
+        else if (walkable(_tcBed.tx + 2, _tcBed.ty + 1)) _tcStand = { tx: _tcBed.tx + 2, ty: _tcBed.ty + 1, face: "left" };
+        else if (walkable(_tcBed.tx - 1, _tcBed.ty + 1)) _tcStand = { tx: _tcBed.tx - 1, ty: _tcBed.ty + 1, face: "right" };
+        ok("tallCottageBedStand", !!_tcStand, "stand");
+        if (_tcStand) {
+          placePlayer(_tcStand.tx, _tcStand.ty, _tcStand.face);
+          var _tcSleep = trySleepHere();
+          ok("tallCottageSpaceSleep", !!_tcSleep && !!sleepFx, "sleep=" + _tcSleep + " fx=" + !!(sleepFx));
+          sleepFx = null;
+        }
+      }
+      applyScene("overworld");
 
       /* 20260905ft: Space talks adjacent statue / fountain (tap already goLandmark'd). */
       applyScene("overworld");
