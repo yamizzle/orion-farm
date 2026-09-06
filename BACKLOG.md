@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gx): acorn/pinecone tray-tap eat — chopping trees drops acorns/pinecones you can finally tap-eat from the tray for a nibble of hearts + energy (were ground-loot dead ends with no use; same yum path as apple/berry). Never START OVER.
+
 Local 9/6 (BUILD 20260905gw): Space chicken scoot — standing next to the farm hen (facing away), Space / J / E finally scoots it with feather puff (tap already walked-onto → chickenYield; dog/ball Space existed; side-of-hen was a silent no-op). Never START OVER.
 
 Local 9/6 (BUILD 20260905gv): player flower pick-up equips — picking a flower YOU planted pins + selects it (TAP TILE plant needs selected flower; pick left flower as ground loot then walk-on — same fence/path/kit placeable pick-up class); world plaza flowers + wildflowers still pop ground loot. Never START OVER.

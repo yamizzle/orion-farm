@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gw";
+  var BUILD = "20260905gx";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -4853,6 +4853,16 @@
     ensureSelectedSlot();
     return true;
   }
+  function eatAcorn() {
+    /* 20260905gx: acorn was ground-loot only — tray-tap finally eats (yum + energy). */
+    return eatFood("acorn", 2, 10, ["YUM! A CRUNCHY ACORN."]);
+  }
+
+  function eatPinecone() {
+    /* 20260905gx: pinecone was ground-loot only — tray-tap finally eats (yum + energy). */
+    return eatFood("pinecone", 2, 10, ["YUM! A PINECONE."]);
+  }
+
 
 
   function pickBerryBush(prop) {
@@ -23244,6 +23254,9 @@
         if (key === "veggie") eatCarrot();
         if (key === "potato") eatPotato();
         if (key === "berry") eatBerry();
+        /* 20260905gx: acorn / pinecone tray-tap eat (were loot-only dead ends). */
+        if (key === "acorn") eatAcorn();
+        if (key === "pinecone") eatPinecone();
         if (key === "mushroom") eatMushroom();
         if (fishKindById(key)) eatRawFish();
         if (cookedFishKindById(key)) eatCookedFish();
@@ -24896,7 +24909,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gw", BUILD);
+      ok("BUILD", BUILD === "20260905gx", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26729,6 +26742,18 @@ if (currentScene === "ocean") goExitOcean();
       var spaceChick = tryTalkAdjacent();
       ok("spaceChickenScoot", !!spaceChick && (chicken.tx !== chickBefore.tx || chicken.ty !== chickBefore.ty || (chicken.path && chicken.path.length > 0)),
         "moved=" + chicken.tx + "," + chicken.ty + " path=" + (chicken.path && chicken.path.length));
+      /* 20260905gx: acorn / pinecone tray-tap eat. */
+      emptyTray();
+      emptyBag();
+      trayCells[2] = { key: "acorn", count: 2 };
+      trayCells[3] = { key: "pinecone", count: 1 };
+      selectedSlot = 2;
+      hp = Math.max(1, MAX_HP - 4);
+      var _hpA = hp, _enA = energy;
+      ok("eatAcornWorks", !!eatAcorn() && bagCount("acorn") === 1 && hp >= _hpA && energy >= _enA,
+        "n=" + bagCount("acorn") + " hp=" + hp + " en=" + energy);
+      selectedSlot = 3;
+      ok("eatPineconeWorks", !!eatPinecone() && bagCount("pinecone") === 0, "n=" + bagCount("pinecone"));
       /* Far open ground: always some progress (partway harden). */
       placePlayer(6, 30, "down");
       var far = findPath(6, 30, 6, 35);
