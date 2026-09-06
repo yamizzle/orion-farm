@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ag";
+  var BUILD = "20260905ah";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4673,8 +4673,13 @@
 
   function drawFern(g, x, y) {
     var img = Assets.fern;
+    var smooth;
     if (img) {
-      g.drawImage(img, x, y - (img.height > 16 ? 8 : 0), img.width, img.height);
+      /* 20260905ah: 32×48 source into 16×24 logical (2× density) */
+      smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(img, x, y - 8, 16, 24);
+      g.imageSmoothingEnabled = smooth;
       return;
     }
     fill(g, x + 7, y + 10, 2, 5, "#2F7A14");
@@ -18415,7 +18420,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ag", BUILD);
+      ok("BUILD", BUILD === "20260905ah", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
