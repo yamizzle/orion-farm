@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dl";
+  var BUILD = "20260905dm";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -18707,12 +18707,33 @@
       }
       g.restore();
     } else if (p.kind === "statue") {
+      /* 20260905dm: soft moon pastel glow + twinkle on Moondrop Night (confetti already drifts) */
       if (festivalOn) {
-        var stGlow = 0.14 + 0.10 * (0.5 + 0.5 * Math.sin(tick / 180));
-        g.fillStyle = "rgba(255,220,140," + stGlow.toFixed(3) + ")";
-        g.fillRect(x - 6, y - 18, 28, 40);
+        var stMoon, stLav, stWarm, sa, sfr;
+        stMoon = 0.12 + 0.10 * (0.5 + 0.5 * Math.sin(tick / 200));
+        stLav = 0.10 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 160 + 1.1));
+        stWarm = 0.08 + 0.06 * (0.5 + 0.5 * Math.sin(tick / 240 + 0.4));
+        g.fillStyle = "rgba(168,196,255," + stMoon.toFixed(3) + ")";
+        g.fillRect(x - 8, y - 22, 32, 46);
+        g.fillStyle = "rgba(216,188,255," + stLav.toFixed(3) + ")";
+        g.fillRect(x - 5, y - 18, 26, 38);
+        g.fillStyle = "rgba(255,220,140," + stWarm.toFixed(3) + ")";
+        g.fillRect(x - 2, y - 12, 20, 26);
       }
       if (!drawAtlas2x(g, "statue", x, y)) Assets.draw(g, "statue", x, y);
+      if (festivalOn) {
+        sa = 0.32 + 0.48 * Math.abs(Math.sin(tick / 260 + p.tx));
+        sfr = ((tick / 170 + p.tx + p.ty * 2) | 0) % 3;
+        g.save();
+        g.globalAlpha = sa;
+        if (Assets.spr.sparkle) Assets.draw(g, "sparkle", x, y - 18, sfr);
+        else {
+          px(g, x + 6, y - 14, "#E8F0FF");
+          px(g, x + 10, y - 10, "#FFE9A0");
+          px(g, x + 4, y - 8, "#FFFDF8");
+        }
+        g.restore();
+      }
     } else if (p.kind === "shopSign") {
       if (!drawAtlas2x(g, "shopSign", x, y)) Assets.draw(g, "shopSign", x, y);
     } else if (p.kind === "counter") {
