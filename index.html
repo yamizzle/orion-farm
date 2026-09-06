@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gb";
+  var BUILD = "20260905gc";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -17621,6 +17621,28 @@
     return false;
   }
 
+  /* 20260905gc: Space/J/E pick adjacent berry bush (facing-only left side silent;
+     tap already goPickBerry'd; facing Space existed via tryPickupFacing / trySmashFacing). */
+  function tryPickBerryAdjacent() {
+    var i, p, face;
+    if (uiPaused() || faintFx) return false;
+    face = facingTile();
+    p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
+    if (p && p.kind === "berryBush" && !p.picked) {
+      pickBerryBush(p);
+      return true;
+    }
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || p.kind !== "berryBush" || p.picked) continue;
+      if (isNear(player.tx, player.ty, p.tx, p.ty)) {
+        pickBerryBush(p);
+        return true;
+      }
+    }
+    return false;
+  }
+
   function goCollect(prop) {
     if (!isCollectible(prop)) return;
     if (prop.kind === "gem" && found.gem) return;
@@ -23706,6 +23728,8 @@ if (currentScene === "ocean") goExitOcean();
       if (trySleepHere()) return;
       if (tryPickupHere()) return;
       if (tryPickupFacing()) return;
+      /* 20260905gc: Space pick adjacent berry bush (facing Space existed; side-of-bush silent). */
+      if (tryPickBerryAdjacent()) return;
       /* 20260905fo: Space pick flower before smash/talk so facing wildflower is not a no-op. */
       if (tryPickPlantFacing()) return;
       /* 20260905fp: Space cut tall grass / weed (tap already goCutGrass'd). */
@@ -23927,6 +23951,7 @@ if (currentScene === "ocean") goExitOcean();
       groundLoot: function () { return groundLoot; },
       tryPickupHere: tryPickupHere,
       tryPickupFacing: tryPickupFacing,
+      tryPickBerryAdjacent: tryPickBerryAdjacent,
       goCollectLootAt: goCollectLootAt,
       tileBlockedForRespawn: tileBlockedForRespawn,
       updateHarvestNodes: updateHarvestNodes,
@@ -24189,7 +24214,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gb", BUILD);
+      ok("BUILD", BUILD === "20260905gc", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25181,6 +25206,30 @@ if (currentScene === "ocean") goExitOcean();
           var _bdOk = tryTalkAdjacent();
           ok("spaceTreeBirdAdjacent", !!_bdOk && !!(dialogue && dialogue.title), "ok=" + _bdOk + " title=" + (dialogue ? dialogue.title : ""));
           closeDialogue();
+        }
+      }
+
+      /* 20260905gc: Space picks adjacent berry bush (facing away). */
+      applyScene("forest");
+      closeDialogue();
+      var _bb = null, _bbi;
+      for (_bbi = 0; _bbi < PROPS.length; _bbi++) {
+        if (PROPS[_bbi] && PROPS[_bbi].kind === "berryBush" && !PROPS[_bbi].picked) { _bb = PROPS[_bbi]; break; }
+      }
+      ok("spaceBerryFound", !!_bb, "bush");
+      if (_bb) {
+        var _bbStand = null;
+        if (walkable(_bb.tx, _bb.ty + 1)) _bbStand = { tx: _bb.tx, ty: _bb.ty + 1, face: "down" };
+        else if (walkable(_bb.tx + 1, _bb.ty)) _bbStand = { tx: _bb.tx + 1, ty: _bb.ty, face: "left" };
+        else if (walkable(_bb.tx - 1, _bb.ty)) _bbStand = { tx: _bb.tx - 1, ty: _bb.ty, face: "right" };
+        else if (walkable(_bb.tx, _bb.ty - 1)) _bbStand = { tx: _bb.tx, ty: _bb.ty - 1, face: "up" };
+        ok("spaceBerryAdjStand", !!_bbStand, "stand");
+        if (_bbStand) {
+          placePlayer(_bbStand.tx, _bbStand.ty, _bbStand.face);
+          var _bbBefore = PROPS.indexOf(_bb) >= 0;
+          var _bbOk = tryPickBerryAdjacent();
+          var _bbGone = PROPS.indexOf(_bb) < 0;
+          ok("spaceBerryAdjacent", !!_bbOk && _bbBefore && _bbGone, "ok=" + _bbOk + " before=" + _bbBefore + " gone=" + _bbGone);
         }
       }
 

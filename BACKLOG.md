@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gc): Space berry bush adjacent — standing next to a berry bush (facing away), Space / J / E finally picks it (tap already goPickBerry'd; facing Space existed via tryPickupFacing / trySmashFacing; adjacent-not-facing was a silent no-op like pre-05gb nest). Never START OVER.
+
 Local 9/6 (BUILD 20260905gb): Space peak rocks + TREE bird/nest adjacent — standing next to the summit rock block or the TREE 1 bird / egg nest (facing away), Space / J / E finally talks (tap already goPeakRocks / goTalkBird / goTalkTreeNest'd; facing Space existed; adjacent-not-facing was a silent no-op like pre-05ga bridge). Never START OVER.
 
 Local 9/6 (BUILD 20260905ga): Space bridge + boat adjacent — standing next to the broken/fixed town bridge or the ocean rowboat (facing away), Space / J / E finally talks (tap already goTalkBridge / goTalkBoat'd; facing Space existed; adjacent-not-facing was a silent no-op like pre-05fv car). Never START OVER.
