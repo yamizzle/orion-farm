@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905du";
+  var BUILD = "20260905dv";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7166,6 +7166,35 @@
     spawnShopBuySparks();
   }
 
+  /* 20260905dv: soft warm warn sparks at BUY when you already own a tool */
+  function spawnOwnedWarnSparks() {
+    var i, ang, cols, L, cx, cy;
+    L = shopLayout();
+    cx = L.buyX + ((L.buyW / 2) | 0);
+    cy = L.buyY + 4;
+    cols = ["#FFE9A0", "#FFB070", "#FFF8E0", "#E87850", "#FFFDF4", "#F0C060", "#FFD0A0", "#E8B060"];
+    for (i = 0; i < 8; i++) {
+      ang = (i / 8) * Math.PI * 2 + Math.random() * 0.35;
+      sparks.push({
+        x: cx + (Math.random() * 8 - 4),
+        y: cy + (Math.random() * 5 - 2),
+        vx: Math.cos(ang) * (0.022 + Math.random() * 0.024),
+        vy: Math.sin(ang) * 0.01 - 0.042 - Math.random() * 0.02,
+        age: 0,
+        life: 420 + Math.random() * 220,
+        col: cols[i % cols.length],
+        screen: true
+      });
+    }
+  }
+
+  function notifyShopOwned(msg) {
+    shopMsg = msg;
+    shopMsgT = 1400;
+    playSfx("toast");
+    spawnOwnedWarnSparks();
+  }
+
   /* 20260905dh: tiny SAVE toast — sleep day rollover only (not every persist) */
   function showSaveToast() {
     saveToast = { age: 0, life: 1100 };
@@ -10257,11 +10286,15 @@
   function doCraft(rec) {
     var bench;
     if (!craftCanMake(rec)) {
-      if (craftOwned(rec)) craftMsg = "ALREADY MADE.";
+      if (craftOwned(rec)) craftMsg = "OWNED! ALREADY MADE.";
       else if (rec.needSword && !swordOwned) craftMsg = "NEED THE MINE SWORD.";
       else if (recIron(rec) && bagCount("iron") < recIron(rec)) craftMsg = "NEED IRON FROM THE MINE.";
       else craftMsg = "NEED MORE STUFF.";
       craftMsgT = 1400;
+      if (craftOwned(rec)) {
+        playSfx("toast");
+        if (player) spawnBagFullSparks(player.x, player.y - 10);
+      }
       return;
     }
     takeFromBag("wood", recWood(rec));
@@ -10296,11 +10329,14 @@
       if (p.x >= L.x + 8 && p.x <= L.x + L.w - 8 && p.y >= rowY && p.y < rowY + L.rowH) {
         if (craftCanMake(rec)) doCraft(rec);
         else {
-          if (craftOwned(rec)) craftMsg = "ALREADY MADE.";
-          else if (rec.needSword && !swordOwned) craftMsg = "NEED THE MINE SWORD.";
+          if (craftOwned(rec)) {
+            craftMsg = "OWNED! ALREADY MADE.";
+            playSfx("toast");
+            if (player) spawnBagFullSparks(player.x, player.y - 10);
+          } else if (rec.needSword && !swordOwned) craftMsg = "NEED THE MINE SWORD.";
           else if (recIron(rec) && bagCount("iron") < recIron(rec)) craftMsg = "NEED IRON FROM THE MINE.";
           else craftMsg = "NEED MORE STUFF.";
-          craftMsgT = 1200;
+          craftMsgT = 1400;
         }
         return true;
       }
@@ -13969,14 +14005,12 @@
     if (item.id === "pole" && (poleOwned || bagCount("pole") >= 1)) {
       poleOwned = true;
       ensureOnePole();
-      shopMsg = "YOU ALREADY HAVE ONE.";
-      shopMsgT = 1200;
+      notifyShopOwned("OWNED! YOU ALREADY HAVE A POLE.");
       return;
     }
     if (item.id === "leash") {
       if (bagCount("leash") >= 1) {
-        shopMsg = "YOU ALREADY HAVE ONE.";
-        shopMsgT = 1200;
+        notifyShopOwned("OWNED! YOU ALREADY HAVE A LEASH.");
         return;
       }
       if (bagCount("veggie") < 40) {
@@ -13985,7 +14019,7 @@
         return;
       }
       if (bagRoom("leash") < 1) {
-        shopMsg = "BAG FULL! USE CHEST.";
+        shopMsg = "BAG FULL! PUT STUFF IN THE CHEST.";
         shopMsgT = 1200;
         return;
       }
@@ -14035,8 +14069,7 @@
     if (item.id === "potatoSeeds" || item.id === "berrySeeds") {
       var seedKey = item.id === "potatoSeeds" ? "potatoSeed" : "berrySeed";
       if (bagCount(seedKey) >= 1) {
-        shopMsg = "YOU ALREADY HAVE SOME.";
-        shopMsgT = 1200;
+        notifyShopOwned(item.id === "potatoSeeds" ? "OWNED! YOU ALREADY HAVE POTATO SEEDS." : "OWNED! YOU ALREADY HAVE BERRY SEEDS.");
         return;
       }
       if (gold < shopItemPrice(item)) {
@@ -14242,7 +14275,8 @@
         else price = "20W 12S";
       } else if (item.id === "leash") price = bagCount("leash") >= 1 ? "OWNED" : "40C";
       else if ((item.id === "potatoSeeds" && bagCount("potatoSeed") >= 1) || (item.id === "berrySeeds" && bagCount("berrySeed") >= 1)) price = "HAVE";
-      else price = (item.id === "hat" && hatOwned) || (item.id === "pole" && (poleOwned || bagCount("pole") >= 1)) ? "0G" : (shopItemPrice(item) + "G");
+      else if (item.id === "pole" && (poleOwned || bagCount("pole") >= 1)) price = "OWNED";
+      else price = (item.id === "hat" && hatOwned) ? "0G" : (shopItemPrice(item) + "G");
       drawText(g, price, L.x + L.w - textWidth(price) - 12, rowY + 4, C.woodSh);
     }
     if (start > 0) drawText(g, "^ MORE", L.x + L.w - textWidth("^ MORE") - 12, L.listY - 1, C.woodSh);

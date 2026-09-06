@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905dv): clearer OWNED toast when buying a duplicate pole/leash/seeds (`OWNED! YOU ALREADY HAVE A POLE.` etc) + soft warm warn sparks at BUY; pole shop price shows OWNED (was 0G); craft duplicate tools `OWNED! ALREADY MADE.` + warn sparks; leash bag-full msg matches chest tip. Never START OVER.
+
 Local 9/5 (BUILD 20260905du): Jobs panel X close (same as Stars/BAG Esc); Esc/Space dismiss uses closeShop/closeCraft helpers + soft ui click; bag Esc no longer skips toast-first dismiss order. START OVER untouched. Never START OVER.
 
 Local 9/5 (BUILD 20260905dt): bag-full clearer toast `BAG FULL! PUT STUFF IN THE CHEST.` + soft warm warn sparks + toast SFX; chest/shop msgs clearer; river/pond/fountain unstick `TOO WET.` + splash (ocean TOO DEEP kept). Never START OVER.
