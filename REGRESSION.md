@@ -56,6 +56,7 @@ Status column: **KEEP** = still required in new builds.
 | **Only one weapon** in the 10-tray at a time (sword/bow); second parks in bag; tools (axe/pick/shovel/pole/diamondPick) stay | 20260905ay | KEEP |
 | Cave sword pins tray slot 0 (evicts bow); tray sword stays findable | 04c / 05ay | KEEP |
 | Buys / crafts / catches / chest TAKE that kids need next **pin + select** into tray (not bag-only dead ends) | 05fe–05gt wave (keep behavior) | KEEP |
+| Dedicated **weapon dock** (sword/bow only); tray is tools/seeds/food; second weapon swaps into dock and old goes to bag; BAG open shows big dock + **WEAPON** ghost when empty | 20260905hm | KEEP |
 
 ---
 
