@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fj): outdoor strike pad for pole-foe — with a fishing pole (or hat/axe/seed) selected and a slug beside you, the on-screen strike pad finally shows outdoors (Space 05fg + tap-foe 05fd already hit; pad stayed sword/bow/mine-only so mobile kids had no button). Never START OVER.
+
 Local 9/6 (BUILD 20260905fi): fence/path kit buy equips — FENCE KIT pins + selects wood (BUILD button needs selected wood; tray-full / sword-selected left wood bag-only or unselected so TAP BUILD never armed); PATH KIT pins + selects stone (path place needs selectedIs stone). Never START OVER.
 
 Local 9/6 (BUILD 20260905fh): Pip food buy equips — honey bun / apple / bread / pie / cooked trout buys pin into the tray and select (was bag-only when the tray was full of tools; tray-tap eat never armed). Never START OVER.

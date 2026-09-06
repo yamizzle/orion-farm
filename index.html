@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fi";
+  var BUILD = "20260905fj";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -15337,7 +15337,10 @@
     /* 20260905ez: bow-selected pad was hidden outdoors (swordEquipped false with one-weapon tray). */
     if (toolEquipped("bow")) return true;
     if (swordEquipped()) return true;
-    return currentScene === "mine";
+    if (currentScene === "mine") return true;
+    /* 20260905fj: outdoor pad matches Space 05fg / tap-foe 05fd — pole/hat/axe/seed
+       can chip an adjacent foe, but the pad stayed hidden (sword/bow/mine only). */
+    return !!adjacentFoe();
   }
 
   function hitSwordBtn(p) {
@@ -23424,7 +23427,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fi", BUILD);
+      ok("BUILD", BUILD === "20260905fj", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23717,6 +23720,14 @@ if (currentScene === "ocean") goExitOcean();
       monsters = [_slugSpace];
       ok("poleSpaceGateOpen", !canSwordSwing(), "canSwing should be false with pole outdoors");
       ok("poleSpaceStrike", !!tryStrikeAction() && _slugSpace.hp < _slugSpace.maxHp, "hp=" + _slugSpace.hp + "/" + _slugSpace.maxHp);
+
+      /* 20260905fj: outdoor strike pad shows with adjacent foe when pole selected
+         (Space already reached tryStrike in 05fg; pad was still sword/bow/mine-only). */
+      monsters = [_slugSpace];
+      _slugSpace.hp = _slugSpace.maxHp;
+      ok("polePadShowsAdjFoe", !!showStrikeBtn(), "pad should show with slug beside");
+      monsters = [];
+      ok("polePadHidesNoFoe", !showStrikeBtn(), "pad should hide with no foe outdoors");
 
       /* 20260905fh: honey bun / apple buy pins + selects (tray-tap eat). */
       emptyTray();
