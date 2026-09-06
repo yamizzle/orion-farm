@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dp";
+  var BUILD = "20260905dq";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7352,6 +7352,25 @@
     }
   }
 
+
+  /* 20260905dq: soft ascending sparkler when all three lights are on */
+  function spawnThreeLightsSparks(x, y) {
+    var i, cols, ang;
+    cols = ["#FFE9A0", "#FFF8E0", "#E8C8FF", "#A8D8FF", "#FFB4C8", "#FFFDF4", "#F0C060", "#C8F0E0", "#FFE070", "#D8C8F8", "#FFFFFF", "#FFD0A0"];
+    for (i = 0; i < 14; i++) {
+      ang = -Math.PI / 2 + (Math.random() - 0.5) * 0.9;
+      sparks.push({
+        x: x + (Math.random() * 10 - 5),
+        y: y + (Math.random() * 4 - 2),
+        vx: Math.cos(ang) * (0.012 + Math.random() * 0.02) + (Math.random() - 0.5) * 0.018,
+        vy: Math.sin(ang) * (0.04 + Math.random() * 0.036) - 0.02,
+        age: 0,
+        life: 640 + Math.random() * 360,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
     n = big ? 12 : 8;
@@ -12789,6 +12808,9 @@
       unlocked.threeLightsTip = true;
       persistSave();
       showLineNote("THREE LIGHTS ON. WAIT FOR NIGHT.");
+      /* 20260905dq: soft sparkler when all three lamps glow */
+      if (player) spawnThreeLightsSparks(player.x, player.y - 10);
+      playSfx("toast");
     }
   }
 
@@ -12800,6 +12822,8 @@
     persistSave();
     unlockAch("moondropNight");
     showLineNote("MOONDROP NIGHT!");
+    /* 20260905dq: soft sparkler — three lights complete at night */
+    if (player) spawnThreeLightsSparks(player.x, player.y - 10);
   }
 
   function nimVisible() {
