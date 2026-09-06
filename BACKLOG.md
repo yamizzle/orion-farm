@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fu): Space sleep at bed — standing next to the house bed, Space / J / E finally sleeps (tap already walked-to-sleep; cook/smelt/craft/chest Space existed; bed Space was a silent no-op). Never START OVER.
+
 Local 9/6 (BUILD 20260905ft): Space statue/fountain + peak altar — standing next to the town Moon Kid statue or plaza fountain, Space / J / E finally talks (tap already walked-to-landmark; NPC talk Space existed; plaza Space was a silent no-op); standing next to the MINE 6 moon altar, Space / J / E finally lights/talks PEAK GLOW (tap already goPeakAltar'd). Never START OVER.
 
 Local 9/6 (BUILD 20260905fs): Space craft + home-glow table — standing next to the house workbench, Space / J / E finally opens CRAFT (tap already walked-to-craft; cook/smelt/chest Space existed; workbench Space was a silent no-op); standing next to the glowing home table, Space / J / E finally talks HOME LIGHT (tap already goHomeLight'd). Never START OVER.

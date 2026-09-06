@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ft";
+  var BUILD = "20260905fu";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -11638,6 +11638,18 @@
     unlocked.bedSleepTip = true;
     showLineNote("TAP THE BED TO SLEEP");
     persistSave();
+  }
+
+
+  /* 20260905fu: Space/J/E sleep at adjacent bed (tap already goSleep'd;
+     cook/smelt/craft/chest Space existed; bed Space was a silent no-op). */
+  function trySleepHere() {
+    if (uiPaused() || faintFx) return false;
+    if (currentScene !== "house" || sleepFx) return false;
+    if (!nearBed()) return false;
+    pending = null;
+    beginSleep();
+    return true;
   }
 
   function goSleep() {
@@ -23237,6 +23249,8 @@ if (currentScene === "ocean") goExitOcean();
       /* 20260905fs: Space craft at workbench + home-glow table talk (tap already worked). */
       if (tryCraftHere()) return;
       if (tryHomeLightHere()) return;
+      /* 20260905fu: Space sleep at bed (tap already goSleep'd). */
+      if (trySleepHere()) return;
       if (tryPickupHere()) return;
       if (tryPickupFacing()) return;
       /* 20260905fo: Space pick flower before smash/talk so facing wildflower is not a no-op. */
@@ -23717,7 +23731,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ft", BUILD);
+      ok("BUILD", BUILD === "20260905fu", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24322,6 +24336,28 @@ if (currentScene === "ocean") goExitOcean();
           var _homeOk = tryHomeLightHere();
           ok("spaceHomeLightTalk", !!_homeOk && !!(dialogue && dialogue.title), "open=" + _homeOk + " title=" + (dialogue ? dialogue.title : ""));
           closeDialogue();
+        }
+      }
+
+      /* 20260905fu: Space sleeps at adjacent bed (tap already goSleep'd). */
+      applyScene("house");
+      sleepFx = null;
+      closeDialogue();
+      var _bed = findBed();
+      ok("spaceBedFound", !!_bed, "bed");
+      if (_bed) {
+        var _bedStand = null;
+        if (walkable(_bed.tx, _bed.ty + 2)) _bedStand = { tx: _bed.tx, ty: _bed.ty + 2, face: "up" };
+        else if (walkable(_bed.tx + 1, _bed.ty + 2)) _bedStand = { tx: _bed.tx + 1, ty: _bed.ty + 2, face: "up" };
+        else if (walkable(_bed.tx + 2, _bed.ty + 1)) _bedStand = { tx: _bed.tx + 2, ty: _bed.ty + 1, face: "left" };
+        else if (walkable(_bed.tx - 1, _bed.ty + 1)) _bedStand = { tx: _bed.tx - 1, ty: _bed.ty + 1, face: "right" };
+        else if (walkable(_bed.tx, _bed.ty - 1)) _bedStand = { tx: _bed.tx, ty: _bed.ty - 1, face: "down" };
+        ok("spaceBedStand", !!_bedStand, "stand");
+        if (_bedStand) {
+          placePlayer(_bedStand.tx, _bedStand.ty, _bedStand.face);
+          var _sleepOk = trySleepHere();
+          ok("spaceSleepBed", !!_sleepOk && !!sleepFx, "sleep=" + _sleepOk + " fx=" + !!(sleepFx));
+          sleepFx = null;
         }
       }
 
