@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905de): bridge fix wood/gold celebration sparkle when 8 wood spent; soccer kickball dust puff on kick. Never START OVER.
+
 Local 9/5 (BUILD 20260905dd): tree fall leaf/dust puff when chop finishes to stump; chicken feather puff on scoot/hop. Never START OVER.
 
 Local 9/5 (BUILD 20260905dc): smelt/cook flame sparks at fireplace + stove; copper/silver/gold/iron (+ bars) pickup metal sparkle (ground collect + fly-in + world nodes). Never START OVER.

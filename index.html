@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dd";
+  var BUILD = "20260905de";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -3789,6 +3789,8 @@
       for (x = 64; x <= 66; x++) setCell(x, y, "d");
     }
     buildSolid();
+    /* 20260905de: celebration sparkle when 8 wood is spent to fix the bridge */
+    spawnBridgeSparks((p.tx + 2) * TILE + 8, (p.ty + 1) * TILE + 8);
     persistSave();
     openDialogue("WE FIXED IT!", ["THE PATH IS OPEN."]);
   }
@@ -7050,6 +7052,42 @@
         vy: Math.sin(ang) * 0.01 - 0.032 - Math.random() * 0.018,
         age: 0,
         life: 520 + Math.random() * 260,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
+  /* 20260905de: wood/gold celebration sparkle when the bridge is fixed with 8 wood */
+  function spawnBridgeSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#C47A38", "#E8B060", "#FFE9A0", "#8B5A28", "#FFF8E0", "#F3D2A3", "#FFFDF4", "#D4A060", "#FFE070", "#5A3A18"];
+    for (i = 0; i < 14; i++) {
+      ang = (i / 14) * Math.PI * 2 + Math.random() * 0.35;
+      sparks.push({
+        x: x + (Math.random() * 10 - 5),
+        y: y + (Math.random() * 6 - 3),
+        vx: Math.cos(ang) * (0.034 + Math.random() * 0.038),
+        vy: Math.sin(ang) * 0.014 - 0.06 - Math.random() * 0.032,
+        age: 0,
+        life: 520 + Math.random() * 280,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
+  /* 20260905de: soft dust puff when a soccer kickball gets kicked */
+  function spawnKickDust(x, y) {
+    var i, ang, cols;
+    cols = ["#C9B896", "#A89070", "#E8D4A8", "#8B7355", "#D4C4A0", "#F3EDE0", "#6B5A40", "#E8E0D0"];
+    for (i = 0; i < 9; i++) {
+      ang = Math.PI * 0.15 + (i / 9) * Math.PI * 0.7 + Math.random() * 0.35;
+      sparks.push({
+        x: x + (Math.random() * 6 - 3),
+        y: y + (Math.random() * 3 - 1),
+        vx: Math.cos(ang) * (0.022 + Math.random() * 0.028) * (Math.random() < 0.5 ? -1 : 1),
+        vy: -0.01 - Math.random() * 0.02,
+        age: 0,
+        life: 360 + Math.random() * 200,
         col: cols[i % cols.length]
       });
     }
@@ -17426,6 +17464,8 @@
     if (!found.kickedPlayBall) found.kickedPlayBall = true;
     /* 20260905cn: town plaza ball has its own Jobs tip */
     if (pb && pb.id === "town" && !found.kickedTownPlayBall) found.kickedTownPlayBall = true;
+    /* 20260905de: dust puff at the kick so the ball feels kicked */
+    spawnKickDust(pb.x, pb.y - 2);
     showLineNote("KICK!");
     persistSave();
     if (!path.length) return;
@@ -22160,7 +22200,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905dd", BUILD);
+      ok("BUILD", BUILD === "20260905de", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
