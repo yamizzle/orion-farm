@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905ap): 2× doormat/housePlant/chair/window. Never START OVER.
 Local 9/5 (BUILD 20260905ao): dog anchor fix + 2× moonAltar/houseLamp/shopSign. Never START OVER.
 Local 9/5 (BUILD 20260905an): palm trees on ocean beach/island + 2× dog. Never START OVER.
 Local 9/5 (BUILD 20260905am): 2× mailbox/hole/ladder/swordPedestal. Never START OVER.

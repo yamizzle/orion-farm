@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ao";
+  var BUILD = "20260905ap";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -15117,7 +15117,7 @@
     } else if (p.kind === "desk") {
       Assets.draw(g, "desk", x, y);
     } else if (p.kind === "chair") {
-      /* chair is part of the Imagine desk combo */
+      if (!drawAtlas2x(g, "chair", x, y)) Assets.draw(g, "chair", x, y);
     } else if (p.kind === "fireplace") {
       var fireFlicker = 0.12 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 120 + p.tx));
       g.fillStyle = "rgba(240,150,70," + fireFlicker.toFixed(3) + ")";
@@ -15126,14 +15126,14 @@
     } else if (p.kind === "flowerbox") {
       Assets.draw(g, "flowerbox", x, y);
     } else if (p.kind === "housePlant") {
-      Assets.draw(g, "housePlant", x, y);
+      if (!drawAtlas2x(g, "housePlant", x, y)) Assets.draw(g, "housePlant", x, y);
     } else if (p.kind === "rug") {
       Assets.draw(g, "rug", x, y);
     } else if (p.kind === "window") {
       if (currentScene === "house") drawHouseWindow(g, x, y);
-      else Assets.draw(g, "window", x, y);
+      else if (!drawAtlas2x(g, "window", x, y)) Assets.draw(g, "window", x, y);
     } else if (p.kind === "doormat") {
-      Assets.draw(g, "doormat", x, y);
+      if (!drawAtlas2x(g, "doormat", x, y)) Assets.draw(g, "doormat", x, y);
     } else if (p.kind === "inndoor") {
       Assets.draw(g, "inndoor", x, y);
     } else if (p.kind === "tree") {
@@ -18492,7 +18492,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ao", BUILD);
+      ok("BUILD", BUILD === "20260905ap", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
