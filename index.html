@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gs";
+  var BUILD = "20260905gt";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -11772,10 +11772,17 @@
   }
 
   function chestTake(all) {
-    var rec, n, i;
+    var rec, n, i, got, lastKey;
     if (all) {
       n = 0;
-      for (i = 0; i < CHEST_ROWS.length; i++) n += takeFromChest(CHEST_ROWS[i].key, -1);
+      lastKey = "";
+      for (i = 0; i < CHEST_ROWS.length; i++) {
+        got = takeFromChest(CHEST_ROWS[i].key, -1);
+        if (got > 0) {
+          n += got;
+          lastKey = CHEST_ROWS[i].key;
+        }
+      }
       if (n <= 0) {
         chestMsg = "CHEST IS EMPTY.";
         for (i = 0; i < CHEST_ROWS.length; i++) {
@@ -11783,6 +11790,12 @@
         }
         chestMsgT = 1200;
         return;
+      }
+      /* 20260905gt: pin + select last TAKE ALL stack — tray-tap eat / plant / cook tip need selected;
+         TAKE ALL left food/fish bag-only or unselected (same single TAKE equip gap as 05gj). */
+      if (lastKey) {
+        placeToolInTrayFirst(lastKey);
+        selectTool(lastKey);
       }
       playSfx("ui");
       chestMsg = "TOOK IT OUT.";
@@ -24770,7 +24783,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gs", BUILD);
+      ok("BUILD", BUILD === "20260905gt", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25253,6 +25266,21 @@ if (currentScene === "ocean") goExitOcean();
         if (_wi >= 0) PROPS.splice(_wi, 1);
         buildSolid();
       }
+
+      /* 20260905gt: chest TAKE ALL pins + selects last stack (single TAKE 05gj gap). */
+      applyScene("house");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      axeOwned = true;
+      for (var _ck in chest) { if (Object.prototype.hasOwnProperty.call(chest, _ck)) chest[_ck] = 0; }
+      chest.snack = 2;
+      chest.potato = 1;
+      syncBagCounts();
+      chestTake(true);
+      ok("chestTakeAllPinnedSelected", selectedIs("potato") && bagCount("potato") >= 1 && bagCount("snack") >= 2 && (chest.snack | 0) === 0 && (chest.potato | 0) === 0,
+        "sel=" + selectedKey() + " snack=" + bagCount("snack") + " potato=" + bagCount("potato"));
 
       /* 20260905gr: collectible pick pins + selects (tray-tap eat / Pip / smelt tip). */
       applyScene("overworld");
