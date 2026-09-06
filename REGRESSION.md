@@ -57,6 +57,7 @@ Status column: **KEEP** = still required in new builds.
 | Cave sword pins tray slot 0 (evicts bow); tray sword stays findable | 04c / 05ay | KEEP |
 | Buys / crafts / catches / chest TAKE that kids need next **pin + select** into tray (not bag-only dead ends) | 05fe–05gt wave (keep behavior) | KEEP |
 | Dedicated **weapon dock** (sword/bow only); tray is tools/seeds/food; second weapon swaps into dock and old goes to bag; BAG open shows big dock + **WEAPON** ghost when empty | 20260905hm | KEEP |
+| **Bow selectable from weapon dock** — soft sword-ensure must not kick a parked bow; bag→dock swap / dock tap arms bow; hard pin only on cave claim / iron craft / giveTool sword; sword pad select still works | 20260905ho | KEEP |
 
 ---
 
@@ -121,4 +122,4 @@ Do not re-open that wave item-by-item unless a specific interaction goes silent 
 
 ---
 
-*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05hn) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*
+*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05ho) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*

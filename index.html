@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hn";
+  var BUILD = "20260905ho";
   var ASSET_REV = "464870";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -8990,7 +8990,7 @@
       } else {
         equipWeaponToDock(key);
       }
-      if (key === "sword") forceSwordIntoTray();
+      if (key === "sword") forceSwordIntoTray(true);
       selectTool(key);
       syncBagCounts();
       return;
@@ -11484,7 +11484,7 @@
     if (rec.id === "shield") return false;
     if (rec.id === "ironSword") {
       if (!swordOwned && !ironSwordOwned) return false;
-      forceSwordIntoTray();
+      forceSwordIntoTray(true);
       return !!selectTool("sword");
     }
     key = craftToolKey(rec);
@@ -11521,7 +11521,7 @@
     if (rec.id === "shield") {}
     /* 20260905fb: iron sword upgrade was owned-only — bow stayed selected / sword stayed bag-parked. */
     if (rec.id === "ironSword") {
-      forceSwordIntoTray();
+      forceSwordIntoTray(true);
       selectTool("sword");
     }
     /* 20260905gp: always re-pin + select after make (tray-full / wood-selected gap). */
@@ -11852,8 +11852,12 @@
       key === "hat" || key === "leash" || key === "lampKit" || key === "crateKit";
   }
 
-  function forceSwordIntoTray() {
+  /* 20260905ho: soft by default — keep bow (or other dock weapon) parked.
+     hardPin=true only for intentional sword equip (cave claim / craft / giveTool).
+     openBag / load / ensureOwnedTools must NOT kick the bow out of the dock. */
+  function forceSwordIntoTray(hardPin) {
     var i;
+    hardPin = !!hardPin;
     /* Recover ownership if a pocket / dock / mid-drag ghost still holds a sword. */
     if (!swordOwned) {
       for (i = 0; i < TRAY_CELLS; i++) {
@@ -11869,13 +11873,29 @@
     /* 20260905el: bagHeld sword still counts as owned — else openBag pin mints #2. */
     if (!swordOwned && bagHeld && bagHeld.key === "sword") swordOwned = true;
     if (!swordOwned) return;
-    clearKeyFromPockets("sword");
-    /* 20260905el: same as ensureOnePole — drop the cursor copy before pinning. */
+    /* Drop cursor sword ghost before any pin / bag park (no mint #2). */
     if (bagHeld && bagHeld.key === "sword") {
       bagHeld = null;
       bagHeldFrom = null;
     }
-    /* 20260905hm: hard-pin the weapon DOCK (not tray slot 0). Old dock weapon → bag. */
+    /* Soft: dock already holds bow — leave it selected; sword stays findable in bag. */
+    if (!hardPin && weaponDock && weaponDock.key && weaponDock.key !== "sword") {
+      clearKeyFromPockets("sword");
+      if (bagCount("sword") < 1) parkRecInBag({ key: "sword", count: 1 });
+      enforceWeaponDock(weaponDock.key);
+      syncBagCounts();
+      return;
+    }
+    /* Soft: sword already docked — just scrub tray/bag twins. */
+    if (!hardPin && weaponDock && weaponDock.key === "sword") {
+      clearKeyFromPockets("sword");
+      weaponDock = { key: "sword", count: 1 };
+      enforceWeaponDock("sword");
+      syncBagCounts();
+      return;
+    }
+    /* Hard pin (or empty dock): sword owns the weapon dock. */
+    clearKeyFromPockets("sword");
     if (weaponDock && weaponDock.key && weaponDock.key !== "sword") {
       parkRecInBag(weaponDock);
     }
@@ -11961,7 +11981,7 @@
        pedestal. Grant + pin on any mine floor the first time they enter/swing. */
     swordOwned = true;
     giveTool("sword");
-    forceSwordIntoTray();
+    forceSwordIntoTray(true);
     if (!silent) showLineNote("GOT THE CAVE SWORD!");
     /* 20260905dr: auto-claim sparkle too (kids often never Space the pedestal) */
     if (player) spawnSwordClaimSparks(player.x, player.y - 8);
@@ -11971,20 +11991,37 @@
     return true;
   }
 
+  /* 20260905ho: make sure an owned weapon exists in dock OR bag without
+     stealing the dock from the other weapon (placeToolInTrayFirst would swap). */
+  function ensureWeaponFindable(key) {
+    if (!isWeaponKey(key)) return;
+    if (key === "sword" && !swordOwned) return;
+    if (key === "bow" && !bowOwned) return;
+    if (weaponDock && weaponDock.key === key) return;
+    if (bagCount(key) >= 1) return;
+    if (bagHeld && bagHeld.key === key) return;
+    if (!(weaponDock && weaponDock.key)) {
+      equipWeaponToDock(key);
+      return;
+    }
+    parkRecInBag({ key: key, count: 1 });
+  }
+
   function ensureOwnedTools() {
     if ((inventory.leash | 0) >= 1) placeToolInTrayFirst("leash");
     if (hatOwned) placeToolInTrayFirst("hat");
-    if (swordOwned) placeToolInTrayFirst("sword");
     if (shovelOwned) placeToolInTrayFirst("shovel");
     if (axeOwned) placeToolInTrayFirst("axe");
     if (pickaxeOwned) placeToolInTrayFirst("pick");
     if (diamondPickOwned) placeToolInTrayFirst("diamondPick");
     if (poleOwned) placeToolInTrayFirst("pole");
-    if (bowOwned) placeToolInTrayFirst("bow");
     placeToolInTrayFirst("seed");
     placeToolInTrayFirst("potatoSeed");
     placeToolInTrayFirst("berrySeed");
-    forceSwordIntoTray();
+    /* Weapons: respect saved / player dock choice (05ho — do not placeTool-stomp). */
+    ensureWeaponFindable("sword");
+    ensureWeaponFindable("bow");
+    forceSwordIntoTray(false);
     ensureOnePole();
     syncBagCounts();
   }
@@ -23356,6 +23393,10 @@
       enforceWeaponDock(preferWeapon);
       ensureOnePole();
       syncBagCounts();
+      /* 20260905ho: bag→dock weapon drop arms it (kids tap dock to equip). */
+      if (weaponDock && weaponDock.key && isWeaponKey(weaponDock.key)) {
+        selectWeaponDock();
+      }
       playSfx("ui");
     }
     if (bagHeld) {
@@ -26064,7 +26105,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hn", BUILD);
+      ok("BUILD", BUILD === "20260905ho", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26168,15 +26209,16 @@ if (currentScene === "ocean") goExitOcean();
       trayCells[1] = { key: "crateKit", count: 1 };
       trayCells[2] = { key: "berry", count: 3 };
       bagCells[0] = { key: "sword", count: 1 }; /* bag-only ghost from old alias bug */
-      forceSwordIntoTray();
-      ok("traySwordPinned", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      weaponDock = null;
+      forceSwordIntoTray(true);
+      ok("traySwordPinned", !!(weaponDock && weaponDock.key === "sword"), weaponDock && weaponDock.key);
       var bagSword = false, bi;
       for (bi = 0; bi < BAG_CELLS; bi++) {
         if (bagCells[bi] && bagCells[bi].key === "sword") { bagSword = true; break; }
       }
       ok("bagNoSwordKey", !bagSword, bagSword ? "bag still has sword" : "");
       openBag();
-      ok("traySwordAfterOpenBag", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      ok("traySwordAfterOpenBag", !!(weaponDock && weaponDock.key === "sword"), weaponDock && weaponDock.key);
       bagSword = false;
       for (bi = 0; bi < BAG_CELLS; bi++) {
         if (bagCells[bi] && bagCells[bi].key === "sword") { bagSword = true; break; }
@@ -26193,7 +26235,7 @@ if (currentScene === "ocean") goExitOcean();
       PROPS.push({ kind: "swordPedestal", tx: 18, ty: 18 });
       ensureCaveSword(true);
       ok("ensureClaimsSword", !!swordOwned, "swordOwned=" + swordOwned);
-      ok("ensurePinsTray0", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      ok("ensurePinsTray0", !!(weaponDock && weaponDock.key === "sword"), weaponDock && weaponDock.key);
       ok("ensureRemovesPedestal", !PROPS.some(function (p) { return p && p.kind === "swordPedestal"; }), "");
       /* 20260905az: door signs share plaque art + floating shaft labels (not lamp woodPanel). */
       ok("doorSignLabelFn", typeof drawDoorSignLabel === "function", "");
@@ -26243,7 +26285,11 @@ if (currentScene === "ocean") goExitOcean();
         if (bagCells[bj] && (bagCells[bj].key === "sword" || bagCells[bj].key === "bow")) bagBowOrSword++;
       }
       ok("oneWeaponParkedPrior", bagBowOrSword >= 1, "parked=" + bagBowOrSword);
-      forceSwordIntoTray();
+      /* 20260905ho: soft force keeps docked bow; sword stays findable in bag. */
+      forceSwordIntoTray(false);
+      ok("forceSwordSoftKeepsBow", !!(weaponDock && weaponDock.key === "bow"), weaponDock && weaponDock.key);
+      ok("forceSwordSoftSwordInBag", bagCount("sword") >= 1, "sword bag=" + bagCount("sword"));
+      forceSwordIntoTray(true);
       ok("forceSwordDocksSword", !!(weaponDock && weaponDock.key === "sword"), weaponDock && weaponDock.key);
       var trayBow = false, traySword = false;
       for (bj = 0; bj < TRAY_CELLS; bj++) {
@@ -26252,6 +26298,12 @@ if (currentScene === "ocean") goExitOcean();
       }
       ok("forceSwordNoTrayBow", !trayBow, trayBow ? "bow still in tray" : "");
       ok("forceSwordNoTraySword", !traySword, traySword ? "sword still in tray" : "");
+      /* Dock tap / select with bow parked arms shoot. */
+      weaponDock = { key: "bow", count: 1 };
+      selectedSlot = 0;
+      selectHotbarIndex(SLOT_WEAPON_DOCK);
+      ok("dockSelectBow", selectedSlot === SLOT_WEAPON_DOCK && selectedIs("bow") && toolEquipped("bow"),
+        "sel=" + selectedSlot + " key=" + selectedKey());
       /* 20260905ez: selected bow fires an arrow (shootArrow was dead code). */
       bowOwned = true;
       for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = null;
@@ -28305,7 +28357,7 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       for (si = 0; si < BAG_CELLS; si++) if (bagCells[si] && bagCells[si].key === "sword") bagCells[si] = null;
       bagHeld = { key: "sword", count: 1 };
       bagHeldFrom = { place: "dock", i: 0 };
-      forceSwordIntoTray();
+      forceSwordIntoTray(true);
       var swords = 0;
       for (si = 0; si < TRAY_CELLS; si++) if (trayCells[si] && trayCells[si].key === "sword") swords++;
       for (si = 0; si < BAG_CELLS; si++) if (bagCells[si] && bagCells[si].key === "sword") swords++;
