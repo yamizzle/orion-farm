@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cg";
+  var BUILD = "20260905ch";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -823,7 +823,8 @@
     flowerAsked: false,
     flowerDone: false,
     errandDone: false,
-    homeDone: false
+    homeDone: false,
+    heartHome: false /* 20260905ch: Mountain Heart brought to the home table */
   };
   var homeLight = false;
   var lilaFlowers = 0;
@@ -7261,6 +7262,82 @@
     return fk ? fk.id : "";
   }
 
+  function trayHasKey(key) {
+    var i;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      if (trayCells[i] && trayCells[i].key === key) return i;
+    }
+    return -1;
+  }
+
+  function pinMoonCarryTray() {
+    /* 20260905ch: moon shard must read on the hotbar while you carry it home. */
+    var i, c, idx, moved;
+    if (!(found.moonshard && !quest.homeDone)) return false;
+    if (bagCount("moonshard") < 1) {
+      /* Save may mark found without a stack — mint one into the tray. */
+      idx = firstEmptyTray();
+      if (idx < 0) {
+        /* Soft-bump a non-tool tray cell (never sword slot 0 if pinned). */
+        for (i = 1; i < TRAY_CELLS; i++) {
+          c = trayCells[i];
+          if (!c || isToolKey(c.key)) continue;
+          trayCells[i] = { key: "moonshard", count: 1 };
+          selectedSlot = i;
+          syncBagCounts();
+          return true;
+        }
+        return false;
+      }
+      trayCells[idx] = { key: "moonshard", count: 1 };
+      selectedSlot = idx;
+      syncBagCounts();
+      return true;
+    }
+    i = trayHasKey("moonshard");
+    if (i >= 0) {
+      selectedSlot = i;
+      return true;
+    }
+    /* Move a bag moonshard stack into the tray. */
+    moved = null;
+    for (i = 0; i < BAG_CELLS; i++) {
+      c = bagCells[i];
+      if (c && c.key === "moonshard") { moved = c; bagCells[i] = null; break; }
+    }
+    if (!moved) return false;
+    idx = firstEmptyTray();
+    if (idx < 0) {
+      for (i = 1; i < TRAY_CELLS; i++) {
+        c = trayCells[i];
+        if (!c || isToolKey(c.key)) continue;
+        idx = firstEmptyBag();
+        if (idx < 0) break;
+        bagCells[idx] = c;
+        trayCells[i] = moved;
+        selectedSlot = i;
+        syncBagCounts();
+        return true;
+      }
+      /* No tray room — put back into bag. */
+      idx = firstEmptyBag();
+      if (idx >= 0) bagCells[idx] = moved;
+      return false;
+    }
+    trayCells[idx] = moved;
+    selectedSlot = idx;
+    syncBagCounts();
+    return true;
+  }
+
+  function carryingMoonShard() {
+    return !!(found.moonshard && !quest.homeDone);
+  }
+
+  function carryingMountainHeart() {
+    return !!(found.mooncrystal && !quest.heartHome);
+  }
+
   function addItem(kind, amount) {
     var key, took, n;
     n = amount | 0;
@@ -7281,6 +7358,7 @@
     }
     took = addToBag(key, n);
     if (took < n) showLineNote("BAG FULL. USE THE CHEST.");
+    if (key === "moonshard" && took > 0) pinMoonCarryTray();
     persistSave();
     return took;
   }
@@ -8156,6 +8234,7 @@
         quest.flowerDone = !!data.quest.flowerDone;
         quest.errandDone = !!data.quest.errandDone;
         quest.homeDone = !!data.quest.homeDone;
+        quest.heartHome = !!data.quest.heartHome;
       }
       if (data.homeLight || quest.homeDone || unlocked.homeGlow) {
         homeLight = true;
@@ -10519,6 +10598,34 @@
     if (x < 46) x = 46;
     woodPanel(g, x, y, w, 11);
     drawText(g, label, x + 4, y + 2, C.parch);
+  }
+
+  function drawMoonCarryChip(g) {
+    /* 20260905ch: kid-visible hotbar carry cue while bringing shard/heart home. */
+    var label, icon, tw, w, x, y, bob, glow;
+    if (uiPaused() || bagOpen) return;
+    if (carryingMoonShard()) {
+      label = "SHARD → HOME";
+      icon = "moonshard";
+    } else if (carryingMountainHeart()) {
+      label = "HEART → HOME";
+      icon = "mooncrystal";
+    } else {
+      return;
+    }
+    tw = textWidth(label);
+    w = tw + 22;
+    x = ((VIEW_W - w) / 2) | 0;
+    bob = ((tick / 220) | 0) % 2;
+    y = VIEW_H - 40 - bob;
+    glow = ((tick / 160) | 0) % 2;
+    woodPanel(g, x, y, w, 14);
+    if (glow) {
+      fill(g, x, y, w, 1, C.flower || "#F0D878");
+      fill(g, x, y + 13, w, 1, C.flower || "#F0D878");
+    }
+    drawUiIcon(g, icon, x + 2, y - 1);
+    drawText(g, label, x + 18, y + 4, C.parch);
   }
 
   function modalOpen() {
@@ -14829,12 +14936,14 @@
       return;
     }
     found.mooncrystal = true;
+    quest.heartHome = false;
     for (j = PROPS.length - 1; j >= 0; j--) {
       other = PROPS[j];
       if (other.kind === "chest" || other.kind === "mooncrystal") PROPS.splice(j, 1);
     }
     spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
     persistSave();
+    showLineNote("HEART! TAKE IT HOME.");
     openDialogue("ORION", ["THE MOUNTAIN HEART.", "IT WILL GLOW", "ON THE HOME TABLE."]);
   }
 
@@ -14891,6 +15000,10 @@
     spawnPickup(prop.kind, prop.tx, prop.ty, 0);
     spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
     unlockAch(COLLECT_ACH[prop.kind]);
+    if (prop.kind === "moonshard") {
+      pinMoonCarryTray();
+      showLineNote("SHARD! TAKE IT HOME.");
+    }
     if (allFound()) {
       unlockAch("moonlightPocket");
       if (!outroSeen) {
@@ -15054,6 +15167,8 @@
     if (found.moonshard && !quest.homeDone) {
       quest.homeDone = true;
       homeLight = true;
+      /* Story consume — shard leaves the hotbar when it lights home. */
+      takeFromBag("moonshard", Math.max(1, bagCount("moonshard")));
       persistSave();
       unlockAch("homeGlow");
       ensureSelectedSlot();
@@ -15062,6 +15177,14 @@
     } else {
       if (homeLightOn()) homeLight = true;
       persistSave();
+    }
+    if (found.mooncrystal && !quest.heartHome) {
+      quest.heartHome = true;
+      persistSave();
+      if (!(found.moonshard && !homeLightOn())) {
+        /* Shard dialogue already open on same enter — skip second box. */
+        if (!dialogue) openDialogue("ORION", ["THE HEART RESTS.", "THE TABLE GLOWS."]);
+      }
     }
   }
 
@@ -18796,6 +18919,7 @@
     drawSwordBtn(g);
     drawFenceBuildBtn(g);
     drawFishNameChip(g);
+    drawMoonCarryChip(g);
   }
 
   function drawFishNameChip(g) {
@@ -20906,7 +21030,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cg", BUILD);
+      ok("BUILD", BUILD === "20260905ch", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -20967,6 +21091,17 @@ if (currentScene === "ocean") goExitOcean();
       ok("bumpOnce", hp === MAX_HP - BUMP_DMG, "hp=" + hp);
       ok("iframesOn", iFrames > 0, "iFrames=" + iFrames);
       ok("iframeFlashOn", iframeFlash > 0, "iframeFlash=" + iframeFlash);
+      ok("moonCarryFns", typeof carryingMoonShard === "function" && typeof pinMoonCarryTray === "function" && typeof drawMoonCarryChip === "function", "");
+      found.moonshard = true; quest.homeDone = false;
+      ok("moonCarryOn", carryingMoonShard(), "");
+      pinMoonCarryTray();
+      ok("moonTrayPinned", trayHasKey("moonshard") >= 0, "tray=" + trayHasKey("moonshard"));
+      quest.homeDone = true;
+      ok("moonCarryOff", !carryingMoonShard(), "");
+      found.mooncrystal = true; quest.heartHome = false;
+      ok("heartCarryOn", carryingMountainHeart(), "");
+      quest.heartHome = true;
+      ok("heartCarryOff", !carryingMountainHeart(), "");
       var hpAfter = hp;
       checkMonsterBumps();
       ok("iframesBlock", hp === hpAfter, "hp=" + hp);
