@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gy): Space critter scoot — standing next to a forest/ocean rabbit / squirrel / deer (facing away), Space / J / E finally scoots it with hop dust (tap already critterYield'd; walk-onto fled; side-of-critter was a silent no-op like pre-05gw chicken). Never START OVER.
+
 Local 9/6 (BUILD 20260905gx): acorn/pinecone tray-tap eat — chopping trees drops acorns/pinecones you can finally tap-eat from the tray for a nibble of hearts + energy (were ground-loot dead ends with no use; same yum path as apple/berry). Never START OVER.
 
 Local 9/6 (BUILD 20260905gw): Space chicken scoot — standing next to the farm hen (facing away), Space / J / E finally scoots it with feather puff (tap already walked-onto → chickenYield; dog/ball Space existed; side-of-hen was a silent no-op). Never START OVER.

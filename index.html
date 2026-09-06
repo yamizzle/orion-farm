@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gx";
+  var BUILD = "20260905gy";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -18927,6 +18927,26 @@
       chickenYield(true);
       return true;
     }
+    /* 20260905gy: Space/J/E scoot adjacent forest/ocean critters (tap already
+       critterYield'd with hop dust; walk-onto flees; side-of-rabbit/deer/squirrel
+       was a silent no-op like pre-05gw chicken). */
+    if (currentScene === "forest" || currentScene === "ocean") {
+      var critList = currentScene === "forest" ? forestCritters : oceanCritters;
+      var cri, cr;
+      for (cri = 0; cri < critList.length; cri++) {
+        cr = critList[cri];
+        if (!nearWho(cr)) continue;
+        faceToward(player, cr.tx, cr.ty);
+        cr.idle = 700;
+        if (!critterYield(cr, true)) {
+          cr.react = 480;
+          if (cr.kind === "rabbit" || cr.kind === "squirrel" || cr.kind === "deer") {
+            spawnCritterHopDust(cr.x, cr.y - 4, cr.kind);
+          }
+        }
+        return true;
+      }
+    }
     if (ballLive() && (nearWho(ball) || (player.tx === ball.tx && player.ty === ball.ty))) {
       faceToward(player, ball.tx, ball.ty);
       kickBall();
@@ -24909,7 +24929,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gx", BUILD);
+      ok("BUILD", BUILD === "20260905gy", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26742,6 +26762,25 @@ if (currentScene === "ocean") goExitOcean();
       var spaceChick = tryTalkAdjacent();
       ok("spaceChickenScoot", !!spaceChick && (chicken.tx !== chickBefore.tx || chicken.ty !== chickBefore.ty || (chicken.path && chicken.path.length > 0)),
         "moved=" + chicken.tx + "," + chicken.ty + " path=" + (chicken.path && chicken.path.length));
+      /* 20260905gy: Space adjacent forest critter scoots (tap already flees). */
+      applyScene("forest");
+      buildSolid();
+      var fr = forestCritters[0];
+      ok("forestCritterExists", !!fr, "");
+      if (fr) {
+        fr.path = [];
+        fr.queuedWalk = null;
+        fr.stepFrom = null;
+        fr.stepT = 0;
+        fr.moving = false;
+        fr.tx = 8; fr.ty = 8;
+        fr.x = tileCenterX(fr.tx); fr.y = tileFootY(fr.ty);
+        placePlayer(8, 9, "up");
+        var critBefore = { tx: fr.tx, ty: fr.ty };
+        var spaceCrit = tryTalkAdjacent();
+        ok("spaceCritterScoot", !!spaceCrit && (fr.tx !== critBefore.tx || fr.ty !== critBefore.ty || (fr.path && fr.path.length > 0) || fr.react > 0),
+          "moved=" + fr.tx + "," + fr.ty + " path=" + (fr.path && fr.path.length) + " react=" + fr.react);
+      }
       /* 20260905gx: acorn / pinecone tray-tap eat. */
       emptyTray();
       emptyBag();
