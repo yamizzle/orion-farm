@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fp";
+  var BUILD = "20260905fq";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -17664,6 +17664,33 @@
     return false;
   }
 
+  /* 20260905fq: Space/J/E open adjacent mailbox (tap already goMail'd;
+     chest/talk Space existed; mailbox Space was a silent no-op). */
+  function tryMailAdjacent() {
+    var box, face, dx, dy;
+    if (uiPaused() || faintFx) return false;
+    if (currentScene !== "overworld") return false;
+    box = findMailbox();
+    if (!box) return false;
+    face = facingTile();
+    if (mailboxHit(face.tx, face.ty, null) || mailboxHit(player.tx, player.ty, null) ||
+        isNear(player.tx, player.ty, box.tx, box.ty) ||
+        (player.tx === box.tx && player.ty === box.ty)) {
+      pending = null;
+      openMail();
+      return true;
+    }
+    /* Orthogonal adjacent even if facing away (chest Space style). */
+    dx = Math.abs(player.tx - box.tx);
+    dy = Math.abs(player.ty - box.ty);
+    if ((dx + dy) === 1) {
+      pending = null;
+      openMail();
+      return true;
+    }
+    return false;
+  }
+
   function tryTalkAdjacent() {
     var me, f, fi, p, face;
     if (uiPaused() || faintFx) return false;
@@ -23094,6 +23121,8 @@ if (currentScene === "ocean") goExitOcean();
       /* 20260905fp: Space cut tall grass / weed (tap already goCutGrass'd). */
       if (tryCutGrassFacing()) return;
       if (tryOpenChestAdjacent()) return;
+      /* 20260905fq: Space open mailbox (tap already goMail'd). */
+      if (tryMailAdjacent()) return;
       if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
@@ -23457,6 +23486,7 @@ if (currentScene === "ocean") goExitOcean();
       findPath: findPath,
       nearHouseChest: nearHouseChest,
       tryOpenChestAdjacent: tryOpenChestAdjacent,
+      tryMailAdjacent: tryMailAdjacent,
       tryBumpChest: tryBumpChest,
       openChest: openChest,
       chestIsOpen: function () { return chestOpen; },
@@ -23558,7 +23588,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fp", BUILD);
+      ok("BUILD", BUILD === "20260905fq", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24080,6 +24110,26 @@ if (currentScene === "ocean") goExitOcean();
           if (PROPS[_gi] && PROPS[_gi].tx === _gx && PROPS[_gi].ty === _gy && isSliceable(PROPS[_gi])) { _gstill = true; break; }
         }
         ok("spaceCutGrass", !!_cutOk && !_gstill, "cut=" + _cutOk + " gone=" + !_gstill);
+      }
+
+      /* 20260905fq: Space opens adjacent mailbox (tap already goMail'd). */
+      applyScene("overworld");
+      closeDialogue();
+      var _mbox = findMailbox();
+      ok("spaceMailBoxFound", !!_mbox, "box");
+      if (_mbox) {
+        var _mstand = null;
+        if (walkable(_mbox.tx, _mbox.ty + 1)) _mstand = { tx: _mbox.tx, ty: _mbox.ty + 1, face: "up" };
+        else if (walkable(_mbox.tx + 1, _mbox.ty)) _mstand = { tx: _mbox.tx + 1, ty: _mbox.ty, face: "left" };
+        else if (walkable(_mbox.tx - 1, _mbox.ty)) _mstand = { tx: _mbox.tx - 1, ty: _mbox.ty, face: "right" };
+        else if (walkable(_mbox.tx, _mbox.ty - 1)) _mstand = { tx: _mbox.tx, ty: _mbox.ty - 1, face: "down" };
+        ok("spaceMailStand", !!_mstand, "stand");
+        if (_mstand) {
+          placePlayer(_mstand.tx, _mstand.ty, _mstand.face);
+          var _mailOk = tryMailAdjacent();
+          ok("spaceOpenMail", !!_mailOk && !!(dialogue && dialogue.title), "open=" + _mailOk + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
       }
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */

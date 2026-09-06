@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fq): Space open mailbox — standing next to the farm mailbox, Space / J / E finally opens the letter (tap already walked-to-open; chest/talk Space existed; mailbox Space was a silent no-op). Never START OVER.
+
 Local 9/6 (BUILD 20260905fp): Space cut tall grass / weed — with tall grass or a weed underfoot or on the facing tile, Space / J / E finally slices it (tap already walked-to-cut; flower Space landed in 05fo; soft grass Space was a silent no-op). Never START OVER.
 
 Local 9/6 (BUILD 20260905fo): Space pick facing flower — with a wildflower / town flower underfoot or on the facing tile, Space / J / E finally picks it (tap already walked-to-pick; berry-bush Space existed; flower Space was a silent no-op). Never START OVER.
