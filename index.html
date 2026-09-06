@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dm";
+  var BUILD = "20260905dn";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7243,6 +7243,42 @@
     }
   }
 
+  /* 20260905dn: big gold/white sparkle when a golden swordfish is reeled in */
+  function spawnGoldenSwordfishSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#FFE9A0", "#FFFDF4", "#E8C84A", "#FFF8E0", "#FFD78A", "#F0C060", "#FFE070", "#C9A227", "#FFFFFF", "#FFF3C0", "#FFB040"];
+    for (i = 0; i < 14; i++) {
+      ang = (i / 14) * Math.PI * 2 + Math.random() * 0.35;
+      sparks.push({
+        x: x + (Math.random() * 7 - 3.5),
+        y: y + (Math.random() * 5 - 2.5),
+        vx: Math.cos(ang) * (0.034 + Math.random() * 0.036),
+        vy: Math.sin(ang) * 0.014 - 0.055 - Math.random() * 0.028,
+        age: 0,
+        life: 520 + Math.random() * 280,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
+  /* 20260905dn: icy cyan/white diamond sparkle when the peak pick is found */
+  function spawnDiamondPickSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#E8F8FF", "#A8E0FF", "#FFFFFF", "#C8F0FF", "#7EC8E8", "#FFFDF8", "#D0F0FF", "#4A96C8", "#F0FCFF", "#B8E8F8"];
+    for (i = 0; i < 12; i++) {
+      ang = (i / 12) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: x + (Math.random() * 6 - 3),
+        y: y + (Math.random() * 4 - 2),
+        vx: Math.cos(ang) * (0.03 + Math.random() * 0.032),
+        vy: Math.sin(ang) * 0.012 - 0.05 - Math.random() * 0.026,
+        age: 0,
+        life: 480 + Math.random() * 260,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
 
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
@@ -14255,8 +14291,11 @@
     player.swing = 0;
     if (fish) {
       addItem(fish.id, 1);
-      if (fish.id === "goldenSwordfish") showLineNote("WOW! A GOLDEN SWORDFISH!");
-      else showLineNote("YUM! A " + fish.name + ".");
+      if (fish.id === "goldenSwordfish") {
+        showLineNote("WOW! A GOLDEN SWORDFISH!");
+        /* 20260905dn: special gold sparkle for the rare ocean catch */
+        if (player) spawnGoldenSwordfishSparks(player.x, player.y - 8);
+      } else showLineNote("YUM! A " + fish.name + ".");
       playSfx("pickup");
     } else {
       showLineNote("NOTHING THIS TIME.");
@@ -16075,7 +16114,8 @@
       found.diamondPick = true;
       diamondPickOwned = true;
       giveTool("diamondPick");
-      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      /* 20260905dn: icy diamond sparkle (not plain sparks) */
+      spawnDiamondPickSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
       persistSave();
       openDialogue("ORION", ["A DIAMOND PICKAXE!", "IT CAN BREAK THE", "ROCKS ON THE PEAK."]);
       return;
