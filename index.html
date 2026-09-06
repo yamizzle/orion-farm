@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905da";
+  var BUILD = "20260905db";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6946,6 +6946,25 @@
       });
     }
   }
+
+  /* 20260905db: parchment sparks when Nim's note board opens */
+  function spawnNoteSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#FFFDF4", "#FFE9A0", "#E8D4A8", "#FFF8E0", "#C9B896", "#F3EDE0", "#D4C4A0", "#FFF3C0", "#E8C84A"];
+    for (i = 0; i < 8; i++) {
+      ang = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: x + (Math.random() * 5 - 2.5),
+        y: y + (Math.random() * 4 - 2),
+        vx: Math.cos(ang) * (0.024 + Math.random() * 0.026),
+        vy: Math.sin(ang) * 0.012 - 0.04 - Math.random() * 0.02,
+        age: 0,
+        life: 380 + Math.random() * 220,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
 
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
@@ -15537,6 +15556,11 @@
   }
 
   function readNoteNow() {
+    var board;
+    /* 20260905db: soft parchment sparkle when the note board opens */
+    board = findNote();
+    if (board) spawnNoteSparks(board.tx * TILE + 8, board.ty * TILE);
+    else if (player) spawnNoteSparks(player.x, player.y - 10);
     if (tryLeaveWood()) {
       openDialogue("NIM'S NOTE", ["YOU LEFT WOOD HERE.", "NIM WILL LIKE THIS."]);
       return;
@@ -18116,7 +18140,25 @@
     } else if (p.kind === "stump") {
       if (!drawAtlas2x(g, "stump", x, y)) Assets.draw(g, "stump", x, y);
     } else if (p.kind === "well") {
+      var wp, wa, wfr;
       if (!drawAtlas2x(g, "well", x, y)) Assets.draw(g, "well", x, y);
+      /* 20260905db: soft water shimmer in the farm well bucket */
+      wp = 0.09 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 240 + p.tx));
+      g.fillStyle = "rgba(120,180,210," + wp.toFixed(3) + ")";
+      g.fillRect(x + 4, y + 6, 8, 6);
+      g.fillStyle = "rgba(200,230,245," + (wp * 0.75).toFixed(3) + ")";
+      g.fillRect(x + 5, y + 7, 5, 3);
+      wa = 0.26 + 0.4 * Math.abs(Math.sin(tick / 280 + p.ty));
+      wfr = ((tick / 170 + p.tx * 3 + p.ty) | 0) % 3;
+      g.save();
+      g.globalAlpha = wa;
+      if (Assets.spr.sparkle) Assets.draw(g, "sparkle", x + 2, y - 4, wfr);
+      else {
+        px(g, x + 6, y + 2, "#E8F6FF");
+        px(g, x + 9, y + 4, "#A8D4E8");
+        px(g, x + 4, y + 3, "#FFFDF8");
+      }
+      g.restore();
     } else if (p.kind === "mailbox") {
       if (hasUnreadMail()) {
         if (!drawAtlas2x(g, "mailboxUp", x, y)) Assets.draw(g, "mailboxUp", x, y);
@@ -22015,7 +22057,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905da", BUILD);
+      ok("BUILD", BUILD === "20260905db", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

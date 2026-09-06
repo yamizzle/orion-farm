@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905db): farm well soft water shimmer + sparkle; Nim note board open parchment sparks. Never START OVER.
+
 Local 9/5 (BUILD 20260905da): honey bun / food eat floating pink hearts + gold coin / gold pile pickup warm sparkle (ground collect + fly-in pop). Never START OVER.
 
 Local 9/5 (BUILD 20260905cz): fountain soft water pulse + sparkle; holiday/festival lantern warmer soft pulse; mail open parchment sparks. Never START OVER.
