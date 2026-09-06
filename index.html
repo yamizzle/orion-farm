@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gk";
+  var BUILD = "20260905gl";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -15483,6 +15483,29 @@
     return false;
   }
 
+  /* 20260905gl: Space/J/E dig adjacent dirt mound (facing/underfoot Space existed;
+     adjacent-not-facing was a silent no-op; tap already goDig'd). */
+  function tryDigAdjacent() {
+    var spots, i, s;
+    if (uiPaused() || faintFx) return false;
+    if (!toolEquipped("shovel")) return false;
+    if (player.swing > 0) return false;
+    spots = [
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 },
+      { tx: player.tx, ty: player.ty }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      s = spots[i];
+      if (!canDigOn(s.tx, s.ty)) continue;
+      if (s.tx !== player.tx || s.ty !== player.ty) faceToward(player, s.tx, s.ty);
+      if (tryDig(s.tx, s.ty)) return true;
+    }
+    return false;
+  }
+
   /* 20260905fm: Space/J/E harvest ready crop on facing/underfoot dirt (tap already
      picked via goPickCrop; plant Space landed in 05fl — ready crop Space was a silent no-op).
      Pick via harvestCropAt (berry-bush Space style) so leftover swing cannot soft-block. */
@@ -15560,6 +15583,53 @@
       return true;
     }
     if (tryPlantFlower(player.tx, player.ty)) return true;
+    return false;
+  }
+
+  /* 20260905gl: Space/J/E plant seed on adjacent dirt (facing/underfoot Space existed;
+     adjacent-not-facing was a silent no-op; tap already goPlant'd). */
+  function tryPlantAdjacent() {
+    var spots, i, s, k;
+    if (uiPaused() || faintFx) return false;
+    if (!(selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed"))) return false;
+    spots = [
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 },
+      { tx: player.tx, ty: player.ty }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      s = spots[i];
+      k = s.tx + "," + s.ty;
+      if (cell(s.tx, s.ty) === "p" && !crops[k]) {
+        if (s.tx !== player.tx || s.ty !== player.ty) faceToward(player, s.tx, s.ty);
+        plantAt(s.tx, s.ty);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /* 20260905gl: Space plant flower on adjacent grass (facing Space existed; side silent). */
+  function tryPlantFlowerAdjacent() {
+    var spots, i, s;
+    if (uiPaused() || faintFx) return false;
+    if (!selectedIs("flower") || !selectedHas("flower", 1)) return false;
+    spots = [
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 },
+      { tx: player.tx, ty: player.ty }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      s = spots[i];
+      if (tryPlantFlower(s.tx, s.ty)) {
+        if (s.tx !== player.tx || s.ty !== player.ty) faceToward(player, s.tx, s.ty);
+        return true;
+      }
+    }
     return false;
   }
 
@@ -23895,13 +23965,19 @@ if (currentScene === "ocean") goExitOcean();
       /* 20260905gf: Space smash adjacent rock/log/tree (facing Space existed; side silent). */
       if (trySmashAdjacent()) return;
       if (tryDigFacing()) return;
+      /* 20260905gl: Space dig adjacent mound (facing Space existed; side silent). */
+      if (tryDigAdjacent()) return;
       /* 20260905fm: Space harvest ready crop before plant (tap already picked). */
       if (tryHarvestCropFacing()) return;
       /* 20260905gh: Space harvest adjacent ready crop (facing Space existed; side silent). */
       if (tryHarvestCropAdjacent()) return;
       /* 20260905fl: Space plant/place facing — seed/flower/kits matched dig/fish wiring. */
       if (tryPlantFacing()) return;
+      /* 20260905gl: Space plant seed adjacent (facing Space existed; side silent). */
+      if (tryPlantAdjacent()) return;
       if (tryPlantFlowerFacing()) return;
+      /* 20260905gl: Space plant flower adjacent (facing Space existed; side silent). */
+      if (tryPlantFlowerAdjacent()) return;
       if (tryBuildFacing()) return;
       if (tryFishFacing()) return;
       if (tryTakeSwordAdjacent()) return;
@@ -24036,9 +24112,12 @@ if (currentScene === "ocean") goExitOcean();
       canDigOn: canDigOn,
       tryDig: tryDig,
       tryDigFacing: tryDigFacing,
+      tryDigAdjacent: tryDigAdjacent,
       tryHarvestCropFacing: tryHarvestCropFacing,
       tryPlantFacing: tryPlantFacing,
+      tryPlantAdjacent: tryPlantAdjacent,
       tryPlantFlowerFacing: tryPlantFlowerFacing,
+      tryPlantFlowerAdjacent: tryPlantFlowerAdjacent,
       tryBuildFacing: tryBuildFacing,
       buildMine4Ground: buildMine4Ground,
       buildMine5Ground: buildMine5Ground,
@@ -24368,7 +24447,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gk", BUILD);
+      ok("BUILD", BUILD === "20260905gl", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25625,6 +25704,75 @@ if (currentScene === "ocean") goExitOcean();
         placePlayer(_hcStand.tx, _hcStand.ty, _hcStand.face);
         var _hcOk = tryHarvestCropAdjacent();
         ok("spaceCropAdjacent", !!_hcOk && !crops[_hctx + "," + _hcty], "ok=" + _hcOk + " gone=" + !crops[_hctx + "," + _hcty] + " face=" + _hcStand.face);
+      }
+
+      /* 20260905gl: Space digs adjacent mound facing away. */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      shovelOwned = true;
+      trayCells[0] = { key: "shovel", count: 1 };
+      selectedSlot = 0;
+      var _dg = FARM_DIG_SPOTS[0], _dgStand = null, _dgi;
+      /* Clear prior farmHole builds so canDigOn passes. */
+      for (_dgi = builds.length - 1; _dgi >= 0; _dgi--) {
+        if (builds[_dgi] && builds[_dgi].kind === "farmHole") builds.splice(_dgi, 1);
+      }
+      if (_dg && walkable(_dg.tx + 1, _dg.ty)) _dgStand = { tx: _dg.tx + 1, ty: _dg.ty, face: "right" };
+      else if (_dg && walkable(_dg.tx - 1, _dg.ty)) _dgStand = { tx: _dg.tx - 1, ty: _dg.ty, face: "left" };
+      else if (_dg && walkable(_dg.tx, _dg.ty + 1)) _dgStand = { tx: _dg.tx, ty: _dg.ty + 1, face: "down" };
+      else if (_dg && walkable(_dg.tx, _dg.ty - 1)) _dgStand = { tx: _dg.tx, ty: _dg.ty - 1, face: "up" };
+      ok("spaceDigAdjFound", !!(_dg && _dgStand && canDigOn(_dg.tx, _dg.ty)), _dg ? (_dg.tx + "," + _dg.ty) : "none");
+      if (_dg && _dgStand && canDigOn(_dg.tx, _dg.ty)) {
+        placePlayer(_dgStand.tx, _dgStand.ty, _dgStand.face);
+        var _dgOk = tryDigAdjacent();
+        ok("spaceDigAdjacent", !!_dgOk && farmDugAt(_dg.tx, _dg.ty), "ok=" + _dgOk + " dug=" + farmDugAt(_dg.tx, _dg.ty) + " face=" + _dgStand.face);
+      }
+
+      /* 20260905gl: Space plants seed on adjacent dirt facing away. */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "seed", count: 1 };
+      selectedSlot = 0;
+      var _patx = -1, _paty = -1, _pax, _pay, _paStand;
+      for (_pay = 0; _pay < ROWS && _patx < 0; _pay++) {
+        for (_pax = 0; _pax < COLS; _pax++) {
+          if (cell(_pax, _pay) !== "p" || crops[_pax + "," + _pay]) continue;
+          if (_pax + 1 < COLS && walkable(_pax + 1, _pay)) { _patx = _pax; _paty = _pay; _paStand = { tx: _pax + 1, ty: _pay, face: "right" }; break; }
+          if (_pax - 1 >= 0 && walkable(_pax - 1, _pay)) { _patx = _pax; _paty = _pay; _paStand = { tx: _pax - 1, ty: _pay, face: "left" }; break; }
+        }
+      }
+      ok("spacePlantAdjFound", _patx >= 0, "plot");
+      if (_patx >= 0) {
+        delete crops[_patx + "," + _paty];
+        placePlayer(_paStand.tx, _paStand.ty, _paStand.face);
+        var _paOk = tryPlantAdjacent();
+        ok("spacePlantAdjacent", !!_paOk && !!crops[_patx + "," + _paty], "ok=" + _paOk + " crop=" + !!crops[_patx + "," + _paty] + " face=" + _paStand.face);
+      }
+
+      /* 20260905gl: Space plants flower on adjacent grass facing away. */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "flower", count: 2 };
+      selectedSlot = 0;
+      var _fax = -1, _fay = -1, _fx, _fy, _faStand, _fch;
+      for (_fy = 20; _fy < 35 && _fax < 0; _fy++) {
+        for (_fx = 15; _fx < 30; _fx++) {
+          _fch = cell(_fx, _fy);
+          if (_fch !== "g" && _fch !== "m") continue;
+          if (propAt(_fx, _fy)) continue;
+          if (_fx + 1 < COLS && walkable(_fx + 1, _fy)) { _fax = _fx; _fay = _fy; _faStand = { tx: _fx + 1, ty: _fy, face: "right" }; break; }
+          if (_fx - 1 >= 0 && walkable(_fx - 1, _fy)) { _fax = _fx; _fay = _fy; _faStand = { tx: _fx - 1, ty: _fy, face: "left" }; break; }
+        }
+      }
+      ok("spaceFlowerAdjFound", _fax >= 0, "grass");
+      if (_fax >= 0) {
+        placePlayer(_faStand.tx, _faStand.ty, _faStand.face);
+        var _nFlow0 = bagCount("flower");
+        var _faOk = tryPlantFlowerAdjacent();
+        ok("spacePlantFlowerAdjacent", !!_faOk && bagCount("flower") === _nFlow0 - 1, "ok=" + _faOk + " n=" + bagCount("flower") + " face=" + _faStand.face);
       }
 
       /* 20260905fy: Space enters TREE from forest door (not TREETOP) + climbs UP. */

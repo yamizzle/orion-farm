@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gl): Space dig/plant adjacent — standing next to a dig mound or empty dirt plot / grass (facing away), Space / J / E finally digs or plants seed/flower (tap already goDig / goPlant'd; facing Space existed via tryDigFacing / tryPlantFacing; adjacent-not-facing was a silent no-op like pre-05gh crop). Never START OVER.
+
 Local 9/6 (BUILD 20260905gk): smelt equips bar — fireplace smelt pins + selects the copper/silver/gold bar (tray-full / ore-selected smelts left bar bag-only or unselected — same cook equip gap as 05fk). Never START OVER.
 
 Local 9/6 (BUILD 20260905gj): chest TAKE equips — taking one stack from the house chest pins + selects it (tray-tap eat / plant / cook tip need selected; TAKE left food/fish bag-only or unselected — same Pip/cook/catch equip gap as 05gi). Never START OVER.
