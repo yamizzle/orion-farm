@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ar";
+  var BUILD = "20260905as";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4767,7 +4767,11 @@
   function drawForestChest(g, x, y) {
     var word, tw, sx;
     if (Assets.forestChest) {
+      var smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      /* 20260905as: 32×32 → 16×16 */
       g.drawImage(Assets.forestChest, x, y, 16, 16);
+      g.imageSmoothingEnabled = smooth;
     } else {
     fill(g, x + 1, y + 5, 14, 10, "#3D1A0C");
     fill(g, x + 2, y + 6, 12, 8, "#8B5A28");
@@ -14785,8 +14789,25 @@
     var bob = chicken.frame ? -1 : 0;
     var hop = chicken.react > 0 ? -3 : 0;
     var face = chicken.face === "left" ? "left" : "right";
+    var sid = "chicken-" + face;
+    var s = Assets.spr[sid];
+    var fr, ax, ay, smooth;
     drawShadow(g, chicken.x, chicken.y, 4);
-    Assets.draw(g, "chicken-" + face, chicken.x, chicken.y + bob + hop, chicken.frame);
+    if (s && Assets.img) {
+      fr = chicken.frame || 0;
+      ax = (s.anchor && s.anchor[0]) || 0;
+      ay = (s.anchor && s.anchor[1]) || 0;
+      smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(
+        Assets.img, s.x + fr * s.fw, s.y, s.fw, s.h,
+        Math.round(chicken.x - ax / 2), Math.round(chicken.y + bob + hop - ay / 2),
+        s.fw / 2, s.h / 2
+      );
+      g.imageSmoothingEnabled = smooth;
+    } else {
+      Assets.draw(g, sid, chicken.x, chicken.y + bob + hop, chicken.frame);
+    }
   }
 
   function drawFolk(g, f) {
@@ -18466,7 +18487,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ar", BUILD);
+      ok("BUILD", BUILD === "20260905as", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
