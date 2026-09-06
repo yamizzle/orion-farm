@@ -1,3 +1,4 @@
+Local 9/5 (BUILD 20260905bf): Imagine stove prop + cooked-fish plate UI icons (BOX downsample, atlas 2×); stove gameplay from 05be kept. Never START OVER.
 Local 9/5 (BUILD 20260905be): house stove cooks fish (select raw → tap/Space STOVE → cooked twin); cooked heals more; Pip sells cookedTrout; chest/save keys; stump chroma already clean in atlas. Never START OVER.
 Local 9/5 (BUILD 20260905bd): HUD Stars uses small starBadge (not trophy); real hen chicken frames; ocean 64×56 (+8 beach L/R, +16 south water, ~3× island further south with enterable cave + visible Diamond Pickaxe); house/shop/cave doormat OUT label; stump pink scrub pass. Never START OVER.
 Local 9/5 (BUILD 20260905bc): world tap that closes bag/Jobs/Stars/talk/shop/notes/wipe confirm swallows that press (ignoreWalkTap until pointerup) and clears frozen walk — no goWalk/tool on the dismiss tap. Never START OVER.

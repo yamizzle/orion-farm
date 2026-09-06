@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905be";
-  var ASSET_REV = "441506";
+  var BUILD = "20260905bf";
+  var ASSET_REV = "451204";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4474,6 +4474,7 @@
     if (ck) {
       cooked = true;
       rawId = ck.id;
+      if (drawUiIcon(g, "cookedFish", x, y)) return;
     }
     body = "#8A8A7A";
     belly = "#D8D0C0";
@@ -15587,18 +15588,8 @@
       g.fillRect(x + 10, y + 14, 28, 22);
       Assets.draw(g, "fireplace", x, y, ((tick / 220) | 0) % 2);
     } else if (p.kind === "stove") {
-      /* fireplace-adjacent cooktop: counter wood tones + iron burners + STOVE label */
-      fill(g, x - 1, y + 1, 18, 14, "#5A3A1C");
-      fill(g, x, y + 2, 16, 12, "#C47A38");
-      fill(g, x + 1, y + 3, 14, 3, "#E8B060");
-      fill(g, x + 1, y + 7, 14, 6, "#3A3A38");
-      fill(g, x + 2, y + 8, 4, 4, "#2A2A28");
-      fill(g, x + 6, y + 8, 4, 4, "#2A2A28");
-      fill(g, x + 10, y + 8, 4, 4, "#2A2A28");
-      px(g, x + 3, y + 9, "#E07030");
-      px(g, x + 7, y + 9, "#F0A040");
-      px(g, x + 11, y + 9, "#E07030");
-      fill(g, x + 2, y + 0, 12, 2, "#6D4427");
+      /* 20260905bf: Imagine wood/iron stove 32×48 via atlas 2× */
+      if (!drawAtlas2x(g, "stove", x, y)) Assets.draw(g, "stove", x, y);
       drawShaftLabel(g, p, "STOVE");
     } else if (p.kind === "flowerbox") {
       if (!drawAtlas2x(g, "flowerbox", x, y)) Assets.draw(g, "flowerbox", x, y);
@@ -19079,7 +19070,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bc", BUILD);
+      ok("BUILD", BUILD === "20260905bf", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
