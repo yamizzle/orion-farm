@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ev";
+  var BUILD = "20260905ew";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -597,10 +597,11 @@
   var COTTAGE2_ROWS = 8;
   var cottageIn = { tx: 55, ty: 26 };
   var cottageOut = { tx: 8, ty: 8 };
-  var cottageLand = { tx: 55, ty: 27 };
+  var cottageLand = { tx: 55, ty: 28 }; /* 20260905ew: 2-tile south of door (55,26) */
   var cottage2In = { tx: 61, ty: 26 };
   var cottage2Out = { tx: 6, ty: 6 };
-  var cottage2Land = { tx: 61, ty: 27 };
+  /* 20260905ew: door (61,26); ty+2 hits L-house solid (58,28). Land SE clear of auto-enter. */
+  var cottage2Land = { tx: 63, ty: 27 };
   /* 20260905by: tall cottage (townHouseA) + L-house (townHouseB) cozy rooms */
   var TALL_COTTAGE_COLS = 16;
   var TALL_COTTAGE_ROWS = 10;
@@ -608,10 +609,10 @@
   var L_HOUSE_ROWS = 10;
   var tallCottageIn = { tx: 51, ty: 26 };
   var tallCottageOut = { tx: 8, ty: 8 };
-  var tallCottageLand = { tx: 51, ty: 27 };
+  var tallCottageLand = { tx: 51, ty: 28 }; /* 20260905ew: 2-tile south of door (51,26) */
   var lHouseIn = { tx: 61, ty: 32 };
   var lHouseOut = { tx: 7, ty: 8 };
-  var lHouseLand = { tx: 61, ty: 33 };
+  var lHouseLand = { tx: 61, ty: 34 }; /* 20260905ew: 2-tile south of door (61,32) */
 
   function isCozyInterior() {
     return currentScene === "house" || currentScene === "shop" || currentScene === "cottage" || currentScene === "cottage2" || currentScene === "tallCottage" || currentScene === "lHouse";
@@ -9976,13 +9977,16 @@
         return { tx: 5, ty: 11, face: "down" };
       }
       if (isMineEntrance(tx, ty)) {
-        return { tx: portalIn.tx, ty: portalIn.ty + 1, face: "down" };
+        /* 20260905ew: match exitMine 2-tile landing */
+        return { tx: portalIn.tx, ty: portalIn.ty + 2, face: "down" };
       }
       if (isHouseEntrance(tx, ty)) {
-        return { tx: houseIn.tx, ty: houseIn.ty + 1, face: "down" };
+        /* 20260905ew: match exitHouse 2-tile landing */
+        return { tx: houseIn.tx, ty: houseIn.ty + 2, face: "down" };
       }
       if (isShopEntrance(tx, ty)) {
-        return { tx: shopIn.tx, ty: shopIn.ty + 1, face: "down" };
+        /* 20260905ew: match exitShop 2-tile landing */
+        return { tx: shopIn.tx, ty: shopIn.ty + 2, face: "down" };
       }
       if (isOceanEntrance(tx, ty)) {
         return { tx: 14, ty: 36, face: "down" };
@@ -13628,15 +13632,18 @@
       note = "LANDED BY THE BIG TREE.";
     } else if (stop === "home") {
       applyScene("overworld");
-      placePlayer(houseIn.tx, houseIn.ty + 1, "up");
+      /* 20260905ew: match exitHouse 2-tile gap */
+      placePlayer(houseIn.tx, houseIn.ty + 2, "up");
       note = "LANDED AT HOME.";
     } else if (stop === "town") {
       applyScene("overworld");
-      placePlayer(43, 27, "up");
+      /* 20260905ew: match exitShop 2-tile gap */
+      placePlayer(43, 28, "up");
       note = "LANDED IN TOWN.";
     } else if (stop === "cave") {
       applyScene("overworld");
-      placePlayer(portalIn.tx, portalIn.ty + 1, "up");
+      /* 20260905ew: match exitMine 2-tile gap */
+      placePlayer(portalIn.tx, portalIn.ty + 2, "up");
       note = "LANDED BY THE MINE.";
     } else if (stop === "peak") {
       applyScene("peak");
@@ -14294,7 +14301,8 @@
   function exitShop() {
     startDoorFade(function () {
       applyScene("overworld");
-      placePlayer(43, 27, "down");
+      /* 20260905ew: was (43,27) — only 1 tile south of stoop (43,26); one north step auto-reentered. */
+      placePlayer(43, 28, "down");
       persistSave();
     });
   }
@@ -16975,7 +16983,8 @@
   function exitMine() {
     startDoorFade(function () {
       applyScene("overworld");
-      placePlayer(37, 7, "down");
+      /* 20260905ew: was (37,7) — only 1 tile south of MINE door (37,6); one north step auto-reentered. */
+      placePlayer(37, 8, "down");
       persistSave();
     });
   }
@@ -17061,7 +17070,8 @@
   function exitHouse() {
     startDoorFade(function () {
       applyScene("overworld");
-      placePlayer(17, 29, "down");
+      /* 20260905ew: was (17,29) — only 1 tile south of door (17,28); one north step auto-reentered. */
+      placePlayer(17, 30, "down");
       /* Tray leash → dog comes outside. Bag-only / no leash → dog stays home. */
       if (!bringDogWithPlayer("overworld")) parkDogInHouse();
       persistSave();
@@ -23329,7 +23339,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905et", BUILD);
+      ok("BUILD", BUILD === "20260905ew", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23743,7 +23753,16 @@ if (currentScene === "ocean") goExitOcean();
       var fo = nudgeRestoreOffGate(forestIn.tx, forestIn.ty, "up");
       ok("woodsDoorNudge", !!(fo && fo.tx === 5 && fo.ty === 11), fo && (fo.tx + "," + fo.ty));
       var mi = nudgeRestoreOffGate(portalIn.tx, portalIn.ty, "up");
-      ok("mineDoorNudge", !!(mi && mi.tx === portalIn.tx && mi.ty === portalIn.ty + 1), mi && (mi.tx + "," + mi.ty));
+      ok("mineDoorNudge", !!(mi && mi.tx === portalIn.tx && mi.ty === portalIn.ty + 2), mi && (mi.tx + "," + mi.ty));
+      var hi = nudgeRestoreOffGate(houseIn.tx, houseIn.ty, "up");
+      ok("houseDoorNudge", !!(hi && hi.tx === houseIn.tx && hi.ty === houseIn.ty + 2), hi && (hi.tx + "," + hi.ty));
+      var si = nudgeRestoreOffGate(shopIn.tx, shopIn.ty, "up");
+      ok("shopDoorNudge", !!(si && si.tx === shopIn.tx && si.ty === shopIn.ty + 2), si && (si.tx + "," + si.ty));
+      ok("houseExitLandGap", !!(houseIn.ty + 2 === 30 && (30 - houseIn.ty) >= 2), houseIn.tx + "," + (houseIn.ty + 2));
+      ok("cottageLandGap", !!(cottageLand.ty === cottageIn.ty + 2), cottageLand.tx + "," + cottageLand.ty);
+      ok("cottage2LandGap", !!(cottage2Land.tx === 63 && cottage2Land.ty === 27 && (Math.abs(cottage2Land.tx - cottage2In.tx) + Math.abs(cottage2Land.ty - cottage2In.ty)) >= 2 && !isCottage2Entrance(cottage2Land.tx, cottage2Land.ty)), cottage2Land.tx + "," + cottage2Land.ty);
+      ok("tallCottageLandGap", !!(tallCottageLand.ty === tallCottageIn.ty + 2), tallCottageLand.tx + "," + tallCottageLand.ty);
+      ok("lHouseLandGap", !!(lHouseLand.ty === lHouseIn.ty + 2), lHouseLand.tx + "," + lHouseLand.ty);
       var oe = nudgeRestoreOffGate(14, 37, "down");
       ok("beachGateNudge", !!(oe && oe.tx === 14 && oe.ty === 36), oe && (oe.tx + "," + oe.ty));
       applyScene("ocean");

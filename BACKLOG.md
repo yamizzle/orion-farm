@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ew): outdoor door exit landings — HOUSE/SHOP/MINE/cottage/tallCottage/L-house exit + bird-ride home/town/cave + refresh nudge no longer drop you one tile south of the auto-enter stoop; land 2 tiles south (cottage2 SE at 63,27 — L-house blocks straight south) so one north step cannot auto-reenter. Never START OVER.
+
 Local 9/6 (BUILD 20260905ev): mine floor-1 enter landing — cave door / restore no longer drops you one tile north of the OUT ladder (16,20); land at (16,18) so one south step cannot auto-exit (same 2-tile gap as indoor OUT 05eu + climb-ups). Never START OVER.
 
 Local 9/6 (BUILD 20260905eu): indoor OUT door landings — HOUSE/SHOP/cottage/cottage2/tallCottage/L-house enter + refresh nudge/spawn no longer drop you one tile north of the OUT mat; land 2 tiles north so one south step cannot auto-exit (same gap language as mine/tree/island cave). Never START OVER.
