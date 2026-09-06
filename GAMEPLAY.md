@@ -71,7 +71,9 @@ Farm ponds only (props at (3,33) and (24,13)). Not the town fountain.
 
 - Buy **FISHING POLE** from Pip (30G, one-time). Hotbar slot like shovel. Selecting it does not eat or place.
 - Stand orthogonally next to a pond tile with the pole selected, then tap the water or Space/E facing it.
-- No pole: `YOU NEED A FISHING POLE.` Pole out but not next to water: tap walks, no auto-cast.
+- Ocean shore: stand on sand next to water with the pole selected, then tap water or Space.
+- Boat (05hj): aboard with the pole selected, Space / tap ocean water casts (ocean fish + rare golden swordfish). Without the pole selected, water taps still row — never toast BUY/SELECT pole and block rowing (05h). Shore GET OUT still wins when next to sand.
+- No pole: `YOU NEED A FISHING POLE.` / `BUY A FISHING POLE AT PIP'S.` Pole out but not next to water: tap walks, no auto-cast.
 - Cast → wait ~1.5–4s (bobber) → reel. Miss ~28% before the rarity roll. No timing bar. Tap elsewhere cancels (no fish). Cannot walk/swing mid-cast.
 - Catch goes to a named bag stack (150 cap). HUD shows the fish name. Do not grant fish on load.
 

@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hi";
+  var BUILD = "20260905hj";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -4382,8 +4382,14 @@
     if (currentScene !== "ocean") return false;
     if (onBoat) {
       /* 20260905bp: Space at beach edge gets out (no inland rowing) */
-      if (leaveBoatShoreSpot()) leaveBoat();
-      else talkBoat();
+      if (leaveBoatShoreSpot()) {
+        leaveBoat();
+        return true;
+      }
+      /* 20260905hj: mid-ocean + pole selected → fall through to tryFish* cast
+         (was ALWAYS talkBoat TOO DEEP, so Space never cast from the boat). */
+      if (toolEquipped("pole")) return false;
+      talkBoat();
       return true;
     }
     /* 20260905fz: adjacent pier/beach-exit Space (facing-only left side-of-gate silent). */
@@ -16188,6 +16194,13 @@
     return !!(isOceanWater(tx, ty) && orthoNearTile(player.tx, player.ty, tx, ty) && cell(player.tx, player.ty) === "f");
   }
 
+  /* 20260905hj: aboard — cast into nearby ocean water (you sit on "y", not sand "f"). */
+  function canBoatCastAt(tx, ty) {
+    if (!onBoat || currentScene !== "ocean") return false;
+    if (!isOceanWater(tx, ty)) return false;
+    return orthoNearTile(player.tx, player.ty, tx, ty) || (player.tx === tx && player.ty === ty);
+  }
+
   function nearestOceanBank(tx, ty) {
     var dirs, i, nx, ny, best = null, bestD = 999, d;
     if (!isOceanWater(tx, ty)) return null;
@@ -16454,8 +16467,17 @@
   function tryFishFacing() {
     var t, pond, spot;
     if (uiPaused() || faintFx) return false;
-    if (onBoat) return false;
     if (fishing) return true;
+    /* 20260905hj: boat + pole → cast into facing water (no pole toast / no row steal). */
+    if (onBoat) {
+      if (currentScene !== "ocean" || !toolEquipped("pole")) return false;
+      t = facingTile();
+      spot = oceanFishSpotAt(t.tx, t.ty);
+      if (spot) return beginFishing(spot, t.tx, t.ty);
+      spot = oceanFishSpotAt(player.tx, player.ty);
+      if (spot) return beginFishing(spot, player.tx, player.ty);
+      return false;
+    }
     t = facingTile();
     pond = farmPondAt(t.tx, t.ty);
     spot = oceanFishSpotAt(t.tx, t.ty);
@@ -16482,8 +16504,27 @@
   function tryFishAdjacent() {
     var spots, i, s, pond, spot;
     if (uiPaused() || faintFx) return false;
-    if (onBoat) return false;
     if (fishing) return true;
+    /* 20260905hj: boat + pole → cast into adjacent ocean water. */
+    if (onBoat) {
+      if (currentScene !== "ocean" || !toolEquipped("pole")) return false;
+      spots = [
+        { tx: player.tx - 1, ty: player.ty },
+        { tx: player.tx + 1, ty: player.ty },
+        { tx: player.tx, ty: player.ty - 1 },
+        { tx: player.tx, ty: player.ty + 1 }
+      ];
+      for (i = 0; i < spots.length; i++) {
+        s = spots[i];
+        spot = oceanFishSpotAt(s.tx, s.ty);
+        if (!spot) continue;
+        faceToward(player, s.tx, s.ty);
+        return beginFishing(spot, s.tx, s.ty);
+      }
+      spot = oceanFishSpotAt(player.tx, player.ty);
+      if (spot) return beginFishing(spot, player.tx, player.ty);
+      return false;
+    }
     spots = [
       { tx: player.tx - 1, ty: player.ty },
       { tx: player.tx + 1, ty: player.ty },
@@ -16521,7 +16562,23 @@
     if (pond.kind !== "pond" && pond.kind !== "ocean") return false;
     if (pond.kind === "pond" && currentScene !== "overworld") return false;
     if (pond.kind === "ocean" && currentScene !== "ocean") return false;
-    if (onBoat) return false;
+    /* 20260905hj: boat + pole selected casts; without pole return false so caller rows
+       (05h: never toast BUY/SELECT pole and steal the row). */
+    if (onBoat) {
+      if (pond.kind !== "ocean") return false;
+      if (!toolEquipped("pole")) return false;
+      if (fishing) return true;
+      if (canBoatCastAt(tx, ty)) return beginFishing(pond, tx, ty);
+      highlight = { tx: tx, ty: ty };
+      path = findPath(player.tx, player.ty, tx, ty);
+      if (path.length) {
+        pending = { type: "fish", pond: pond, tx: tx, ty: ty };
+        startWalk(player, path, 3.5);
+      } else {
+        goWalk(tx, ty);
+      }
+      return true;
+    }
     if (fishing) return true;
     if (!poleOwned) {
       showLineNote("BUY A FISHING POLE AT PIP'S.");
@@ -18978,10 +19035,15 @@
         tryDig(act.tx, act.ty);
       }
     } else if (act.type === "fish") {
-      /* 20260905go: arrive at bank after tap-walk, then cast. */
+      /* 20260905go: arrive at bank after tap-walk, then cast.
+         20260905hj: arrive mid-ocean aboard after row-to-spot, then cast. */
       if (act.pond && toolEquipped("pole") && !fishing) {
         if (act.pond.kind === "ocean") {
-          if (standingByOceanWater(act.tx, act.ty)) beginFishing(act.pond, act.tx, act.ty);
+          if (onBoat) {
+            if (canBoatCastAt(act.tx, act.ty)) beginFishing(act.pond, act.tx, act.ty);
+          } else if (standingByOceanWater(act.tx, act.ty)) {
+            beginFishing(act.pond, act.tx, act.ty);
+          }
         } else if (standingByPond(act.pond)) {
           beginFishing(act.pond, act.tx, act.ty);
         }
@@ -24413,7 +24475,9 @@ if (currentScene === "ocean") goExitOcean();
       return;
     }
     if (oceanFishSpotAt(tx, ty)) {
+      /* 20260905hj: aboard + pole → cast; without pole keep rowing (05h no pole-steal). */
       if (onBoat) {
+        if (toolEquipped("pole") && tryFishTap(oceanFishSpotAt(tx, ty), tx, ty)) return;
         goWalk(tx, ty);
         return;
       }
@@ -25264,7 +25328,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hi", BUILD);
+      ok("BUILD", BUILD === "20260905hj", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -27497,6 +27561,69 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("placeToolNoDupHeld", axes === 1 && !bagHeld, "axes=" + axes + " held=" + !!bagHeld);
       bagHeld = null; bagHeldFrom = null;
       syncBagCounts();
+      /* 20260905hj: boat + pole Space/tap casts; without pole water still rows (05h). */
+      applyScene("ocean");
+      closeDialogue();
+      cancelFishing();
+      emptyTray();
+      emptyBag();
+      poleOwned = true;
+      trayCells[0] = { key: "pole", count: 1 };
+      selectedSlot = 0;
+      onBoat = true;
+      buildSolid();
+      var _bfTx = -1, _bfTy = -1, _bfx, _bfy, _bfFace = "right";
+      for (_bfy = 2; _bfy < ROWS - 2 && _bfTx < 0; _bfy++) {
+        for (_bfx = 2; _bfx < COLS - 2 && _bfTx < 0; _bfx++) {
+          if (cell(_bfx, _bfy) !== "y") continue;
+          if (cell(_bfx + 1, _bfy) !== "y") continue;
+          if (adjacentShoreF(_bfx, _bfy)) continue;
+          _bfTx = _bfx; _bfTy = _bfy;
+        }
+      }
+      ok("boatFishWaterFound", _bfTx >= 0, _bfTx + "," + _bfTy);
+      if (_bfTx >= 0) {
+        placePlayer(_bfTx, _bfTy, _bfFace);
+        var _bfCast = tryFishFacing();
+        ok("boatFishSpaceCast", !!_bfCast && !!fishing && fishing.waterKind === "ocean",
+          "ok=" + _bfCast + " fishing=" + !!fishing + " kind=" + (fishing && fishing.waterKind));
+        cancelFishing();
+        var _bfTap = tryFishTap(oceanFishSpotAt(_bfTx + 1, _bfTy), _bfTx + 1, _bfTy);
+        ok("boatFishTapCast", !!_bfTap && !!fishing && fishing.waterKind === "ocean",
+          "ok=" + _bfTap + " fishing=" + !!fishing);
+        cancelFishing();
+        /* No pole selected — Space/tap must NOT cast (05h row preserved). */
+        emptyTray();
+        trayCells[0] = { key: "wood", count: 1 };
+        selectedSlot = 0;
+        var _bfNo = tryFishFacing();
+        ok("boatFishNoPoleNoCast", !_bfNo && !fishing, "ok=" + _bfNo + " fishing=" + !!fishing);
+        var _bfTapNo = tryFishTap(oceanFishSpotAt(_bfTx + 1, _bfTy), _bfTx + 1, _bfTy);
+        ok("boatFishNoPoleTapRows", !_bfTapNo && !fishing, "ok=" + _bfTapNo);
+        /* Shore GET OUT still wins over cast when pole selected. */
+        emptyTray();
+        trayCells[0] = { key: "pole", count: 1 };
+        selectedSlot = 0;
+        var _shore = null, _sx, _sy, _sf;
+        for (_sy = 1; _sy < ROWS - 1 && !_shore; _sy++) {
+          for (_sx = 1; _sx < COLS - 1 && !_shore; _sx++) {
+            if (cell(_sx, _sy) !== "y") continue;
+            _sf = adjacentShoreF(_sx, _sy);
+            if (_sf) _shore = { tx: _sx, ty: _sy, shore: _sf };
+          }
+        }
+        ok("boatFishShoreFound", !!_shore, _shore ? (_shore.tx + "," + _shore.ty) : "none");
+        if (_shore) {
+          placePlayer(_shore.tx, _shore.ty, "up");
+          var _wasBoat = onBoat;
+          var _od = tryOceanDoors();
+          ok("boatFishShoreGetOut", !!_od && !onBoat && _wasBoat, "ok=" + _od + " onBoat=" + onBoat);
+        }
+      }
+      onBoat = false;
+      cancelFishing();
+      closeDialogue();
+
       /* 20260905eh: ocean saveScene stores visible docked boat + boatDock field */
       onBoat = true;
       applyScene("ocean");
