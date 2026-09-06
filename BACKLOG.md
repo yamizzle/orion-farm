@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ey): bag-only ore smelt — fireplace now smelts copper/silver/goldore that live only in the BAG grid (Jobs already tip'd SMELT ORE; cook fish already had this fallback; was THE FIRE WANTS ORE with ore in bag). Never START OVER.
+
 Local 9/6 (BUILD 20260905ex): ocean beach exit landing — leave OCEAN / beach-gate refresh nudge no longer drops you one tile north of the walk-in band (ty>=37); land at (14,35) so one south step cannot auto-reenter (same 2-tile gap as outdoor doors 05ew / forest exit). Never START OVER.
 
 Local 9/6 (BUILD 20260905ew): outdoor door exit landings — HOUSE/SHOP/MINE/cottage/tallCottage/L-house exit + bird-ride home/town/cave + refresh nudge no longer drop you one tile south of the auto-enter stoop; land 2 tiles south (cottage2 SE at 63,27 — L-house blocks straight south) so one north step cannot auto-reenter. Never START OVER.

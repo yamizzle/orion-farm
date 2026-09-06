@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ex";
+  var BUILD = "20260905ey";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10270,9 +10270,16 @@
   }
 
   function doSmeltNow() {
-    var ore, bar, fire;
+    var ore, bar, fire, i, ores;
     if (currentScene !== "house") return false;
     ore = selectedSmeltOre();
+    if (!ore) {
+      /* 20260905ey: bag-only ore — cook already fell back; smelt still said THE FIRE WANTS ORE. */
+      ores = ["copper", "silver", "goldore"];
+      for (i = 0; i < ores.length; i++) {
+        if (bagCount(ores[i]) > 0) { ore = ores[i]; break; }
+      }
+    }
     if (!ore || bagCount(ore) < 1) {
       showLineNote("THE FIRE WANTS ORE.");
       return false;
@@ -23726,6 +23733,18 @@ if (currentScene === "ocean") goExitOcean();
       applyScene("house");
       var hn = nudgeRestoreOffGate(houseOut.tx, houseOut.ty, "down");
       ok("houseOutNudge", !!(hn && hn.tx === 10 && hn.ty === 8), hn && (hn.tx + "," + hn.ty));
+      /* 20260905ey: bag-only copper still smelts (Jobs tip used bagCount; fireplace did not). */
+      var _ti, _bi;
+      for (_ti = 0; _ti < TRAY_CELLS; _ti++) trayCells[_ti] = null;
+      for (_bi = 0; _bi < BAG_CELLS; _bi++) bagCells[_bi] = null;
+      bagHeld = null; bagHeldFrom = null;
+      selectedSlot = 0;
+      bagCells[0] = { key: "copper", count: 2 };
+      syncBagCounts();
+      var _cu0 = bagCount("copper");
+      var _cb0 = bagCount("copperBar");
+      var _smOk = doSmeltNow();
+      ok("smeltBagOnlyOre", !!_smOk && bagCount("copper") === _cu0 - 1 && bagCount("copperBar") === _cb0 + 1, "cu=" + bagCount("copper") + " bar=" + bagCount("copperBar") + " did=" + _smOk);
       applyScene("shop");
       var sn = nudgeRestoreOffGate(shopOut.tx, shopOut.ty, "down");
       ok("shopOutNudge", !!(sn && sn.tx === 8 && sn.ty === 6), sn && (sn.tx + "," + sn.ty));
