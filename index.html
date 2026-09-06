@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gc";
+  var BUILD = "20260905gd";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -3590,6 +3590,16 @@
 
   /* 20260905fz: peak cave / climb Space also accepts orthogonal adjacent
      (facing-only left side-of-mouth silent; tap already goPeakCave'd). */
+  function nearPeakSign() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || p.kind !== "peakSign") continue;
+      if (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty)) return p;
+    }
+    return null;
+  }
+
   function tryPeakDoors() {
     var f, spots, i, t;
     function orthoSpots() {
@@ -3630,6 +3640,12 @@
           return true;
         }
       }
+      /* 20260905gd: peakSign Space (tap already goPeakCave'd; cave-band ortho
+         missed south-of-sign / side tiles that only hit the sign prop). */
+      if (nearPeakSign()) {
+        enterClimbFloor(2, "mouth");
+        return true;
+      }
       return false;
     }
     if (isMinePeakStairs(player.tx, player.ty)) {
@@ -3649,6 +3665,12 @@
           enterClimbFloor(1, "up");
           return true;
         }
+      }
+      /* 20260905gd: mine peakSign Space — sign at (21,5) is diagonal from stairs
+         (22,6); underfoot/adjacent sign was a silent no-op (tap already goMinePeakStairs'd). */
+      if (nearPeakSign()) {
+        enterClimbFloor(1, "up");
+        return true;
       }
     }
     if (currentScene !== "caveclimb") return false;
@@ -24214,7 +24236,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gc", BUILD);
+      ok("BUILD", BUILD === "20260905gd", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25230,6 +25252,46 @@ if (currentScene === "ocean") goExitOcean();
           var _bbOk = tryPickBerryAdjacent();
           var _bbGone = PROPS.indexOf(_bb) < 0;
           ok("spaceBerryAdjacent", !!_bbOk && _bbBefore && _bbGone, "ok=" + _bbOk + " before=" + _bbBefore + " gone=" + _bbGone);
+        }
+      }
+
+      /* 20260905gd: Space peakSign underfoot/adjacent (mine stairs + peak cave). */
+      applyScene("mine", 6);
+      closeDialogue();
+      var _ps = null, _psi;
+      for (_psi = 0; _psi < PROPS.length; _psi++) {
+        if (PROPS[_psi] && PROPS[_psi].kind === "peakSign") { _ps = PROPS[_psi]; break; }
+      }
+      ok("spaceMinePeakSignFound", !!_ps, "sign");
+      if (_ps) {
+        placePlayer(_ps.tx, _ps.ty, "down");
+        if (!walkable(player.tx, player.ty)) {
+          if (walkable(_ps.tx, _ps.ty + 1)) placePlayer(_ps.tx, _ps.ty + 1, "up");
+          else if (walkable(_ps.tx - 1, _ps.ty)) placePlayer(_ps.tx - 1, _ps.ty, "right");
+          else if (walkable(_ps.tx + 1, _ps.ty)) placePlayer(_ps.tx + 1, _ps.ty, "left");
+        }
+        player.face = "down";
+        var _psOk = tryPeakDoors();
+        ok("spaceMinePeakSign", !!_psOk && currentScene === "caveclimb", "ok=" + _psOk + " scene=" + currentScene);
+      }
+      applyScene("peak");
+      closeDialogue();
+      var _pks = null;
+      for (_psi = 0; _psi < PROPS.length; _psi++) {
+        if (PROPS[_psi] && PROPS[_psi].kind === "peakSign") { _pks = PROPS[_psi]; break; }
+      }
+      ok("spacePeakSignFound", !!_pks, "sign");
+      if (_pks) {
+        var _pksStand = null;
+        if (walkable(_pks.tx, _pks.ty + 1)) _pksStand = { tx: _pks.tx, ty: _pks.ty + 1, face: "down" };
+        else if (walkable(_pks.tx, _pks.ty)) _pksStand = { tx: _pks.tx, ty: _pks.ty, face: "down" };
+        else if (walkable(_pks.tx + 1, _pks.ty)) _pksStand = { tx: _pks.tx + 1, ty: _pks.ty, face: "left" };
+        else if (walkable(_pks.tx - 1, _pks.ty)) _pksStand = { tx: _pks.tx - 1, ty: _pks.ty, face: "right" };
+        ok("spacePeakSignAdjStand", !!_pksStand, "stand");
+        if (_pksStand) {
+          placePlayer(_pksStand.tx, _pksStand.ty, _pksStand.face);
+          var _pksOk = tryPeakDoors();
+          ok("spacePeakSignAdjacent", !!_pksOk && currentScene === "caveclimb", "ok=" + _pksOk + " scene=" + currentScene);
         }
       }
 
