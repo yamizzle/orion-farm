@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gp): craft recipe equip + boat Space adjacent leftover — workbench craft pins + selects the axe/shovel/pick/bow/sword (tray-full / wood-selected crafts left tool bag-only or unselected — same cook/catch equip gap); OWNED recipe tap arms the tool too; tryOceanDoors finally talks the rowboat from an adjacent hull tile (facing/underfoot existed; side was only via later tryTalkAdjacent). Never START OVER.
+
 Local 9/6 (BUILD 20260905go): Space fish adjacent + tap-walk cast — standing next to a farm pond / ocean water tile (facing away) with the pole selected, Space / J / E finally casts (tap already tryFishTap'd; facing Space existed via tryFishFacing; adjacent-not-facing was a silent no-op like pre-05gm dig/place); tap-walk to the bank finally casts on arrive (was walk-only silent). Never START OVER.
 
 Local 9/6 (BUILD 20260905gn): ground loot pick select — picking a ground loot pile pins + selects the stack (tray-tap eat / plant / cook / path tip need selected; pick left potato/wood/ore bag-only or unselected — same chest TAKE equip gap as 05gj). Never START OVER.

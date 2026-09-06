@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905go";
+  var BUILD = "20260905gp";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -4425,6 +4425,28 @@
     if (propAt(f.tx, f.ty) && propAt(f.tx, f.ty).kind === "rowboat") {
       goTalkBoat(propAt(f.tx, f.ty));
       return true;
+    }
+    /* 20260905gp: adjacent rowboat Space in tryOceanDoors (facing/underfoot existed;
+       side-of-hull was only via later tryTalkAdjacent — mirror exit/cave adjacent loops). */
+    spots = [
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      t = spots[i];
+      if (propAt(t.tx, t.ty) && propAt(t.tx, t.ty).kind === "rowboat") {
+        talkBoat();
+        return true;
+      }
+    }
+    {
+      var _rb = findRowboat();
+      if (_rb && !_rb.hidden && nearProp(_rb)) {
+        talkBoat();
+        return true;
+      }
     }
     return false;
   }
@@ -10885,6 +10907,36 @@
     };
   }
 
+  /* Map workbench recipe id → tray/bag key (pickaxe recipe uses pick). */
+  function craftToolKey(rec) {
+    if (!rec) return "";
+    if (rec.id === "axe") return "axe";
+    if (rec.id === "shovel") return "shovel";
+    if (rec.id === "pickaxe") return "pick";
+    if (rec.id === "bow") return "bow";
+    if (rec.id === "ironSword") return "sword";
+    return "";
+  }
+
+  /* 20260905gp: pin + select crafted / owned recipe tool — tray-tap chop/dig/mine/shoot
+     needs selected tool; tray-full / wood-selected crafts left axe bag-only or unselected
+     (same equip gap as cook 05fk / catch 05gi); OWNED row tap also arms the tool. */
+  function craftEquipRecipe(rec) {
+    var key;
+    if (!rec) return false;
+    if (rec.id === "shield") return false;
+    if (rec.id === "ironSword") {
+      if (!swordOwned && !ironSwordOwned) return false;
+      forceSwordIntoTray();
+      return !!selectTool("sword");
+    }
+    key = craftToolKey(rec);
+    if (!key) return false;
+    if (bagCount(key) < 1) return false;
+    placeToolInTrayFirst(key);
+    return !!selectTool(key);
+  }
+
   function doCraft(rec) {
     var bench;
     if (!craftCanMake(rec)) {
@@ -10896,6 +10948,8 @@
       if (craftOwned(rec)) {
         playSfx("toast");
         if (player) spawnBagFullSparks(player.x, player.y - 10);
+        /* 20260905gp: OWNED toast path still arms the tool if present. */
+        craftEquipRecipe(rec);
       }
       return;
     }
@@ -10913,6 +10967,8 @@
       forceSwordIntoTray();
       selectTool("sword");
     }
+    /* 20260905gp: always re-pin + select after make (tray-full / wood-selected gap). */
+    craftEquipRecipe(rec);
     persistSave();
     playSfx("craft");
     craftMsg = rec.made;
@@ -10940,6 +10996,8 @@
             craftMsg = "OWNED! ALREADY MADE.";
             playSfx("toast");
             if (player) spawnBagFullSparks(player.x, player.y - 10);
+            /* 20260905gp: OWNED recipe tap pins + selects the tool. */
+            craftEquipRecipe(rec);
           } else if (rec.needSword && !swordOwned) craftMsg = "NEED THE MINE SWORD.";
           else if (recIron(rec) && bagCount("iron") < recIron(rec)) craftMsg = "NEED IRON FROM THE MINE.";
           else craftMsg = "NEED MORE STUFF.";
@@ -24540,7 +24598,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905go", BUILD);
+      ok("BUILD", BUILD === "20260905gp", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24763,6 +24821,31 @@ if (currentScene === "ocean") goExitOcean();
       ok("ironSwordOwnedCraft", !!ironSwordOwned, "owned=" + ironSwordOwned);
       ok("ironSwordPinned", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
       ok("ironSwordSelected", !!swordEquipped() && selectedIs("sword"), "sel=" + selectedKey());
+
+      /* 20260905gp: craft axe pins + selects (tray-full wood / wood-selected gap). */
+      axeOwned = false;
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 2 };
+      selectedSlot = 0;
+      bagCells[0] = { key: "stone", count: 5 };
+      syncBagCounts();
+      doCraft({ id: "axe", name: "AXE", wood: 6, stone: 1, icon: "axe", made: "YOU MADE AN AXE!" });
+      ok("craftAxeOwned", !!axeOwned, "owned=" + axeOwned);
+      ok("craftAxePinnedSelected", !!axeOwned && selectedIs("axe") && bagCount("axe") >= 1,
+        "sel=" + selectedKey() + " n=" + bagCount("axe") + " tray0=" + (trayCells[0] && trayCells[0].key));
+      /* OWNED recipe tap arms axe when wood is selected. */
+      selectedSlot = 0;
+      if (!(trayCells[0] && trayCells[0].key === "axe")) {
+        for (bj = 0; bj < TRAY_CELLS; bj++) {
+          if (trayCells[bj] && trayCells[bj].key === "wood") { selectedSlot = bj; break; }
+        }
+      }
+      /* Force wood selected if axe not already sel — pick a wood tray cell. */
+      for (bj = 0; bj < TRAY_CELLS; bj++) {
+        if (trayCells[bj] && trayCells[bj].key === "wood") { selectedSlot = bj; break; }
+      }
+      ok("craftOwnedEquip", !!craftEquipRecipe({ id: "axe" }) && selectedIs("axe"), "sel=" + selectedKey());
 
       /* 20260905fc: leash buy pins + selects (dog walk needs leashInTray). */
       emptyTray();
