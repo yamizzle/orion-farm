@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905ai): 2× berryBush + toadstool. Never START OVER.
 Local 9/5 (BUILD 20260905ah): 2× fern prop. Never START OVER.
 Local 9/5 (BUILD 20260905ag): 2× peakRocks + wildflower props; prior 05af cave fixes + island diamond pick. Never START OVER.
 Local 9/5 (BUILD 20260905af): cave note no longer exits (OUT pad shrunk); loose cave mushrooms pickable after quest mush; sword reach adjacent-only; island cave Diamond Pickaxe + 10-hit peak rocks. Never START OVER.
