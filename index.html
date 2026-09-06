@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905az";
+  var BUILD = "20260905ba";
   var ASSET_REV = "437639";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -5341,7 +5341,7 @@
   function tileFootY(ty) { return ty * TILE + 14; }
 
   var CAM_PAD_BOTTOM = 36;
-  var CAM_PAD_TOP = 26;
+  var CAM_PAD_TOP = 32;
   var CAM_PLAYER_H = 32;
   function updateCamera() {
     var worldW = COLS * TILE;
@@ -15525,10 +15525,22 @@
     return list;
   }
 
+  /* 20260905ba: northernmost overworld walkable strip keeps Orion in front of
+     rim trees/canopies (tree feet are ty*TILE+24 vs player tileFootY +14, so
+     same-row pines fully hide him). Deeper map keeps cozy Y-sort hide-behind.
+     Do not re-add a global +64 player sort. */
+  function playerDrawFoot() {
+    var foot = player.y;
+    if (currentScene === "overworld" && player.ty <= 2) {
+      foot = Math.max(foot, (player.ty + 5) * TILE + 24);
+    }
+    return foot;
+  }
+
   function collectCreatureActors() {
     var list = [];
     var i;
-    list.push({ foot: player.y, kind: "player" });
+    list.push({ foot: playerDrawFoot(), kind: "player" });
     if (currentScene === "mine") {
       for (i = 0; i < monsters.length; i++) {
         if (monsters[i].hp > 0) list.push({ foot: monsters[i].y, kind: "mon", m: monsters[i] });
@@ -16889,6 +16901,8 @@
     if (currentScene !== "overworld" || !hasOverRim()) return;
     w = COLS * TILE;
     h = ROWS * TILE;
+    /* Drawn after ground tiles (see drawWorld) so the north band overhangs the
+       top walkable row; player/actors paint after this and stay readable. */
     if (Assets.overRimWest) g.drawImage(Assets.overRimWest, -48, 0, 64, h);
     if (Assets.overRimEast) g.drawImage(Assets.overRimEast, w - 16, 0, 64, h);
     if (Assets.overRimNorth) g.drawImage(Assets.overRimNorth, -48, -58, w + 96, 74);
@@ -16905,7 +16919,6 @@
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
-    drawOverRim(g);
     if (currentScene === "treetop" && Assets.canopyMap) {
       g.drawImage(Assets.canopyMap, 0, 0, TREETOP_COLS * TILE, TREETOP_ROWS * TILE);
     }
@@ -17059,6 +17072,9 @@
       }
     }
 
+    /* Rim after ground so north overhang sits on the top grass row; actors
+       (incl. Orion) still draw later — keeps him visible on northern tiles. */
+    drawOverRim(g);
     if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") {
       g.restore();
       drawDayTint(g);
@@ -18681,7 +18697,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905az", BUILD);
+      ok("BUILD", BUILD === "20260905ba", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
