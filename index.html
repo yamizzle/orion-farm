@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ee";
+  var BUILD = "20260905ef";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -9428,13 +9428,15 @@
         }
       }
       syncLilaFlowers();
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
-          face: data.player ? readFace(data.player.face) : "down"
+          face: data.player ? readFace(data.player.face) : "down",
+          /* 20260905ef: keep rowing across refresh (was always foot on load) */
+          onBoat: !!(data.onBoat && data.scene === "ocean")
         };
         if ((data.v | 0) < 4 && pendingRestore.scene === "forest" && pendingRestore.ty < 22) {
           pendingRestore.ty += 44;
@@ -9676,6 +9678,7 @@
         axeOwned: !!axeOwned,
         shovelOwned: !!shovelOwned,
         boatDock: { tx: (boatDock && boatDock.tx) | 0, ty: (boatDock && boatDock.ty) | 0 },
+        onBoat: !!(onBoat && currentScene === "ocean"),
         diamondPickOwned: !!diamondPickOwned,
         poleOwned: !!poleOwned,
         pickaxeOwned: !!pickaxeOwned,
@@ -9773,10 +9776,14 @@
   }
 
   function applyRestore() {
-    var scene, tx, ty, face, spot;
+    var scene, tx, ty, face, spot, wantBoat;
     if (!pendingRestore) return;
     scene = pendingRestore.scene || "overworld";
+    /* 20260905ef: set aboard BEFORE applyScene so ocean walkable + boat hide stick */
+    wantBoat = !!(pendingRestore.onBoat && scene === "ocean");
+    if (wantBoat) onBoat = true;
     if (scene !== currentScene) applyScene(scene);
+    else if (wantBoat) ensureOceanBoat();
     tx = pendingRestore.tx;
     ty = pendingRestore.ty;
     face = pendingRestore.face || "down";
@@ -9798,6 +9805,7 @@
       else if (scene === "cottage2") { tx = 6; ty = 5; face = "up"; }
       else if (scene === "tallCottage") { tx = 8; ty = 7; face = "up"; }
       else if (scene === "lHouse") { tx = 7; ty = 7; face = "up"; }
+      else if (scene === "islandCave") { tx = islandCaveOut.tx; ty = islandCaveOut.ty - 1; face = "up"; }
       else if (scene === "caveclimb") {
         if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
         else { tx = 5; ty = 7; face = "up"; }
@@ -11720,6 +11728,7 @@
     if (currentScene === "treetop") return "TREETOP";
     if (currentScene === "peak") return "PEAK";
     if (currentScene === "ocean") return "OCEAN";
+    if (currentScene === "islandCave") return "ISLAND CAVE";
     if (currentScene === "cottage") return "COTTAGE";
     if (currentScene === "cottage2") return "COTTAGE 2";
     if (currentScene === "tallCottage") return "TALL COTTAGE";

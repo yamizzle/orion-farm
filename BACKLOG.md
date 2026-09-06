@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ef): island-cave + boat save restore — refresh inside the south island cave no longer dumps you on the farm (pendingRestore whitelist + spawn fallback); rowing mid-ocean now persists onBoat so hard-refresh keeps you aboard instead of TOO DEEP unstick; HUD stamp shows ISLAND CAVE. Never START OVER.
+
 Local 9/6 (BUILD 20260905ee): save mid-drag bag stash — if you were holding a bag/tray stack (drag ghost) when the game autosaved / tab-hid / refreshed, that stack was missing from the serialized pockets and could vanish; persistSave now stashBagHeld() first so the stack snaps back into a pocket before write. Never START OVER.
 
 Local 9/5 (BUILD 20260905ed): outside-panel soft click — tapping outside craft/shop/chest/BAG/Stars/Jobs now soft ui clicks like the X / Esc / BYE closes (was silent world-dismiss). Never START OVER.
