@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bc";
-  var ASSET_REV = "437639";
+  var BUILD = "20260905bd";
+  var ASSET_REV = "441506";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -628,15 +628,15 @@
   var minePeakStairs = { tx: 22, ty: 6 };
   var peakRocksAt = { tx: 19, ty: 4 };
   var peakCaveAt = { tx: 18, ty: 25 };
-  var OCEAN_COLS = 48;
-  var OCEAN_ROWS = 40;
-  var oceanLand = { tx: 22, ty: 2 };
-  var boatHome = { tx: 22, ty: 25 };
+  var OCEAN_COLS = 64;
+  var OCEAN_ROWS = 56;
+  var oceanLand = { tx: 30, ty: 2 };
+  var boatHome = { tx: 30, ty: 25 };
   /* Last docked shore spot — boat stays here so kids aren't stranded on the island */
-  var boatDock = { tx: 22, ty: 25 };
+  var boatDock = { tx: 30, ty: 25 };
   var ISLAND_CAVE_COLS = 14;
   var ISLAND_CAVE_ROWS = 10;
-  var islandCaveIn = { tx: 24, ty: 35 };
+  var islandCaveIn = { tx: 32, ty: 49 };
   var islandCaveOut = { tx: 7, ty: 8 };
   var diamondPickOwned = false;
   var onBoat = false;
@@ -3226,48 +3226,64 @@
   function buildOceanGround() {
     var cols = OCEAN_COLS, rows = OCEAN_ROWS;
     var g = [], y, x, row, ch;
-    /* 05ac expanded oceanMap 48x40: wider beach, longer pier path, south sand island stub */
+    /* 05bd expanded oceanMap 64x56: +8 west/east beach, +16 south water, ~3x island further south */
     var walk = [
-      "ffffffffffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffffffffffff",
-      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffffyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffyyyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffyyyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffyyyyyyyyyy",
-      "ffffffffffffffffffffffffffffffffffffffyyyyyyyyyy",
-      "ffffffffffffffffffffffffffffyyyyyyyyyyyyyyyyyyyy",
-      "ffffffffffyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyffffffffyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyffffffffyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyffffffffyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyffffffffyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
-      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffffffffffffffffffffyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "ffffffffffffffffffyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyffyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyffffffffffffffyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyffffffffffffffyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyffffffffffffffyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyffffffffffffffyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyffffffffffffffyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyffffffffffffffyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyffffffffffffffyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
     ];
     for (y = 0; y < rows; y++) {
       row = [];
@@ -3282,45 +3298,50 @@
 
   function buildOceanProps() {
     return [
-      { kind: "oceanSign", tx: 24, ty: 2 },
+      { kind: "oceanSign", tx: 32, ty: 2 },
       { kind: "rowboat", tx: boatHome.tx, ty: boatHome.ty },
-      /* west grove */
-      { kind: "palm", tx: 3, ty: 3 }, { kind: "palm", tx: 6, ty: 5 },
-      { kind: "birch", tx: 10, ty: 4 }, { kind: "palm", tx: 2, ty: 8 },
-      { kind: "oak", tx: 8, ty: 10 }, { kind: "palm", tx: 13, ty: 7 },
-      { kind: "birch", tx: 4, ty: 12 }, { kind: "palm", tx: 15, ty: 11 },
+      /* west grove (wider beach) */
+      { kind: "palm", tx: 2, ty: 3 }, { kind: "palm", tx: 5, ty: 5 },
+      { kind: "birch", tx: 9, ty: 4 }, { kind: "palm", tx: 3, ty: 8 },
+      { kind: "oak", tx: 7, ty: 10 }, { kind: "palm", tx: 12, ty: 7 },
+      { kind: "birch", tx: 4, ty: 12 }, { kind: "palm", tx: 14, ty: 11 },
+      { kind: "palm", tx: 1, ty: 6 }, { kind: "palm", tx: 16, ty: 4 },
       /* east grove on wider shore */
-      { kind: "palm", tx: 28, ty: 3 }, { kind: "palm", tx: 32, ty: 5 },
-      { kind: "birch", tx: 35, ty: 4 }, { kind: "palm", tx: 30, ty: 8 },
-      { kind: "oak", tx: 34, ty: 10 }, { kind: "palm", tx: 27, ty: 6 },
-      { kind: "palm", tx: 36, ty: 7 }, { kind: "palm", tx: 29, ty: 12 },
-      { kind: "berryBush", tx: 5, ty: 7 }, { kind: "berryBush", tx: 12, ty: 5 },
-      { kind: "berryBush", tx: 14, ty: 12 }, { kind: "berryBush", tx: 26, ty: 4 },
-      { kind: "berryBush", tx: 31, ty: 11 }, { kind: "berryBush", tx: 35, ty: 8 },
-      { kind: "berryBush", tx: 18, ty: 9 }, { kind: "berryBush", tx: 38, ty: 6 },
-      { kind: "wildflower", tx: 4, ty: 2 }, { kind: "wildflower", tx: 7, ty: 3 },
-      { kind: "wildflower", tx: 11, ty: 9 }, { kind: "wildflower", tx: 15, ty: 6 },
-      { kind: "wildflower", tx: 16, ty: 12 }, { kind: "wildflower", tx: 25, ty: 5 },
-      { kind: "wildflower", tx: 28, ty: 10 }, { kind: "wildflower", tx: 33, ty: 2 },
-      { kind: "wildflower", tx: 36, ty: 12 }, { kind: "wildflower", tx: 9, ty: 1 },
-      { kind: "wildflower", tx: 20, ty: 8 }, { kind: "wildflower", tx: 39, ty: 9 },
-      { kind: "fern", tx: 1, ty: 5 }, { kind: "fern", tx: 16, ty: 8 },
-      { kind: "fern", tx: 26, ty: 9 }, { kind: "fern", tx: 19, ty: 4 },
-      { kind: "fern", tx: 37, ty: 5 },
-      { kind: "toadstool", tx: 7, ty: 9 }, { kind: "toadstool", tx: 30, ty: 5 },
-      { kind: "toadstool", tx: 11, ty: 12 }, { kind: "toadstool", tx: 34, ty: 12 },
-      { kind: "rock", tx: 3, ty: 11 }, { kind: "rock", tx: 36, ty: 11 },
-      { kind: "rock", tx: 10, ty: 16 }, { kind: "rock", tx: 40, ty: 14 },
-      { kind: "rock", tx: 17, ty: 15 },
-      { kind: "tallGrass", tx: 6, ty: 12, regrow: true },
-      { kind: "tallGrass", tx: 13, ty: 3, regrow: true },
-      { kind: "tallGrass", tx: 27, ty: 12, regrow: true },
-      { kind: "tallGrass", tx: 33, ty: 3, regrow: true },
-      { kind: "tallGrass", tx: 38, ty: 10, regrow: true },
-      /* south island — cave to Diamond Pickaxe */
+      { kind: "palm", tx: 40, ty: 3 }, { kind: "palm", tx: 45, ty: 5 },
+      { kind: "birch", tx: 50, ty: 4 }, { kind: "palm", tx: 42, ty: 8 },
+      { kind: "oak", tx: 48, ty: 10 }, { kind: "palm", tx: 38, ty: 6 },
+      { kind: "palm", tx: 52, ty: 7 }, { kind: "palm", tx: 44, ty: 12 },
+      { kind: "palm", tx: 55, ty: 5 }, { kind: "palm", tx: 58, ty: 9 },
+      { kind: "berryBush", tx: 6, ty: 7 }, { kind: "berryBush", tx: 13, ty: 5 },
+      { kind: "berryBush", tx: 15, ty: 12 }, { kind: "berryBush", tx: 36, ty: 4 },
+      { kind: "berryBush", tx: 46, ty: 11 }, { kind: "berryBush", tx: 51, ty: 8 },
+      { kind: "berryBush", tx: 22, ty: 9 }, { kind: "berryBush", tx: 56, ty: 6 },
+      { kind: "wildflower", tx: 4, ty: 2 }, { kind: "wildflower", tx: 8, ty: 3 },
+      { kind: "wildflower", tx: 11, ty: 9 }, { kind: "wildflower", tx: 17, ty: 6 },
+      { kind: "wildflower", tx: 20, ty: 12 }, { kind: "wildflower", tx: 37, ty: 5 },
+      { kind: "wildflower", tx: 41, ty: 10 }, { kind: "wildflower", tx: 47, ty: 2 },
+      { kind: "wildflower", tx: 53, ty: 12 }, { kind: "wildflower", tx: 10, ty: 1 },
+      { kind: "wildflower", tx: 28, ty: 8 }, { kind: "wildflower", tx: 59, ty: 9 },
+      { kind: "fern", tx: 2, ty: 5 }, { kind: "fern", tx: 18, ty: 8 },
+      { kind: "fern", tx: 39, ty: 9 }, { kind: "fern", tx: 24, ty: 4 },
+      { kind: "fern", tx: 54, ty: 5 },
+      { kind: "toadstool", tx: 8, ty: 9 }, { kind: "toadstool", tx: 43, ty: 5 },
+      { kind: "toadstool", tx: 12, ty: 12 }, { kind: "toadstool", tx: 49, ty: 12 },
+      { kind: "rock", tx: 4, ty: 11 }, { kind: "rock", tx: 50, ty: 11 },
+      { kind: "rock", tx: 11, ty: 16 }, { kind: "rock", tx: 57, ty: 14 },
+      { kind: "rock", tx: 25, ty: 15 },
+      { kind: "tallGrass", tx: 7, ty: 12, regrow: true },
+      { kind: "tallGrass", tx: 14, ty: 3, regrow: true },
+      { kind: "tallGrass", tx: 40, ty: 12, regrow: true },
+      { kind: "tallGrass", tx: 46, ty: 3, regrow: true },
+      { kind: "tallGrass", tx: 55, ty: 10, regrow: true },
+      /* south island — cave to Diamond Pickaxe (enterable; pick visible inside) */
       { kind: "caveMouth", tx: islandCaveIn.tx, ty: islandCaveIn.ty },
-      { kind: "palm", tx: 23, ty: 35 }, { kind: "palm", tx: 26, ty: 36 }, { kind: "palm", tx: 21, ty: 36 },
-      { kind: "oceanSign", tx: 24, ty: 34, label: "ISLAND" }
+      { kind: "palm", tx: 27, ty: 48 }, { kind: "palm", tx: 36, ty: 48 },
+      { kind: "palm", tx: 26, ty: 51 }, { kind: "palm", tx: 37, ty: 51 },
+      { kind: "palm", tx: 31, ty: 47 }, { kind: "palm", tx: 33, ty: 52 },
+      { kind: "wildflower", tx: 28, ty: 50 }, { kind: "wildflower", tx: 35, ty: 50 },
+      { kind: "oceanSign", tx: 32, ty: 47, label: "ISLAND" }
     ];
   }
 
@@ -3373,7 +3394,7 @@
       placePlayer(islandCaveIn.tx, islandCaveIn.ty, "down");
     }
     if (!walkable(player.tx, player.ty)) {
-      placePlayer(23, 35, "down");
+      placePlayer(islandCaveIn.tx, islandCaveIn.ty + 1, "down");
     }
     unstickPlayer();
     persistSave();
@@ -3419,7 +3440,7 @@
   }
 
   function isOceanExit(tx, ty) {
-    return currentScene === "ocean" && ty <= 0 && tx >= 21 && tx <= 24;
+    return currentScene === "ocean" && ty <= 0 && tx >= 29 && tx <= 32;
   }
 
   function enterOcean() {
@@ -3580,8 +3601,8 @@
   function boatShoreSpot() {
     var spots, i, s;
     spots = [
-      { tx: 18, ty: 21 }, { tx: 19, ty: 21 }, { tx: 18, ty: 24 }, { tx: 19, ty: 24 },
-      { tx: 21, ty: 24 }, { tx: 20, ty: 24 }, { tx: 24, ty: 24 }, { tx: oceanLand.tx, ty: oceanLand.ty }
+      { tx: 26, ty: 21 }, { tx: 27, ty: 21 }, { tx: 26, ty: 24 }, { tx: 27, ty: 24 },
+      { tx: 29, ty: 24 }, { tx: 28, ty: 24 }, { tx: 32, ty: 24 }, { tx: oceanLand.tx, ty: oceanLand.ty }
     ];
     for (i = 0; i < spots.length; i++) {
       s = spots[i];
@@ -15364,6 +15385,11 @@
       else if (!drawAtlas2x(g, "window", x, y)) Assets.draw(g, "window", x, y);
     } else if (p.kind === "doormat") {
       if (!drawAtlas2x(g, "doormat", x, y)) Assets.draw(g, "doormat", x, y);
+      /* 05bd: house/shop/cave exit mat shows OUT like mine ladder */
+      if (currentScene === "house" || currentScene === "shop" || currentScene === "cottage" ||
+          currentScene === "cottage2" || currentScene === "islandCave") {
+        drawShaftLabel(g, p, "OUT");
+      }
     } else if (p.kind === "inndoor") {
       if (!drawAtlas2x(g, "inndoor", x, y)) Assets.draw(g, "inndoor", x, y);
     } else if (p.kind === "tree") {
@@ -15461,8 +15487,11 @@
     } else if (p.kind === "note") {
       if (!drawAtlas2x(g, "note", x, y)) Assets.draw(g, "note", x, y);
     } else if (p.kind === "diamondPickaxe") {
+      /* 05bd: full visible world icon (not half-scale) so kids see it in the island cave */
       var dbob = Math.round(Math.sin(tick / 280) * 1);
-      if (!drawUiIcon(g, "diamondPickaxe", x, y + dbob)) Assets.draw(g, "diamondPickaxe", x, y + dbob, 0, 0.5);
+      if (!drawUiIcon(g, "diamondPickaxe", x, y + dbob)) {
+        if (!drawAtlas2x(g, "diamondPickaxe", x, y + dbob)) Assets.draw(g, "diamondPickaxe", x, y + dbob);
+      }
     } else if (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
                p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
                p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore") {
@@ -16787,7 +16816,14 @@
 
   function drawHUD(g) {
     woodPanel(g, 4, 3, 18, 18);
-    Assets.draw(g, "trophy", 5, 4);
+    /* 05bd: small starBadge in wood panel — not full 32px trophy over hearts */
+    var starSpr = Assets.spr.starBadge;
+    if (starSpr && Assets.img) {
+      g.imageSmoothingEnabled = false;
+      g.drawImage(Assets.img, starSpr.x, starSpr.y, starSpr.fw || starSpr.w, starSpr.h, 5, 4, 16, 16);
+    } else {
+      Assets.draw(g, "starBadge", 5, 4);
+    }
     woodPanel(g, 24, 3, 18, 18);
     drawBook(g, 25, 4);
     if (jobOpen()) {
