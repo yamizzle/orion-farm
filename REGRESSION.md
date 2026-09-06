@@ -55,7 +55,8 @@ Status column: **KEEP** = still required in new builds.
 | **Only one fishing pole** forever (dedupe tray/bag/chest/held; Pip BUY shows OWNED; never stack>1) | 20260904g + 20260905bg | KEEP |
 | **Only one weapon** in the 10-tray at a time (sword/bow); second parks in bag; tools (axe/pick/shovel/pole/diamondPick) stay | 20260905ay | KEEP |
 | Cave sword pins tray slot 0 (evicts bow); tray sword stays findable | 04c / 05ay | KEEP |
-| Buys / crafts / catches / chest TAKE that kids need next **pin + select** into tray (not bag-only dead ends) | 05fe–05gt wave (keep behavior) | KEEP |
+| Buys / crafts / chest TAKE / cook / smelt / placeable pick-up that kids need next **pin + select** into tray (not bag-only dead ends) | 05fe–05gt wave (keep behavior) | KEEP |
+| **Selected tool stays selected** across dig/chop/mine loot walk-ons + fish catch + collectible pick — still **pin** loot into tray; do not steal shovel/axe/pick/pole/seeds/weapon; empty hand still auto-selects | 20260905hp | KEEP |
 | Dedicated **weapon dock** (sword/bow only); tray is tools/seeds/food; second weapon swaps into dock and old goes to bag; BAG open shows big dock + **WEAPON** ghost when empty | 20260905hm | KEEP |
 | **Bow selectable from weapon dock** — soft sword-ensure must not kick a parked bow; bag→dock swap / dock tap arms bow; hard pin only on cave claim / iron craft / giveTool sword; sword pad select still works | 20260905ho | KEEP |
 

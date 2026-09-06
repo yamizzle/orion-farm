@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ho";
+  var BUILD = "20260905hp";
   var ASSET_REV = "464870";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -8336,13 +8336,10 @@
     /* Add now (visual fly uses amount 0) so pin/select can arm tray-tap eat / cook / place. */
     addItem(pile.kind, take);
     spawnPickup(pile.kind, pile.tx, pile.ty, 0);
-    /* 20260905gn: pin + select ground loot — tray-tap eat / plant / cook / path tip need selected;
-       pick left food/ore/wood bag-only or unselected (same chest TAKE equip gap as 05gj). */
+    /* 20260905gn + 20260905hp: pin ground loot into tray (tray-tap tip when empty-handed);
+       keep shovel/axe/pick/pole/seeds/weapon selected across dig/chop/mine loot walk-ons. */
     key = stackKey(pile.kind);
-    if (key) {
-      placeToolInTrayFirst(key);
-      selectTool(key);
-    }
+    if (key) pinPickupKeepHeld(key);
     persistSave();
     /* 20260905da: gold coins get warm sparkle; other loot keeps soft sparks */
     /* 20260905dc: metal / bar piles get metal sparkle */
@@ -8980,6 +8977,19 @@
       }
     }
     return false;
+  }
+
+  /* 20260905hp: pin loot/catch/collectible into the tray, but do NOT yank the
+     kid's held tool (shovel/axe/pick/pole/seeds/weapon/…). Empty hand still
+     auto-selects (05gn tray-tap tip). Shop / craft / chest TAKE / cook / smelt
+     keep calling selectTool directly. */
+  function pinPickupKeepHeld(key) {
+    var held;
+    if (!key) return false;
+    placeToolInTrayFirst(key);
+    held = selectedKey();
+    if (held && isToolKey(held) && held !== key) return true;
+    return !!selectTool(key);
   }
 
   function giveTool(key) {
@@ -16764,12 +16774,9 @@
     player.swing = 0;
     if (fish) {
       addItem(fish.id, 1);
-      /* 20260905gi: pin + select catch — tray-tap eat / stove cook tip need selected fish;
-         tray-full / pole-selected catches left fish bag-only or unselected (same equip gap as cook 05fk). */
-      if (bagCount(fish.id) >= 1) {
-        placeToolInTrayFirst(fish.id);
-        selectTool(fish.id);
-      }
+      /* 20260905gi + 20260905hp: pin catch into tray; keep pole selected for another cast
+         (empty hand still arms the fish for tray-tap eat / cook tip). */
+      if (bagCount(fish.id) >= 1) pinPickupKeepHeld(fish.id);
       if (fish.id === "goldenSwordfish") {
         showLineNote("WOW! A GOLDEN SWORDFISH!");
         /* 20260905dn: special gold sparkle for the rare ocean catch */
@@ -18791,9 +18798,8 @@
       if (!pipDone) {
         addItem("copper", 1);
         spawnPickup("copper", prop.tx, prop.ty, 0);
-        /* 20260905gr: pin + select gem-copper (Pip lantern; was fly-in bag-only). */
-        placeToolInTrayFirst("copper");
-        selectTool("copper");
+        /* 20260905gr + 20260905hp: pin gem-copper; keep held tool. */
+        pinPickupKeepHeld("copper");
       }
       spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
       persistSave();
@@ -18804,9 +18810,8 @@
       found.iron = true;
       addItem("iron", 1);
       spawnPickup("iron", prop.tx, prop.ty, 0);
-      /* 20260905gr: pin + select iron (craft tip; was fly-in-only so never selected). */
-      placeToolInTrayFirst("iron");
-      selectTool("iron");
+      /* 20260905gr + 20260905hp: pin iron; keep held tool. */
+      pinPickupKeepHeld("iron");
       /* 20260905dc: metal pickup sparkle */
       spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, "iron");
       persistSave();
@@ -18862,10 +18867,8 @@
       if (i >= 0) PROPS.splice(i, 1);
       addItem("mushroom", 1);
       spawnPickup("mushroom", prop.tx, prop.ty, 0);
-      /* 20260905gr: pin + select collectible — tray-tap eat needs selected;
-         tray-full picks left mushroom bag-only or unselected (same ground-loot equip gap as 05gn). */
-      placeToolInTrayFirst("mushroom");
-      selectTool("mushroom");
+      /* 20260905gr + 20260905hp: pin mushroom; keep held tool across pickup. */
+      pinPickupKeepHeld("mushroom");
       spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
       rememberHarvest(prop, "toadstool", "gone");
       unlockAch("caveSnack");
@@ -18896,12 +18899,9 @@
       if (i >= 0) PROPS.splice(i, 1);
       addItem(prop.kind, 1);
       spawnPickup(prop.kind, prop.tx, prop.ty, 0);
-      /* 20260905gr: pin + select ore/loose find (smelt / tray-tap; same 05gn equip gap). */
+      /* 20260905gr + 20260905hp: pin ore/loose; keep held tool. */
       key = stackKey(prop.kind);
-      if (key) {
-        placeToolInTrayFirst(key);
-        selectTool(key);
-      }
+      if (key) pinPickupKeepHeld(key);
       /* 20260905dc: metal pickup sparkle */
       if (isMetalLoot(prop.kind)) spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, prop.kind);
       else spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
@@ -18914,13 +18914,10 @@
     found[prop.kind] = true;
     addItem(prop.kind, 1);
     spawnPickup(prop.kind, prop.tx, prop.ty, 0);
-    /* 20260905gr: pin + select copper/mushroom/moonshard (Pip / eat / HOME tip;
-       tray-full left bag-only or unselected — same 05gn equip gap). */
+    /* 20260905gr + 20260905hp: pin copper/mushroom/moonshard; keep held tool
+       (empty hand still arms for Pip / eat / HOME tip). */
     key = stackKey(prop.kind);
-    if (key) {
-      placeToolInTrayFirst(key);
-      selectTool(key);
-    }
+    if (key) pinPickupKeepHeld(key);
     /* 20260905dc: metal pickup sparkle (copper / iron) */
     if (isMetalLoot(prop.kind)) spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, prop.kind);
     else spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
@@ -26105,7 +26102,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ho", BUILD);
+      ok("BUILD", BUILD === "20260905hp", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26506,7 +26503,9 @@ if (currentScene === "ocean") goExitOcean();
         bite: true, fish: fishKindById("trout"), bobX: 0, bobY: 0, splash: 0
       };
       finishFishingReel();
-      ok("catchPinnedSelected", selectedIs("trout") && bagCount("trout") >= 1, "sel=" + selectedKey() + " n=" + bagCount("trout"));
+      /* 20260905hp: catch pins fish but keeps pole armed for another cast. */
+      ok("catchPinnedSelected", selectedIs("pole") && toolEquipped("pole") && bagCount("trout") >= 1 && trayHasKey("trout") >= 0,
+        "sel=" + selectedKey() + " n=" + bagCount("trout") + " tray=" + trayHasKey("trout"));
       fishing = null;
 
       /* 20260905gj: chest TAKE pins + selects (tray-tap eat). */
@@ -26538,7 +26537,17 @@ if (currentScene === "ocean") goExitOcean();
       var _lx = player.tx, _ly = player.ty;
       spawnGroundLoot("potato", _lx, _ly, 1);
       ok("lootPilePresent", lootAtTile(_lx, _ly).length >= 1, "n=" + lootAtTile(_lx, _ly).length);
-      ok("lootPickPinnedSelected", !!collectLootAt(_lx, _ly) && selectedIs("potato") && bagCount("potato") >= 1,
+      /* 20260905hp: tool stays selected; loot still pins into tray. */
+      ok("lootPickKeepsTool", !!collectLootAt(_lx, _ly) && selectedIs("axe") && toolEquipped("axe") && bagCount("potato") >= 1 && trayHasKey("potato") >= 0,
+        "sel=" + selectedKey() + " n=" + bagCount("potato") + " tray=" + trayHasKey("potato"));
+      /* Empty hand still auto-selects (05gn tray-tap tip). */
+      emptyTray();
+      emptyBag();
+      selectedSlot = 0;
+      axeOwned = true;
+      syncBagCounts();
+      spawnGroundLoot("potato", _lx, _ly, 1);
+      ok("lootPickEmptyHandSelects", !!collectLootAt(_lx, _ly) && selectedIs("potato") && bagCount("potato") >= 1,
         "sel=" + selectedKey() + " n=" + bagCount("potato"));
 
       /* 20260905gq: fence pick-up pins + selects wood (TAP BUILD / fence-kit buy gap). */
@@ -26708,8 +26717,8 @@ if (currentScene === "ocean") goExitOcean();
       var _cp = { kind: "mushroom", tx: player.tx, ty: player.ty };
       PROPS.push(_cp);
       pickupCollectible(_cp);
-      ok("collectiblePickPinnedSelected", selectedIs("mushroom") && bagCount("mushroom") >= 1,
-        "sel=" + selectedKey() + " n=" + bagCount("mushroom"));
+      ok("collectiblePickKeepsTool", selectedIs("axe") && toolEquipped("axe") && bagCount("mushroom") >= 1 && trayHasKey("mushroom") >= 0,
+        "sel=" + selectedKey() + " n=" + bagCount("mushroom") + " tray=" + trayHasKey("mushroom"));
       /* toadstool → mushroom equip */
       emptyTray();
       emptyBag();
@@ -26719,8 +26728,8 @@ if (currentScene === "ocean") goExitOcean();
       var _ts = { kind: "toadstool", tx: player.tx, ty: player.ty };
       PROPS.push(_ts);
       pickupCollectible(_ts);
-      ok("toadstoolPickEquipsMush", selectedIs("mushroom") && bagCount("mushroom") >= 1,
-        "sel=" + selectedKey() + " n=" + bagCount("mushroom"));
+      ok("toadstoolPickKeepsTool", selectedIs("axe") && toolEquipped("axe") && bagCount("mushroom") >= 1 && trayHasKey("mushroom") >= 0,
+        "sel=" + selectedKey() + " n=" + bagCount("mushroom") + " tray=" + trayHasKey("mushroom"));
       /* iron deep find immediate + select */
       emptyTray();
       emptyBag();
@@ -26731,10 +26740,23 @@ if (currentScene === "ocean") goExitOcean();
       var _ir = { kind: "iron", tx: player.tx, ty: player.ty };
       PROPS.push(_ir);
       pickupCollectible(_ir);
-      ok("ironDeepFindEquips", selectedIs("iron") && bagCount("iron") >= 1 && !!found.iron,
-        "sel=" + selectedKey() + " n=" + bagCount("iron"));
+      ok("ironDeepFindKeepsTool", selectedIs("axe") && toolEquipped("axe") && bagCount("iron") >= 1 && trayHasKey("iron") >= 0 && !!found.iron,
+        "sel=" + selectedKey() + " n=" + bagCount("iron") + " tray=" + trayHasKey("iron"));
       if (typeof closeDialogue === "function") closeDialogue();
       dialogue = null;
+
+      /* 20260905hp: shovel stays selected after dig loot walk-on. */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "shovel", count: 1 };
+      selectedSlot = 0;
+      shovelOwned = true;
+      syncBagCounts();
+      _lx = player.tx; _ly = player.ty;
+      spawnGroundLoot("copper", _lx, _ly, 1);
+      ok("shovelDigLootKeepsShovel", !!collectLootAt(_lx, _ly) && selectedIs("shovel") && toolEquipped("shovel") && bagCount("copper") >= 1 && trayHasKey("copper") >= 0,
+        "sel=" + selectedKey() + " n=" + bagCount("copper"));
 
       /* 20260905fl: Space plant seed / flower / path place facing. */
       applyScene("overworld");
