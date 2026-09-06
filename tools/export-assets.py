@@ -197,12 +197,25 @@ class Pix:
     def save(self, path: Path):
         write_png(path, self.w, self.h, bytes(self.data))
 
+    def scrub_chroma(self) -> "Pix":
+        """20260905bp: never ship opaque generator pink / #FF00FF in atlas frames."""
+        for i in range(0, len(self.data), 4):
+            r, g, b, a = self.data[i], self.data[i + 1], self.data[i + 2], self.data[i + 3]
+            if a < 200:
+                continue
+            if (r >= 200 and b >= 200 and g <= 80) or (r > 180 and g < 50 and b > 80):
+                self.data[i] = 0
+                self.data[i + 1] = 0
+                self.data[i + 2] = 0
+                self.data[i + 3] = 0
+        return self
+
     @classmethod
     def load(cls, path: Path) -> "Pix":
         w, h, rgba = read_png(path)
         p = cls(w, h)
         p.data = bytearray(rgba)
-        return p
+        return p.scrub_chroma()
 
 
 def hash01(x, y, s):

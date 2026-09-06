@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bo";
-  var ASSET_REV = "451204";
+  var BUILD = "20260905bp";
+  var ASSET_REV = "445667";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -2569,6 +2569,18 @@
       }
       if (!_hasIslandCave) cached = null;
     }
+    /* 20260905bp: rebuild island cave if exit still uses pink wooden door */
+    if (name === "islandCave" && cached && cached.props) {
+      var _hasCaveExit = false, _ice;
+      for (_ice = 0; _ice < cached.props.length; _ice++) {
+        if (cached.props[_ice] && cached.props[_ice].kind === "caveMouth" &&
+            cached.props[_ice].tx === islandCaveOut.tx && cached.props[_ice].ty === islandCaveOut.ty) {
+          _hasCaveExit = true;
+          break;
+        }
+      }
+      if (!_hasCaveExit) cached = null;
+    }
     fresh = !cached;
     if (cached) {
       COLS = cached.cols;
@@ -3412,9 +3424,10 @@
   }
 
   function buildIslandCaveProps() {
+    /* 20260905bp: cave exit looks like a cave (not pink wooden inn door) */
     var list = [
-      { kind: "doormat", tx: islandCaveOut.tx, ty: islandCaveOut.ty },
-      { kind: "inndoor", tx: islandCaveOut.tx, ty: islandCaveOut.ty + 1 }
+      { kind: "caveStairs", tx: islandCaveOut.tx, ty: islandCaveOut.ty, dir: "out" },
+      { kind: "caveMouth", tx: islandCaveOut.tx, ty: islandCaveOut.ty }
     ];
     if (!found.diamondPick) {
       list.push({ kind: "diamondPickaxe", tx: 7, ty: 4 });
@@ -3762,17 +3775,48 @@
     playSfx("talk");
   }
 
-  function leaveBoat() {
-    var b, stayTx, stayTy;
+  /* Orthogonally adjacent shore sand/pier for getting out of the boat. */
+  function adjacentShoreF(tx, ty) {
+    var dirs, i, nx, ny;
+    dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (i = 0; i < dirs.length; i++) {
+      nx = (tx | 0) + dirs[i][0];
+      ny = (ty | 0) + dirs[i][1];
+      if (inBounds(nx, ny) && cell(nx, ny) === "f") return { tx: nx, ty: ny };
+    }
+    return null;
+  }
+
+  /* Where GET OUT should land: already on f, or water y next to f. */
+  function leaveBoatShoreSpot(preferTx, preferTy) {
+    var ch, spot;
+    if (!onBoat || currentScene !== "ocean") return null;
+    if (typeof preferTx === "number" && typeof preferTy === "number" &&
+        inBounds(preferTx, preferTy) && cell(preferTx, preferTy) === "f") {
+      if ((preferTx === player.tx && preferTy === player.ty) ||
+          (Math.abs(preferTx - player.tx) + Math.abs(preferTy - player.ty) === 1)) {
+        return { tx: preferTx, ty: preferTy };
+      }
+    }
+    ch = cell(player.tx, player.ty);
+    if (ch === "f") return { tx: player.tx, ty: player.ty };
+    if (ch === "y") {
+      spot = adjacentShoreF(player.tx, player.ty);
+      if (spot) return spot;
+    }
+    return null;
+  }
+
+  function leaveBoat(ontoTx, ontoTy) {
+    var b, shore;
     if (!onBoat || currentScene !== "ocean") return;
-    if (cell(player.tx, player.ty) !== "f") {
+    shore = leaveBoatShoreSpot(ontoTx, ontoTy);
+    if (!shore) {
       showLineNote("TOO DEEP.");
       return;
     }
-    stayTx = player.tx;
-    stayTy = player.ty;
     onBoat = false;
-    b = dockBoatAt(stayTx, stayTy);
+    b = dockBoatAt(shore.tx, shore.ty);
     if (b) {
       b.hidden = false;
       b.aboard = false;
@@ -3783,8 +3827,8 @@
     player.queuedWalk = null;
     player.moving = false;
     buildSolid();
-    /* Stay on this shore — do not teleport back to the pier */
-    placePlayer(stayTx, stayTy, player.face || "up");
+    /* Step onto the beach edge and park the boat there */
+    placePlayer(shore.tx, shore.ty, player.face || "up");
     showLineNote("BOAT STAYS HERE.");
     playSfx("talk");
     persistSave();
@@ -3793,7 +3837,7 @@
   function talkBoat() {
     if (currentScene !== "ocean") return;
     if (onBoat) {
-      if (cell(player.tx, player.ty) === "f") {
+      if (leaveBoatShoreSpot()) {
         openDialogue("BOAT", ["GET OUT?"], [
           { id: "leaveBoat", label: "GET OUT" },
           { id: "boatNope", label: "NOPE" }
@@ -3858,7 +3902,9 @@
     }
     if (currentScene !== "ocean") return false;
     if (onBoat) {
-      talkBoat();
+      /* 20260905bp: Space at beach edge gets out (no inland rowing) */
+      if (leaveBoatShoreSpot()) leaveBoat();
+      else talkBoat();
       return true;
     }
     if (isOceanExit(player.tx, player.ty)) {
@@ -5420,14 +5466,10 @@
     return false;
   }
 
-  /* 20260905bo: aboard — row on water OR any pier/sand "f" (whole island beach) so kids can GET OUT anywhere on land. */
+  /* 20260905bp: aboard — row on water "y" only (never inland sand). */
   function boatOk(tx, ty) {
-    var ch;
     if (!inBounds(tx, ty) || currentScene !== "ocean") return false;
-    ch = cell(tx, ty);
-    if (ch === "y") return true;
-    if (ch === "f") return true;
-    return false;
+    return cell(tx, ty) === "y";
   }
 
   function walkable(tx, ty) {
@@ -11632,6 +11674,18 @@
         return true;
       }
     }
+    if (currentScene === "islandCave") {
+      if (isIslandCaveExit(player.tx, player.ty)) {
+        exitIslandCave();
+        return true;
+      }
+      f = facingTile();
+      if (isIslandCaveExit(f.tx, f.ty)) {
+        goExitIslandCave();
+        return true;
+      }
+      return false;
+    }
     return false;
   }
 
@@ -13482,7 +13536,7 @@
       startSwordSwing();
       return;
     }
-    player.workTool = toolEquipped("pick") ? "pickaxe" : "";
+    player.workTool = (toolEquipped("pick") || toolEquipped("diamondPick")) ? "pickaxe" : "";
     player.swing = 220;
     hitMonsterOnce(mon);
     persistSave();
@@ -14162,6 +14216,16 @@
     if (isCottage2Exit(player.tx, player.ty)) {
       pending = null;
       exitCottage2();
+      return;
+    }
+    if (isIslandCaveEntrance(player.tx, player.ty)) {
+      pending = null;
+      enterIslandCave();
+      return;
+    }
+    if (isIslandCaveExit(player.tx, player.ty)) {
+      pending = null;
+      exitIslandCave();
       return;
     }
     if (isForestEntrance(player.tx, player.ty)) {
@@ -15825,7 +15889,7 @@
       if (!drawAtlas2x(g, "doormat", x, y)) Assets.draw(g, "doormat", x, y);
       /* 05bd: house/shop/cave exit mat shows OUT like mine ladder */
       if (currentScene === "house" || currentScene === "shop" || currentScene === "cottage" ||
-          currentScene === "cottage2" || currentScene === "islandCave") {
+          currentScene === "cottage2") {
         drawShaftLabel(g, p, "OUT");
       }
     } else if (p.kind === "inndoor") {
@@ -15899,9 +15963,12 @@
       if (currentScene !== "peak") {
         if (!drawStandSprite(g, Assets.caveMouth, x, y)) drawCaveMouth(g, x, y);
       }
+      if (currentScene === "islandCave") drawShaftLabel(g, p, "OUT");
     } else if (p.kind === "caveStairs") {
       drawStandSprite(g, Assets.caveStairs, x, y);
-      if (p.dir === "up") drawShaftLabel(g, p, "UP");
+      if (p.dir === "out" || (currentScene === "islandCave" && p.dir !== "up" && p.dir !== "down")) {
+        drawShaftLabel(g, p, "OUT");
+      } else if (p.dir === "up") drawShaftLabel(g, p, "UP");
       else if (p.dir === "down") drawShaftLabel(g, p, (currentScene === "caveclimb" && climbFloor === 1) ? "MINE" : "DOWN");
       else drawShaftLabel(g, p, "STAIRS");
     } else if (p.kind === "peakSign") {
@@ -16946,6 +17013,7 @@
     else if (key === "shovel") drawUiIcon(g, "shovel", x, y);
     else if (key === "axe") drawUiIcon(g, "axe", x, y);
     else if (key === "pick") drawUiIcon(g, "pickaxe", x, y);
+    else if (key === "diamondPick") drawUiIcon(g, "diamondPickaxe", x, y);
     else if (key === "bow") drawUiIcon(g, "bow", x, y);
     else if (key === "pole") { if (!drawUiIcon(g, "fishingPole", x, y)) paintFishingPole(g, x, y); }
     else if (key === "leash") drawUiIcon(g, "leash", x, y);
@@ -18303,6 +18371,13 @@
       goExitOcean();
       return;
     }
+    if (currentScene === "ocean" && onBoat) {
+      /* 20260905bp: tap beach sand next to you to GET OUT (row stays on water only) */
+      if (cell(tx, ty) === "f" && leaveBoatShoreSpot(tx, ty)) {
+        leaveBoat(tx, ty);
+        return;
+      }
+    }
     if (currentScene === "ocean" && propAt(tx, ty) && propAt(tx, ty).kind === "rowboat") {
       goTalkBoat(propAt(tx, ty));
       return;
@@ -18360,6 +18435,10 @@
       goExitCottage2();
       return;
     }
+    if (isIslandCaveExit(tx, ty)) {
+      goExitIslandCave();
+      return;
+    }
     if (isForestExit(tx, ty)) {
       goExitForest();
       return;
@@ -18395,6 +18474,13 @@
     if (currentScene === "ocean" && (isOceanExit(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "oceanSign"))) {
       goExitOcean();
       return;
+    }
+    if (currentScene === "ocean" && onBoat) {
+      /* 20260905bp: tap beach sand next to you to GET OUT (row stays on water only) */
+      if (cell(tx, ty) === "f" && leaveBoatShoreSpot(tx, ty)) {
+        leaveBoat(tx, ty);
+        return;
+      }
     }
     if (currentScene === "ocean" && propAt(tx, ty) && propAt(tx, ty).kind === "rowboat") {
       goTalkBoat(propAt(tx, ty));
@@ -18537,10 +18623,12 @@ if (currentScene === "ocean") goExitOcean();
     if (hitProp && hitProp.kind === "caveMouth") {
       if (currentScene === "peak") goPeakCave();
       else if (currentScene === "ocean") goEnterIslandCave();
+      else if (currentScene === "islandCave") goExitIslandCave();
       else goClimbShaft(true);
       return;
     }
     if (hitProp && hitProp.kind === "caveStairs") {
+      if (currentScene === "islandCave" || hitProp.dir === "out") { goExitIslandCave(); return; }
       if (currentScene === "mine") goMinePeakStairs();
       else goClimbShaft(hitProp.dir === "up");
       return;
@@ -19294,7 +19382,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bn", BUILD);
+      ok("BUILD", BUILD === "20260905bp", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
