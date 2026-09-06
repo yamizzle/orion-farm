@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fl): Space plant/place facing — with a seed / flower / path stone / lamp / crate / BUILD-wood selected, Space / J / E finally plants or places on the facing (or underfoot) tile (tap already worked; dig/fish had facing helpers; seed Space was a silent no-op). Never START OVER.
+
 Local 9/6 (BUILD 20260905fk): cook equips cooked fish — stove cook pins + selects the cooked fish (was bag-only when the tray was full of tools; tray-tap eat never armed — same Pip food gap as 05fh). Never START OVER.
 
 Local 9/6 (BUILD 20260905fj): outdoor strike pad for pole-foe — with a fishing pole (or hat/axe/seed) selected and a slug beside you, the on-screen strike pad finally shows outdoors (Space 05fg + tap-foe 05fd already hit; pad stayed sword/bow/mine-only so mobile kids had no button). Never START OVER.

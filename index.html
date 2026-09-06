@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fk";
+  var BUILD = "20260905fl";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14817,6 +14817,54 @@
     return false;
   }
 
+  /* 20260905fl: Space/J/E plant seed on facing/underfoot dirt (tap already planted;
+     dig/fish had facing helpers; seed Space was a silent no-op). */
+  function tryPlantFacing() {
+    var t, k;
+    if (uiPaused() || faintFx) return false;
+    if (!(selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed"))) return false;
+    t = facingTile();
+    k = t.tx + "," + t.ty;
+    if (cell(t.tx, t.ty) === "p" && !crops[k]) {
+      plantAt(t.tx, t.ty);
+      faceToward(player, t.tx, t.ty);
+      return true;
+    }
+    k = player.tx + "," + player.ty;
+    if (cell(player.tx, player.ty) === "p" && !crops[k]) {
+      plantAt(player.tx, player.ty);
+      return true;
+    }
+    return false;
+  }
+
+  /* 20260905fl: Space plant flower on facing/underfoot grass (tap already planted). */
+  function tryPlantFlowerFacing() {
+    var t;
+    if (uiPaused() || faintFx) return false;
+    if (!selectedIs("flower") || !selectedHas("flower", 1)) return false;
+    t = facingTile();
+    if (tryPlantFlower(t.tx, t.ty)) {
+      faceToward(player, t.tx, t.ty);
+      return true;
+    }
+    if (tryPlantFlower(player.tx, player.ty)) return true;
+    return false;
+  }
+
+  /* 20260905fl: Space place fence/path/lamp/crate on facing tile when place mode is on. */
+  function tryBuildFacing() {
+    var t;
+    if (uiPaused() || faintFx) return false;
+    if (!(placingFenceNow() || selectedIs("stone") || placingLampNow() || placingCrateNow())) return false;
+    t = facingTile();
+    if (tryBuild(t.tx, t.ty)) {
+      faceToward(player, t.tx, t.ty);
+      return true;
+    }
+    return false;
+  }
+
   function farmPondAt(tx, ty) {
     var i, p;
     if (currentScene !== "overworld") return null;
@@ -22981,6 +23029,10 @@ if (currentScene === "ocean") goExitOcean();
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
       if (tryDigFacing()) return;
+      /* 20260905fl: Space plant/place facing — seed/flower/kits matched dig/fish wiring. */
+      if (tryPlantFacing()) return;
+      if (tryPlantFlowerFacing()) return;
+      if (tryBuildFacing()) return;
       if (tryFishFacing()) return;
       if (tryTakeSwordAdjacent()) return;
       /* 20260905fg: always tryStrike — canSwordSwing gated Space so 05ff pole/hat/axe
@@ -23114,6 +23166,9 @@ if (currentScene === "ocean") goExitOcean();
       canDigOn: canDigOn,
       tryDig: tryDig,
       tryDigFacing: tryDigFacing,
+      tryPlantFacing: tryPlantFacing,
+      tryPlantFlowerFacing: tryPlantFlowerFacing,
+      tryBuildFacing: tryBuildFacing,
       buildMine4Ground: buildMine4Ground,
       buildMine5Ground: buildMine5Ground,
       buildMine6Ground: buildMine6Ground,
@@ -23431,7 +23486,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fk", BUILD);
+      ok("BUILD", BUILD === "20260905fl", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23776,6 +23831,63 @@ if (currentScene === "ocean") goExitOcean();
       applyScene("house");
       placePlayer(8, 6, "up");
       ok("cookPinnedSelected", !!doCookNow() && selectedIs("cookedTrout") && bagCount("cookedTrout") >= 1, "sel=" + selectedKey() + " n=" + bagCount("cookedTrout"));
+
+      /* 20260905fl: Space plant seed / flower / path place facing. */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "seed", count: 1 };
+      selectedSlot = 0;
+      /* Find a dirt plot cell near spawn and stand beside it. */
+      var _ptx = -1, _pty = -1, _px, _py, _ch;
+      for (_py = 0; _py < ROWS && _ptx < 0; _py++) {
+        for (_px = 0; _px < COLS; _px++) {
+          if (cell(_px, _py) === "p" && !crops[_px + "," + _py]) {
+            if (_px + 1 < COLS && walkable(_px + 1, _py)) { _ptx = _px; _pty = _py; break; }
+            if (_px - 1 >= 0 && walkable(_px - 1, _py)) { _ptx = _px; _pty = _py; break; }
+          }
+        }
+      }
+      ok("spacePlantPlotFound", _ptx >= 0, "plot");
+      if (_ptx >= 0) {
+        if (walkable(_ptx + 1, _pty)) { placePlayer(_ptx + 1, _pty, "left"); }
+        else { placePlayer(_ptx - 1, _pty, "right"); }
+        delete crops[_ptx + "," + _pty];
+        ok("spacePlantSeed", !!tryPlantFacing() && !!crops[_ptx + "," + _pty], "crop=" + !!crops[_ptx + "," + _pty]);
+      }
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "flower", count: 2 };
+      selectedSlot = 0;
+      /* Stand on grass; plant underfoot via facing helper fallback. */
+      placePlayer(20, 28, "down");
+      _ch = cell(20, 28);
+      ok("spaceFlowerGrass", _ch === "g" || _ch === "m", "ch=" + _ch);
+      if (_ch === "g" || _ch === "m") {
+        /* Clear any prop on tile so plant can land. */
+        var _pi, _pr;
+        for (_pi = PROPS.length - 1; _pi >= 0; _pi--) {
+          _pr = PROPS[_pi];
+          if (_pr && _pr.tx === 20 && _pr.ty === 28) PROPS.splice(_pi, 1);
+        }
+        ok("spacePlantFlower", !!tryPlantFlowerFacing() && bagCount("flower") === 1, "n=" + bagCount("flower"));
+      }
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "stone", count: 3 };
+      selectedSlot = 0;
+      /* Path place facing: stand beside a buildable grass tile. */
+      var _bx = -1, _by = -1;
+      for (_py = 10; _py < 40 && _bx < 0; _py++) {
+        for (_px = 10; _px < 40; _px++) {
+          if (canBuildOn(_px, _py) && walkable(_px + 1, _py)) { _bx = _px; _by = _py; break; }
+        }
+      }
+      ok("spaceBuildTileFound", _bx >= 0, "tile");
+      if (_bx >= 0) {
+        placePlayer(_bx + 1, _by, "left");
+        ok("spaceBuildPath", !!tryBuildFacing() && bagCount("stone") === 2, "stone=" + bagCount("stone"));
+      }
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
       swordOwned = true;
