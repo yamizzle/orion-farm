@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905eo";
+  var BUILD = "20260905ep";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -16883,7 +16883,9 @@
       else if (floor === 6) spot = { tx: 8, ty: 12, face: "down" };
       else spot = { tx: 16, ty: 19, face: "up" };
     } else {
-      if (floor === 1) spot = { tx: 16, ty: 5, face: "down" };
+      /* 20260905ep: was (16,5) — only 1 tile south of DOWN hole (16,4); one north
+         step fell straight back to MINE 2. Match other floors' 2-tile gap at (16,6). */
+      if (floor === 1) spot = { tx: 16, ty: 6, face: "down" };
       else if (floor === 2) spot = { tx: 24, ty: 14, face: "up" };
       /* 20260905em: was (16,9) = north rim of DOWN hole; 05ej rim-block made that
          tile solid so climb-up stuck you / nearest step could be the hole (fall back). */
@@ -23269,7 +23271,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905eo", BUILD);
+      ok("BUILD", BUILD === "20260905ep", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23673,6 +23675,11 @@ if (currentScene === "ocean") goExitOcean();
       applyScene("mine", 3);
       var f3hole = mineDownSpot();
       ok("mineF3UpLandOffRim", !!(f3hole && !mineHoleRimBlocks(16, 8) && walkable(16, 8) && mineHoleRimBlocks(f3hole.tx, f3hole.ty - 1)), f3hole && (f3hole.tx + "," + f3hole.ty));
+      /* 20260905ep: climb-up onto MINE 1 lands 2 tiles south of hole, not 1 */
+      mineFloor = 1;
+      applyScene("mine", 1);
+      var f1hole = mineDownSpot();
+      ok("mineF1UpLandOffHole", !!(f1hole && f1hole.tx === 16 && f1hole.ty === 4 && walkable(16, 6) && !mineHoleRimBlocks(16, 6) && (16 !== f1hole.tx || 6 !== f1hole.ty) && (6 - f1hole.ty) >= 2), f1hole && (f1hole.tx + "," + f1hole.ty));
       /* 20260905en: spendSelected depletes mid-drag bagHeld */
       selectedSlot = 0;
       trayCells[0] = null;

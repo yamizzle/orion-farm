@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ep): mine floor-1 climb-up landing — UP from MINE 2 no longer drops you one tile south of the DOWN hole (16,5); land at (16,6) so a single north step cannot auto-fall you back down (same 2-tile gap as floors 2–5). Never START OVER.
+
 Local 9/6 (BUILD 20260905eo): gem/sapphire kill loot gold — deep-mine GOT A GEM +8 / GOT A SAPPHIRE +20 piles were lootIsCash but addItem returned 0G (silent vanish); now add gold + coin sparkle on collect/fly-in like coins. Never START OVER.
 
 Local 9/6 (BUILD 20260905en): held spend + fake hole walls — spendSelected also spends the mid-drag bagHeld stack (eat/fence/flower/kits match takeFromBag); mine 2/3 lone deepWall tiles are paired so they no longer read as fake holes. Never START OVER.
