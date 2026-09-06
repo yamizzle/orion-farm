@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bl";
+  var BUILD = "20260905bm";
   var ASSET_REV = "451204";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7359,6 +7359,7 @@
     selectedSlot = id;
     setFenceBuildOn(false);
     if (fishing && key !== "pole") cancelFishing();
+    maybeStoveCookTip();
   }
 
   function tryBuild(tx, ty) {
@@ -8538,6 +8539,24 @@
     var key = selectedKey();
     var fk = fishKindById(key);
     return fk || null;
+  }
+
+  function hasAnyRawFish() {
+    var i, fk;
+    for (i = 0; i < FISH_KINDS.length; i++) {
+      fk = FISH_KINDS[i];
+      if (fk && bagCount(fk.id) > 0) return true;
+    }
+    return false;
+  }
+
+  function maybeStoveCookTip() {
+    if (unlocked.stoveCookTip) return;
+    if (currentScene !== "house") return;
+    if (!selectedRawFish()) return;
+    unlocked.stoveCookTip = true;
+    showLineNote("TAP THE STOVE TO COOK");
+    persistSave();
   }
 
   function doCookNow() {
@@ -10495,6 +10514,7 @@
   }
 
   function questHint() {
+    if (hasAnyRawFish()) return "COOK FISH ON THE STOVE";
     if (!quest.flowerAsked) return "SAY HI TO JUNIE";
     if (!found.kickedBall) return "KICK THE CART IN TOWN.";
     if (!quest.flowerDone) return "BRING A MUSHROOM TO JUNIE";
