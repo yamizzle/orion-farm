@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gm";
+  var BUILD = "20260905gn";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7967,7 +7967,7 @@
   }
 
   function collectLootPile(pile) {
-    var take, room, i;
+    var take, room, i, key;
     if (!pile || pile.amount <= 0) return 0;
     room = lootTakeRoom(pile.kind);
     take = pile.amount < room ? pile.amount : room;
@@ -7977,8 +7977,17 @@
       i = groundLoot.indexOf(pile);
       if (i >= 0) groundLoot.splice(i, 1);
     }
+    /* Add now (visual fly uses amount 0) so pin/select can arm tray-tap eat / cook / place. */
+    addItem(pile.kind, take);
+    spawnPickup(pile.kind, pile.tx, pile.ty, 0);
+    /* 20260905gn: pin + select ground loot — tray-tap eat / plant / cook / path tip need selected;
+       pick left food/ore/wood bag-only or unselected (same chest TAKE equip gap as 05gj). */
+    key = stackKey(pile.kind);
+    if (key) {
+      placeToolInTrayFirst(key);
+      selectTool(key);
+    }
     persistSave();
-    spawnPickup(pile.kind, pile.tx, pile.ty, take);
     /* 20260905da: gold coins get warm sparkle; other loot keeps soft sparks */
     /* 20260905dc: metal / bar piles get metal sparkle */
     if (pile.kind === "gold" || pile.kind === "goldPile" ||
@@ -24472,7 +24481,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gm", BUILD);
+      ok("BUILD", BUILD === "20260905gn", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24853,6 +24862,19 @@ if (currentScene === "ocean") goExitOcean();
           "sel=" + selectedKey() + " bag=" + bagCount("snack") + " chest=" + (chest.snack | 0));
       }
 
+      /* 20260905gn: ground loot pick pins + selects (tray-tap eat / cook / place). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      axeOwned = true;
+      syncBagCounts();
+      var _lx = player.tx, _ly = player.ty;
+      spawnGroundLoot("potato", _lx, _ly, 1);
+      ok("lootPilePresent", lootAtTile(_lx, _ly).length >= 1, "n=" + lootAtTile(_lx, _ly).length);
+      ok("lootPickPinnedSelected", !!collectLootAt(_lx, _ly) && selectedIs("potato") && bagCount("potato") >= 1,
+        "sel=" + selectedKey() + " n=" + bagCount("potato"));
 
       /* 20260905fl: Space plant seed / flower / path place facing. */
       applyScene("overworld");
