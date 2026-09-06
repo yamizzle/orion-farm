@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cc";
+  var BUILD = "20260905cd";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10589,7 +10589,7 @@
   var frameOutdoorGrade = null;
 
   function usesOutdoorGrade() {
-    return !(isCozyInterior() || currentScene === "mine" || currentScene === "caveclimb");
+    return !(isCozyInterior() || currentScene === "mine" || currentScene === "caveclimb" || currentScene === "islandCave");
   }
 
   function liftOutdoorNightGrade(gr, t) {
@@ -10640,6 +10640,9 @@
       if (climbFloor === 1) return { r: 52, g: 40, b: 70, a: 0.54 };
       return { r: 150, g: 140, b: 128, a: 0.18 };
     }
+    if (currentScene === "islandCave") {
+      return { r: 148, g: 128, b: 112, a: 0.30 };
+    }
     if (currentScene === "mine") {
       if (mineFloor >= 6) return { r: 48, g: 36, b: 72, a: 0.56 };
       if (mineFloor >= 5) return { r: 56, g: 42, b: 80, a: 0.52 };
@@ -10653,7 +10656,7 @@
 
   function lanternGlowAmt() {
     var t;
-    if (currentScene === "mine" || currentScene === "caveclimb") return 0.55;
+    if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "islandCave") return 0.55;
     if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "treetop" && currentScene !== "ocean") return 0;
     if (frameDayT === null) beginFrameGrade();
     t = frameDayT;
@@ -10841,14 +10844,88 @@
     g.restore();
   }
 
+  /* 20260905cd: mine/stairs/cave — soft vignette + warm torch/lamp pools (kid-readable). */
+  function isCaveLitScene() {
+    return currentScene === "mine" || currentScene === "caveclimb" || currentScene === "islandCave";
+  }
+
+  function forEachCaveTorch(fn) {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "lantern" || p.kind === "lampPost") {
+        fn(p.tx * TILE + 8, p.ty * TILE + 2, 1, i);
+      } else if (p.kind === "moonAltar") {
+        fn(p.tx * TILE + 8, p.ty * TILE + 4, 1.18, 40 + i);
+      }
+    }
+  }
+
+  function drawCaveTorchFalloff(g) {
+    var cx, cy, rad, grd, sx, sy, flicker, r;
+    if (!isCaveLitScene()) return;
+    cx = VIEW_W * 0.5;
+    cy = VIEW_H * 0.48;
+    rad = Math.max(VIEW_W, VIEW_H) * 0.86;
+    /* Soft vignette: dim corners only — never pitch black. */
+    g.save();
+    grd = g.createRadialGradient(cx, cy, rad * 0.22, cx, cy, rad);
+    grd.addColorStop(0, "rgba(16,10,18,0)");
+    grd.addColorStop(0.48, "rgba(16,10,18,0.06)");
+    grd.addColorStop(0.78, "rgba(12,8,16,0.22)");
+    grd.addColorStop(1, "rgba(8,6,12,0.36)");
+    g.fillStyle = grd;
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    g.restore();
+    /* Warm pools near lanterns / peak altar. */
+    g.save();
+    g.globalCompositeOperation = "screen";
+    forEachCaveTorch(function (wx, wy, scale, idx) {
+      sx = wx - camX;
+      sy = wy - camY;
+      if (sx < -96 || sy < -96 || sx > VIEW_W + 96 || sy > VIEW_H + 96) return;
+      flicker = 0.90 + Math.sin(tick / 150 + idx * 1.55) * 0.10;
+      r = 62 * flicker * scale;
+      grd = g.createRadialGradient(sx, sy, 2, sx, sy, r);
+      grd.addColorStop(0, "rgba(255,214,128," + (0.46 * flicker).toFixed(3) + ")");
+      grd.addColorStop(0.32, "rgba(255,176,88," + (0.26 * flicker).toFixed(3) + ")");
+      grd.addColorStop(0.68, "rgba(190,110,48," + (0.10 * flicker).toFixed(3) + ")");
+      grd.addColorStop(1, "rgba(70,36,18,0)");
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(sx, sy, r, 0, Math.PI * 2);
+      g.fill();
+    });
+    g.restore();
+    g.save();
+    g.globalCompositeOperation = "soft-light";
+    forEachCaveTorch(function (wx, wy, scale, idx) {
+      sx = wx - camX;
+      sy = wy - camY;
+      if (sx < -80 || sy < -80 || sx > VIEW_W + 80 || sy > VIEW_H + 80) return;
+      flicker = 0.90 + Math.sin(tick / 150 + idx * 1.55) * 0.10;
+      r = 54 * flicker * scale;
+      grd = g.createRadialGradient(sx, sy, 1.5, sx, sy, r);
+      grd.addColorStop(0, "rgba(255,220,150," + (0.38 * flicker).toFixed(3) + ")");
+      grd.addColorStop(0.5, "rgba(240,150,70," + (0.16 * flicker).toFixed(3) + ")");
+      grd.addColorStop(1, "rgba(80,40,20,0)");
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(sx, sy, r, 0, Math.PI * 2);
+      g.fill();
+    });
+    g.restore();
+  }
+
   function drawDayTint(g) {
     var tint, amt;
-    if (isCozyInterior() || currentScene === "mine" || currentScene === "caveclimb") {
+    if (isCozyInterior() || isCaveLitScene()) {
       tint = currentTint();
       if (tint && tint.a >= 0.01) {
         fillBlend(g, "multiply", tint.a, tint.r, tint.g, tint.b);
       }
       if (currentScene === "house" && homeLightOn()) drawHouseHomeGlow(g);
+      if (isCaveLitScene()) drawCaveTorchFalloff(g);
       return;
     }
     drawOutdoorGrade(g);
@@ -20648,7 +20725,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cc", BUILD);
+      ok("BUILD", BUILD === "20260905cd", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
