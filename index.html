@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dr";
+  var BUILD = "20260905ds";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7408,6 +7408,30 @@
     }
   }
 
+  /* 20260905ds: tiny soft click sparks when mute/unmute lands */
+  function spawnMuteClickSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#FFF8E0", "#E8E0D0", "#C8D8E8", "#FFE9A0", "#FFFDF4", "#A8C0D8", "#F0F0F8"];
+    for (i = 0; i < 6; i++) {
+      ang = (i / 6) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: x + (Math.random() * 5 - 2.5),
+        y: y + (Math.random() * 3 - 1.5),
+        vx: Math.cos(ang) * (0.018 + Math.random() * 0.02),
+        vy: Math.sin(ang) * 0.01 - 0.035 - Math.random() * 0.018,
+        age: 0,
+        life: 280 + Math.random() * 160,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
+  function announceMuteToast(msg) {
+    showLineNote(msg);
+    if (player) spawnMuteClickSparks(player.x, player.y - 12);
+    else spawnMuteClickSparks(VIEW_W / 2, VIEW_H / 2);
+  }
+
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
     n = big ? 12 : 8;
@@ -11370,6 +11394,9 @@
       if (allOff) {
         unlockAudio();
         playSfx("ui");
+        announceMuteToast("SOUND ON");
+      } else {
+        announceMuteToast("SOUND OFF");
       }
       paintHudFaces();
       persistSave();
@@ -22139,6 +22166,9 @@ if (currentScene === "ocean") goExitOcean();
     if (!sfxMuted) {
       unlockAudio();
       playSfx("ui");
+      announceMuteToast("FX ON");
+    } else {
+      announceMuteToast("FX OFF");
     }
     paintHudFaces();
     persistSave();
@@ -22146,7 +22176,14 @@ if (currentScene === "ocean") goExitOcean();
   bindHudBtn(musBtn, function () {
     musicMuted = !musicMuted;
     audioMuted = sfxMuted && musicMuted;
-    if (!musicMuted) unlockAudio();
+    if (!musicMuted) {
+      unlockAudio();
+      if (!sfxMuted) playSfx("ui");
+      announceMuteToast("MUSIC ON");
+    } else {
+      if (!sfxMuted) playSfx("ui");
+      announceMuteToast("MUSIC OFF");
+    }
     tickOverworldBgm(wantedTune());
     paintHudFaces();
     persistSave();

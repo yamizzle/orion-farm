@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905ds): mute/unmute click feedback — Jobs MUTE + HUD FX/MU toast SOUND/FX/MUSIC ON|OFF + tiny soft click sparks (music button finally clicks). Never START OVER.
+
 Local 9/5 (BUILD 20260905dr): Nim first-meet soft moon sparkle; cave sword pedestal claim steel/gold sparkle (+ auto-claim ensureCaveSword juice). Never START OVER.
 
 Local 9/5 (BUILD 20260905dq): soft pastel sparkler when all three lights are on (THREE LIGHTS ON toast + first MOONDROP NIGHT! start). Never START OVER.
