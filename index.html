@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905db";
+  var BUILD = "20260905dc";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6965,6 +6965,56 @@
     }
   }
 
+  /* 20260905dc: orange flame sparks when smelting ore / cooking fish */
+  function spawnFlameSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#FF6A20", "#FFB040", "#FFE08A", "#FF4020", "#FFF8E0", "#E85818", "#FFD070", "#C93810", "#FFF3C0"];
+    for (i = 0; i < 10; i++) {
+      ang = -Math.PI / 2 + (i / 10) * Math.PI * 0.9 - 0.45 + Math.random() * 0.35;
+      sparks.push({
+        x: x + (Math.random() * 5 - 2.5),
+        y: y + (Math.random() * 3 - 1.5),
+        vx: Math.cos(ang) * (0.018 + Math.random() * 0.022),
+        vy: Math.sin(ang) * (0.03 + Math.random() * 0.028) - 0.02,
+        age: 0,
+        life: 380 + Math.random() * 220,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
+  /* 20260905dc: metal / bar pickup sparkle (copper silver gold iron) */
+  function spawnMetalSparks(x, y, kind) {
+    var i, ang, cols;
+    if (kind === "copper" || kind === "copperBar") {
+      cols = ["#E8B060", "#C47A38", "#FFF3C0", "#8B4510", "#FFE08A", "#F0C060", "#D4883A", "#FFF8E0"];
+    } else if (kind === "goldore" || kind === "goldBar") {
+      cols = ["#FFE9A0", "#FFF8E0", "#E8C84A", "#FFFDF4", "#F0C060", "#FFD78A", "#C9A227", "#FFF3C0"];
+    } else if (kind === "silver" || kind === "silverBar") {
+      cols = ["#F0F0F8", "#C8C8D4", "#FFFFFF", "#A8A8B8", "#E8E8F0", "#D0D0DC", "#FFFDF8", "#B8B8C8"];
+    } else {
+      /* iron + default metal */
+      cols = ["#D8D0C8", "#9A9488", "#F3EDE0", "#6A6458", "#E8E0D0", "#C8C0B0", "#FFF8E8", "#5A5A4E"];
+    }
+    for (i = 0; i < 9; i++) {
+      ang = (i / 9) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: x + (Math.random() * 5 - 2.5),
+        y: y + (Math.random() * 3 - 1.5),
+        vx: Math.cos(ang) * (0.028 + Math.random() * 0.03),
+        vy: Math.sin(ang) * 0.014 - 0.044 - Math.random() * 0.022,
+        age: 0,
+        life: 400 + Math.random() * 220,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
+  function isMetalLoot(kind) {
+    return kind === "copper" || kind === "silver" || kind === "goldore" || kind === "iron" ||
+      kind === "copperBar" || kind === "silverBar" || kind === "goldBar";
+  }
+
 
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
@@ -7129,8 +7179,11 @@
     persistSave();
     spawnPickup(pile.kind, pile.tx, pile.ty, take);
     /* 20260905da: gold coins get warm sparkle; other loot keeps soft sparks */
+    /* 20260905dc: metal / bar piles get metal sparkle */
     if (pile.kind === "gold" || pile.kind === "goldPile") {
       spawnCoinSparks(pile.tx * TILE + 8, pile.ty * TILE + 6);
+    } else if (isMetalLoot(pile.kind)) {
+      spawnMetalSparks(pile.tx * TILE + 8, pile.ty * TILE + 6, pile.kind);
     } else {
       spawnSparks(pile.tx * TILE + 8, pile.ty * TILE + 6);
     }
@@ -8108,8 +8161,11 @@
       if (t >= 1) {
         addItem(pk.kind, pk.amount);
         /* 20260905da: coin sparkle pops at Orion when gold flies in */
+        /* 20260905dc: metal / bar fly-in sparkle */
         if (pk.kind === "gold" || pk.kind === "goldPile") {
           spawnCoinSparks(player.x, player.y - 8);
+        } else if (isMetalLoot(pk.kind)) {
+          spawnMetalSparks(player.x, player.y - 8, pk.kind);
         }
         pickups.splice(i, 1);
         playSfx("pickup");
@@ -9433,7 +9489,7 @@
     }
     addToBag(bar, 1);
     fire = findFireplace();
-    if (fire) spawnSparks(fire.tx * TILE + 16, fire.ty * TILE + 16);
+    if (fire) spawnFlameSparks(fire.tx * TILE + 16, fire.ty * TILE + 8);
     playSfx("smash");
     showLineNote(smeltToast(ore));
     ensureSelectedSlot();
@@ -9611,7 +9667,7 @@
     }
     addToBag(cooked, 1);
     stove = findStove();
-    if (stove) spawnSparks(stove.tx * TILE + 8, stove.ty * TILE + 8);
+    if (stove) spawnFlameSparks(stove.tx * TILE + 8, stove.ty * TILE + 4);
     playSfx("smash");
     showLineNote(cookToast(fk));
     ensureSelectedSlot();
@@ -15679,7 +15735,8 @@
     if (prop.kind === "iron") {
       found.iron = true;
       spawnPickup("iron", prop.tx, prop.ty, 1);
-      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      /* 20260905dc: metal pickup sparkle */
+      spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, "iron");
       persistSave();
       openDialogue("ORION", ["IRON ORE!", "FOR THE WORKBENCH."]);
       return;
@@ -15753,7 +15810,9 @@
       if (i >= 0) PROPS.splice(i, 1);
       addItem(prop.kind, 1);
       spawnPickup(prop.kind, prop.tx, prop.ty, 0);
-      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      /* 20260905dc: metal pickup sparkle */
+      if (isMetalLoot(prop.kind)) spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, prop.kind);
+      else spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
       persistSave();
       return;
     }
@@ -15763,7 +15822,9 @@
     found[prop.kind] = true;
     addItem(prop.kind, 1);
     spawnPickup(prop.kind, prop.tx, prop.ty, 0);
-    spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+    /* 20260905dc: metal pickup sparkle (copper / iron) */
+    if (isMetalLoot(prop.kind)) spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, prop.kind);
+    else spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
     unlockAch(COLLECT_ACH[prop.kind]);
     if (prop.kind === "moonshard") {
       pinMoonCarryTray();
@@ -22057,7 +22118,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905db", BUILD);
+      ok("BUILD", BUILD === "20260905dc", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

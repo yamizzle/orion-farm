@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905dc): smelt/cook flame sparks at fireplace + stove; copper/silver/gold/iron (+ bars) pickup metal sparkle (ground collect + fly-in + world nodes). Never START OVER.
+
 Local 9/5 (BUILD 20260905db): farm well soft water shimmer + sparkle; Nim note board open parchment sparks. Never START OVER.
 
 Local 9/5 (BUILD 20260905da): honey bun / food eat floating pink hearts + gold coin / gold pile pickup warm sparkle (ground collect + fly-in pop). Never START OVER.
