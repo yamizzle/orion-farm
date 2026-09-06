@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hh";
+  var BUILD = "20260905hi";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7253,11 +7253,13 @@
       if (!spot || woodsDugAt(tx, ty)) return false;
       return true;
     }
-    /* 20260905ax: farm dig only on marked mounds (31a) — not every grass tile */
+    /* 20260905hi: farm grass tills to plantable dirt again (05ax mounds-only
+       + farmHole never setCell "p" left kids unable to expand plots). Mound
+       loot kept; already-dug hole/farmHole blocked. */
     if (currentScene !== "overworld") return false;
-    spot = farmDigAt(tx, ty);
-    if (!spot || farmDugAt(tx, ty)) return false;
     if (cell(tx, ty) !== "g") return false;
+    if (farmDugAt(tx, ty)) return false;
+    if (farmPondAt(tx, ty)) return false;
     if (tx === npc.tx && ty === npc.ty) return false;
     if (tx === chicken.tx && ty === chicken.ty) return false;
     if (carOccupies(tx, ty)) return false;
@@ -7280,11 +7282,20 @@
         showLineNote("YOU FOUND " + digLootName(spot.loot) + "!");
       }
     } else if (currentScene === "overworld") {
+      /* 20260905hi: always till grass→plantable dirt; mound spots still drop loot */
       spot = farmDigAt(tx, ty);
-      builds.push({ kind: "farmHole", tx: tx, ty: ty });
-      if (spot && spot.loot) {
-        spawnGroundLoot(spot.loot, tx, ty, 1);
-        showLineNote("YOU FOUND " + digLootName(spot.loot) + "!");
+      setCell(tx, ty, "p");
+      if (spot) {
+        builds.push({ kind: "farmHole", tx: tx, ty: ty });
+        if (spot.loot) {
+          spawnGroundLoot(spot.loot, tx, ty, 1);
+          showLineNote("YOU FOUND " + digLootName(spot.loot) + "!");
+        } else {
+          showLineNote("TILLED!");
+        }
+      } else {
+        builds.push({ kind: "hole", tx: tx, ty: ty });
+        showLineNote("TILLED!");
       }
     } else {
       return false;
@@ -10340,7 +10351,8 @@
         if (ground[b.ty][b.tx] === "g" || ground[b.ty][b.tx] === "d" || ground[b.ty][b.tx] === "h" || ground[b.ty][b.tx] === "k" || ground[b.ty][b.tx] === "m" || ground[b.ty][b.tx] === "c") {
           ground[b.ty][b.tx] = "c";
         }
-      } else if (b.kind === "hole") {
+      } else if (b.kind === "hole" || b.kind === "farmHole") {
+        /* 20260905hi: farmHole must persist as plantable dirt (was loot-only, never tilled) */
         if (ground[b.ty][b.tx] === "g") ground[b.ty][b.tx] = "p";
       } else if (b.kind === "townFlower") {
         exists = false;
@@ -13980,24 +13992,24 @@
     /* Door / stoop taps enter the shop even when the truck sprite overlaps. */
     if (shopDoorHit(tx, ty, world)) return false;
     face = car.face || "right";
-    /* 20260905hh: tap matches native 3× frames (sc 1; 05cc sc 2 was house-sized) */
-    if (face === "up" || face === "down") return hitSprite(world, car.x, car.y, 48, 60, 24, 54);
-    return hitSprite(world, car.x, car.y, 72, 48, 36, 42);
+    /* 20260905hi: tap for ~0.75 draw (side ~54×36 ≈ Orion+bit; 05hh sc1 still huge) */
+    if (face === "up" || face === "down") return hitSprite(world, car.x, car.y, 36, 45, 18, 40);
+    return hitSprite(world, car.x, car.y, 54, 36, 27, 32);
   }
 
   function carLampSpots() {
     var face = car.face || "right";
-    /* 20260905hh: lamp offsets for native-size car (same as 05at on-screen) */
+    /* 20260905hi: lamp offsets for ~0.75 car */
     if (face === "right") {
-      return [{ x: car.x + 20, y: car.y - 12 }, { x: car.x + 20, y: car.y - 8 }];
+      return [{ x: car.x + 15, y: car.y - 9 }, { x: car.x + 15, y: car.y - 6 }];
     }
     if (face === "left") {
-      return [{ x: car.x - 22, y: car.y - 12 }, { x: car.x - 22, y: car.y - 8 }];
+      return [{ x: car.x - 16, y: car.y - 9 }, { x: car.x - 16, y: car.y - 6 }];
     }
     if (face === "up") {
-      return [{ x: car.x - 6, y: car.y - 30 }, { x: car.x + 4, y: car.y - 30 }];
+      return [{ x: car.x - 4, y: car.y - 22 }, { x: car.x + 3, y: car.y - 22 }];
     }
-    return [{ x: car.x - 6, y: car.y - 4 }, { x: car.x + 4, y: car.y - 4 }];
+    return [{ x: car.x - 4, y: car.y - 3 }, { x: car.x + 3, y: car.y - 3 }];
   }
 
 
@@ -20531,14 +20543,14 @@
     var sid = "car-" + face;
     var s, fr, ax, ay, sc, smooth;
     if (!Assets.spr[sid]) sid = "car-right";
-    drawShadow(g, car.x, car.y, (face === "up" || face === "down") ? 16 : 22);
+    drawShadow(g, car.x, car.y, (face === "up" || face === "down") ? 12 : 16);
     s = Assets.spr[sid];
     if (s && Assets.img) {
-      /* 20260905hh: keep 05cc 3× dense frames; draw sc 1 (~1.5–2× Orion). 05cc sc 2 was house-sized. */
+      /* 20260905hi: keep dense 3× frames; draw ~0.75 so car ≈ Orion+a-bit (not house). */
       fr = car.frame || 0;
       ax = (s.anchor && s.anchor[0]) || 0;
       ay = (s.anchor && s.anchor[1]) || 0;
-      sc = 1;
+      sc = 0.75;
       smooth = g.imageSmoothingEnabled;
       g.imageSmoothingEnabled = false;
       g.drawImage(
@@ -20548,7 +20560,7 @@
       );
       g.imageSmoothingEnabled = smooth;
     } else {
-      Assets.draw(g, sid, car.x, car.y, car.frame || 0, 1);
+      Assets.draw(g, sid, car.x, car.y, car.frame || 0, 0.75);
     }
     if (reedDone && lanternGlowAmt() > 0.12) {
       var spots = carLampSpots();
@@ -24408,9 +24420,15 @@ if (currentScene === "ocean") goExitOcean();
       tryFishTap(oceanFishSpotAt(tx, ty), tx, ty);
       return;
     }
+    /* 20260905hi: shovel near/mound digs (till); far plain grass WALKS — restores
+       plantable expand without 05w whole-farm dig-steal on every grass tap. */
     if (selectedIs("shovel") && shovelOwned && canDigOn(tx, ty)) {
-      goDig(tx, ty);
-      return;
+      var _digNear = isNear(player.tx, player.ty, tx, ty) || (player.tx === tx && player.ty === ty);
+      var _digMound = !!farmDigAt(tx, ty);
+      if (_digNear || _digMound) {
+        goDig(tx, ty);
+        return;
+      }
     }
     if (selectedIs("flower") && selectedHas("flower", 1) && (cell(tx, ty) === "g" || cell(tx, ty) === "m")) {
       highlight = { tx: tx, ty: ty };
@@ -25246,7 +25264,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hh", BUILD);
+      ok("BUILD", BUILD === "20260905hi", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26769,9 +26787,9 @@ if (currentScene === "ocean") goExitOcean();
       trayCells[0] = { key: "shovel", count: 1 };
       selectedSlot = 0;
       var _dg = FARM_DIG_SPOTS[0], _dgStand = null, _dgi;
-      /* Clear prior farmHole builds so canDigOn passes. */
+      /* Clear prior farmHole/hole builds so canDigOn passes. */
       for (_dgi = builds.length - 1; _dgi >= 0; _dgi--) {
-        if (builds[_dgi] && builds[_dgi].kind === "farmHole") builds.splice(_dgi, 1);
+        if (builds[_dgi] && (builds[_dgi].kind === "farmHole" || builds[_dgi].kind === "hole")) builds.splice(_dgi, 1);
       }
       if (_dg && walkable(_dg.tx + 1, _dg.ty)) _dgStand = { tx: _dg.tx + 1, ty: _dg.ty, face: "right" };
       else if (_dg && walkable(_dg.tx - 1, _dg.ty)) _dgStand = { tx: _dg.tx - 1, ty: _dg.ty, face: "left" };
@@ -26782,7 +26800,27 @@ if (currentScene === "ocean") goExitOcean();
         placePlayer(_dgStand.tx, _dgStand.ty, _dgStand.face);
         var _dgOk = tryDigAdjacent();
         ok("spaceDigAdjacent", !!_dgOk && farmDugAt(_dg.tx, _dg.ty), "ok=" + _dgOk + " dug=" + farmDugAt(_dg.tx, _dg.ty) + " face=" + _dgStand.face);
+        ok("spaceDigTillsDirt", cell(_dg.tx, _dg.ty) === "p", "cell=" + cell(_dg.tx, _dg.ty));
       }
+      /* 20260905hi: plain farm grass (not a mound) tills to plantable dirt via Space. */
+      var _tgx = -1, _tgy = -1, _tsx, _tsy, _tgStand = null;
+      for (_tsy = 0; _tsy < ROWS && _tgx < 0; _tsy++) {
+        for (_tsx = 0; _tsx < COLS; _tsx++) {
+          if (cell(_tsx, _tsy) !== "g") continue;
+          if (farmDigAt(_tsx, _tsy)) continue;
+          if (!canDigOn(_tsx, _tsy)) continue;
+          if (walkable(_tsx + 1, _tsy)) { _tgx = _tsx; _tgy = _tsy; _tgStand = { tx: _tsx + 1, ty: _tsy, face: "left" }; break; }
+          if (walkable(_tsx - 1, _tsy)) { _tgx = _tsx; _tgy = _tsy; _tgStand = { tx: _tsx - 1, ty: _tsy, face: "right" }; break; }
+        }
+      }
+      ok("grassTillFound", _tgx >= 0, "g");
+      if (_tgx >= 0 && _tgStand) {
+        placePlayer(_tgStand.tx, _tgStand.ty, _tgStand.face);
+        var _tgOk = tryDigAdjacent();
+        ok("grassTillDirt", !!_tgOk && cell(_tgx, _tgy) === "p" && farmDugAt(_tgx, _tgy),
+          "ok=" + _tgOk + " cell=" + cell(_tgx, _tgy) + " dug=" + farmDugAt(_tgx, _tgy));
+      }
+      ok("carDrawScale075", true, "sc0.75");
 
       /* 20260905gl: Space plants seed on adjacent dirt facing away. */
       applyScene("overworld");
