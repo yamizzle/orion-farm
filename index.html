@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cw";
+  var BUILD = "20260905cx";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -3977,8 +3977,10 @@
       wy = b.ty;
     }
     placePlayer(wx, wy, player.face || "down");
+    /* 20260905cx: splash when hopping in */
+    spawnBoatSplash(player.x, player.y - 2);
     showLineNote("YOU'RE ROWING!");
-    playSfx("talk");
+    playSfx("splash");
   }
 
   /* Orthogonally adjacent shore sand/pier for getting out of the boat. */
@@ -4035,8 +4037,10 @@
     buildSolid();
     /* Step onto the beach edge and park the boat there */
     placePlayer(shore.tx, shore.ty, player.face || "up");
+    /* 20260905cx: splash when hopping out */
+    spawnBoatSplash(player.x, player.y - 2);
     showLineNote("BOAT STAYS HERE.");
-    playSfx("talk");
+    playSfx("splash");
     persistSave();
   }
 
@@ -6832,6 +6836,24 @@
         vy: Math.sin(ang) * 0.014 - 0.04 - Math.random() * 0.02,
         age: 0,
         life: 380 + Math.random() * 220,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
+  /* 20260905cx: water splash droplets when boarding / getting out of the boat */
+  function spawnBoatSplash(x, y) {
+    var i, ang, cols;
+    cols = ["#E8F6FF", "#A8D4E8", "#4A96C8", "#FFFDF8", "#7EC8E3", "#D8EEF8", "#6BA8C8", "#F0FAFF"];
+    for (i = 0; i < 10; i++) {
+      ang = (i / 10) * Math.PI * 2 + Math.random() * 0.35;
+      sparks.push({
+        x: x + (Math.random() * 6 - 3),
+        y: y + (Math.random() * 3 - 1),
+        vx: Math.cos(ang) * (0.032 + Math.random() * 0.03),
+        vy: Math.sin(ang) * 0.012 - 0.048 - Math.random() * 0.024,
+        age: 0,
+        life: 420 + Math.random() * 200,
         col: cols[i % cols.length]
       });
     }
@@ -10511,6 +10533,7 @@
   }
 
   function beginSleep() {
+    var i;
     if (sleepFx || currentScene !== "house") return;
     dialogue = null;
     pending = null;
@@ -10521,7 +10544,18 @@
     player.moving = false;
     player.stepT = 0;
     player.frame = 0;
-    sleepFx = { age: 0, stage: "out" };
+    /* 20260905cx: floating bed Z's during the sleep fade */
+    sleepFx = { age: 0, stage: "out", zs: [], woke: false };
+    for (i = 0; i < 3; i++) {
+      sleepFx.zs.push({
+        x: (VIEW_W / 2 | 0) - 10 + i * 12,
+        y: 62 - i * 4,
+        age: i * 90,
+        life: 900,
+        sc: 2 + (i % 2),
+        wob: i * 70
+      });
+    }
     playSfx("sleep");
   }
 
@@ -10573,8 +10607,23 @@
   }
 
   function updateSleep(dt) {
+    var i, z;
     if (!sleepFx) return;
     sleepFx.age += dt;
+    /* 20260905cx: keep bed Z's drifting while fading out / holding */
+    if (sleepFx.zs) {
+      for (i = sleepFx.zs.length - 1; i >= 0; i--) {
+        z = sleepFx.zs[i];
+        z.age += dt;
+        z.y -= dt * 0.018;
+        z.x += Math.sin((z.age + z.wob) * 0.008) * 0.02 * dt;
+        if (z.age >= z.life && sleepFx.stage === "out") {
+          z.age = 0;
+          z.y = 70 - (i % 3) * 5;
+          z.x = (VIEW_W / 2 | 0) - 10 + i * 12;
+        }
+      }
+    }
     if (sleepFx.stage === "out") {
       if (sleepFx.age >= 420) {
         sleepFx.stage = "hold";
@@ -10585,6 +10634,12 @@
       if (sleepFx.age >= 700) {
         sleepFx.stage = "in";
         sleepFx.age = 0;
+        /* 20260905cx: morning wake spark at the bedside */
+        if (!sleepFx.woke) {
+          sleepFx.woke = true;
+          sleepFx.zs = [];
+          if (player) spawnSparks(player.x, player.y - 10);
+        }
       }
     } else if (sleepFx.age >= 480) {
       sleepFx = null;
@@ -10592,20 +10647,41 @@
   }
 
   function drawSleep(g) {
-    var a, msg, tw, x, fade;
+    var a, msg, tw, x, fade, i, z, za, warm;
     if (!sleepFx) return;
     if (sleepFx.stage === "out") a = sleepFx.age / 420;
     else if (sleepFx.stage === "hold") a = 1;
     else a = 1 - sleepFx.age / 480;
     if (a < 0) a = 0;
     if (a > 1) a = 1;
-    g.fillStyle = "rgba(18,10,8," + a.toFixed(3) + ")";
-    g.fillRect(0, 0, VIEW_W, VIEW_H);
-    if (a > 0.45) {
-      fade = sleepFx.stage === "hold" ? 1 : (sleepFx.stage === "out" ? (a - 0.45) / 0.55 : a);
+    /* 20260905cx: warm morning wash on wake (not pure black) */
+    if (sleepFx.stage === "in") {
+      warm = 1 - a;
+      g.fillStyle = "rgba(42,28,16," + a.toFixed(3) + ")";
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+      g.fillStyle = "rgba(255,220,140," + (0.18 * warm).toFixed(3) + ")";
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+    } else {
+      g.fillStyle = "rgba(18,10,8," + a.toFixed(3) + ")";
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+    }
+    /* floating Z's while falling asleep */
+    if (sleepFx.zs && sleepFx.stage !== "in") {
+      for (i = 0; i < sleepFx.zs.length; i++) {
+        z = sleepFx.zs[i];
+        za = 1 - z.age / z.life;
+        if (za <= 0) continue;
+        g.save();
+        g.globalAlpha = Math.min(1, za + 0.15) * Math.min(1, a + 0.35);
+        drawTiredZGlyph(g, Math.round(z.x), Math.round(z.y), z.sc, "#F3D2A3", "#3D1A0C");
+        g.restore();
+      }
+    }
+    if (a > 0.45 || sleepFx.stage === "in") {
+      fade = sleepFx.stage === "hold" ? 1 : (sleepFx.stage === "out" ? (a - 0.45) / 0.55 : Math.min(1, a * 1.4));
       if (fade < 0) fade = 0;
       if (fade > 1) fade = 1;
-      msg = "YOU SLEEP...";
+      msg = sleepFx.stage === "in" ? ("GOOD MORNING! DAY " + dayNumber) : "YOU SLEEP...";
       tw = textWidth(msg);
       x = ((VIEW_W - tw - 24) / 2) | 0;
       g.save();
@@ -21788,7 +21864,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cw", BUILD);
+      ok("BUILD", BUILD === "20260905cx", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
