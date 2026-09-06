@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905cz): fountain soft water pulse + sparkle; holiday/festival lantern warmer soft pulse; mail open parchment sparks. Never START OVER.
+
 Local 9/5 (BUILD 20260905cy): treasure chest open gold/warm sparkle burst + ore node ready twinkle (copper/silver/gold/iron world + woods silver/gold). Never START OVER.
 
 Local 9/5 (BUILD 20260905cx): boat board/leave water splash droplets + splash SFX; bed sleep floating Z's + warm GOOD MORNING wake wash/sparks. Never START OVER.

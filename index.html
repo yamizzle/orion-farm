@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cy";
+  var BUILD = "20260905cz";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6891,6 +6891,24 @@
     }
   }
 
+  /* 20260905cz: soft letter sparks when mailbox opens */
+  function spawnMailSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#FFFDF4", "#FFE9A0", "#E8D4A8", "#FFF8E0", "#C9B896", "#F3EDE0", "#D4C4A0", "#FFF3C0"];
+    for (i = 0; i < 7; i++) {
+      ang = (i / 7) * Math.PI * 2 + Math.random() * 0.45;
+      sparks.push({
+        x: x + (Math.random() * 4 - 2),
+        y: y + (Math.random() * 4 - 2),
+        vx: Math.cos(ang) * (0.022 + Math.random() * 0.024),
+        vy: Math.sin(ang) * 0.012 - 0.038 - Math.random() * 0.02,
+        age: 0,
+        life: 360 + Math.random() * 200,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
     n = big ? 12 : 8;
@@ -11657,6 +11675,11 @@
 
   function openMail() {
     var letter = letterToShow();
+    var box;
+    /* 20260905cz: soft sparkle when opening the mailbox */
+    box = findMailbox();
+    if (box) spawnMailSparks(box.tx * TILE + 8, box.ty * TILE);
+    else if (player) spawnMailSparks(player.x, player.y - 10);
     mailRead[letter.id] = true;
     persistSave();
     openDialogue(letter.title, letter.lines);
@@ -18078,10 +18101,17 @@
       var lit = lanternIsLit() || !!(p.holiday && townHoliday() === "lantern");
       var flicker;
       var cozyLamp = currentScene === "house" && homeLightOn();
+      var holidayLan = !!(p.holiday && townHoliday() === "lantern") || (festivalOn && lit);
       if (lit) {
+        /* 20260905cz: soft pulse — a little warmer/slower on holiday lanterns */
         flicker = (cozyLamp ? 0.14 : 0.10) + (cozyLamp ? 0.08 : 0.08) * (0.5 + 0.5 * Math.sin(tick / 140 + p.tx * 0.8));
+        if (holidayLan) flicker += 0.05 * (0.5 + 0.5 * Math.sin(tick / 200 + p.ty * 0.6));
         g.fillStyle = "rgba(240,192,96," + flicker.toFixed(3) + ")";
         g.fillRect(x - (cozyLamp ? 10 : 12), y - (cozyLamp ? 14 : 16), cozyLamp ? 36 : 40, cozyLamp ? 36 : 40);
+        if (holidayLan) {
+          g.fillStyle = "rgba(255,220,140," + (0.06 + 0.05 * (0.5 + 0.5 * Math.sin(tick / 180 + p.tx))).toFixed(3) + ")";
+          g.fillRect(x - 6, y - 20, 28, 12);
+        }
       }
       if (currentScene === "house") {
         if (!drawAtlas2x(g, "houseLamp", x, y)) Assets.draw(g, "houseLamp", x, y);
@@ -18195,7 +18225,25 @@
     } else if (p.kind === "townHouseB") {
       Assets.draw(g, "townHouseB", x, y);
     } else if (p.kind === "fountain") {
+      var fp, fa, ffr;
       Assets.draw(g, "fountain", x, y, ((tick / 400) | 0) % 2);
+      /* 20260905cz: soft water pulse + tiny sparkle so the plaza fountain feels alive */
+      fp = 0.10 + 0.09 * (0.5 + 0.5 * Math.sin(tick / 220 + p.tx));
+      g.fillStyle = "rgba(168,212,232," + fp.toFixed(3) + ")";
+      g.fillRect(x + 4, y + 2, 24, 18);
+      g.fillStyle = "rgba(232,246,255," + (fp * 0.7).toFixed(3) + ")";
+      g.fillRect(x + 10, y + 6, 12, 8);
+      fa = 0.28 + 0.42 * Math.abs(Math.sin(tick / 260 + p.ty));
+      ffr = ((tick / 160 + p.tx + p.ty * 2) | 0) % 3;
+      g.save();
+      g.globalAlpha = fa;
+      if (Assets.spr.sparkle) Assets.draw(g, "sparkle", x + 8, y - 6, ffr);
+      else {
+        px(g, x + 14, y, "#E8F6FF");
+        px(g, x + 18, y + 2, "#A8D4E8");
+        px(g, x + 10, y + 1, "#FFFDF8");
+      }
+      g.restore();
     } else if (p.kind === "statue") {
       if (festivalOn) {
         var stGlow = 0.14 + 0.10 * (0.5 + 0.5 * Math.sin(tick / 180));
