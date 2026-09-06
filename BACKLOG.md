@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905hd): chair sit — tapping a house / tall-cottage / L-house chair or Space / J / E next to it finally sits for a cozy rest (+energy sparkles; SIT float label; was a silent solid while the bed already slept). Never START OVER.
+
 Local 9/6 (BUILD 20260905hc): shop sign enter — tapping the outdoor PIP'S SHOP sign or Space / J / E next to it finally enters the shop (WOODS / OCEAN / MINE signs already warped; shop sign was a silent walk-only tile while the door/stoop worked; SHOP float label). Never START OVER.
 
 Local 9/6 (BUILD 20260905hb): well splash — tapping the farm well or Space / J / E next to it finally splash-talks (cool water + splash juice; WELL float label; was a silent solid while the town fountain already talked). Never START OVER.

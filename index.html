@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hc";
+  var BUILD = "20260905hd";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -718,6 +718,8 @@
   /* 20260905bc: one-shot — world tap that closed an overlay must not walk/tool. */
   var ignoreWalkTap = false;
   var sleepFx = null;
+  /* 20260905hd: brief cool so chair sit is a rest, not an energy faucet. */
+  var chairSitCool = 0;
   var wipeAsk = false;
   var shopOpen = false;
   var shopSel = 0;
@@ -12229,6 +12231,89 @@
     startWalk(player, path, 3.5);
   }
 
+
+  /* 20260905hd: house/cottage chairs finally sit — silent solids while bed slept /
+     stove cooked; tap or Space / J / E next to a chair rests with cozy +energy juice. */
+  function findNearChair() {
+    var i, p, face, scenes;
+    scenes = { house: 1, tallCottage: 1, lHouse: 1, cottage: 1, cottage2: 1 };
+    if (!scenes[currentScene]) return null;
+    face = facingTile();
+    p = propAt(face.tx, face.ty);
+    if (p && p.kind === "chair") return p;
+    p = propAt(player.tx, player.ty);
+    if (p && p.kind === "chair") return p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || p.kind !== "chair") continue;
+      if (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty)) return p;
+    }
+    return null;
+  }
+
+  function nearChair() {
+    return !!findNearChair();
+  }
+
+  function sitChair(prop) {
+    var ch = prop || findNearChair();
+    if (!ch) return false;
+    faceToward(player, ch.tx, ch.ty);
+    player.path = [];
+    player.queuedWalk = null;
+    player.moving = false;
+    player.stepT = 0;
+    player.frame = 0;
+    pending = null;
+    if (chairSitCool > 0) {
+      showLineNote("STILL COZY.");
+      playSfx("talk");
+      return true;
+    }
+    chairSitCool = 7000;
+    energy += 12;
+    if (energy > MAX_ENERGY) energy = MAX_ENERGY;
+    persistSave();
+    if (player) spawnEnergyRefillSparks(player.x, player.y - 14);
+    playSfx("sleep");
+    showLineNote("COZY! +ENERGY");
+    openDialogue("CHAIR", ["AHH.", "A NICE REST."]);
+    return true;
+  }
+
+  function goChair(prop) {
+    var dest, path, ch;
+    ch = prop;
+    if (!ch || ch.kind !== "chair") return;
+    highlight = { tx: ch.tx, ty: ch.ty };
+    if (isNear(player.tx, player.ty, ch.tx, ch.ty) || (player.tx === ch.tx && player.ty === ch.ty)) {
+      pending = null;
+      sitChair(ch);
+      return;
+    }
+    dest = nearestAdjacent(ch.tx, ch.ty);
+    if (!dest) {
+      sitChair(ch);
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      sitChair(ch);
+      return;
+    }
+    pending = { type: "chair", prop: ch };
+    startWalk(player, path, 3.5);
+  }
+
+  function tryChairAdjacent() {
+    var ch;
+    if (uiPaused() || faintFx || sleepFx) return false;
+    ch = findNearChair();
+    if (!ch) return false;
+    sitChair(ch);
+    return true;
+  }
+
   function updateSleep(dt) {
     var i, z;
     if (!sleepFx) return;
@@ -18855,6 +18940,8 @@
       }
     } else if (act.type === "sleep") {
       beginSleep();
+    } else if (act.type === "chair") {
+      if (act.prop) sitChair(act.prop);
     } else if (act.type === "homeLight") {
       talkHomeLight();
     } else if (act.type === "craft") {
@@ -20793,6 +20880,8 @@
       Assets.draw(g, "desk", x, y);
     } else if (p.kind === "chair") {
       if (!drawAtlas2x(g, "chair", x, y)) Assets.draw(g, "chair", x, y);
+      /* 20260905hd: SIT float so kids spot the rest chair (SLEEP/WELL style). */
+      drawShaftLabel(g, p, "SIT");
     } else if (p.kind === "fireplace") {
       var fireFlicker = 0.12 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 120 + p.tx));
       g.fillStyle = "rgba(240,150,70," + fireFlicker.toFixed(3) + ")";
@@ -24039,6 +24128,11 @@
       goSleep();
       return;
     }
+    /* 20260905hd: tap chair sit (was silent solid; bed already slept). */
+    if (hitProp && hitProp.kind === "chair") {
+      goChair(hitProp);
+      return;
+    }
     if (currentScene === "house" && (stoveHit(tx, ty, world) || (hitProp && hitProp.kind === "stove"))) {
       goCook();
       return;
@@ -24289,6 +24383,10 @@ if (currentScene === "ocean") goExitOcean();
     if (dt < 0) dt = 0;
     lastTs = ts;
     applyDrawBuffer(ctx);
+    if (chairSitCool > 0) {
+      chairSitCool -= dt;
+      if (chairSitCool < 0) chairSitCool = 0;
+    }
     updateSleep(dt);
     updateFaint(dt);
     updateBirdFx(dt);
@@ -24545,6 +24643,8 @@ if (currentScene === "ocean") goExitOcean();
       if (tryHomeLightHere()) return;
       /* 20260905fu: Space sleep at bed (tap already goSleep'd). */
       if (trySleepHere()) return;
+      /* 20260905hd: Space sit adjacent chair (tap goChair; bed/stove Space existed). */
+      if (tryChairAdjacent()) return;
       if (tryPickupHere()) return;
       if (tryPickupFacing()) return;
       /* 20260905gc: Space pick adjacent berry bush (facing Space existed; side-of-bush silent). */
@@ -25079,7 +25179,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hc", BUILD);
+      ok("BUILD", BUILD === "20260905hd", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26989,6 +27089,24 @@ if (currentScene === "ocean") goExitOcean();
         else placePlayer(_ss.tx, _ss.ty + 1, "up");
         /* enterShop fades — assert Space armed the door, not instant scene. */
         ok("shopSignSpaceEnter", !!trySceneDoors(), "nearSign=" + isShopEntrance(_ss.tx, _ss.ty));
+        applyScene("overworld");
+      }
+
+      /* 20260905hd: Space sit adjacent chair (tap goChair; was silent solid). */
+      applyScene("house");
+      chairSitCool = 0;
+      var _ch = null, _chi, _en0;
+      for (_chi = 0; _chi < PROPS.length; _chi++) {
+        if (PROPS[_chi] && PROPS[_chi].kind === "chair") { _ch = PROPS[_chi]; break; }
+      }
+      ok("chairExists", !!_ch, "");
+      if (_ch) {
+        var _chAdj = nearestAdjacent(_ch.tx, _ch.ty);
+        if (_chAdj) placePlayer(_chAdj.tx, _chAdj.ty, "up");
+        else placePlayer(_ch.tx, _ch.ty + 1, "up");
+        energy = 40;
+        _en0 = energy;
+        ok("chairSpaceSit", !!tryChairAdjacent() && energy === _en0 + 12, "en=" + energy + " was=" + _en0);
         applyScene("overworld");
       }
 
