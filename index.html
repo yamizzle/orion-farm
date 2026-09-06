@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905di";
+  var BUILD = "20260905dj";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6954,6 +6954,23 @@
     }
   }
 
+  /* 20260905dj: soft green energy refill sparkles (sleep wake + food yum) */
+  function spawnEnergyRefillSparks(x, y) {
+    var i, cols;
+    cols = ["#6BCB3C", "#A8E060", "#C8F090", "#4A9E28", "#E8FFC0", "#8BCA68", "#FFFDF4", "#B8E878", "#3D7A20"];
+    for (i = 0; i < 9; i++) {
+      sparks.push({
+        x: x + (Math.random() * 16 - 8),
+        y: y + (Math.random() * 5 - 2),
+        vx: (Math.random() - 0.5) * 0.028,
+        vy: -0.038 - Math.random() * 0.028,
+        age: 0,
+        life: 520 + Math.random() * 260,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
   /* 20260905da: gold coin / gold pile pickup sparkle */
   function spawnCoinSparks(x, y) {
     var i, ang, cols;
@@ -11017,7 +11034,11 @@
         if (!sleepFx.woke) {
           sleepFx.woke = true;
           sleepFx.zs = [];
-          if (player) spawnSparks(player.x, player.y - 10);
+          if (player) {
+            spawnSparks(player.x, player.y - 10);
+            /* 20260905dj: full energy after sleep — soft green refill juice */
+            spawnEnergyRefillSparks(player.x, player.y - 14);
+          }
         }
       }
     } else if (sleepFx.age >= 480) {
@@ -15718,7 +15739,11 @@
     persistSave();
     playSfx("eat");
     /* 20260905da: yum hearts float up from honey bun */
-    if (player) spawnEatHearts(player.x, player.y - 12);
+    if (player) {
+      spawnEatHearts(player.x, player.y - 12);
+      /* 20260905dj: soft green energy refill juice with food */
+      spawnEnergyRefillSparks(player.x, player.y - 16);
+    }
     openDialogue("ORION", (hp >= MAX_HP && energy >= MAX_ENERGY) ? ["YUM! A HONEY BUN.", "ALL BETTER!"] : ["YUM! A HONEY BUN.", "THAT HELPED."]);
     return true;
   }
@@ -15732,7 +15757,11 @@
     persistSave();
     playSfx("eat");
     /* 20260905da: yum hearts for any food eat */
-    if (player) spawnEatHearts(player.x, player.y - 12);
+    if (player) {
+      spawnEatHearts(player.x, player.y - 12);
+      /* 20260905dj: soft green energy refill juice with food */
+      spawnEnergyRefillSparks(player.x, player.y - 16);
+    }
     openDialogue("ORION", lines);
     ensureSelectedSlot();
     return true;
@@ -15758,7 +15787,10 @@
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
-    if (player) spawnEatHearts(player.x, player.y - 12);
+    if (player) {
+      spawnEatHearts(player.x, player.y - 12);
+      spawnEnergyRefillSparks(player.x, player.y - 16);
+    }
     openDialogue("ORION", ["YUM! A CARROT."]);
     return true;
   }
@@ -15771,7 +15803,10 @@
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
-    if (player) spawnEatHearts(player.x, player.y - 12);
+    if (player) {
+      spawnEatHearts(player.x, player.y - 12);
+      spawnEnergyRefillSparks(player.x, player.y - 16);
+    }
     openDialogue("ORION", ["YUM! A CAVE MUSHROOM."]);
     ensureSelectedSlot();
     return true;
@@ -15868,7 +15903,7 @@
   }
 
   function beginUnlock(def) {
-    var i, ang, bits;
+    var i, ang, bits, cols, cx, cy;
     bits = [];
     for (i = 0; i < 16; i++) {
       ang = (i / 16) * Math.PI * 2 + (i % 3) * 0.11;
@@ -15889,6 +15924,23 @@
       ready: false,
       bits: bits
     };
+    /* 20260905dj: soft gold screen sparkle when a Star toast pops */
+    cx = (VIEW_W / 2) | 0;
+    cy = 56;
+    cols = ["#FFE9A0", "#FFF8E0", "#F0C060", "#FFD78A", "#FFFDF4", "#E8C84A", "#FFE070", "#FFF3C0"];
+    for (i = 0; i < 10; i++) {
+      ang = (i / 10) * Math.PI * 2 + Math.random() * 0.35;
+      sparks.push({
+        x: cx + (Math.random() * 12 - 6),
+        y: cy + (Math.random() * 8 - 4),
+        vx: Math.cos(ang) * (0.026 + Math.random() * 0.03),
+        vy: Math.sin(ang) * 0.012 - 0.042 - Math.random() * 0.022,
+        age: 0,
+        life: 560 + Math.random() * 240,
+        col: cols[i % cols.length],
+        screen: true
+      });
+    }
     playSfx("toast");
   }
 
@@ -19785,23 +19837,30 @@
     };
   }
 
+  /* 20260905dj: never leave a blank bag/tray cell if atlas miss */
+  function paintBagKeyFallback(g, x, y, mid, lite) {
+    fill(g, x + 3, y + 3, 10, 10, mid || "#C47A38");
+    fill(g, x + 4, y + 4, 8, 8, lite || "#E8B060");
+    fill(g, x + 6, y + 6, 4, 4, "#FFF8E0");
+  }
+
   function drawBagKey(g, key, x, y) {
     if (!key) return;
-    if (key === "seed") drawUiIcon(g, "seed", x, y);
+    if (key === "seed") { if (!drawUiIcon(g, "seed", x, y)) paintSprout(g, x, y); }
     else if (key === "potatoSeed") { if (!drawUiIcon(g, "potatoSeed", x, y)) paintPotatoSeed(g, x, y); }
     else if (key === "berrySeed") { if (!drawUiIcon(g, "berrySeed", x, y)) paintBerrySeed(g, x, y); }
-    else if (key === "wood") drawUiIcon(g, "wood", x, y);
-    else if (key === "stone") drawUiIcon(g, "stoneItem", x, y);
-    else if (key === "iron") drawUiIcon(g, "iron", x, y);
-    else if (key === "copper") drawUiIcon(g, "copper", x, y);
+    else if (key === "wood") { if (!drawUiIcon(g, "wood", x, y)) paintBagKeyFallback(g, x, y, "#8B5A28", "#C47A38"); }
+    else if (key === "stone") { if (!drawUiIcon(g, "stoneItem", x, y)) paintBagKeyFallback(g, x, y, "#6A6A70", "#C8C8D0"); }
+    else if (key === "iron") { if (!drawUiIcon(g, "iron", x, y)) paintBagKeyFallback(g, x, y, "#4A4A52", "#A8A8B0"); }
+    else if (key === "copper") { if (!drawUiIcon(g, "copper", x, y)) paintBagKeyFallback(g, x, y, "#8B4510", "#C47A38"); }
     else if (key === "silver") { if (!drawUiIcon(g, "silver", x, y)) paintSilver(g, x, y); }
     else if (key === "goldore") { if (!drawUiIcon(g, "goldore", x, y)) paintGoldore(g, x, y); }
     else if (key === "copperBar") { if (!drawUiIcon(g, "copperBar", x, y)) paintCopperBar(g, x, y); }
     else if (key === "silverBar") { if (!drawUiIcon(g, "silverBar", x, y)) paintSilverBar(g, x, y); }
     else if (key === "goldBar") { if (!drawUiIcon(g, "goldBar", x, y)) paintGoldBar(g, x, y); }
-    else if (key === "mushroom") drawUiIcon(g, "mushroom", x, y);
-    else if (key === "moonshard") drawUiIcon(g, "moonshard", x, y);
-    else if (key === "veggie") drawUiIcon(g, "veggie", x, y);
+    else if (key === "mushroom") { if (!drawUiIcon(g, "mushroom", x, y)) paintBagKeyFallback(g, x, y, "#A86C14", "#E8B060"); }
+    else if (key === "moonshard") { if (!drawUiIcon(g, "moonshard", x, y)) paintBagKeyFallback(g, x, y, "#6A8AD0", "#E0E8FF"); }
+    else if (key === "veggie") { if (!drawUiIcon(g, "veggie", x, y)) paintBagKeyFallback(g, x, y, "#C47A38", "#E8A050"); }
     else if (key === "potato") { if (!drawUiIcon(g, "potato", x, y)) paintPotato(g, x, y); }
     else if (key === "berry") { if (!drawUiIcon(g, "berry", x, y)) paintBerry(g, x, y); }
     else if (key === "acorn") { if (!drawUiIcon(g, "acorn", x, y)) paintAcorn(g, x, y); }
@@ -19809,20 +19868,21 @@
     else if (key === "apple") { if (!drawUiIcon(g, "apple", x, y)) paintApple(g, x, y); }
     else if (key === "bread") { if (!drawUiIcon(g, "bread", x, y)) paintBread(g, x, y); }
     else if (key === "pie") { if (!drawUiIcon(g, "pie", x, y)) paintPie(g, x, y); }
-    else if (key === "flower") drawUiIcon(g, "townFlower", x, y);
-    else if (key === "snack") drawUiIcon(g, "honeybun", x, y);
-    else if (key === "hat") drawUiIcon(g, "strawHat", x, y);
-    else if (key === "sword") drawUiIcon(g, ironSwordOwned ? "ironSword" : "sword", x, y);
-    else if (key === "shovel") drawUiIcon(g, "shovel", x, y);
-    else if (key === "axe") drawUiIcon(g, "axe", x, y);
-    else if (key === "pick") drawUiIcon(g, "pickaxe", x, y);
-    else if (key === "diamondPick") drawUiIcon(g, "diamondPickaxe", x, y);
-    else if (key === "bow") drawUiIcon(g, "bow", x, y);
+    else if (key === "flower") { if (!drawUiIcon(g, "townFlower", x, y)) paintBagKeyFallback(g, x, y, "#E878A0", "#FFC0D8"); }
+    else if (key === "snack") { if (!drawUiIcon(g, "honeybun", x, y)) paintBagKeyFallback(g, x, y, "#C47A38", "#FFE9A0"); }
+    else if (key === "hat") { if (!drawUiIcon(g, "strawHat", x, y)) paintBagKeyFallback(g, x, y, "#C9A227", "#FFE9A0"); }
+    else if (key === "sword") { if (!drawUiIcon(g, ironSwordOwned ? "ironSword" : "sword", x, y)) paintBagKeyFallback(g, x, y, "#6A6A70", "#E0E0E8"); }
+    else if (key === "shovel") { if (!drawUiIcon(g, "shovel", x, y)) paintBagKeyFallback(g, x, y, "#8B5A28", "#C8C8D0"); }
+    else if (key === "axe") { if (!drawUiIcon(g, "axe", x, y)) paintBagKeyFallback(g, x, y, "#8B5A28", "#C8C8D0"); }
+    else if (key === "pick") { if (!drawUiIcon(g, "pickaxe", x, y)) paintBagKeyFallback(g, x, y, "#8B5A28", "#C8C8D0"); }
+    else if (key === "diamondPick") { if (!drawUiIcon(g, "diamondPickaxe", x, y)) paintBagKeyFallback(g, x, y, "#4A8AD0", "#E0F0FF"); }
+    else if (key === "bow") { if (!drawUiIcon(g, "bow", x, y)) paintBagKeyFallback(g, x, y, "#8B5A28", "#E8B060"); }
     else if (key === "pole") { if (!drawUiIcon(g, "fishingPole", x, y)) paintFishingPole(g, x, y); }
-    else if (key === "leash") drawUiIcon(g, "leash", x, y);
-    else if (key === "lampKit") drawUiIcon(g, "lanternIcon", x, y);
-    else if (key === "crateKit") drawUiIcon(g, "crateIcon", x, y);
+    else if (key === "leash") { if (!drawUiIcon(g, "leash", x, y)) paintBagKeyFallback(g, x, y, "#A86C14", "#E8B060"); }
+    else if (key === "lampKit") { if (!drawUiIcon(g, "lanternIcon", x, y)) paintBagKeyFallback(g, x, y, "#C47A38", "#FFE9A0"); }
+    else if (key === "crateKit") { if (!drawUiIcon(g, "crateIcon", x, y)) paintBagKeyFallback(g, x, y, "#8B5A28", "#C47A38"); }
     else if (fishKindById(key) || cookedFishKindById(key)) paintFishIcon(g, x, y, key);
+    else paintBagKeyFallback(g, x, y, "#8A5A28", "#E8B060");
   }
 
   function drawOneBagCell(g, rec, sx, sy, slot, sel, trayish, heldHere) {

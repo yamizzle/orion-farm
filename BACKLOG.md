@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905dj): soft green energy refill sparkles on sleep wake + food eat; Stars earn toast soft gold screen sparkle; drawBagKey atlas-miss / unknown-key paint fallbacks so tray/bag never blank. Never START OVER.
+
 Local 9/5 (BUILD 20260905di): deer flee soft tan/dirt dust + soft hop when Orion bumps/taps (rabbit/squirrel hop juice kept). Never START OVER.
 
 Local 9/5 (BUILD 20260905dh): shop buy gold sparkle at BUY when a purchase succeeds; tiny SAVE toast on sleep day-rollover persist only (not every save — no spam). Never START OVER.
