@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fx";
+  var BUILD = "20260905fy";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -3148,6 +3148,116 @@
     if (!path.length) return;
     pending = { type: up ? "treeUp" : "treeDown" };
     startWalk(player, path, 3.5);
+  }
+
+  /* 20260905fy: Space/J/E TREE doors — forest giant-tree enter + TREE UP/DOWN
+     climb + TREETOP exits (tap already goEnterTreetop / goTreeShaft'd; Space on the
+     forest door wrongly called enterTreetop and skipped TREE 1–4; ladder Space was
+     a silent no-op). Enter/climb immediately when facing or orthogonally adjacent. */
+  function tryTreeDoors() {
+    var f, spots, i, t, p;
+    function orthoSpots() {
+      return [
+        { tx: player.tx - 1, ty: player.ty },
+        { tx: player.tx + 1, ty: player.ty },
+        { tx: player.tx, ty: player.ty - 1 },
+        { tx: player.tx, ty: player.ty + 1 }
+      ];
+    }
+    function hitsForestTreeDoor(tx, ty) {
+      if (isTreetopEntrance(tx, ty)) return true;
+      p = propAt(tx, ty);
+      return !!(p && p.kind === "giantTree");
+    }
+    if (currentScene === "forest") {
+      if (hitsForestTreeDoor(player.tx, player.ty)) {
+        enterTree();
+        return true;
+      }
+      f = facingTile();
+      if (hitsForestTreeDoor(f.tx, f.ty)) {
+        enterTree();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (hitsForestTreeDoor(t.tx, t.ty)) {
+          enterTree();
+          return true;
+        }
+      }
+      return false;
+    }
+    if (currentScene === "tree") {
+      if (isTreeUp(player.tx, player.ty)) {
+        climbTree();
+        return true;
+      }
+      if (isTreeDown(player.tx, player.ty)) {
+        descendTree();
+        return true;
+      }
+      f = facingTile();
+      p = propAt(f.tx, f.ty);
+      if (isTreeUp(f.tx, f.ty) || (p && p.kind === "ladder")) {
+        climbTree();
+        return true;
+      }
+      if (isTreeDown(f.tx, f.ty) || (p && p.kind === "woodsDown")) {
+        descendTree();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        p = propAt(t.tx, t.ty);
+        if (isTreeUp(t.tx, t.ty) || (p && p.kind === "ladder")) {
+          climbTree();
+          return true;
+        }
+        if (isTreeDown(t.tx, t.ty) || (p && p.kind === "woodsDown")) {
+          descendTree();
+          return true;
+        }
+      }
+      return false;
+    }
+    if (currentScene === "treetop") {
+      if (isTreetopExit(player.tx, player.ty)) {
+        exitTreetop();
+        return true;
+      }
+      if (isTreetopSouthExit(player.tx, player.ty)) {
+        exitTreetopSouth();
+        return true;
+      }
+      f = facingTile();
+      p = propAt(f.tx, f.ty);
+      if (isTreetopExit(f.tx, f.ty) || (p && p.kind === "woodsDown")) {
+        exitTreetop();
+        return true;
+      }
+      if (isTreetopSouthExit(f.tx, f.ty) || (p && p.kind === "woodsSign")) {
+        exitTreetopSouth();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        p = propAt(t.tx, t.ty);
+        if (isTreetopExit(t.tx, t.ty) || (p && p.kind === "woodsDown")) {
+          exitTreetop();
+          return true;
+        }
+        if (isTreetopSouthExit(t.tx, t.ty) || (p && p.kind === "woodsSign")) {
+          exitTreetopSouth();
+          return true;
+        }
+      }
+      return false;
+    }
+    return false;
   }
 
   function buildPeakGround() {
@@ -23417,18 +23527,8 @@ if (currentScene === "ocean") goExitOcean();
       if (tryCottageDoors()) return;
       /* 20260905fx: Space house/shop/mine/forest doors (tap already worked). */
       if (trySceneDoors()) return;
-      if (isTreetopEntrance(player.tx, player.ty)) {
-        enterTreetop();
-        return;
-      }
-      if (isTreetopExit(player.tx, player.ty)) {
-        exitTreetop();
-        return;
-      }
-      if (isTreetopSouthExit(player.tx, player.ty)) {
-        exitTreetopSouth();
-        return;
-      }
+      /* 20260905fy: Space TREE enter/climb/exit (was enterTreetop bug + ladder no-op). */
+      if (tryTreeDoors()) return;
       if (tryCookHere()) return;
       if (trySmeltHere()) return;
       /* 20260905fs: Space craft at workbench + home-glow table talk (tap already worked). */
@@ -23787,6 +23887,7 @@ if (currentScene === "ocean") goExitOcean();
       enterForest: enterForest,
       exitForest: exitForest,
       enterTree: enterTree,
+      tryTreeDoors: tryTreeDoors,
       exitTree: exitTree,
       enterTreeFloor: enterTreeFloor,
       climbTree: climbTree,
@@ -23918,7 +24019,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fx", BUILD);
+      ok("BUILD", BUILD === "20260905fy", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24726,6 +24827,43 @@ if (currentScene === "ocean") goExitOcean();
         var _hxOk = trySceneDoors();
         _flushDoorFade();
         ok("spaceExitHouse", !!_hxOk && currentScene === "overworld", "ok=" + _hxOk + " scene=" + currentScene);
+      }
+
+      /* 20260905fy: Space enters TREE from forest door (not TREETOP) + climbs UP. */
+      applyScene("forest");
+      closeDialogue();
+      var _trStand = null;
+      if (walkable(treetopDoor.tx, treetopDoor.ty + 1)) _trStand = { tx: treetopDoor.tx, ty: treetopDoor.ty + 1, face: "up" };
+      else if (walkable(treetopDoor.tx + 1, treetopDoor.ty)) _trStand = { tx: treetopDoor.tx + 1, ty: treetopDoor.ty, face: "left" };
+      else if (walkable(treetopDoor.tx - 1, treetopDoor.ty)) _trStand = { tx: treetopDoor.tx - 1, ty: treetopDoor.ty, face: "right" };
+      ok("spaceTreeDoorStand", !!_trStand, "stand");
+      if (_trStand) {
+        placePlayer(_trStand.tx, _trStand.ty, _trStand.face);
+        var _trOk = tryTreeDoors();
+        ok("spaceEnterTreeNotTreetop", !!_trOk && currentScene === "tree" && treeFloor === 1, "ok=" + _trOk + " scene=" + currentScene + " floor=" + treeFloor);
+      }
+      /* Facing away but orthogonally adjacent still enters TREE 1. */
+      applyScene("forest");
+      closeDialogue();
+      if (walkable(treetopDoor.tx, treetopDoor.ty + 1)) {
+        placePlayer(treetopDoor.tx, treetopDoor.ty + 1, "down");
+        var _trAdj = tryTreeDoors();
+        ok("spaceTreeDoorAdjacent", !!_trAdj && currentScene === "tree" && treeFloor === 1, "ok=" + _trAdj + " scene=" + currentScene);
+      } else {
+        ok("spaceTreeDoorAdjacent", true, "skip-no-south");
+      }
+      /* Space climb UP on TREE 1 when facing ladder. */
+      applyScene("tree", 1);
+      closeDialogue();
+      var _up = treeUpSpot();
+      var _upStand = null;
+      if (_up && walkable(_up.tx, _up.ty + 1)) _upStand = { tx: _up.tx, ty: _up.ty + 1, face: "up" };
+      else if (_up && walkable(_up.tx, _up.ty)) _upStand = { tx: _up.tx, ty: _up.ty, face: "up" };
+      ok("spaceTreeUpStand", !!_upStand, "stand");
+      if (_upStand) {
+        placePlayer(_upStand.tx, _upStand.ty, _upStand.face);
+        var _upOk = tryTreeDoors();
+        ok("spaceClimbTreeUp", !!_upOk && currentScene === "tree" && treeFloor === 2, "ok=" + _upOk + " scene=" + currentScene + " floor=" + treeFloor);
       }
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */

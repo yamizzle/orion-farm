@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fy): Space TREE doors — standing facing or next to the forest giant-tree door, Space / J / E finally enters TREE 1 (tap already walked-to-enter; Space wrongly called enterTreetop and skipped TREE 1–4); Space also climbs TREE UP/DOWN and exits TREETOP when facing or next to the ladder / OUT. Never START OVER.
+
 Local 9/6 (BUILD 20260905fx): Space scene doors — standing facing or next to the farmhouse / Pip's shop / mine cave / woods door, Space / J / E finally enters (tap already walked-to-enter; cottage/ocean Space existed; these doors were silent no-ops); Space also exits house/shop/forest when facing or next to the OUT mat. Never START OVER.
 
 Local 9/6 (BUILD 20260905fw): Space enter island cave — standing facing or next to the ocean island cave mouth, Space / J / E finally enters (tap already walked-to-enter; boat/beach-exit Space existed; cave mouth Space was a silent no-op); island cave OUT also accepts adjacent Space. Never START OVER.
