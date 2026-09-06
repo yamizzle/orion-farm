@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cs";
+  var BUILD = "20260905ct";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6354,9 +6354,15 @@
 
   function harvestCropAt(tx, ty) {
     var k = tx + "," + ty;
+    var cx, cy;
     if (!cropIsReady(crops[k])) return;
     var kind = cropKindOf(crops[k]);
     delete crops[k];
+    /* 20260905ct: harvest pop juice — sparks + soft chip spray */
+    cx = tx * TILE + 8;
+    cy = ty * TILE + 4;
+    spawnSparks(cx, cy);
+    spawnHitSparks(cx, cy - 2, false);
     if (kind === "potato") spawnGroundLoot("potato", tx, ty, 1);
     else if (kind === "berry") spawnGroundLoot("berry", tx, ty, 1);
     else spawnGroundLoot("veggie", tx, ty, 1);
@@ -19657,6 +19663,20 @@
           if (crop) {
             var bob = cropIsReady(crop) ? Math.round(Math.sin(tick / 280) * 1) : 0;
             drawCropSprite(g, crop, dx, dy + bob);
+            /* 20260905ct: ready crops twinkle so kids spot harvest */
+            if (cropIsReady(crop)) {
+              var ca = 0.34 + 0.46 * Math.abs(Math.sin(tick / 240 + tx * 1.3 + ty));
+              var cfr = ((tick / 140 + tx * 2 + ty * 5) | 0) % 3;
+              g.save();
+              g.globalAlpha = ca;
+              if (Assets.spr.sparkle) Assets.draw(g, "sparkle", dx + 4, dy + bob - 10, cfr);
+              else {
+                px(g, dx + 8, dy + bob - 4, "#FFF8E0");
+                px(g, dx + 11, dy + bob - 2, "#FFE9A0");
+                px(g, dx + 5, dy + bob - 1, "#FFFDF4");
+              }
+              g.restore();
+            }
           }
         } else if (ch === "s") {
           if (currentScene === "mine" || currentScene === "caveclimb") {
@@ -21584,7 +21604,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cs", BUILD);
+      ok("BUILD", BUILD === "20260905ct", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
