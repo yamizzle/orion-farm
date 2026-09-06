@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fs): Space craft + home-glow table — standing next to the house workbench, Space / J / E finally opens CRAFT (tap already walked-to-craft; cook/smelt/chest Space existed; workbench Space was a silent no-op); standing next to the glowing home table, Space / J / E finally talks HOME LIGHT (tap already goHomeLight'd). Never START OVER.
+
 Local 9/6 (BUILD 20260905fr): Space read Nim note — standing next to a mine note board, Space / J / E finally opens NIM'S NOTE (tap already walked-to-read; mail Space landed in 05fq; note Space was a silent no-op). Never START OVER.
 
 Local 9/6 (BUILD 20260905fq): Space open mailbox — standing next to the farm mailbox, Space / J / E finally opens the letter (tap already walked-to-open; chest/talk Space existed; mailbox Space was a silent no-op). Never START OVER.

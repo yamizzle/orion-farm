@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fr";
+  var BUILD = "20260905fs";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10545,6 +10545,18 @@
     return false;
   }
 
+
+  /* 20260905fs: Space/J/E open craft at adjacent workbench (tap already goCraft'd;
+     cook/smelt/chest Space existed; workbench Space was a silent no-op). */
+  function tryCraftHere() {
+    if (uiPaused() || faintFx) return false;
+    if (currentScene !== "house") return false;
+    if (!nearWorkbench()) return false;
+    pending = null;
+    openCraft();
+    return true;
+  }
+
   function workbenchHit(tx, ty, world) {
     var bench, b;
     if (currentScene !== "house") return false;
@@ -11494,6 +11506,18 @@
     }
     pending = { type: "chest" };
     startWalk(player, path, 3.5);
+  }
+
+
+  /* 20260905fs: Space/J/E talk at glowing home table (tap already goHomeLight'd;
+     craft Space lands in same build; table Space was a silent no-op). */
+  function tryHomeLightHere() {
+    if (uiPaused() || faintFx) return false;
+    if (currentScene !== "house" || !homeLightOn()) return false;
+    if (!nearTable()) return false;
+    pending = null;
+    talkHomeLight();
+    return true;
   }
 
   function talkHomeLight() {
@@ -23140,6 +23164,9 @@ if (currentScene === "ocean") goExitOcean();
       }
       if (tryCookHere()) return;
       if (trySmeltHere()) return;
+      /* 20260905fs: Space craft at workbench + home-glow table talk (tap already worked). */
+      if (tryCraftHere()) return;
+      if (tryHomeLightHere()) return;
       if (tryPickupHere()) return;
       if (tryPickupFacing()) return;
       /* 20260905fo: Space pick flower before smash/talk so facing wildflower is not a no-op. */
@@ -23617,7 +23644,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fr", BUILD);
+      ok("BUILD", BUILD === "20260905fs", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24178,6 +24205,49 @@ if (currentScene === "ocean") goExitOcean();
           placePlayer(_nstand.tx, _nstand.ty, _nstand.face);
           var _noteOk = tryReadNoteAdjacent();
           ok("spaceReadNote", !!_noteOk && !!(dialogue && dialogue.title), "open=" + _noteOk + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
+      }
+
+      /* 20260905fs: Space opens craft at adjacent workbench (tap already goCraft'd). */
+      applyScene("house");
+      closeCraft();
+      closeDialogue();
+      var _bench = findWorkbench();
+      ok("spaceCraftBenchFound", !!_bench, "bench");
+      if (_bench) {
+        var _bstand = null;
+        if (walkable(_bench.tx, _bench.ty + 1)) _bstand = { tx: _bench.tx, ty: _bench.ty + 1, face: "up" };
+        else if (walkable(_bench.tx + 1, _bench.ty)) _bstand = { tx: _bench.tx + 1, ty: _bench.ty, face: "left" };
+        else if (walkable(_bench.tx + 1, _bench.ty + 1)) _bstand = { tx: _bench.tx + 1, ty: _bench.ty + 1, face: "left" };
+        else if (walkable(_bench.tx - 1, _bench.ty)) _bstand = { tx: _bench.tx - 1, ty: _bench.ty, face: "right" };
+        ok("spaceCraftStand", !!_bstand, "stand");
+        if (_bstand) {
+          placePlayer(_bstand.tx, _bstand.ty, _bstand.face);
+          var _craftOk = tryCraftHere();
+          ok("spaceOpenCraft", !!_craftOk && !!craftOpen, "open=" + _craftOk + " craftOpen=" + !!craftOpen);
+          closeCraft();
+        }
+      }
+
+      /* 20260905fs: Space talks at glowing home table (tap already goHomeLight'd). */
+      applyScene("house");
+      homeLight = true;
+      quest.homeDone = true;
+      closeDialogue();
+      var _table = findTable();
+      ok("spaceHomeTableFound", !!_table, "table");
+      if (_table) {
+        var _tstand = null;
+        if (walkable(_table.tx, _table.ty + 1)) _tstand = { tx: _table.tx, ty: _table.ty + 1, face: "up" };
+        else if (walkable(_table.tx + 1, _table.ty + 1)) _tstand = { tx: _table.tx + 1, ty: _table.ty + 1, face: "up" };
+        else if (walkable(_table.tx - 1, _table.ty)) _tstand = { tx: _table.tx - 1, ty: _table.ty, face: "right" };
+        else if (walkable(_table.tx + 2, _table.ty)) _tstand = { tx: _table.tx + 2, ty: _table.ty, face: "left" };
+        ok("spaceHomeTableStand", !!_tstand, "stand");
+        if (_tstand) {
+          placePlayer(_tstand.tx, _tstand.ty, _tstand.face);
+          var _homeOk = tryHomeLightHere();
+          ok("spaceHomeLightTalk", !!_homeOk && !!(dialogue && dialogue.title), "open=" + _homeOk + " title=" + (dialogue ? dialogue.title : ""));
           closeDialogue();
         }
       }
