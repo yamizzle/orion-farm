@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ap";
+  var BUILD = "20260905aq";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -15050,38 +15050,8 @@
   }
 
   function drawFence(g, kind, x, y) {
-    var hi = "#DE8F1F";
-    var mid = "#A15A0E";
-    var sh = "#6C3C09";
-    var cap = "#D88A1C";
-    var top = y - 16;
-    var railY = y - 6;
-    var h, c, railX, railW;
-    Assets.draw(g, kind, x, y);
-    function shaft(px, colors, y0, y1) {
-      h = y1 - y0 + 1;
-      if (h < 1) return;
-      for (c = 0; c < colors.length; c++) fill(g, px + c, y0, 1, h, colors[c]);
-      fill(g, px, y0, colors.length, 1, cap);
-      fill(g, px + 1, y0, Math.max(1, colors.length - 2), 1, hi);
-    }
-    if (kind === "fenceL") {
-      shaft(x + 1, ["#653A0A", "#854A0C", "#AC630E", "#884B0C", "#6F3F09"], top, y + 4);
-      railX = x + 4;
-      railW = 12;
-    } else if (kind === "fenceR") {
-      shaft(x + 11, ["#703F0B", "#854A0E", "#AD6712", "#96540E", "#7E470C"], top, y + 4);
-      railX = x;
-      railW = 12;
-    } else {
-      shaft(x + 1, ["#7B440B", "#854A0C", "#663A0A"], top, y + 8);
-      shaft(x + 13, ["#5C3409", "#D67F14", "#98560F"], top, y + 8);
-      railX = x + 3;
-      railW = 10;
-    }
-    fill(g, railX, railY, railW, 1, hi);
-    fill(g, railX, railY + 1, railW, 1, mid);
-    fill(g, railX, railY + 2, railW, 1, sh);
+    /* 20260905aq: 32×64 Imagine fence drawn NN at 16×32 — no code-paint overlay */
+    if (!drawAtlas2x(g, kind, x, y)) Assets.draw(g, kind, x, y);
   }
 
   function drawProp(g, p) {
@@ -15135,7 +15105,7 @@
     } else if (p.kind === "doormat") {
       if (!drawAtlas2x(g, "doormat", x, y)) Assets.draw(g, "doormat", x, y);
     } else if (p.kind === "inndoor") {
-      Assets.draw(g, "inndoor", x, y);
+      if (!drawAtlas2x(g, "inndoor", x, y)) Assets.draw(g, "inndoor", x, y);
     } else if (p.kind === "tree") {
       Assets.draw(g, harvestSprite(p), x, y);
     } else if (p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "palm" || p.kind === "log" ||
@@ -15277,7 +15247,7 @@
     } else if (p.kind === "counter") {
       Assets.draw(g, "counter", x, y);
     } else if (p.kind === "townFlower") {
-      Assets.draw(g, "townFlower", x, y);
+      if (!drawAtlas2x(g, "townFlower", x, y)) Assets.draw(g, "townFlower", x, y);
     }
   }
 
@@ -18492,7 +18462,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ap", BUILD);
+      ok("BUILD", BUILD === "20260905aq", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
