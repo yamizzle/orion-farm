@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ez): bow strike works — selecting the bow shows the strike pad outdoors and pad/Space/tap-foe finally shoots an arrow (shootArrow existed but was never called; pad always sword-swung / hid when only bow was in the tray). Never START OVER.
+
 Local 9/6 (BUILD 20260905ey): bag-only ore smelt — fireplace now smelts copper/silver/goldore that live only in the BAG grid (Jobs already tip'd SMELT ORE; cook fish already had this fallback; was THE FIRE WANTS ORE with ore in bag). Never START OVER.
 
 Local 9/6 (BUILD 20260905ex): ocean beach exit landing — leave OCEAN / beach-gate refresh nudge no longer drops you one tile north of the walk-in band (ty>=37); land at (14,35) so one south step cannot auto-reenter (same 2-tile gap as outdoor doors 05ew / forest exit). Never START OVER.
