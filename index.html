@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ba";
+  var BUILD = "20260905bb";
   var ASSET_REV = "437639";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -2650,6 +2650,8 @@
       holidaySyncKey = "";
       syncHolidayProps();
     }
+    /* 20260905bb: drop cached grade so forest↔farm cannot keep a stale wash */
+    frameDayT = null;
   }
 
   function openMineAisle() {
@@ -9793,11 +9795,19 @@
     return keys[keys.length - 1];
   }
 
-  function currentGrade() {
-    var gr = sampleKeys(GRADE_KEYS, dayMs / DAY_MS);
-    var t, out, k;
-    if (currentScene !== "forest") return gr;
-    t = dayMs / DAY_MS;
+  /* 20260905bb: one outdoor time/grade sample per frame. Farm + forest share
+     the same night lift (was forest-only); GRADE_KEYS evening values untouched.
+     forestNightFlora stays forest-only for moss/rim extras. */
+  var frameDayT = null;
+  var frameGradeRaw = null;
+  var frameOutdoorGrade = null;
+
+  function usesOutdoorGrade() {
+    return !(isCozyInterior() || currentScene === "mine" || currentScene === "caveclimb");
+  }
+
+  function liftOutdoorNightGrade(gr, t) {
+    var out, k;
     if (t < 0.74) return gr;
     out = {};
     for (k in gr) {
@@ -9812,6 +9822,18 @@
     out.mulG = gr.mulG + (124 - gr.mulG) * 0.70;
     out.mulB = gr.mulB + (88 - gr.mulB) * 0.55;
     return out;
+  }
+
+  function beginFrameGrade() {
+    frameDayT = dayMs / DAY_MS;
+    frameGradeRaw = sampleKeys(GRADE_KEYS, frameDayT);
+    frameOutdoorGrade = liftOutdoorNightGrade(frameGradeRaw, frameDayT);
+  }
+
+  function currentGrade() {
+    if (frameDayT === null) beginFrameGrade();
+    if (usesOutdoorGrade()) return frameOutdoorGrade;
+    return frameGradeRaw;
   }
 
   function forestNightFlora() {
@@ -9842,9 +9864,11 @@
   }
 
   function lanternGlowAmt() {
+    var t;
     if (currentScene === "mine" || currentScene === "caveclimb") return 0.55;
     if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "treetop" && currentScene !== "ocean") return 0;
-    var t = dayMs / DAY_MS;
+    if (frameDayT === null) beginFrameGrade();
+    t = frameDayT;
     if (t < 0.75) return 0;
     if (t < 0.768) return 0.22 + 0.78 * (t - 0.75) / 0.018;
     if (t < 0.97) return 1;
@@ -15481,10 +15505,11 @@
   }
 
   function creatureNightWash(wx, wy) {
-    var t = dayMs / DAY_MS;
-    var amt = lanternGlowAmt();
-    var gr, pop, a;
+    var t, amt, gr, pop, a;
     if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "treetop" && currentScene !== "ocean") return null;
+    if (frameDayT === null) beginFrameGrade();
+    t = frameDayT;
+    amt = lanternGlowAmt();
     gr = currentGrade();
     if (amt >= 0.02) {
       pop = lanternPopAt(wx, wy);
@@ -16914,6 +16939,9 @@
   }
 
   function drawWorld(g, dt) {
+    /* Resample outdoor grade once per painted frame from the post-clock dayMs. */
+    frameDayT = null;
+    beginFrameGrade();
     updateCamera();
     g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "ocean") ? (currentScene === "peak" ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -18697,7 +18725,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ba", BUILD);
+      ok("BUILD", BUILD === "20260905bb", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
