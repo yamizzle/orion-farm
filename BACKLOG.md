@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905eg): TREE/TREETOP/peak/stairs refresh spawn — hard-refresh on TREE 2–4 no longer falls back to TREE 1's (5,5); floor-aware land spots match climb landings; refresh while standing on a ladder/cave/stairs/exit gate nudges you off so the next tick cannot auto-warp you into the wrong scene (TREETOP exits, peak cave, STAIRS mouth, island-cave OUT, mine→peak stairs). Never START OVER.
+
 Local 9/6 (BUILD 20260905ef): island-cave + boat save restore — refresh inside the south island cave no longer dumps you on the farm (pendingRestore whitelist + spawn fallback); rowing mid-ocean now persists onBoat so hard-refresh keeps you aboard instead of TOO DEEP unstick; HUD stamp shows ISLAND CAVE. Never START OVER.
 
 Local 9/6 (BUILD 20260905ee): save mid-drag bag stash — if you were holding a bag/tray stack (drag ghost) when the game autosaved / tab-hid / refreshed, that stack was missing from the serialized pockets and could vanish; persistSave now stashBagHeld() first so the stack snaps back into a pocket before write. Never START OVER.
