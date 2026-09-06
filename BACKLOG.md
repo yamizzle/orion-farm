@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905dl): soft bedside wake sparkle after faint/death (sparks + energy refill + pink hearts — sleep already had wake juice); Moondrop Night soft pastel confetti drift while festivalOn at NIGHT in town. Never START OVER.
+
 Local 9/5 (BUILD 20260905dk): pink heart heal juice on sleep wake (hearts refill); potato + berry eats get the same yum hearts + green energy sparkles other snacks already had (bug gap). Never START OVER.
 
 Local 9/5 (BUILD 20260905dj): soft green energy refill sparkles on sleep wake + food eat; Stars earn toast soft gold screen sparkle; drawBagKey atlas-miss / unknown-key paint fallbacks so tray/bag never blank. Never START OVER.

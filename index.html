@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dk";
+  var BUILD = "20260905dl";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -838,6 +838,8 @@
   var reedDone = false;
   var carTapped = false;
   var festivalOn = false;
+  var festConfetti = []; /* 20260905dl: soft Moondrop Night falling bits */
+
   var nimMet = false;
   var holidaySyncKey = "";
   var audioMuted = false;
@@ -15486,6 +15488,12 @@
         faintFx.stage = "in";
         faintFx.age = 0;
         showLineNote("THE MOUNTAIN SENT YOU HOME.");
+        /* 20260905dl: soft bedside wake sparkle after faint (sleep already had this) */
+        if (player) {
+          spawnSparks(player.x, player.y - 10);
+          spawnEnergyRefillSparks(player.x, player.y - 14);
+          spawnEatHearts(player.x, player.y - 12);
+        }
       }
     } else if (faintFx.age >= FAINT_IN_MS) {
       faintFx = null;
@@ -20383,6 +20391,54 @@
     g.restore();
   }
 
+  /* 20260905dl: soft pastel confetti drift while Moondrop Night is on */
+  function updateFestConfetti(dt) {
+    var i, c, cols, nightOn;
+    nightOn = festivalOn && clockPhaseName() === "NIGHT" && currentScene === "overworld";
+    for (i = festConfetti.length - 1; i >= 0; i--) {
+      c = festConfetti[i];
+      c.age += dt;
+      c.x += c.vx * dt;
+      c.y += c.vy * dt;
+      c.vx += Math.sin((c.age + c.wob) * 0.01) * 0.00035 * dt;
+      if (c.age >= c.life || c.y > VIEW_H + 6) festConfetti.splice(i, 1);
+    }
+    if (!nightOn) return;
+    if (festConfetti.length >= 26) return;
+    /* gentle spawn — a few bits at a time, not a blizzard */
+    if (Math.random() > 0.11) return;
+    cols = ["#FFE9A0", "#FFB4C8", "#A8D8FF", "#E8C8FF", "#FFF8E0", "#FFD0A0", "#C8F0E0", "#FFFDF4", "#F0C060"];
+    festConfetti.push({
+      x: Math.random() * VIEW_W,
+      y: -3 - Math.random() * 10,
+      vx: (Math.random() - 0.5) * 0.018,
+      vy: 0.01 + Math.random() * 0.016,
+      age: 0,
+      life: 3800 + Math.random() * 2200,
+      col: cols[(Math.random() * cols.length) | 0],
+      wob: Math.random() * 1200
+    });
+  }
+
+  function drawFestConfetti(g) {
+    var i, c, life, a;
+    if (!festConfetti.length) return;
+    for (i = 0; i < festConfetti.length; i++) {
+      c = festConfetti[i];
+      life = 1 - c.age / c.life;
+      if (life <= 0) continue;
+      a = Math.min(0.8, life + 0.18);
+      if (c.y < 10) a *= c.y / 10;
+      if (a <= 0.02) continue;
+      g.save();
+      g.globalAlpha = a;
+      g.fillStyle = c.col;
+      g.fillRect(Math.round(c.x), Math.round(c.y), 1, 1);
+      if (life > 0.4) g.fillRect(Math.round(c.x) + 1, Math.round(c.y), 1, 1);
+      g.restore();
+    }
+  }
+
   function hasOverRim() {
     return !!(Assets.overRimNorth || Assets.overRimSouth || Assets.overRimWest || Assets.overRimEast);
   }
@@ -20602,6 +20658,7 @@
       drawFestivalSparkles(g);
       g.restore();
       drawFestivalStar(g);
+      drawFestConfetti(g);
       drawBirdRideOverlay(g);
     } else {
       drawActors(g);
@@ -21785,6 +21842,7 @@ if (currentScene === "ocean") goExitOcean();
       updatePickups(dt);
       updateGroundLoot(dt);
       updateFx(dt);
+      updateFestConfetti(dt);
       updateTiredZs(dt);
       tick += dt;
     }
