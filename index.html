@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905et";
+  var BUILD = "20260905eu";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10000,27 +10000,33 @@
       }
     } else if (currentScene === "house") {
       if (isHouseExit(tx, ty)) {
-        return { tx: 10, ty: 9, face: "up" };
+        /* 20260905eu: match enterHouse 2-tile landing */
+        return { tx: 10, ty: 8, face: "up" };
       }
     } else if (currentScene === "shop") {
       if (isShopExit(tx, ty)) {
-        return { tx: 8, ty: 7, face: "up" };
+        /* 20260905eu: match enterShop 2-tile landing */
+        return { tx: 8, ty: 6, face: "up" };
       }
     } else if (currentScene === "cottage") {
       if (isCottageExit(tx, ty)) {
-        return { tx: 8, ty: 7, face: "up" };
+        /* 20260905eu: match enterCottage 2-tile landing */
+        return { tx: 8, ty: 6, face: "up" };
       }
     } else if (currentScene === "cottage2") {
       if (isCottage2Exit(tx, ty)) {
-        return { tx: 6, ty: 5, face: "up" };
+        /* 20260905eu: match enterCottage2 2-tile landing */
+        return { tx: 6, ty: 4, face: "up" };
       }
     } else if (currentScene === "tallCottage") {
       if (isTallCottageExit(tx, ty)) {
-        return { tx: 8, ty: 7, face: "up" };
+        /* 20260905eu: match enterTallCottage 2-tile landing */
+        return { tx: 8, ty: 6, face: "up" };
       }
     } else if (currentScene === "lHouse") {
       if (isLHouseExit(tx, ty)) {
-        return { tx: 7, ty: 7, face: "up" };
+        /* 20260905eu: match enterLHouse 2-tile landing */
+        return { tx: 7, ty: 6, face: "up" };
       }
     } else if (currentScene === "mine") {
       if (isMinePeakStairs(tx, ty) || isMineExit(tx, ty) || isMineUp(tx, ty) || isMineDown(tx, ty)) {
@@ -10053,8 +10059,8 @@
       if (ty >= OVER_ROWS - 1) ty = OVER_ROWS - 2;
     }
     if (!inBounds(tx, ty) || !walkable(tx, ty)) {
-      if (scene === "house") { tx = 10; ty = 9; face = "up"; }
-      else if (scene === "shop") { tx = 8; ty = 7; face = "up"; }
+      if (scene === "house") { tx = 10; ty = 8; face = "up"; }
+      else if (scene === "shop") { tx = 8; ty = 6; face = "up"; }
       else if (scene === "forest") { tx = 14; ty = 63; face = "up"; }
       else if (scene === "treetop") { tx = treetopLand.tx; ty = treetopLand.ty; face = "up"; }
       else if (scene === "tree") {
@@ -10084,10 +10090,10 @@
           tx = oceanLand.tx; ty = oceanLand.ty; face = "down";
         }
       }
-      else if (scene === "cottage") { tx = 8; ty = 7; face = "up"; }
-      else if (scene === "cottage2") { tx = 6; ty = 5; face = "up"; }
-      else if (scene === "tallCottage") { tx = 8; ty = 7; face = "up"; }
-      else if (scene === "lHouse") { tx = 7; ty = 7; face = "up"; }
+      else if (scene === "cottage") { tx = 8; ty = 6; face = "up"; }
+      else if (scene === "cottage2") { tx = 6; ty = 4; face = "up"; }
+      else if (scene === "tallCottage") { tx = 8; ty = 6; face = "up"; }
+      else if (scene === "lHouse") { tx = 7; ty = 6; face = "up"; }
       else if (scene === "islandCave") { tx = islandCaveOut.tx; ty = islandCaveOut.ty - 2; face = "up"; }
       else if (scene === "caveclimb") {
         if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
@@ -13920,7 +13926,8 @@
   function enterCottage() {
     startDoorFade(function () {
       applyScene("cottage");
-      placePlayer(8, 7, "up");
+      /* 20260905eu: was (8,7) — only 1 tile north of OUT (8,8); one south step auto-exited. */
+      placePlayer(8, 6, "up");
       persistSave();
     });
   }
@@ -13936,7 +13943,8 @@
   function enterCottage2() {
     startDoorFade(function () {
       applyScene("cottage2");
-      placePlayer(6, 5, "up");
+      /* 20260905eu: was (6,5) — only 1 tile north of OUT (6,6). */
+      placePlayer(6, 4, "up");
       persistSave();
     });
   }
@@ -14025,7 +14033,8 @@
   function enterTallCottage() {
     startDoorFade(function () {
       applyScene("tallCottage");
-      placePlayer(8, 7, "up");
+      /* 20260905eu: was (8,7) — only 1 tile north of OUT (8,8). */
+      placePlayer(8, 6, "up");
       persistSave();
     });
   }
@@ -14041,7 +14050,8 @@
   function enterLHouse() {
     startDoorFade(function () {
       applyScene("lHouse");
-      placePlayer(7, 7, "up");
+      /* 20260905eu: was (7,7) — only 1 tile north of OUT (7,8). */
+      placePlayer(7, 6, "up");
       persistSave();
     });
   }
@@ -14269,7 +14279,8 @@
   function enterShop() {
     startDoorFade(function () {
       applyScene("shop");
-      placePlayer(8, 7, "up");
+      /* 20260905eu: was (8,7) — only 1 tile north of OUT (8,8); one south step auto-exited. */
+      placePlayer(8, 6, "up");
       /* 20260905cr: Pip greets once so the shop feels alive */
       if (!unlocked.pipGreetTip) {
         unlocked.pipGreetTip = true;
@@ -16969,7 +16980,8 @@
   function enterHouse() {
     startDoorFade(function () {
       applyScene("house");
-      placePlayer(10, 9, "up");
+      /* 20260905eu: was (10,9) — only 1 tile north of OUT (10,10); one south step auto-exited. */
+      placePlayer(10, 8, "up");
       if (dogOnLeash()) bringDogWithPlayer("house");
       else if (dog.scene !== "house") parkDogInHouse();
       maybeBedSleepTip();
@@ -23697,13 +23709,16 @@ if (currentScene === "ocean") goExitOcean();
       ok("mineRestoreLandFn", typeof mineRestoreLand === "function", "");
       applyScene("house");
       var hn = nudgeRestoreOffGate(houseOut.tx, houseOut.ty, "down");
-      ok("houseOutNudge", !!(hn && hn.tx === 10 && hn.ty === 9), hn && (hn.tx + "," + hn.ty));
+      ok("houseOutNudge", !!(hn && hn.tx === 10 && hn.ty === 8), hn && (hn.tx + "," + hn.ty));
       applyScene("shop");
       var sn = nudgeRestoreOffGate(shopOut.tx, shopOut.ty, "down");
-      ok("shopOutNudge", !!(sn && sn.tx === 8 && sn.ty === 7), sn && (sn.tx + "," + sn.ty));
+      ok("shopOutNudge", !!(sn && sn.tx === 8 && sn.ty === 6), sn && (sn.tx + "," + sn.ty));
       applyScene("cottage");
       var cn = nudgeRestoreOffGate(cottageOut.tx, cottageOut.ty, "down");
-      ok("cottageOutNudge", !!(cn && cn.tx === 8 && cn.ty === 7), cn && (cn.tx + "," + cn.ty));
+      ok("cottageOutNudge", !!(cn && cn.tx === 8 && cn.ty === 6), cn && (cn.tx + "," + cn.ty));
+      /* 20260905eu: indoor OUT landings are 2 tiles north of doormat */
+      ok("houseOutLandGap", !!(houseOut.tx === 10 && houseOut.ty === 10 && (houseOut.ty - 8) >= 2), houseOut.tx + "," + houseOut.ty);
+      ok("shopOutLandGap", !!(shopOut.tx === 8 && shopOut.ty === 8 && (shopOut.ty - 6) >= 2), shopOut.tx + "," + shopOut.ty);
       mineFloor = 1;
       applyScene("mine", 1);
       var mn = nudgeRestoreOffGate(portalOut.tx, portalOut.ty, "up");
