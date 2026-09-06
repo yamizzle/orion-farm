@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905em): mine floor-3 climb-up landing — UP from MINE 4 no longer drops you on the DOWN hole's north rim (05ej made that tile solid); land one tile further at (16,8) so you are not stuck / cannot auto-fall back down. Never START OVER.
+
 Local 9/6 (BUILD 20260905el): mid-drag tool no duplicate grant — forceSwordIntoTray clears/counts bagHeld sword before pinning slot 0 (openBag no longer mints a twin); placeToolInTrayFirst parks a held tool into tray/bag instead of spawning a second axe/pick/etc. Never START OVER.
 
 Local 9/6 (BUILD 20260905ek): forest/overworld/ocean door refresh — hard-refresh on WOODS door, mine/house/shop/cottage stoops, beach band, forest FARM exit, giant TREE door, or ocean pier exit no longer auto-warps you next tick (nudge to the matching exit landing). Never START OVER.

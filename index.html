@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905el";
+  var BUILD = "20260905em";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -16856,7 +16856,9 @@
     } else {
       if (floor === 1) spot = { tx: 16, ty: 5, face: "down" };
       else if (floor === 2) spot = { tx: 24, ty: 14, face: "up" };
-      else if (floor === 3) spot = { tx: 16, ty: 9, face: "up" };
+      /* 20260905em: was (16,9) = north rim of DOWN hole; 05ej rim-block made that
+         tile solid so climb-up stuck you / nearest step could be the hole (fall back). */
+      else if (floor === 3) spot = { tx: 16, ty: 8, face: "up" };
       else if (floor === 4) spot = { tx: 24, ty: 14, face: "up" };
       else if (floor === 5) spot = { tx: 8, ty: 7, face: "down" };
       else spot = { tx: 11, ty: 11, face: "up" };
@@ -23637,6 +23639,11 @@ if (currentScene === "ocean") goExitOcean();
       var hd = mineDownSpot();
       ok("mineHoleRimBlocked", !!(hd && mineHoleRimBlocks(hd.tx, hd.ty - 1) && !walkable(hd.tx, hd.ty - 1)), hd && (hd.tx + "," + (hd.ty - 1)));
       ok("mineHoleTileWalkable", !!(hd && walkable(hd.tx, hd.ty)), hd && (hd.tx + "," + hd.ty));
+      /* 20260905em: climb-up onto MINE 3 must not land on hole north rim */
+      mineFloor = 3;
+      applyScene("mine", 3);
+      var f3hole = mineDownSpot();
+      ok("mineF3UpLandOffRim", !!(f3hole && !mineHoleRimBlocks(16, 8) && walkable(16, 8) && mineHoleRimBlocks(f3hole.tx, f3hole.ty - 1)), f3hole && (f3hole.tx + "," + f3hole.ty));
       bagHeld = { key: "axe", count: 1 };
       bagHeldFrom = { place: "tray", i: 3 };
       for (var ai = 0; ai < TRAY_CELLS; ai++) if (trayCells[ai] && trayCells[ai].key === "axe") trayCells[ai] = null;
