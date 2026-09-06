@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gj";
+  var BUILD = "20260905gk";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10543,6 +10543,10 @@
       }
     }
     addToBag(bar, 1);
+    /* 20260905gk: pin + select smelted bar — tray-full / ore-selected smelts left bar
+       bag-only or unselected (same cook equip gap as 05fk cooked fish). */
+    placeToolInTrayFirst(bar);
+    selectTool(bar);
     fire = findFireplace();
     if (fire) spawnFlameSparks(fire.tx * TILE + 16, fire.ty * TILE + 8);
     playSfx("smash");
@@ -24364,7 +24368,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gj", BUILD);
+      ok("BUILD", BUILD === "20260905gk", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25890,6 +25894,15 @@ if (currentScene === "ocean") goExitOcean();
       var _cb0 = bagCount("copperBar");
       var _smOk = doSmeltNow();
       ok("smeltBagOnlyOre", !!_smOk && bagCount("copper") === _cu0 - 1 && bagCount("copperBar") === _cb0 + 1, "cu=" + bagCount("copper") + " bar=" + bagCount("copperBar") + " did=" + _smOk);
+      /* 20260905gk: smelt pins + selects bar (tray-tap / bag-only gap like cook 05fk). */
+      emptyTray();
+      emptyBag();
+      for (_ti = 0; _ti < TRAY_CELLS; _ti++) trayCells[_ti] = { key: "wood", count: 1 };
+      bagCells[0] = { key: "copper", count: 1 };
+      syncBagCounts();
+      applyScene("house");
+      ok("smeltBarPinnedSelected", !!doSmeltNow() && selectedIs("copperBar") && bagCount("copperBar") >= 1,
+        "sel=" + selectedKey() + " bar=" + bagCount("copperBar"));
       applyScene("shop");
       var sn = nudgeRestoreOffGate(shopOut.tx, shopOut.ty, "down");
       ok("shopOutNudge", !!(sn && sn.tx === 8 && sn.ty === 6), sn && (sn.tx + "," + sn.ty));

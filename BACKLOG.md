@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gk): smelt equips bar — fireplace smelt pins + selects the copper/silver/gold bar (tray-full / ore-selected smelts left bar bag-only or unselected — same cook equip gap as 05fk). Never START OVER.
+
 Local 9/6 (BUILD 20260905gj): chest TAKE equips — taking one stack from the house chest pins + selects it (tray-tap eat / plant / cook tip need selected; TAKE left food/fish bag-only or unselected — same Pip/cook/catch equip gap as 05gi). Never START OVER.
 
 Local 9/6 (BUILD 20260905gi): catch equips fish — landing a fish pins + selects it (tray-tap eat / stove cook tip need selected fish; tray-full / pole-selected catches left fish bag-only or unselected — same Pip/cook equip gap as 05fk). Never START OVER.
