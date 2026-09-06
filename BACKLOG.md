@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905cm): Jobs tips — diamond pick `SMASH PEAK ROCKS WITH THE DIAMOND PICK.` / on-peak `SMASH THE PEAK ROCKS.`; evening–night outdoor `SWORD THE NIGHT SLUGS.` until first slug kill (`found.outdoorSlug`); cook/smelt toast clarity `COOKED A TROUT!` / `SMELTED A COPPER BAR!`; stove cooks tray/bag fish (parity with fireplace ore). Never START OVER.
+
 Local 9/5 (BUILD 20260905cl): mailbox mail fun — new letters fish (Pip pole tip after welcome), bridge cheer, Moondrop Night; bobbing MAIL label when unread; Junie nudges CHECK YOUR MAIL; bed clarity — floating SLEEP, Jobs `SLEEP IN YOUR BED.` when hurt/evening/night in house, once toast `TAP THE BED TO SLEEP`. Never START OVER.
 
 Local 9/5 (BUILD 20260905ck): kid discoverability — fishing with no pole Jobs/toast `BUY A FISHING POLE AT PIP'S.`; pier boat bobbing `GET IN` label; broken east bridge floating `8 WOOD`/`FIX!` + dialog shows how many wood you have + chop tip; Jobs `FIX THE BRIDGE WITH 8 WOOD.` when bag has ≥8. Never START OVER.

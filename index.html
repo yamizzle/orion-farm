@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cl";
+  var BUILD = "20260905cm";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -698,7 +698,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, diamondPick: false, peakRocksCleared: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -8306,8 +8306,10 @@
         found.bridgeFixed = !!data.found.bridgeFixed;
         found.kickedBall = !!data.found.kickedBall;
         found.kickedPlayBall = !!data.found.kickedPlayBall;
+        found.kickedTownPlayBall = !!data.found.kickedTownPlayBall;
         found.diamondPick = !!data.found.diamondPick;
         found.peakRocksCleared = !!data.found.peakRocksCleared;
+        found.outdoorSlug = !!data.found.outdoorSlug;
       }
       if (data.ball && typeof data.ball === "object") {
         ball.tx = data.ball.tx | 0;
@@ -9088,10 +9090,11 @@
   }
 
   function smeltToast(ore) {
-    if (ore === "copper") return "SMELTED COPPER!";
-    if (ore === "silver") return "SMELTED SILVER!";
-    if (ore === "goldore") return "SMELTED GOLD!";
-    return "SMELTED!";
+    /* 20260905cm: say BAR so kids know ore → bar */
+    if (ore === "copper") return "SMELTED A COPPER BAR!";
+    if (ore === "silver") return "SMELTED A SILVER BAR!";
+    if (ore === "goldore") return "SMELTED A GOLD BAR!";
+    return "SMELTED A BAR!";
   }
 
   function maybeFireplaceSmeltTip() {
@@ -9216,6 +9219,20 @@
     return fk || null;
   }
 
+  /* 20260905cm: tray fish (not selected) still cooks at the stove — matches ore smelt. */
+  function cookingFish() {
+    var i, c, fk;
+    fk = selectedRawFish();
+    if (fk) return fk;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      c = trayCells[i];
+      if (!c || (c.count | 0) < 1) continue;
+      fk = fishKindById(c.key);
+      if (fk) return fk;
+    }
+    return null;
+  }
+
   function hasAnyRawFish() {
     var i, fk;
     for (i = 0; i < FISH_KINDS.length; i++) {
@@ -9225,10 +9242,16 @@
     return false;
   }
 
+  function cookToast(fk) {
+    /* 20260905cm: verb + name so toast reads as an action */
+    if (!fk) return "COOKED A FISH!";
+    return "COOKED A " + fk.name + "!";
+  }
+
   function maybeStoveCookTip() {
     if (unlocked.stoveCookTip) return;
     if (currentScene !== "house") return;
-    if (!selectedRawFish()) return;
+    if (!cookingFish()) return;
     unlocked.stoveCookTip = true;
     showLineNote("TAP THE STOVE TO COOK");
     persistSave();
@@ -9237,7 +9260,13 @@
   function doCookNow() {
     var fk, cooked, stove;
     if (currentScene !== "house") return false;
-    fk = selectedRawFish();
+    fk = cookingFish();
+    if (!fk) {
+      /* Bag-only raw fish: pick the first kind kids own. */
+      for (var i = 0; i < FISH_KINDS.length; i++) {
+        if (FISH_KINDS[i] && bagCount(FISH_KINDS[i].id) > 0) { fk = FISH_KINDS[i]; break; }
+      }
+    }
     if (!fk || bagCount(fk.id) < 1) {
       showLineNote("PUT A FISH ON THE STOVE.");
       return false;
@@ -9251,15 +9280,19 @@
       showLineNote("BAG FULL. USE THE CHEST.");
       return false;
     }
+    /* Prefer selected/tray; else spend from bag (kid still at stove). */
+    if (!selectedIs(fk.id)) selectTool(fk.id);
     if (spendSelected(fk.id, 1) < 1) {
-      showLineNote("PUT A FISH ON THE STOVE.");
-      return false;
+      if (takeFromBag(fk.id, 1) < 1) {
+        showLineNote("PUT A FISH ON THE STOVE.");
+        return false;
+      }
     }
     addToBag(cooked, 1);
     stove = findStove();
     if (stove) spawnSparks(stove.tx * TILE + 8, stove.ty * TILE + 8);
     playSfx("smash");
-    showLineNote(cookedFishName(fk) + "!");
+    showLineNote(cookToast(fk));
     ensureSelectedSlot();
     persistSave();
     return true;
@@ -11381,6 +11414,15 @@
     }
     /* 20260905ck: ocean fishing without a pole — send kids to Pip */
     if (currentScene === "ocean" && !poleOwned) return "BUY A FISHING POLE AT PIP'S.";
+    /* 20260905cm: peak rocks need the diamond pick — Jobs says so when you own it */
+    if (diamondPickOwned && !found.peakRocksCleared) {
+      if (currentScene === "peak") return "SMASH THE PEAK ROCKS.";
+      return "SMASH PEAK ROCKS WITH THE DIAMOND PICK.";
+    }
+    /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
+    if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
+      return "SWORD THE NIGHT SLUGS.";
+    }
     /* 20260905ck: bridge ready to fix once you have the wood */
     if (!found.bridgeFixed && bagCount("wood") >= 8) return "FIX THE BRIDGE WITH 8 WOOD.";
     if (hasAnyRawFish()) return "COOK FISH ON THE STOVE";
@@ -14740,6 +14782,10 @@
     spawnKillBurst(mon.x, mon.y - 2);
     if (currentScene === "mine") spawnMineDrop(mon);
     else spawnOutdoorDrop(mon);
+    /* 20260905cm: first outdoor slug kill clears the night Jobs tip */
+    if (mon.kind === "slug" && !found.outdoorSlug) {
+      found.outdoorSlug = true;
+    }
     i = monsters.indexOf(mon);
     if (i >= 0) monsters.splice(i, 1);
     if (currentScene === "overworld" || currentScene === "forest") {
@@ -21278,7 +21324,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cl", BUILD);
+      ok("BUILD", BUILD === "20260905cm", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
