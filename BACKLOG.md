@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905av): fix 2×→1× flicker — version.json was stuck on 05x; bustUrl now uses HTML BUILD; checkFreshBuild never downgrades to stale version. Never START OVER.
 Local 9/5 (BUILD 20260905au): 2× forest rabbit/deer/squirrel. Never START OVER.
 Local 9/5 (BUILD 20260905at): denser bigger Reed car (~1.5×). Never START OVER.
 Local 9/5 (BUILD 20260905as): 2× forestChest + chicken. Never START OVER.

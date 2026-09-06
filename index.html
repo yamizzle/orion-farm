@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905au";
+  var BUILD = "20260905av";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -271,7 +271,22 @@
   }
 
   function bustUrl(url) {
-    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + encodeURIComponent(pageVer());
+    /* Always bust with THIS html's BUILD — never a stale ?v= from an old version.json redirect */
+    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + encodeURIComponent(BUILD);
+  }
+
+  function buildRank(v) {
+    var m = /^(\d{8})([a-z]*)$/i.exec(String(v || ""));
+    if (!m) return { day: 0, tag: "" };
+    return { day: parseInt(m[1], 10) || 0, tag: (m[2] || "").toLowerCase() };
+  }
+
+  function buildNewer(a, b) {
+    /* true if a is a newer BUILD id than b (day first; longer letter tag wins: aa > z) */
+    var A = buildRank(a), B = buildRank(b);
+    if (A.day !== B.day) return A.day > B.day;
+    if (A.tag.length !== B.tag.length) return A.tag.length > B.tag.length;
+    return A.tag > B.tag;
   }
 
   function reloadFarm() {
@@ -284,11 +299,12 @@
       if (!r.ok) return null;
       return r.json();
     }).then(function (ver) {
-      var remote, already;
+      var remote;
       if (!ver || !ver.v || ver.v === BUILD) return;
       remote = String(ver.v);
-      already = pageVer();
-      if (already === remote) return;
+      /* 20260905av: never "upgrade" to a STALE version.json (was pinning ?v=05x
+         while HTML was 05au+, so CDN kept serving the old 1× atlas). */
+      if (!buildNewer(remote, BUILD)) return;
       try {
         if (sessionStorage.getItem("moondrop-build") === remote) return;
         sessionStorage.setItem("moondrop-build", remote);
@@ -18511,7 +18527,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905au", BUILD);
+      ok("BUILD", BUILD === "20260905av", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
