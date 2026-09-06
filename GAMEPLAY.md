@@ -22,7 +22,7 @@ Hurt look: Imagine sprites `treeHurt` / `treeHurt2` and `rock0Hurt` / `rock0Hurt
 
 Walking **into** a rock bumps; it does not smash. Smash is tap-on-rock or Space while adjacent/facing.
 
-Fences chop like farm trees: 5 HP, 1 dmg per tap; axe 3 dmg (two hits). Same chop shake / sparks / SFX per strike. When the last hit lands, wood **pops onto the fence tile** via `spawnGroundLoot` (1, same as a felled tree). Walk onto the pile to pick up — do **not** credit the bag on break. Walking into a fence bumps; it does not break. Place from the wood slot still works so the loop is break → pick up wood → place somewhere else.
+Fences are **pick-up builds**, not multi-hit chops. With **BUILD off**, tap a fence (or Space while adjacent/facing) while holding the **axe**, **shovel**, or an **empty hand** to remove it in one action: **1 wood** goes straight into the bag/tray and toast `FENCE PICKED UP`. Bag full keeps the fence and toasts `BAG FULL. USE THE CHEST.` Walking into a fence still bumps. Wood + **BUILD on** place flow is unchanged (still spends `FENCE_COST` wood). Loop: pick up → select wood → tap BUILD → place again.
 
 Trees occupy **one tile** for clicks and collision (the trunk). The canopy is draw-only. Do not hit-test the 48×64 sprite box.
 

@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bj";
+  var BUILD = "20260905bk";
   var ASSET_REV = "451204";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -5937,7 +5937,8 @@
   }
 
   function isWoodChop(p) {
-    return p && (p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "palm" || p.kind === "stump" || p.kind === "log" || isFenceKind(p.kind));
+    /* 20260905bk: fences are pick-up builds, not multi-hit wood chops. */
+    return p && (p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "palm" || p.kind === "stump" || p.kind === "log");
   }
 
   function isHarvestable(p) {
@@ -6040,15 +6041,36 @@
     }
   }
 
+  function canPickupFence() {
+    /* Axe, shovel, or empty hand — never while BUILD place mode is on. */
+    if (fenceBuildOn) return false;
+    if (toolEquipped("axe") || toolEquipped("shovel")) return true;
+    return !selectedKey();
+  }
+
   function breakFence(prop) {
+    var fi;
     if (!prop || !isFenceKind(prop.kind)) return false;
-    beginHit(prop);
+    if (!canPickupFence()) return false;
+    if (bagRoom("wood") < 1) {
+      showLineNote("BAG FULL. USE THE CHEST.");
+      return false;
+    }
+    fi = PROPS.indexOf(prop);
+    if (fi >= 0) PROPS.splice(fi, 1);
+    rememberGoneFence(prop.tx, prop.ty);
+    buildSolid();
+    addToBag("wood", 1);
+    delete harvestNodes[nodeKey(liveHarvestScene(), prop.tx, prop.ty)];
+    showLineNote("FENCE PICKED UP");
+    playSfx("pickup");
+    persistSave();
     return true;
   }
 
   function tryBreakFenceAt(tx, ty) {
     var prop = fenceAt(tx, ty);
-    if (!prop) return false;
+    if (!prop || !canPickupFence()) return false;
     return breakFence(prop);
   }
 
@@ -6056,6 +6078,7 @@
     var spots, i, prop;
     if (uiPaused() || faintFx) return false;
     if (player.swing > 0) return false;
+    if (!canPickupFence()) return false;
     spots = [
       facingTile(),
       { tx: player.tx - 1, ty: player.ty },
@@ -6075,7 +6098,7 @@
 
   function goBreakFence(prop) {
     var dest, path;
-    if (!prop || !isFenceKind(prop.kind)) return;
+    if (!prop || !isFenceKind(prop.kind) || !canPickupFence()) return;
     highlight = { tx: prop.tx, ty: prop.ty };
     if (isNear(player.tx, player.ty, prop.tx, prop.ty)) {
       pending = null;
@@ -7086,13 +7109,8 @@
 
   function finishHarvest(prop) {
     if (isFenceKind(prop.kind)) {
-      var fi = PROPS.indexOf(prop);
-      if (fi >= 0) PROPS.splice(fi, 1);
-      rememberGoneFence(prop.tx, prop.ty);
-      buildSolid();
-      spawnGroundLoot("wood", prop.tx, prop.ty, 1);
-      delete harvestNodes[nodeKey(liveHarvestScene(), prop.tx, prop.ty)];
-      persistSave();
+      /* 20260905bk: fences pick up via breakFence (bag + toast), not smash loot. */
+      breakFence(prop);
       return;
     }
     if (prop.kind === "log") {
@@ -18413,12 +18431,13 @@ if (currentScene === "ocean") goExitOcean();
       goCutGrass(hitProp);
       return;
     }
-    if (harvest) {
-      goHarvest(harvest);
+    /* 20260905bk: fence pick-up before tree harvest; BUILD-on place already handled above. */
+    if (hitProp && isFenceKind(hitProp.kind) && canPickupFence()) {
+      goBreakFence(hitProp);
       return;
     }
-    if (hitProp && isFenceKind(hitProp.kind)) {
-      goBreakFence(hitProp);
+    if (harvest) {
+      goHarvest(harvest);
       return;
     }
     /* 20260905bj: pickaxe no longer mines placed paths — walk/tool fallthrough. */
