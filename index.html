@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bk";
+  var BUILD = "20260905bl";
   var ASSET_REV = "451204";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -15131,6 +15131,7 @@
       drawShadow(g, player.x, player.y, 6);
       if (Assets.spr["player-faint"]) Assets.draw(g, "player-faint", player.x, player.y);
       else Assets.draw(g, "player-" + (player.face || "down"), player.x, player.y, 0);
+      drawTiredZs(g);
       return;
     }
     bob = (player.moving && player.frame) ? -1 : 0;
@@ -15176,6 +15177,7 @@
   }
 
   function updateTiredZs(dt) {
+    /* 20260905bl: kid-visible sleep Z's when energy <= TIRED_ENERGY (25). Walk costs untouched. */
     var i, z, want, gap;
     if (energy > TIRED_ENERGY) {
       tiredZs = [];
@@ -15183,37 +15185,70 @@
       return;
     }
     want = energy <= 0 ? 3 : (energy <= 12 ? 3 : 2);
-    gap = energy <= 0 ? 380 : 620;
+    gap = energy <= 0 ? 360 : 480;
     for (i = tiredZs.length - 1; i >= 0; i--) {
       z = tiredZs[i];
       z.age += dt;
-      z.y -= dt * 0.012;
-      z.x += Math.sin((z.age + z.wob) * 0.008) * 0.018 * dt;
+      z.y -= dt * 0.02;
+      z.x += Math.sin((z.age + z.wob) * 0.008) * 0.024 * dt;
       if (z.age >= z.life) tiredZs.splice(i, 1);
     }
     tiredSpawn += dt;
+    /* First Z pops right away when Orion dips into tired. */
+    if (tiredZs.length === 0 && tiredSpawn < gap) tiredSpawn = gap;
     if (tiredZs.length < want && tiredSpawn >= gap) {
       tiredSpawn = 0;
       tiredZs.push({
-        x: player.x - 3 + (tiredZs.length % 3) * 4,
-        y: player.y - 36,
+        x: player.x - 2 + (tiredZs.length % 3) * 5,
+        y: player.y - 40,
         age: 0,
-        life: energy <= 0 ? 1500 : 1100,
-        wob: tick + tiredZs.length * 90
+        life: energy <= 0 ? 1600 : 1250,
+        wob: tick + tiredZs.length * 90,
+        sc: 1 + (tiredZs.length % 2)
       });
     }
   }
 
+  function drawTiredZGlyph(g, x, y, scale, fillCol, outlineCol) {
+    var bits = FONT["Z"];
+    var r, c, px, py, s;
+    s = scale | 0;
+    if (s < 1) s = 1;
+    for (r = 0; r < 7; r++) {
+      for (c = 0; c < 5; c++) {
+        if (bits[r] & (0x10 >> c)) {
+          px = x + c * s;
+          py = y + r * s;
+          g.fillStyle = outlineCol;
+          g.fillRect(px - 1, py, s + 2, s);
+          g.fillRect(px, py - 1, s, s + 2);
+        }
+      }
+    }
+    g.fillStyle = fillCol;
+    for (r = 0; r < 7; r++) {
+      for (c = 0; c < 5; c++) {
+        if (bits[r] & (0x10 >> c)) {
+          g.fillRect(x + c * s, y + r * s, s, s);
+        }
+      }
+    }
+  }
+
   function drawTiredZs(g) {
-    var i, z, a, col;
+    var i, z, a, t, sc, col, out;
     for (i = 0; i < tiredZs.length; i++) {
       z = tiredZs[i];
       a = 1;
-      if (z.age < 140) a = z.age / 140;
-      else if (z.age > z.life - 300) a = (z.life - z.age) / 300;
+      if (z.age < 120) a = z.age / 120;
+      else if (z.age > z.life - 280) a = (z.life - z.age) / 280;
       if (a < 0) a = 0;
-      col = "rgba(236,228,200," + (0.40 + 0.50 * a).toFixed(3) + ")";
-      drawText(g, "Z", Math.round(z.x), Math.round(z.y), col);
+      t = z.age / z.life;
+      sc = (z.sc || 1) + (t > 0.4 ? 1 : 0);
+      /* Warm parchment fill + plum outline so Z's read day and night. */
+      col = "rgba(255,244,210," + (0.65 + 0.35 * a).toFixed(3) + ")";
+      out = "rgba(48,28,72," + (0.45 + 0.40 * a).toFixed(3) + ")";
+      drawTiredZGlyph(g, Math.round(z.x), Math.round(z.y), sc, col, out);
     }
   }
 
