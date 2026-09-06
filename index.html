@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ht";
+  var BUILD = "20260905hu";
   var ASSET_REV = "464560";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -718,7 +718,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtSapphire: false, mtCrystal: false, mtChest: false, mtChest2: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -2781,6 +2781,17 @@
       }
       if (!_hasCaveExit) cached = null;
     }
+    /* 20260905hu: rebuild summit mine if pre-polish cache (no cartId kick carts) */
+    if (name === "mountainMine" && cached && cached.props) {
+      var _hasCartId = false, _mci;
+      for (_mci = 0; _mci < cached.props.length; _mci++) {
+        if (cached.props[_mci] && cached.props[_mci].mineCart && (cached.props[_mci].cartId | 0) > 0) {
+          _hasCartId = true;
+          break;
+        }
+      }
+      if (!_hasCartId) cached = null;
+    }
     fresh = !cached;
     if (cached) {
       COLS = cached.cols;
@@ -3943,25 +3954,37 @@
   }
 
   function buildMountainMineProps() {
+    /* 20260905hu: denser treasure-room — crystals/ore, kickable carts, 3 chests; OUT path clear */
     var list = [
       { kind: "caveStairs", tx: mountainMineOut.tx, ty: mountainMineOut.ty, dir: "out" },
       { kind: "caveMouth", tx: mountainMineOut.tx, ty: mountainMineOut.ty, peakMine: true },
       { kind: "lantern", tx: 4, ty: 4, walk: true },
       { kind: "lantern", tx: 13, ty: 4, walk: true },
       { kind: "lantern", tx: 9, ty: 9, walk: true },
-      /* decorative mine carts — Imagine crate props */
-      { kind: "crate", tx: 3, ty: 8, mineCart: true },
-      { kind: "crate", tx: 14, ty: 8, mineCart: true },
-      { kind: "crate", tx: 6, ty: 11, mineCart: true },
+      { kind: "lantern", tx: 6, ty: 7, walk: true },
+      { kind: "lantern", tx: 12, ty: 7, walk: true },
+      /* kickable mine carts (cartId marks 05hu polish for cache bust) */
+      { kind: "crate", tx: 3, ty: 8, mineCart: true, cartId: 1 },
+      { kind: "crate", tx: 14, ty: 8, mineCart: true, cartId: 2 },
+      { kind: "crate", tx: 5, ty: 11, mineCart: true, cartId: 3 },
       { kind: "rock", tx: 5, ty: 5 },
       { kind: "rock", tx: 12, ty: 6 },
-      { kind: "rock", tx: 8, ty: 4 }
+      { kind: "rock", tx: 8, ty: 4 },
+      { kind: "rock", tx: 10, ty: 8 },
+      { kind: "crate", tx: 2, ty: 4 },
+      { kind: "crate", tx: 15, ty: 10 }
     ];
-    if (!found.mtGem) list.push({ kind: "gem", tx: 4, ty: 3, mt: true });
-    if (!found.mtSapphire) list.push({ kind: "sapphire", tx: 14, ty: 3, mt: true });
-    if (!found.mtCrystal) list.push({ kind: "mooncrystal", tx: 11, ty: 5, mt: true });
+    if (!found.mtGem) list.push({ kind: "gem", tx: 4, ty: 3, mt: true, mtId: 1 });
+    if (!found.mtGem2) list.push({ kind: "gem", tx: 8, ty: 3, mt: true, mtId: 2 });
+    if (!found.mtSapphire) list.push({ kind: "sapphire", tx: 14, ty: 3, mt: true, mtId: 1 });
+    if (!found.mtSapphire2) list.push({ kind: "sapphire", tx: 11, ty: 10, mt: true, mtId: 2 });
+    if (!found.mtCrystal) list.push({ kind: "mooncrystal", tx: 11, ty: 5, mt: true, mtId: 1 });
+    if (!found.mtCrystal2) list.push({ kind: "mooncrystal", tx: 6, ty: 5, mt: true, mtId: 2 });
+    if (!found.mtSilver) list.push({ kind: "silver", tx: 3, ty: 5, mt: true });
+    if (!found.mtGoldOre) list.push({ kind: "goldore", tx: 15, ty: 5, mt: true });
     if (!found.mtChest) list.push({ kind: "chest", tx: 7, ty: 3, mt: true, mtId: 1 });
     if (!found.mtChest2) list.push({ kind: "chest", tx: 13, ty: 10, mt: true, mtId: 2 });
+    if (!found.mtChest3) list.push({ kind: "chest", tx: 3, ty: 10, mt: true, mtId: 3 });
     return list;
   }
 
@@ -4040,7 +4063,105 @@
     startWalk(player, path, 3.5);
   }
 
+  /* 20260905hu: summit mine carts — tap/Space scoot with CART / CLANK juice */
+  function mineCartAt(tx, ty) {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p && p.mineCart && p.tx === tx && p.ty === ty) return p;
+    }
+    return null;
+  }
 
+  function mineCartNear(who) {
+    var i, p, dx, dy;
+    if (!who || currentScene !== "mountainMine") return null;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || !p.mineCart) continue;
+      dx = Math.abs(who.tx - p.tx);
+      dy = Math.abs(who.ty - p.ty);
+      if (dx + dy <= 1) return p;
+    }
+    return null;
+  }
+
+  function kickMineCart(cart) {
+    var d, n, i, tx, ty, moved;
+    if (!cart || !cart.mineCart || currentScene !== "mountainMine") return;
+    if (cart.kickBusy) return;
+    d = faceDelta(player.face);
+    n = 1 + ((Math.random() * 2) | 0);
+    tx = cart.tx;
+    ty = cart.ty;
+    moved = 0;
+    for (i = 0; i < n; i++) {
+      tx += d.dx;
+      ty += d.dy;
+      if (!mineCartDestOk(tx, ty, cart)) break;
+      cart.tx = tx;
+      cart.ty = ty;
+      moved++;
+    }
+    cart.shake = 280;
+    playSfx("smash");
+    showLineNote(moved ? "CLANK!" : "CLUNK!");
+    if (moved) buildSolid();
+    persistSave();
+  }
+
+  function mineCartDestOk(tx, ty, skip) {
+    var i, p;
+    if (!inBounds(tx, ty)) return false;
+    if (!GROUND[ty] || GROUND[ty][tx] === "#") return false;
+    if (tx === mountainMineOut.tx && ty === mountainMineOut.ty) return false;
+    if (player.tx === tx && player.ty === ty) return false;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || p === skip) continue;
+      if (p.tx !== tx || p.ty !== ty) continue;
+      if (p.kind === "lantern" && p.walk) continue;
+      if (p.kind === "caveStairs" || p.kind === "caveMouth") return false;
+      return false;
+    }
+    return true;
+  }
+
+  function goTapMineCart(cart) {
+    var path, side;
+    if (!cart || !cart.mineCart) return;
+    highlight = { tx: cart.tx, ty: cart.ty };
+    if (isNear(player.tx, player.ty, cart.tx, cart.ty) || (player.tx === cart.tx && player.ty === cart.ty)) {
+      pending = null;
+      faceToward(player, cart.tx, cart.ty);
+      kickMineCart(cart);
+      return;
+    }
+    side = nearestAdjacent(cart.tx, cart.ty);
+    if (!side) return;
+    path = findPath(player.tx, player.ty, side.tx, side.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, cart.tx, cart.ty)) {
+        faceToward(player, cart.tx, cart.ty);
+        kickMineCart(cart);
+      }
+      return;
+    }
+    pending = { type: "kickMineCart", prop: cart };
+    startWalk(player, path, 3.5);
+  }
+
+  function tryKickMineCartAdjacent() {
+    var cart, face;
+    if (uiPaused() || faintFx) return false;
+    if (currentScene !== "mountainMine") return false;
+    face = facingTile();
+    cart = mineCartAt(face.tx, face.ty) || mineCartNear(player) || mineCartAt(player.tx, player.ty);
+    if (!cart) return false;
+    faceToward(player, cart.tx, cart.ty);
+    kickMineCart(cart);
+    return true;
+  }
 
   function enterIslandCave() {
     /* 20260905bo: if still rowing, auto-get-out so the boat stays on the island beach */
@@ -10108,10 +10229,16 @@
         found.peakRocksCleared = !!data.found.peakRocksCleared;
         found.outdoorSlug = !!data.found.outdoorSlug;
         found.mtGem = !!data.found.mtGem;
+        found.mtGem2 = !!data.found.mtGem2;
         found.mtSapphire = !!data.found.mtSapphire;
+        found.mtSapphire2 = !!data.found.mtSapphire2;
         found.mtCrystal = !!data.found.mtCrystal;
+        found.mtCrystal2 = !!data.found.mtCrystal2;
+        found.mtSilver = !!data.found.mtSilver;
+        found.mtGoldOre = !!data.found.mtGoldOre;
         found.mtChest = !!data.found.mtChest;
         found.mtChest2 = !!data.found.mtChest2;
+        found.mtChest3 = !!data.found.mtChest3;
       }
       if (data.ball && typeof data.ball === "object") {
         ball.tx = data.ball.tx | 0;
@@ -18752,42 +18879,102 @@
   }
 
   function takeMtFind(prop) {
-    var i, id;
+    /* 20260905hu: crystal/chest loot juice — sparkle + clear toast + fly-in piles */
+    var i, id, mid;
     i = PROPS.indexOf(prop);
     if (i >= 0) PROPS.splice(i, 1);
+    mid = prop.mtId | 0;
     if (prop.kind === "gem") {
-      found.mtGem = true;
-      addItem("gem", 6);
-      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      if (mid === 2) found.mtGem2 = true;
+      else found.mtGem = true;
+      addItem("gem", 8);
+      spawnPickup("gem", prop.tx, prop.ty, 4);
+      spawnChestSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      playSfx("pickup");
+      showLineNote("GEM!");
       persistSave();
       openDialogue("ORION", ["A MINE CRYSTAL!", "IT SHIMMERS."]);
       return;
     }
     if (prop.kind === "sapphire") {
-      found.mtSapphire = true;
-      addItem("sapphire", 10);
-      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      if (mid === 2) found.mtSapphire2 = true;
+      else found.mtSapphire = true;
+      addItem("sapphire", 12);
+      spawnPickup("sapphire", prop.tx, prop.ty, 5);
+      spawnChestSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      playSfx("pickup");
+      showLineNote("BLUE GEM!");
       persistSave();
       openDialogue("ORION", ["A BLUE CRYSTAL!", "SPARKLY TREASURE."]);
       return;
     }
     if (prop.kind === "mooncrystal") {
-      found.mtCrystal = true;
-      addItem("gem", 14);
-      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      if (mid === 2) found.mtCrystal2 = true;
+      else found.mtCrystal = true;
+      addItem("gem", 16);
+      spawnPickup("mooncrystal", prop.tx, prop.ty, 6);
+      spawnChestSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      playSfx("pickup");
+      showLineNote("GLOW CRYSTAL!");
       persistSave();
       openDialogue("ORION", ["A GLOW CRYSTAL!", "BRIGHT LIKE MOONLIGHT."]);
       return;
     }
-    if (prop.kind === "chest") {
-      id = prop.mtId | 0;
-      if (id === 2) found.mtChest2 = true;
-      else found.mtChest = true;
-      spawnPickup("gold", prop.tx, prop.ty, 10);
-      spawnPickup("goldPile", prop.tx, prop.ty, 6);
-      spawnChestSparks(prop.tx * TILE + 8, prop.ty * TILE + 4);
+    if (prop.kind === "silver") {
+      found.mtSilver = true;
+      addItem("silver", 2);
+      spawnPickup("silver", prop.tx, prop.ty, 0);
+      pinPickupKeepHeld("silver");
+      spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, "silver");
+      playSfx("pickup");
+      showLineNote("SILVER ORE!");
       persistSave();
-      openDialogue("ORION", ["A TREASURE CHEST!", "LOOT FROM THE MINE."]);
+      openDialogue("ORION", ["SILVER ORE!", "SHINY MOUNTAIN METAL."]);
+      return;
+    }
+    if (prop.kind === "goldore") {
+      found.mtGoldOre = true;
+      addItem("goldore", 2);
+      spawnPickup("goldore", prop.tx, prop.ty, 0);
+      pinPickupKeepHeld("goldore");
+      spawnMetalSparks(prop.tx * TILE + 8, prop.ty * TILE + 6, "goldore");
+      playSfx("pickup");
+      showLineNote("GOLD ORE!");
+      persistSave();
+      openDialogue("ORION", ["GOLD ORE!", "WARM LIKE SUNLIGHT."]);
+      return;
+    }
+    if (prop.kind === "chest") {
+      id = mid;
+      if (id === 3) found.mtChest3 = true;
+      else if (id === 2) found.mtChest2 = true;
+      else found.mtChest = true;
+      if (id === 2) {
+        spawnPickup("gold", prop.tx, prop.ty, 12);
+        spawnPickup("goldPile", prop.tx, prop.ty, 6);
+        spawnPickup("iron", prop.tx, prop.ty, 0);
+        addItem("iron", 1);
+        pinPickupKeepHeld("iron");
+        addItem("sapphire", 8);
+      } else if (id === 3) {
+        spawnPickup("gold", prop.tx, prop.ty, 14);
+        spawnPickup("goldPile", prop.tx, prop.ty, 8);
+        addItem("goldBar", 1);
+        addItem("copperBar", 1);
+        pinPickupKeepHeld("goldBar");
+        spawnPickup("gem", prop.tx, prop.ty, 6);
+      } else {
+        spawnPickup("gold", prop.tx, prop.ty, 12);
+        spawnPickup("goldPile", prop.tx, prop.ty, 8);
+        spawnPickup("gem", prop.tx, prop.ty, 6);
+        addItem("copper", 2);
+        pinPickupKeepHeld("copper");
+      }
+      spawnChestSparks(prop.tx * TILE + 8, prop.ty * TILE + 4);
+      playSfx("craft");
+      showLineNote("TREASURE!");
+      persistSave();
+      openDialogue("ORION", ["A TREASURE CHEST!", "GEMS ORE AND GOLD!"]);
       return;
     }
   }
@@ -18879,11 +19066,17 @@
       return;
     }
     if (prop.mt && (prop.kind === "gem" || prop.kind === "chest" || prop.kind === "mooncrystal" ||
-        prop.kind === "sapphire")) {
-      if (prop.kind === "gem" && found.mtGem) return;
-      if (prop.kind === "sapphire" && found.mtSapphire) return;
-      if (prop.kind === "mooncrystal" && found.mtCrystal) return;
-      if (prop.kind === "chest" && ((prop.mtId | 0) === 2 ? found.mtChest2 : found.mtChest)) return;
+        prop.kind === "sapphire" || prop.kind === "silver" || prop.kind === "goldore")) {
+      if (prop.kind === "gem" && ((prop.mtId | 0) === 2 ? found.mtGem2 : found.mtGem)) return;
+      if (prop.kind === "sapphire" && ((prop.mtId | 0) === 2 ? found.mtSapphire2 : found.mtSapphire)) return;
+      if (prop.kind === "mooncrystal" && ((prop.mtId | 0) === 2 ? found.mtCrystal2 : found.mtCrystal)) return;
+      if (prop.kind === "silver" && found.mtSilver) return;
+      if (prop.kind === "goldore" && found.mtGoldOre) return;
+      if (prop.kind === "chest") {
+        if ((prop.mtId | 0) === 3 && found.mtChest3) return;
+        if ((prop.mtId | 0) === 2 && found.mtChest2) return;
+        if ((prop.mtId | 0) !== 2 && (prop.mtId | 0) !== 3 && found.mtChest) return;
+      }
       takeMtFind(prop);
       return;
     }
@@ -19035,16 +19228,18 @@
   function goCollect(prop) {
     if (!isCollectible(prop)) return;
     if (prop.mt) {
-      if (prop.kind === "gem" && found.mtGem) return;
-      if (prop.kind === "sapphire" && found.mtSapphire) return;
-      if (prop.kind === "mooncrystal" && found.mtCrystal) return;
-      if (prop.kind === "chest" && ((prop.mtId | 0) === 2 ? found.mtChest2 : found.mtChest)) return;
+      if (prop.kind === "gem" && ((prop.mtId | 0) === 2 ? found.mtGem2 : found.mtGem)) return;
+      if (prop.kind === "sapphire" && ((prop.mtId | 0) === 2 ? found.mtSapphire2 : found.mtSapphire)) return;
+      if (prop.kind === "mooncrystal" && ((prop.mtId | 0) === 2 ? found.mtCrystal2 : found.mtCrystal)) return;
+      if (prop.kind === "silver" && found.mtSilver) return;
+      if (prop.kind === "goldore" && found.mtGoldOre) return;
+      if (prop.kind === "chest" && ((prop.mtId | 0) === 3 ? found.mtChest3 : ((prop.mtId | 0) === 2 ? found.mtChest2 : found.mtChest))) return;
     } else {
-    if (prop.kind === "gem" && found.gem) return;
-    if (prop.kind === "iron" && found.iron) return;
-    if (prop.kind === "sapphire" && found.sapphire) return;
-    if (prop.kind === "chest" && mineFloor === 6 && found.peakChest) return;
-    if ((prop.kind === "chest" || prop.kind === "mooncrystal") && mineFloor !== 6 && found.mooncrystal) return;
+      if (prop.kind === "gem" && found.gem) return;
+      if (prop.kind === "iron" && found.iron) return;
+      if (prop.kind === "sapphire" && found.sapphire) return;
+      if (prop.kind === "chest" && mineFloor === 6 && found.peakChest) return;
+      if ((prop.kind === "chest" || prop.kind === "mooncrystal") && mineFloor !== 6 && found.mooncrystal) return;
     }
     /* Unique world finds only — loose cave mushrooms stay pickable after the quest one */
     if (prop.kind !== "gem" && prop.kind !== "chest" && prop.kind !== "mooncrystal" &&
@@ -19547,6 +19742,8 @@
       openChest();
     } else if (act.type === "kickBall") {
       kickBall();
+    } else if (act.type === "kickMineCart") {
+      if (act.prop) kickMineCart(act.prop);
     } else if (act.type === "kickPlayBall") {
       if (act.pb) kickPlayBall(act.pb);
     } else if (act.type === "talkFolk") {
@@ -19765,6 +19962,8 @@
         return true;
       }
     }
+    /* 20260905hu: Space scoot summit mine cart */
+    if (tryKickMineCartAdjacent()) return true;
     if (currentScene === "overworld") {
       if (nearWho(npc)) { goTalk(); return true; }
       if (nimVisible() && nearWho(nim)) { goTalkNim(); return true; }
@@ -21548,13 +21747,30 @@
         if (!drawAtlas2x(g, "mailbox", x, y)) Assets.draw(g, "mailbox", x, y);
       }
     } else if (p.kind === "crate") {
-      if (!drawAtlas2x(g, "crate", x, y)) Assets.draw(g, "crate", x, y);
-      /* 20260905hl: decorative mine-cart wheels on mountain-mine crates */
       if (p.mineCart) {
-        fill(g, x + 1, y + 12, 4, 3, "#2A2218");
-        fill(g, x + 11, y + 12, 4, 3, "#2A2218");
-        fill(g, x + 2, y + 13, 2, 1, "#5A4A38");
-        fill(g, x + 12, y + 13, 2, 1, "#5A4A38");
+        /* 20260905hu: real mine-cart body (wood bin + ore + wheels) + CART float */
+        var cBob = Math.round(Math.sin(tick / 300 + (p.cartId || 0)) * 1);
+        var cx = x, cy = y + cBob;
+        fill(g, cx + 1, cy + 4, 14, 9, "#5A4028");
+        fill(g, cx + 2, cy + 5, 12, 7, "#8B6238");
+        fill(g, cx + 3, cy + 6, 10, 5, "#A87848");
+        fill(g, cx + 1, cy + 3, 14, 2, "#3A2818");
+        fill(g, cx + 2, cy + 2, 2, 3, "#6A4A30");
+        fill(g, cx + 12, cy + 2, 2, 3, "#6A4A30");
+        /* ore sparkle pile */
+        fill(g, cx + 4, cy + 5, 8, 4, "#4A8B6A");
+        fill(g, cx + 5, cy + 4, 3, 3, "#6BCB9A");
+        fill(g, cx + 9, cy + 5, 3, 3, "#5A7AC8");
+        fill(g, cx + 7, cy + 3, 2, 2, "#FFE9A0");
+        /* wheels */
+        fill(g, cx + 1, cy + 12, 4, 4, "#2A2218");
+        fill(g, cx + 11, cy + 12, 4, 4, "#2A2218");
+        fill(g, cx + 2, cy + 13, 2, 2, "#8A7A68");
+        fill(g, cx + 12, cy + 13, 2, 2, "#8A7A68");
+        fill(g, cx + 0, cy + 14, 16, 1, "#3A3428");
+        drawShaftLabel(g, { tx: p.tx, ty: p.ty }, "CART");
+      } else if (!drawAtlas2x(g, "crate", x, y)) {
+        Assets.draw(g, "crate", x, y);
       }
     } else if (p.kind === "pond") {
       Assets.draw(g, "pond", x, y);
@@ -21664,18 +21880,30 @@
                p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore") {
       if (p.kind === "chest") {
         if (!drawAtlas2x(g, "chest", x, y)) Assets.draw(g, "chest", x, y);
+        /* 20260905hu: CHEST float on summit-mine treasure chests */
+        if (p.mt || currentScene === "mountainMine") {
+          drawShaftLabel(g, { tx: p.tx, ty: p.ty }, "CHEST");
+        }
       } else {
         var bob = p.deco ? 0 : Math.round(Math.sin(tick / 280) * 1);
         if (p.kind === "moonshard" || p.kind === "mooncrystal" || p.kind === "gem" || p.kind === "sapphire") {
-          g.fillStyle = p.kind === "sapphire" ? "rgba(60,90,200,0.22)" : (p.kind === "gem" ? "rgba(92,188,154,0.20)" : "rgba(232,240,255,0.22)");
-          g.fillRect(x - 2, y - 2 + bob, 20, 20);
+          /* 20260905hu: stronger crystal glow pulse (treasure-room readable) */
+          var cg = (p.mt || currentScene === "mountainMine") ? 0.34 : 0.22;
+          var cp = cg + 0.16 * (0.5 + 0.5 * Math.sin(tick / 160 + p.tx + p.ty));
+          g.fillStyle = p.kind === "sapphire" ? ("rgba(80,120,255," + cp.toFixed(3) + ")") : (p.kind === "gem" ? ("rgba(92,220,170," + cp.toFixed(3) + ")") : ("rgba(232,240,255," + cp.toFixed(3) + ")"));
+          g.fillRect(x - 4, y - 4 + bob, 24, 24);
+          g.fillStyle = "rgba(255,248,220," + (cp * 0.45).toFixed(3) + ")";
+          g.fillRect(x + 2, y - 2 + bob, 12, 12);
         }
         /* 20260905v: tray icons are 32px — drawUiIcon shrinks to one tile in the world */
         if (!drawUiIcon(g, p.kind, x, y + bob)) Assets.draw(g, p.kind, x, y + bob, 0, 0.5);
         /* 20260905cy: ore nodes twinkle when ready to pick */
-        if (!p.deco && (p.kind === "copper" || p.kind === "silver" || p.kind === "goldore" || p.kind === "iron")) {
+        /* 20260905hu: crystals twinkle too */
+        if (!p.deco && (p.kind === "copper" || p.kind === "silver" || p.kind === "goldore" || p.kind === "iron" ||
+            p.kind === "gem" || p.kind === "sapphire" || p.kind === "mooncrystal" || p.kind === "moonshard")) {
           var oa = 0.34 + 0.46 * Math.abs(Math.sin(tick / 240 + p.tx * 1.3 + p.ty));
           var ofr = ((tick / 140 + p.tx * 2 + p.ty * 5) | 0) % 3;
+          if (p.mt || p.kind === "gem" || p.kind === "sapphire" || p.kind === "mooncrystal") oa = Math.min(1, oa + 0.18);
           g.save();
           g.globalAlpha = oa;
           if (Assets.spr.sparkle) Assets.draw(g, "sparkle", x + 4, y + bob - 10, ofr);
@@ -25134,6 +25362,10 @@
       goTreetopBird();
       return;
     }
+    if (hitProp && hitProp.mineCart) {
+      goTapMineCart(hitProp);
+      return;
+    }
     if (hitProp && isCollectible(hitProp)) {
       goCollect(hitProp);
       return;
@@ -26105,7 +26337,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hr", BUILD);
+      ok("BUILD", BUILD === "20260905hu", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -28288,14 +28520,29 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       enterMountainMine();
       var mmLand = { tx: mountainMineOut.tx, ty: mountainMineOut.ty - 2 };
       ok("mountainMineEnterLand", currentScene === "mountainMine" && walkable(mmLand.tx, mmLand.ty) && (mountainMineOut.ty - mmLand.ty) >= 2, mmLand.tx + "," + mmLand.ty);
-      var _mtCrystal = 0, _mtCart = 0, _mtChest = 0;
+      var _mtCrystal = 0, _mtCart = 0, _mtChest = 0, _mtOre = 0, _mtCartId = 0;
       for (_mmi = 0; _mmi < PROPS.length; _mmi++) {
         if (!PROPS[_mmi]) continue;
         if (PROPS[_mmi].mt && (PROPS[_mmi].kind === "gem" || PROPS[_mmi].kind === "sapphire" || PROPS[_mmi].kind === "mooncrystal")) _mtCrystal++;
-        if (PROPS[_mmi].mineCart) _mtCart++;
+        if (PROPS[_mmi].mt && (PROPS[_mmi].kind === "silver" || PROPS[_mmi].kind === "goldore")) _mtOre++;
+        if (PROPS[_mmi].mineCart) { _mtCart++; if ((PROPS[_mmi].cartId | 0) > 0) _mtCartId++; }
         if (PROPS[_mmi].mt && PROPS[_mmi].kind === "chest") _mtChest++;
       }
-      ok("mountainMineLootProps", _mtCrystal >= 3 && _mtCart >= 2 && _mtChest >= 2, "c=" + _mtCrystal + " cart=" + _mtCart + " chest=" + _mtChest);
+      ok("mountainMineLootProps", _mtCrystal >= 6 && _mtCart >= 3 && _mtChest >= 3 && _mtOre >= 2 && _mtCartId >= 3,
+        "c=" + _mtCrystal + " cart=" + _mtCart + " chest=" + _mtChest + " ore=" + _mtOre);
+      ok("mountainMineCartKickFn", typeof kickMineCart === "function" && typeof goTapMineCart === "function", "");
+      var _cart0 = null;
+      for (_mmi = 0; _mmi < PROPS.length; _mmi++) {
+        if (PROPS[_mmi] && PROPS[_mmi].mineCart && (PROPS[_mmi].cartId | 0) === 1) { _cart0 = PROPS[_mmi]; break; }
+      }
+      if (_cart0) {
+        var _cTx = _cart0.tx, _cTy = _cart0.ty;
+        placePlayer(_cTx + 1, _cTy, "left");
+        kickMineCart(_cart0);
+        ok("mountainMineCartScoot", _cart0.tx < _cTx && _cart0.ty === _cTy, _cart0.tx + "," + _cart0.ty);
+      } else {
+        ok("mountainMineCartScoot", false, "no cart1");
+      }
       exitMountainMine();
       ok("mountainMineExitPeak", currentScene === "peak" && player.ty >= peakMineMouthAt.ty + 2, player.tx + "," + player.ty);
       applyScene("peak");

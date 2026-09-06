@@ -41,6 +41,7 @@ Status column: **KEEP** = still required in new builds.
 | Peak summit rocks **really clear**: painted pile scrubbed; smashable prop only; 10 diamond-pick hits remove prop, open walk cols 18–20 rows 2–5, persist `peakRocksCleared`, bust peak cache | 20260905bt | KEEP |
 | Peak rock hits show **progressive crack stages** (5 stages / 10 hits — not darken-only) | 20260905bu | KEEP |
 | After rocks clear: **secret mountain mine** mouth on cleared path; walk/tap/Space enter; OUT back to peak; save-safe loot flags | 20260905hl | KEEP |
+| Summit mountain mine polish: denser crystals (glow+sparkle+toast), kickable carts (CART/CLANK), 3 chests with gems/ore/gold/bars; OUT still labeled; enter/OUT peak keep | 20260905hu | KEEP |
 | Mine OUT/UP findable (bobbing gold labels + Jobs tip); pad must not cover OUT | 20260905bx + 31t | KEEP |
 | Door / ladder / cave landings leave a **2-tile gap** so one step cannot auto-reenter or auto-exit | 20260905er–05ew | KEEP |
 
