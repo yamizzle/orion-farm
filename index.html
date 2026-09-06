@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ay";
+  var BUILD = "20260905az";
   var ASSET_REV = "437639";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -4844,23 +4844,34 @@
     drawText(g, word, sx, y - 5, C.parch);
   }
 
+  function drawDoorSignLabel(g, x, y, word) {
+    /* 20260905az: floating shaft label (like OUT) — not a woodPanel blob that reads as a lamp */
+    var tw, lx, ly;
+    if (!word) return;
+    tw = textWidth(word);
+    lx = x + ((TILE - tw) / 2) | 0;
+    ly = y - 14;
+    fill(g, lx - 2, ly - 1, tw + 4, 9, "rgba(42,26,16,0.78)");
+    drawText(g, word, lx, ly, C.parch || "#F3D2A3");
+  }
+
   function drawWoodsSign(g, x, y, word) {
     word = word || (currentScene === "forest" ? "FARM" : "WOODS");
-    var tw, sx;
     if (Assets.woodsSign) {
       var smooth = g.imageSmoothingEnabled;
       g.imageSmoothingEnabled = false;
-      /* 20260905ar: 32×32 → 16×16 logical */
+      /* 20260905ar/az: 32×32 Imagine plaque → 16×16 logical; label floats above */
       g.drawImage(Assets.woodsSign, x, y - 8, 16, 16);
       g.imageSmoothingEnabled = smooth;
     } else {
-    fill(g, x + 7, y + 6, 2, 10, C.woodOut);
-    fill(g, x + 8, y + 6, 1, 10, C.woodMid);
+      /* fallback wide plaque on post — not a lamp cage */
+      fill(g, x + 7, y + 6, 2, 10, C.woodOut);
+      fill(g, x + 8, y + 6, 1, 10, C.woodMid);
+      fill(g, x + 1, y + 2, 14, 6, C.woodMid);
+      fill(g, x + 1, y + 2, 14, 1, C.woodHi);
+      fill(g, x + 1, y + 7, 14, 1, C.woodOut);
     }
-    tw = textWidth(word);
-    sx = x + ((TILE - tw) / 2 | 0);
-    woodPanel(g, sx - 4, y - 6, tw + 8, 13);
-    drawText(g, word, sx, y - 3, C.parch);
+    drawDoorSignLabel(g, x, y, word);
   }
 
   function drawGiantTree(g, x, y) {
@@ -15121,15 +15132,15 @@
     }
     if (p.kind === "giantBird") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
     if (p.kind === "bird") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 20 };
-    if (p.kind === "woodsSign" || p.kind === "oceanSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
+    if (p.kind === "woodsSign" || p.kind === "oceanSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 36 };
     if (p.kind === "brokenBridge" || p.kind === "fixedBridge") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 80, h: 48 };
     if (p.kind === "rowboat") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 32 };
     if (p.kind === "peakRocks") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
     if (p.kind === "caveMouth") return { x: p.tx * TILE - 16, y: p.ty * TILE - 32, w: 48, h: 48 };
     if (p.kind === "caveStairs") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 32 };
-    if (p.kind === "peakSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
+    if (p.kind === "peakSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 36 };
     if (p.kind === "cave") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
-    if (p.kind === "mineSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 28 };
+    if (p.kind === "mineSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 36 };
     if (p.kind === "pond") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 36, h: 32 };
     if (p.kind === "well") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "moonAltar") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
@@ -15211,13 +15222,8 @@
   }
 
   function drawPeakSign(g, x, y) {
-    var tw, sx;
-    fill(g, x + 7, y + 6, 2, 10, C.woodOut);
-    fill(g, x + 8, y + 6, 1, 10, C.woodMid);
-    tw = textWidth("PEAK");
-    sx = x + ((TILE - tw) / 2 | 0);
-    woodPanel(g, sx - 4, y - 6, tw + 8, 13);
-    drawText(g, "PEAK", sx, y - 3, C.parch);
+    /* 20260905az: same Imagine plaque + shaft label as WOODS (not lamp silhouette) */
+    drawWoodsSign(g, x, y, "PEAK");
   }
 
   function drawCaveMouth(g, x, y) {
@@ -15238,13 +15244,8 @@
   }
 
   function drawMineSign(g, x, y) {
-    var tw, sx;
-    fill(g, x + 7, y + 6, 2, 10, C.woodOut);
-    fill(g, x + 8, y + 6, 1, 10, C.woodMid);
-    tw = textWidth("MINE");
-    sx = x + ((TILE - tw) / 2 | 0);
-    woodPanel(g, sx - 4, y - 6, tw + 8, 13);
-    drawText(g, "MINE", sx, y - 3, C.parch);
+    /* 20260905az: same Imagine plaque + shaft label as WOODS (not lamp silhouette) */
+    drawWoodsSign(g, x, y, "MINE");
   }
 
   function drawShaftLabel(g, p, word) {
@@ -18680,7 +18681,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ay", BUILD);
+      ok("BUILD", BUILD === "20260905az", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -18767,6 +18768,9 @@ if (currentScene === "ocean") goExitOcean();
       ok("ensureClaimsSword", !!swordOwned, "swordOwned=" + swordOwned);
       ok("ensurePinsTray0", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
       ok("ensureRemovesPedestal", !PROPS.some(function (p) { return p && p.kind === "swordPedestal"; }), "");
+      /* 20260905az: door signs share plaque art + floating shaft labels (not lamp woodPanel). */
+      ok("doorSignLabelFn", typeof drawDoorSignLabel === "function", "");
+      ok("woodsSignArt", !!(Assets.woodsSign && (Assets.woodsSign.naturalWidth || Assets.woodsSign.width) >= 32), "w=" + (Assets.woodsSign && (Assets.woodsSign.naturalWidth || Assets.woodsSign.width)));
       /* 20260905ay: at most one weapon in the 10-tray (sword + bow). */
       bowOwned = true;
       trayCells[0] = { key: "sword", count: 1 };
