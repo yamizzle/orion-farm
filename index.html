@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fq";
+  var BUILD = "20260905fr";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -17691,6 +17691,32 @@
     return false;
   }
 
+  /* 20260905fr: Space/J/E read adjacent Nim note board (tap already goReadNote'd;
+     mail Space landed in 05fq; note Space was a silent no-op). */
+  function tryReadNoteAdjacent() {
+    var note, face, dx, dy, p;
+    if (uiPaused() || faintFx) return false;
+    note = findNote();
+    if (!note) return false;
+    face = facingTile();
+    p = propAt(face.tx, face.ty) || propAt(player.tx, player.ty);
+    if ((p && p.kind === "note") ||
+        isNear(player.tx, player.ty, note.tx, note.ty) ||
+        (player.tx === note.tx && player.ty === note.ty)) {
+      pending = null;
+      readNoteNow();
+      return true;
+    }
+    dx = Math.abs(player.tx - note.tx);
+    dy = Math.abs(player.ty - note.ty);
+    if ((dx + dy) === 1) {
+      pending = null;
+      readNoteNow();
+      return true;
+    }
+    return false;
+  }
+
   function tryTalkAdjacent() {
     var me, f, fi, p, face;
     if (uiPaused() || faintFx) return false;
@@ -23123,6 +23149,8 @@ if (currentScene === "ocean") goExitOcean();
       if (tryOpenChestAdjacent()) return;
       /* 20260905fq: Space open mailbox (tap already goMail'd). */
       if (tryMailAdjacent()) return;
+      /* 20260905fr: Space read Nim note (tap already goReadNote'd). */
+      if (tryReadNoteAdjacent()) return;
       if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
@@ -23487,6 +23515,7 @@ if (currentScene === "ocean") goExitOcean();
       nearHouseChest: nearHouseChest,
       tryOpenChestAdjacent: tryOpenChestAdjacent,
       tryMailAdjacent: tryMailAdjacent,
+      tryReadNoteAdjacent: tryReadNoteAdjacent,
       tryBumpChest: tryBumpChest,
       openChest: openChest,
       chestIsOpen: function () { return chestOpen; },
@@ -23588,7 +23617,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fq", BUILD);
+      ok("BUILD", BUILD === "20260905fr", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24128,6 +24157,27 @@ if (currentScene === "ocean") goExitOcean();
           placePlayer(_mstand.tx, _mstand.ty, _mstand.face);
           var _mailOk = tryMailAdjacent();
           ok("spaceOpenMail", !!_mailOk && !!(dialogue && dialogue.title), "open=" + _mailOk + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
+      }
+
+      /* 20260905fr: Space reads adjacent Nim note (tap already goReadNote'd). */
+      applyScene("mine");
+      mineFloor = 1;
+      closeDialogue();
+      var _note = findNote();
+      ok("spaceNoteFound", !!_note, "note");
+      if (_note) {
+        var _nstand = null;
+        if (walkable(_note.tx, _note.ty + 1)) _nstand = { tx: _note.tx, ty: _note.ty + 1, face: "up" };
+        else if (walkable(_note.tx + 1, _note.ty)) _nstand = { tx: _note.tx + 1, ty: _note.ty, face: "left" };
+        else if (walkable(_note.tx - 1, _note.ty)) _nstand = { tx: _note.tx - 1, ty: _note.ty, face: "right" };
+        else if (walkable(_note.tx, _note.ty - 1)) _nstand = { tx: _note.tx, ty: _note.ty - 1, face: "down" };
+        ok("spaceNoteStand", !!_nstand, "stand");
+        if (_nstand) {
+          placePlayer(_nstand.tx, _nstand.ty, _nstand.face);
+          var _noteOk = tryReadNoteAdjacent();
+          ok("spaceReadNote", !!_noteOk && !!(dialogue && dialogue.title), "open=" + _noteOk + " title=" + (dialogue ? dialogue.title : ""));
           closeDialogue();
         }
       }
