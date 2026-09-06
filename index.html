@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fb";
+  var BUILD = "20260905fc";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14412,6 +14412,10 @@
       takeFromBag("veggie", 40);
       addToBag("leash", 1);
       inventory.leash = 1;
+      /* 20260905fc: pin leash into tray like pole/hat — dog walk needs leashInTray;
+         tray-full buys left leash bag-only so the dog would not follow outdoors. */
+      placeToolInTrayFirst("leash");
+      selectTool("leash");
       shopMsg = "A DOG LEASH!";
       shopMsgT = 1400;
       persistSave();
@@ -23383,7 +23387,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fb", BUILD);
+      ok("BUILD", BUILD === "20260905fc", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23606,6 +23610,17 @@ if (currentScene === "ocean") goExitOcean();
       ok("ironSwordOwnedCraft", !!ironSwordOwned, "owned=" + ironSwordOwned);
       ok("ironSwordPinned", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
       ok("ironSwordSelected", !!swordEquipped() && selectedIs("sword"), "sel=" + selectedKey());
+
+      /* 20260905fc: leash buy pins + selects (dog walk needs leashInTray). */
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      bagCells[0] = { key: "veggie", count: 40 };
+      syncBagCounts();
+      buyShopItem({ id: "leash", name: "LEASH", price: 40, icon: "leash" });
+      ok("leashPinnedTray", !!leashInTray(), "trayHas=" + !!leashInTray() + " bag=" + bagCount("leash"));
+      ok("leashSelected", selectedIs("leash"), "sel=" + selectedKey());
+      ok("leashDogOn", !!dogOnLeash(), "");
 
       /* 20260905bg: only 1 fishing pole forever (tray/bag/chest/held). */
       poleOwned = true;

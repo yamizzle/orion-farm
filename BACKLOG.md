@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fc): leash buy equips — buying the DOG LEASH at Pip's pins it into the tray and selects it (was bag-only when the tray was full; dog walk needs the leash in the 10-tray so the dog would not follow outdoors). Never START OVER.
+
 Local 9/6 (BUILD 20260905fb): iron sword craft equips — finishing the IRON SWORD at the workbench pins the sword into tray slot 0 and selects it (was owned-only upgrade while bow stayed selected / sword stayed bag-parked). Never START OVER.
 
 Local 9/6 (BUILD 20260905fa): diamond pick mines rocks — selecting the island diamond pick finally chips farm/mine rocks like a pick (faster hits + extra stone + pick swing art); was bare-hand dmg while peak rocks already worked; tip no longer says A PICKAXE WOULD BE FASTER when you already own the diamond. Never START OVER.
