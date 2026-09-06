@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ei";
+  var BUILD = "20260905ej";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -5781,7 +5781,23 @@
     if (onBoat && currentScene === "ocean") return boatOk(tx, ty);
     /* 20260905ci: belt-and-suspenders — deep ocean "y" never walkable on foot */
     if (currentScene === "ocean" && !onBoat && cell(tx, ty) === "y") return false;
+    /* 20260905ej: mine DOWN hole rim (one tile north) looks like the pit —
+       do not stand there; the hole tile itself stays walkable so you can fall. */
+    if (mineHoleRimBlocks(tx, ty)) return false;
     return true;
+  }
+
+  function mineHoleRimBlocks(tx, ty) {
+    var i, p, d;
+    if (currentScene !== "mine") return false;
+    d = mineDownSpot();
+    if (d && tx === d.tx && ty === d.ty - 1) return true;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || p.kind !== "hole") continue;
+      if (tx === p.tx && ty === p.ty - 1) return true;
+    }
+    return false;
   }
 
   function nearestWalkable(fromTx, fromTy) {
@@ -7987,6 +8003,9 @@
     }
     for (i = 0; i < TRAY_CELLS; i++) add(trayCells[i]);
     for (i = 0; i < BAG_CELLS; i++) add(bagCells[i]);
+    /* 20260905ej: mid-drag cursor stack still counts — else OWNED/giveTool/craft
+       think the held tool/stack vanished and can mint a duplicate. */
+    add(bagHeld);
     return n;
   }
 
@@ -8055,6 +8074,8 @@
     }
     for (i = 0; i < TRAY_CELLS; i++) add(trayCells[i]);
     for (i = 0; i < BAG_CELLS; i++) add(bagCells[i]);
+    /* 20260905ej: held cursor item is still yours while dragging */
+    add(bagHeld);
   }
 
   function fillStacksIn(arr, len, key, left, cap) {
@@ -8130,6 +8151,16 @@
       c.count -= take;
       left -= take;
       if (c.count < 1) trayCells[i] = null;
+    }
+    /* 20260905ej: spend the mid-drag cursor stack too (craft/bridge/bird) */
+    if (left > 0 && bagHeld && bagHeld.key === key) {
+      take = left < (bagHeld.count | 0) ? left : (bagHeld.count | 0);
+      bagHeld.count = (bagHeld.count | 0) - take;
+      left -= take;
+      if ((bagHeld.count | 0) < 1) {
+        bagHeld = null;
+        bagHeldFrom = null;
+      }
     }
     syncBagCounts();
     return n - left;
@@ -23141,7 +23172,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ei", BUILD);
+      ok("BUILD", BUILD === "20260905ej", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23517,6 +23548,27 @@ if (currentScene === "ocean") goExitOcean();
       var mdn = md ? nudgeRestoreOffGate(md.tx, md.ty, "down") : null;
       var ml3 = mineRestoreLand();
       ok("mineDownNudgeF3", !!(mdn && ml3 && mdn.tx === ml3.tx && mdn.ty === ml3.ty), mdn && (mdn.tx + "," + mdn.ty));
+      /* 20260905ej: bagHeld counts + mine hole rim blocked */
+      ok("mineHoleRimFn", typeof mineHoleRimBlocks === "function", "");
+      mineFloor = 1;
+      applyScene("mine", 1);
+      var hd = mineDownSpot();
+      ok("mineHoleRimBlocked", !!(hd && mineHoleRimBlocks(hd.tx, hd.ty - 1) && !walkable(hd.tx, hd.ty - 1)), hd && (hd.tx + "," + (hd.ty - 1)));
+      ok("mineHoleTileWalkable", !!(hd && walkable(hd.tx, hd.ty)), hd && (hd.tx + "," + hd.ty));
+      bagHeld = { key: "axe", count: 1 };
+      bagHeldFrom = { place: "tray", i: 3 };
+      for (var ai = 0; ai < TRAY_CELLS; ai++) if (trayCells[ai] && trayCells[ai].key === "axe") trayCells[ai] = null;
+      for (ai = 0; ai < BAG_CELLS; ai++) if (bagCells[ai] && bagCells[ai].key === "axe") bagCells[ai] = null;
+      ok("bagCountCountsHeld", bagCount("axe") === 1, "n=" + bagCount("axe"));
+      ok("addToolNoDupWhileHeld", addToBag("axe", 1) === 0 && bagCount("axe") === 1, "n=" + bagCount("axe"));
+      bagHeld = { key: "wood", count: 5 };
+      bagHeldFrom = { place: "bag", i: 0 };
+      syncBagCounts();
+      ok("syncCountsHeldWood", (inventory.wood | 0) >= 5, "wood=" + inventory.wood);
+      var took = takeFromBag("wood", 3);
+      ok("takeFromHeld", took === 3 && bagHeld && (bagHeld.count | 0) === 2, "took=" + took + " left=" + (bagHeld && bagHeld.count));
+      bagHeld = null; bagHeldFrom = null;
+      syncBagCounts();
       /* 20260905eh: ocean saveScene stores visible docked boat + boatDock field */
       onBoat = true;
       applyScene("ocean");
