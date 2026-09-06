@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ff";
+  var BUILD = "20260905fg";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -15262,8 +15262,8 @@
     var foe;
     if (toolEquipped("bow")) return shootArrow();
     if (startSwordSwing()) return true;
-    /* 20260905ff: Space with pole/hat/axe/seed still chips an adjacent foe outdoors
-       (tap-foe fixed in 05fd; Space still no-op'd because canSwordSwing needs sword/bow). */
+    /* 20260905ff/05fg: pole/hat/axe/seed still chips an adjacent foe outdoors
+       (tap-foe 05fd; tryStrike fallback 05ff; Space key finally reaches here in 05fg). */
     foe = adjacentFoe();
     if (foe && !isCozyInterior() && !uiPaused() && !faintFx && !fishing) {
       beginFight(foe);
@@ -22964,10 +22964,9 @@ if (currentScene === "ocean") goExitOcean();
       if (tryDigFacing()) return;
       if (tryFishFacing()) return;
       if (tryTakeSwordAdjacent()) return;
-      if (canSwordSwing()) {
-        tryStrikeAction();
-        return;
-      }
+      /* 20260905fg: always tryStrike — canSwordSwing gated Space so 05ff pole/hat/axe
+         foe fallback never ran from the real key (autotest called tryStrikeAction directly). */
+      if (tryStrikeAction()) return;
       return;
     }
   });
@@ -23413,7 +23412,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ff", BUILD);
+      ok("BUILD", BUILD === "20260905fg", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23689,7 +23688,8 @@ if (currentScene === "ocean") goExitOcean();
       buyShopItem({ id: "flower", name: "FLOWER", price: 8, icon: "townFlower" });
       ok("flowerPinnedSelected", selectedIs("flower") && bagCount("flower") >= 1, "sel=" + selectedKey());
 
-      /* 20260905ff: Space/tryStrike with pole selected still hits adjacent foe. */
+      /* 20260905ff/05fg: tryStrike with pole selected hits adjacent foe; Space key
+         now calls tryStrikeAction even when canSwordSwing is false outdoors. */
       swordOwned = true;
       bowOwned = false;
       poleOwned = true;
@@ -23703,6 +23703,7 @@ if (currentScene === "ocean") goExitOcean();
       placePlayer(10, 10, "down");
       var _slugSpace = makeMon("slug", 10, 11);
       monsters = [_slugSpace];
+      ok("poleSpaceGateOpen", !canSwordSwing(), "canSwing should be false with pole outdoors");
       ok("poleSpaceStrike", !!tryStrikeAction() && _slugSpace.hp < _slugSpace.maxHp, "hp=" + _slugSpace.hp + "/" + _slugSpace.maxHp);
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */

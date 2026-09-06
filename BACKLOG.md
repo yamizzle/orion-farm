@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fg): Space pole-foe key path — Space / J / E finally call tryStrikeAction even when canSwordSwing is false outdoors, so pole/hat/axe/seed adjacent foes chip (05ff put the fallback inside tryStrike but the key still gated on sword/bow/mine; tap + direct autotest already worked). Never START OVER.
+
 Local 9/6 (BUILD 20260905ff): Pip seed/flower buy equips + Space pole-foe — potato/berry seed buys select the seed (was pin-only so TAP DIRT never armed); flower buy pins + selects (tray-full left it bag-only); Space with pole/hat/axe selected finally chips an adjacent outdoor foe (tap worked in 05fd; Space still no-op'd). Never START OVER.
 
 Local 9/6 (BUILD 20260905fe): lamp/crate kit buy equips — buying LAMP KIT or CRATE KIT at Pip's pins the stack into the tray and selects it (was bag-only when the tray was full of tools; placing needs selected lampKit/crateKit so TAP TILE never armed). Never START OVER.
