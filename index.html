@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bm";
+  var BUILD = "20260905bn";
   var ASSET_REV = "451204";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7360,6 +7360,7 @@
     setFenceBuildOn(false);
     if (fishing && key !== "pole") cancelFishing();
     maybeStoveCookTip();
+    maybeFireplaceSmeltTip();
   }
 
   function tryBuild(tx, ty) {
@@ -8413,10 +8414,21 @@
   }
 
   function selectedSmeltOre() {
+    var i, c;
     if (selectedIs("copper")) return "copper";
     if (selectedIs("silver")) return "silver";
     if (selectedIs("goldore")) return "goldore";
+    /* Ore in tray (not selected) still smelts at the fireplace. */
+    for (i = 0; i < TRAY_CELLS; i++) {
+      c = trayCells[i];
+      if (!c || (c.count | 0) < 1) continue;
+      if (c.key === "copper" || c.key === "silver" || c.key === "goldore") return c.key;
+    }
     return "";
+  }
+
+  function hasAnySmeltOre() {
+    return bagCount("copper") > 0 || bagCount("silver") > 0 || bagCount("goldore") > 0;
   }
 
   function smeltBarFor(ore) {
@@ -8426,11 +8438,20 @@
     return "";
   }
 
-  function smeltBarName(bar) {
-    if (bar === "copperBar") return "A COPPER BAR!";
-    if (bar === "silverBar") return "A SILVER BAR!";
-    if (bar === "goldBar") return "A GOLD BAR!";
-    return "A BAR!";
+  function smeltToast(ore) {
+    if (ore === "copper") return "SMELTED COPPER!";
+    if (ore === "silver") return "SMELTED SILVER!";
+    if (ore === "goldore") return "SMELTED GOLD!";
+    return "SMELTED!";
+  }
+
+  function maybeFireplaceSmeltTip() {
+    if (unlocked.fireplaceSmeltTip) return;
+    if (currentScene !== "house") return;
+    if (!selectedSmeltOre()) return;
+    unlocked.fireplaceSmeltTip = true;
+    showLineNote("TAP THE FIREPLACE TO SMELT");
+    persistSave();
   }
 
   function doSmeltNow() {
@@ -8450,15 +8471,20 @@
       showLineNote("BAG FULL. USE THE CHEST.");
       return false;
     }
+    /* Prefer selected tray slot; else select the tray ore first. Ore-only (no wood). */
+    if (!selectedIs(ore)) selectTool(ore);
     if (spendSelected(ore, 1) < 1) {
-      showLineNote("THE FIRE WANTS ORE.");
-      return false;
+      /* Tray empty but bag has ore — spend from bag (kid still at fireplace). */
+      if (takeFromBag(ore, 1) < 1) {
+        showLineNote("THE FIRE WANTS ORE.");
+        return false;
+      }
     }
     addToBag(bar, 1);
     fire = findFireplace();
     if (fire) spawnSparks(fire.tx * TILE + 16, fire.ty * TILE + 16);
     playSfx("smash");
-    showLineNote(smeltBarName(bar));
+    showLineNote(smeltToast(ore));
     ensureSelectedSlot();
     persistSave();
     return true;
@@ -10515,6 +10541,7 @@
 
   function questHint() {
     if (hasAnyRawFish()) return "COOK FISH ON THE STOVE";
+    if (hasAnySmeltOre()) return "SMELT ORE AT THE FIREPLACE";
     if (!quest.flowerAsked) return "SAY HI TO JUNIE";
     if (!found.kickedBall) return "KICK THE CART IN TOWN.";
     if (!quest.flowerDone) return "BRING A MUSHROOM TO JUNIE";
@@ -18975,6 +19002,8 @@ if (currentScene === "ocean") goExitOcean();
       nearFireplace: nearFireplace,
       fireplaceHit: fireplaceHit,
       selectedSmeltOre: selectedSmeltOre,
+      hasAnySmeltOre: hasAnySmeltOre,
+      smeltToast: smeltToast,
       SLOT_COPPER: SLOT_COPPER,
       SLOT_WOOD: SLOT_WOOD,
       selectSlot: function (id) {
@@ -19204,7 +19233,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bh", BUILD);
+      ok("BUILD", BUILD === "20260905bn", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
