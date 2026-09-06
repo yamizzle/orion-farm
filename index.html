@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ek";
+  var BUILD = "20260905el";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10731,6 +10731,23 @@
     for (i = 0; i < TRAY_CELLS; i++) {
       if (trayCells[i] && trayCells[i].key === key) { done(); return; }
     }
+    /* 20260905el: mid-drag tool is already yours — park it, never mint a twin. */
+    if (bagHeld && bagHeld.key === key) {
+      bagHeld = null;
+      bagHeldFrom = null;
+      idx = firstEmptyTray();
+      if (idx >= 0) {
+        trayCells[idx] = { key: key, count: 1 };
+        done(); return;
+      }
+      empty = firstEmptyBag();
+      if (empty >= 0) {
+        bagCells[empty] = { key: key, count: 1 };
+        done(); return;
+      }
+      /* No free slot — leave cleared held; caller ownership flags still true. */
+      done(); return;
+    }
     bagIdx = -1;
     for (i = 0; i < BAG_CELLS; i++) {
       c = bagCells[i];
@@ -10849,7 +10866,7 @@
 
   function forceSwordIntoTray() {
     var i, empty, c, displaced, soft;
-    /* Recover ownership if a pocket still holds a sword ghost. */
+    /* Recover ownership if a pocket / mid-drag ghost still holds a sword. */
     if (!swordOwned) {
       for (i = 0; i < TRAY_CELLS; i++) {
         if (trayCells[i] && trayCells[i].key === "sword") { swordOwned = true; break; }
@@ -10860,8 +10877,15 @@
         if (bagCells[i] && bagCells[i].key === "sword") { swordOwned = true; break; }
       }
     }
+    /* 20260905el: bagHeld sword still counts as owned — else openBag pin mints #2. */
+    if (!swordOwned && bagHeld && bagHeld.key === "sword") swordOwned = true;
     if (!swordOwned) return;
     clearKeyFromPockets("sword");
+    /* 20260905el: same as ensureOnePole — drop the cursor copy before pinning slot 0. */
+    if (bagHeld && bagHeld.key === "sword") {
+      bagHeld = null;
+      bagHeldFrom = null;
+    }
     /* Hard-pin hotbar slot 0; relocate whatever was there. */
     c = trayCells[0];
     if (c && c.key && c.key !== "sword") {
@@ -23214,7 +23238,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ek", BUILD);
+      ok("BUILD", BUILD === "20260905el", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23625,6 +23649,31 @@ if (currentScene === "ocean") goExitOcean();
       ok("syncCountsHeldWood", (inventory.wood | 0) >= 5, "wood=" + inventory.wood);
       var took = takeFromBag("wood", 3);
       ok("takeFromHeld", took === 3 && bagHeld && (bagHeld.count | 0) === 2, "took=" + took + " left=" + (bagHeld && bagHeld.count));
+      bagHeld = null; bagHeldFrom = null;
+      syncBagCounts();
+      /* 20260905el: forceSword / placeTool must not mint while bagHeld holds the tool */
+      swordOwned = true;
+      for (var si = 0; si < TRAY_CELLS; si++) if (trayCells[si] && trayCells[si].key === "sword") trayCells[si] = null;
+      for (si = 0; si < BAG_CELLS; si++) if (bagCells[si] && bagCells[si].key === "sword") bagCells[si] = null;
+      bagHeld = { key: "sword", count: 1 };
+      bagHeldFrom = { place: "tray", i: 0 };
+      forceSwordIntoTray();
+      var swords = 0;
+      for (si = 0; si < TRAY_CELLS; si++) if (trayCells[si] && trayCells[si].key === "sword") swords++;
+      for (si = 0; si < BAG_CELLS; si++) if (bagCells[si] && bagCells[si].key === "sword") swords++;
+      if (bagHeld && bagHeld.key === "sword") swords++;
+      ok("forceSwordNoDupHeld", swords === 1 && !bagHeld && trayCells[0] && trayCells[0].key === "sword", "swords=" + swords + " held=" + !!bagHeld);
+      axeOwned = true;
+      for (si = 0; si < TRAY_CELLS; si++) if (trayCells[si] && trayCells[si].key === "axe") trayCells[si] = null;
+      for (si = 0; si < BAG_CELLS; si++) if (bagCells[si] && bagCells[si].key === "axe") bagCells[si] = null;
+      bagHeld = { key: "axe", count: 1 };
+      bagHeldFrom = { place: "bag", i: 1 };
+      placeToolInTrayFirst("axe");
+      var axes = 0;
+      for (si = 0; si < TRAY_CELLS; si++) if (trayCells[si] && trayCells[si].key === "axe") axes++;
+      for (si = 0; si < BAG_CELLS; si++) if (bagCells[si] && bagCells[si].key === "axe") axes++;
+      if (bagHeld && bagHeld.key === "axe") axes++;
+      ok("placeToolNoDupHeld", axes === 1 && !bagHeld, "axes=" + axes + " held=" + !!bagHeld);
       bagHeld = null; bagHeldFrom = null;
       syncBagCounts();
       /* 20260905eh: ocean saveScene stores visible docked boat + boatDock field */
