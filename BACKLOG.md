@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905cu): soft cozy door fade (warm wash, ~⅓s) on house/shop/cottages/tall/L-house/mine enter+exit — not a long black screen; dog pet bounce + pink hearts when talked to (extra with leash). Never START OVER.
+
 Local 9/5 (BUILD 20260905ct): crop ready sparkle twinkle on ripe garden plots + harvest pop sparks when picked. Never START OVER.
 
 Local 9/5 (BUILD 20260905cs): pickaxe rock spark chips — farm/mine/peak rocks spray stone chips + pale smash flash on hit (same juice language as axe wood chips). Never START OVER.

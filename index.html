@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ct";
+  var BUILD = "20260905cu";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -564,6 +564,8 @@
   var dialogue = null;
   var birdFly = null;
   var birdRideFx = null;
+  /* 20260905cu: short cozy door fade (not a long black screen) */
+  var doorFade = null;
   var crops = {};
   var pending = null;
   var solid = null;
@@ -1316,7 +1318,9 @@
     anim: 0,
     houseTx: 6,
     houseTy: 7,
-    scene: "house"
+    scene: "house",
+    /* 20260905cu: pet bounce timer when talked to */
+    react: 0
   };
   var npc = {
     tx: 12, ty: 29,
@@ -6795,6 +6799,26 @@
     }
   }
 
+  /* 20260905cu: pink hearts float up when Orion pets the dog */
+  function spawnDogHearts() {
+    var i, cols, ox, oy;
+    cols = ["#FF6B8A", "#FFB4C8", "#FF8FA3", "#FFE0E8", "#FF5A7A", "#FFD0DC"];
+    ox = dog.x;
+    oy = dog.y - 10;
+    for (i = 0; i < 6; i++) {
+      sparks.push({
+        x: ox + (Math.random() * 12 - 6),
+        y: oy + (Math.random() * 4 - 2),
+        vx: (Math.random() - 0.5) * 0.028,
+        vy: -0.038 - Math.random() * 0.028,
+        age: 0,
+        life: 520 + Math.random() * 240,
+        col: cols[i % cols.length],
+        heart: true
+      });
+    }
+  }
+
   /* 20260905ci: bigger hit/kill spark ring so swings read for kids */
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
@@ -7971,6 +7995,7 @@
     }
     for (i = sparks.length - 1; i >= 0; i--) {
       sp = sparks[i];
+      if (sp.heart) continue; /* 20260905cu: hearts tick in updateDogPetFx */
       sp.age += dt;
       if (sp.age >= sp.life) {
         sparks.splice(i, 1);
@@ -10940,7 +10965,7 @@
   }
 
   function uiPaused() {
-    return !!(toast || modalOpen() || birdFly || birdRideFx);
+    return !!(toast || modalOpen() || birdFly || birdRideFx || doorFade);
   }
 
   function clearWalkIntent() {
@@ -12654,28 +12679,103 @@
     return false;
   }
 
+  /* 20260905cu: soft warm wash in/out around door warps — short + cozy */
+  function startDoorFade(action) {
+    if (doorFade) {
+      if (doorFade.pending && !doorFade.did) {
+        doorFade.did = true;
+        try { doorFade.pending(); } catch (err) {}
+      }
+      doorFade = null;
+    }
+    clearWalkIntent();
+    doorFade = { age: 0, life: 340, pending: action, did: false };
+  }
+
+  /* 20260905cu: pet bounce + hearts keep moving even while dialogue is open */
+  function updateDogPetFx(dt) {
+    var i, sp;
+    if (dog.react > 0) {
+      dog.react -= dt;
+      if (dog.react < 0) dog.react = 0;
+    }
+    for (i = sparks.length - 1; i >= 0; i--) {
+      sp = sparks[i];
+      if (!sp.heart) continue;
+      sp.age += dt;
+      sp.x += sp.vx * dt;
+      sp.y += sp.vy * dt;
+      if (sp.age >= sp.life) sparks.splice(i, 1);
+    }
+  }
+
+  function updateDoorFade(dt) {
+    var half;
+    if (!doorFade) return;
+    doorFade.age += dt;
+    half = doorFade.life * 0.42;
+    if (!doorFade.did && doorFade.age >= half) {
+      doorFade.did = true;
+      if (doorFade.pending) {
+        try { doorFade.pending(); } catch (err) {}
+        doorFade.pending = null;
+      }
+    }
+    if (doorFade.age >= doorFade.life) doorFade = null;
+  }
+
+  function drawDoorFade(g) {
+    var u, a;
+    if (!doorFade) return;
+    u = doorFade.age / doorFade.life;
+    if (u < 0) u = 0;
+    if (u > 1) u = 1;
+    /* triangle peak near mid — never hold a solid black screen */
+    if (u < 0.42) a = u / 0.42;
+    else if (u > 0.58) a = (1 - u) / 0.42;
+    else a = 1;
+    if (a < 0) a = 0;
+    if (a > 1) a = 1;
+    g.fillStyle = "rgba(32, 20, 14," + (a * 0.7).toFixed(3) + ")";
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    /* soft warm rim so it reads cozy, not a hard cut */
+    if (a > 0.35) {
+      g.fillStyle = "rgba(120, 72, 40," + (a * 0.18).toFixed(3) + ")";
+      g.fillRect(0, 0, VIEW_W, 10);
+      g.fillRect(0, VIEW_H - 10, VIEW_W, 10);
+    }
+  }
+
   function enterCottage() {
-    applyScene("cottage");
-    placePlayer(8, 7, "up");
-    persistSave();
+    startDoorFade(function () {
+      applyScene("cottage");
+      placePlayer(8, 7, "up");
+      persistSave();
+    });
   }
 
   function exitCottage() {
-    applyScene("overworld");
-    placePlayer(cottageLand.tx, cottageLand.ty, "down");
-    persistSave();
+    startDoorFade(function () {
+      applyScene("overworld");
+      placePlayer(cottageLand.tx, cottageLand.ty, "down");
+      persistSave();
+    });
   }
 
   function enterCottage2() {
-    applyScene("cottage2");
-    placePlayer(6, 5, "up");
-    persistSave();
+    startDoorFade(function () {
+      applyScene("cottage2");
+      placePlayer(6, 5, "up");
+      persistSave();
+    });
   }
 
   function exitCottage2() {
-    applyScene("overworld");
-    placePlayer(cottage2Land.tx, cottage2Land.ty, "down");
-    persistSave();
+    startDoorFade(function () {
+      applyScene("overworld");
+      placePlayer(cottage2Land.tx, cottage2Land.ty, "down");
+      persistSave();
+    });
   }
 
   function goEnterCottage() {
@@ -12752,27 +12852,35 @@
   }
 
   function enterTallCottage() {
-    applyScene("tallCottage");
-    placePlayer(8, 7, "up");
-    persistSave();
+    startDoorFade(function () {
+      applyScene("tallCottage");
+      placePlayer(8, 7, "up");
+      persistSave();
+    });
   }
 
   function exitTallCottage() {
-    applyScene("overworld");
-    placePlayer(tallCottageLand.tx, tallCottageLand.ty, "down");
-    persistSave();
+    startDoorFade(function () {
+      applyScene("overworld");
+      placePlayer(tallCottageLand.tx, tallCottageLand.ty, "down");
+      persistSave();
+    });
   }
 
   function enterLHouse() {
-    applyScene("lHouse");
-    placePlayer(7, 7, "up");
-    persistSave();
+    startDoorFade(function () {
+      applyScene("lHouse");
+      placePlayer(7, 7, "up");
+      persistSave();
+    });
   }
 
   function exitLHouse() {
-    applyScene("overworld");
-    placePlayer(lHouseLand.tx, lHouseLand.ty, "down");
-    persistSave();
+    startDoorFade(function () {
+      applyScene("overworld");
+      placePlayer(lHouseLand.tx, lHouseLand.ty, "down");
+      persistSave();
+    });
   }
 
   function goEnterTallCottage() {
@@ -12988,20 +13096,24 @@
   }
 
   function enterShop() {
-    applyScene("shop");
-    placePlayer(8, 7, "up");
-    /* 20260905cr: Pip greets once so the shop feels alive */
-    if (!unlocked.pipGreetTip) {
-      unlocked.pipGreetTip = true;
-      showLineNote("PIP: HI! TAP ME TO SHOP.");
-    }
-    persistSave();
+    startDoorFade(function () {
+      applyScene("shop");
+      placePlayer(8, 7, "up");
+      /* 20260905cr: Pip greets once so the shop feels alive */
+      if (!unlocked.pipGreetTip) {
+        unlocked.pipGreetTip = true;
+        showLineNote("PIP: HI! TAP ME TO SHOP.");
+      }
+      persistSave();
+    });
   }
 
   function exitShop() {
-    applyScene("overworld");
-    placePlayer(43, 27, "down");
-    persistSave();
+    startDoorFade(function () {
+      applyScene("overworld");
+      placePlayer(43, 27, "down");
+      persistSave();
+    });
   }
 
   function goEnterShop() {
@@ -15556,53 +15668,59 @@
   }
 
   function enterMine() {
-    applyScene("mine", 1);
-    placePlayer(16, 19, "up");
-    unlockAch("caveDoor");
-    if (!introSeen) {
-      introSeen = true;
-      persistSave();
-      openDialogue("NIM'S NOTE", NOTE_OPEN);
-    } else {
-      persistSave();
-    }
-    maybeMineOutTip();
+    startDoorFade(function () {
+      applyScene("mine", 1);
+      placePlayer(16, 19, "up");
+      unlockAch("caveDoor");
+      if (!introSeen) {
+        introSeen = true;
+        persistSave();
+        openDialogue("NIM'S NOTE", NOTE_OPEN);
+      } else {
+        persistSave();
+      }
+      maybeMineOutTip();
+    });
   }
 
   function exitMine() {
-    applyScene("overworld");
-    placePlayer(37, 7, "down");
-    persistSave();
+    startDoorFade(function () {
+      applyScene("overworld");
+      placePlayer(37, 7, "down");
+      persistSave();
+    });
   }
 
   function enterHouse() {
-    applyScene("house");
-    placePlayer(10, 9, "up");
-    if (dogOnLeash()) bringDogWithPlayer("house");
-    else if (dog.scene !== "house") parkDogInHouse();
-    maybeBedSleepTip();
-    if (found.moonshard && !quest.homeDone) {
-      quest.homeDone = true;
-      homeLight = true;
-      /* Story consume — shard leaves the hotbar when it lights home. */
-      takeFromBag("moonshard", Math.max(1, bagCount("moonshard")));
-      persistSave();
-      unlockAch("homeGlow");
-      ensureSelectedSlot();
-      openDialogue("ORION", ["THE SHARD GLOWS.", "HOME LIGHT ON!"]);
-      maybeThreeLightsReady();
-    } else {
-      if (homeLightOn()) homeLight = true;
-      persistSave();
-    }
-    if (found.mooncrystal && !quest.heartHome) {
-      quest.heartHome = true;
-      persistSave();
-      if (!(found.moonshard && !homeLightOn())) {
-        /* Shard dialogue already open on same enter — skip second box. */
-        if (!dialogue) openDialogue("ORION", ["THE HEART RESTS.", "THE TABLE GLOWS."]);
+    startDoorFade(function () {
+      applyScene("house");
+      placePlayer(10, 9, "up");
+      if (dogOnLeash()) bringDogWithPlayer("house");
+      else if (dog.scene !== "house") parkDogInHouse();
+      maybeBedSleepTip();
+      if (found.moonshard && !quest.homeDone) {
+        quest.homeDone = true;
+        homeLight = true;
+        /* Story consume — shard leaves the hotbar when it lights home. */
+        takeFromBag("moonshard", Math.max(1, bagCount("moonshard")));
+        persistSave();
+        unlockAch("homeGlow");
+        ensureSelectedSlot();
+        openDialogue("ORION", ["THE SHARD GLOWS.", "HOME LIGHT ON!"]);
+        maybeThreeLightsReady();
+      } else {
+        if (homeLightOn()) homeLight = true;
+        persistSave();
       }
-    }
+      if (found.mooncrystal && !quest.heartHome) {
+        quest.heartHome = true;
+        persistSave();
+        if (!(found.moonshard && !homeLightOn())) {
+          /* Shard dialogue already open on same enter — skip second box. */
+          if (!dialogue) openDialogue("ORION", ["THE HEART RESTS.", "THE TABLE GLOWS."]);
+        }
+      }
+    });
   }
 
   function bringDogWithPlayer(sceneName) {
@@ -15649,11 +15767,13 @@
   }
 
   function exitHouse() {
-    applyScene("overworld");
-    placePlayer(17, 29, "down");
-    /* Tray leash → dog comes outside. Bag-only / no leash → dog stays home. */
-    if (!bringDogWithPlayer("overworld")) parkDogInHouse();
-    persistSave();
+    startDoorFade(function () {
+      applyScene("overworld");
+      placePlayer(17, 29, "down");
+      /* Tray leash → dog comes outside. Bag-only / no leash → dog stays home. */
+      if (!bringDogWithPlayer("overworld")) parkDogInHouse();
+      persistSave();
+    });
   }
 
   function arrive() {
@@ -16599,9 +16719,14 @@
   }
 
   function talkDog() {
-    if (dogOnLeash()) openDialogue("DOG", ["WOOF.", "LET'S GO!"]);
-    else if (ownsLeash()) openDialogue("DOG", ["WOOF.", "PUT THE LEASH ON THE TRAY."]);
-    else openDialogue("DOG", ["WOOF.", "NEEDS A LEASH."]);
+    /* 20260905cu: happy bounce + hearts when talked to (extra juice with leash) */
+    dog.react = dogOnLeash() ? 620 : 480;
+    spawnDogHearts();
+    if (dogOnLeash()) {
+      spawnDogHearts();
+      openDialogue("DOG", ["WOOF WOOF!", "LET'S GO!"]);
+    } else if (ownsLeash()) openDialogue("DOG", ["WOOF!", "PUT THE LEASH ON THE TRAY."]);
+    else openDialogue("DOG", ["WOOF!", "NEEDS A LEASH."]);
   }
 
   function updateDog(dt) {
@@ -16668,7 +16793,13 @@
 
   function drawDogSpr(g) {
     var bob = dog.frame ? -1 : 0;
-    var s, smooth, ax, ay;
+    var hop = 0;
+    var s, smooth, ax, ay, t;
+    /* 20260905cu: happy bounce while pet react is hot */
+    if (dog.react > 0) {
+      t = (620 - Math.min(620, dog.react)) / 70;
+      hop = -Math.round(Math.abs(Math.sin(t * Math.PI)) * (dogOnLeash() ? 5 : 3.5));
+    }
     drawShadow(g, dog.x, dog.y, 5);
     s = Assets.spr.dog;
     if (s && Assets.img) {
@@ -16679,7 +16810,7 @@
       /* 48×48 atlas → 24×24 logical with same anchor as Assets.draw scale 0.5 */
       g.drawImage(
         Assets.img, s.x, s.y, s.w, s.h,
-        Math.round(dog.x - ax / 2), Math.round(dog.y + bob - ay / 2),
+        Math.round(dog.x - ax / 2), Math.round(dog.y + bob + hop - ay / 2),
         s.w / 2, s.h / 2
       );
       g.imageSmoothingEnabled = smooth;
@@ -18436,12 +18567,29 @@
   }
 
   function drawSparks(g) {
-    var i, sp, life, kb, t, r, a;
+    var i, sp, life, kb, t, r, a, hx, hy;
     for (i = 0; i < sparks.length; i++) {
       sp = sparks[i];
       life = 1 - sp.age / sp.life;
       if (life <= 0) continue;
       g.fillStyle = sp.col;
+      if (sp.heart) {
+        /* 20260905cu: tiny rising hearts for dog pets */
+        hx = Math.round(sp.x);
+        hy = Math.round(sp.y);
+        g.globalAlpha = Math.min(1, life + 0.15);
+        g.fillRect(hx - 1, hy, 1, 1);
+        g.fillRect(hx + 1, hy, 1, 1);
+        g.fillRect(hx, hy + 1, 1, 1);
+        if (life > 0.35) {
+          g.fillRect(hx, hy, 1, 1);
+          g.fillRect(hx - 1, hy - 1, 1, 1);
+          g.fillRect(hx + 1, hy - 1, 1, 1);
+        }
+        if (life > 0.55) g.fillRect(hx, hy + 2, 1, 1);
+        g.globalAlpha = 1;
+        continue;
+      }
       g.fillRect(Math.round(sp.x), Math.round(sp.y), 1, 1);
       if (life > 0.45) g.fillRect(Math.round(sp.x) + 1, Math.round(sp.y) - 1, 1, 1);
     }
@@ -19796,6 +19944,7 @@
       drawDayTint(g);
       drawBirdRideOverlay(g);
     }
+    drawDoorFade(g);
     drawIframeFlash(g);
     drawHUD(g);
     drawBag(g);
@@ -20909,6 +21058,8 @@ if (currentScene === "ocean") goExitOcean();
     updateSleep(dt);
     updateFaint(dt);
     updateBirdFx(dt);
+    updateDoorFade(dt);
+    updateDogPetFx(dt);
     updateLineNote(dt);
     /* Sword arc keeps ticking during toasts so pad swings always finish + hit. */
     updateSwordArc(dt);
@@ -21604,7 +21755,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ct", BUILD);
+      ok("BUILD", BUILD === "20260905cu", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
