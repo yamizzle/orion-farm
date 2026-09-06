@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905do): peak PATH CLEAR celebration — big gold/stone summit sparkle burst + toast SFX when the last summit rocks smash open (was plain sparks). Never START OVER.
+
 Local 9/5 (BUILD 20260905dn): golden swordfish catch special gold/white sparkle burst on reel-in; diamond pick pickup icy cyan/white diamond sparkle (was plain sparks). Never START OVER.
 
 Local 9/5 (BUILD 20260905dm): Moondrop Night statue soft moon glow — cool pastel blue/lavender halo + warm core + soft sparkle twinkle on the Moon Kid (festival confetti from 05dl kept). Never START OVER.

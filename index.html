@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dn";
+  var BUILD = "20260905do";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7280,6 +7280,24 @@
   }
 
 
+  /* 20260905do: bigger gold/stone summit burst when PATH CLEAR opens the peak */
+  function spawnPathClearSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#FFE9A0", "#FFF8E0", "#E8E0D0", "#F0C060", "#9A9488", "#FFFDF4", "#C8C0B0", "#FFE070", "#5A5A4E", "#FFD78A", "#FFFFFF", "#D4C4A0", "#E8C84A", "#F3EDE0"];
+    for (i = 0; i < 16; i++) {
+      ang = (i / 16) * Math.PI * 2 + Math.random() * 0.3;
+      sparks.push({
+        x: x + (Math.random() * 10 - 5),
+        y: y + (Math.random() * 6 - 3),
+        vx: Math.cos(ang) * (0.036 + Math.random() * 0.04),
+        vy: Math.sin(ang) * 0.014 - 0.062 - Math.random() * 0.034,
+        age: 0,
+        life: 560 + Math.random() * 300,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
     n = big ? 12 : 8;
@@ -8321,7 +8339,9 @@
       openPeakSummitPathLive();
       delete harvestNodes[nodeKey(liveHarvestScene(), prop.tx, prop.ty)];
       showLineNote("PATH CLEAR!");
-      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 4);
+      /* 20260905do: gold/stone celebration (was plain sparks) */
+      spawnPathClearSparks(prop.tx * TILE + 8, prop.ty * TILE + 4);
+      playSfx("toast");
       persistSave();
       return;
     } else if (prop.kind === "rock") {
