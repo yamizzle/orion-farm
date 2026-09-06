@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cp";
+  var BUILD = "20260905cq";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -4544,7 +4544,7 @@
   }
 
   function drawDigMoundSpot(g, s, dug) {
-    var dx, dy, ox, oy, j, h, leaf;
+    var dx, dy, ox, oy, j, h, leaf, fr, a;
     dx = s.tx * TILE;
     dy = s.ty * TILE;
     ox = ((hash(s.tx, s.ty, 3) * 3) | 0) - 1;
@@ -4564,6 +4564,18 @@
         leaf = h < 0.45 ? "#3E8A28" : (h < 0.75 ? "#8FD44A" : "#C47A38");
         px(g, dx + ox + 2 + ((h * 12) | 0), dy + oy + 3 + ((hash(s.ty, j, 5) * 10) | 0), leaf);
       }
+      /* 20260905cq: twinkle so kids spot dig mounds */
+      a = 0.32 + 0.48 * Math.abs(Math.sin(tick / 260 + s.tx * 1.7 + s.ty));
+      fr = ((tick / 150 + s.tx + s.ty * 3) | 0) % 3;
+      g.save();
+      g.globalAlpha = a;
+      if (Assets.spr.sparkle) Assets.draw(g, "sparkle", dx + ox + 4, dy + oy - 8, fr);
+      else {
+        px(g, dx + ox + 8, dy + oy - 2, "#FFF8E0");
+        px(g, dx + ox + 10, dy + oy, "#FFE9A0");
+        px(g, dx + ox + 6, dy + oy - 1, "#FFFDF4");
+      }
+      g.restore();
     }
   }
 
@@ -6698,6 +6710,33 @@
     return true;
   }
 
+  function undugMoundExists() {
+    var i, s;
+    if (currentScene === "overworld") {
+      for (i = 0; i < FARM_DIG_SPOTS.length; i++) {
+        s = FARM_DIG_SPOTS[i];
+        if (!farmDugAt(s.tx, s.ty)) return true;
+      }
+    } else if (currentScene === "forest") {
+      for (i = 0; i < WOODS_DIG_SPOTS.length; i++) {
+        s = WOODS_DIG_SPOTS[i];
+        if (!woodsDugAt(s.tx, s.ty)) return true;
+      }
+    }
+    return false;
+  }
+
+  function maybeShovelDigTip() {
+    /* 20260905cq: once toast when shovel is selected near dig mounds */
+    if (unlocked.shovelDigTip) return;
+    if (!(currentScene === "overworld" || currentScene === "forest")) return;
+    if (!toolEquipped("shovel")) return;
+    if (!undugMoundExists()) return;
+    unlocked.shovelDigTip = true;
+    showLineNote("TAP A DIRT MOUND TO DIG");
+    persistSave();
+  }
+
   function spawnSparks(x, y) {
     var i, ang;
     for (i = 0; i < 5; i++) {
@@ -7971,6 +8010,7 @@
     maybeFireplaceSmeltTip();
     maybePlantSeedTip();
     maybeFenceBuildTip();
+    maybeShovelDigTip();
   }
 
   function tryBuild(tx, ty) {
@@ -21442,7 +21482,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cp", BUILD);
+      ok("BUILD", BUILD === "20260905cq", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
