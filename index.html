@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fd";
+  var BUILD = "20260905fe";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14546,6 +14546,10 @@
         return;
       }
       addToBag("lampKit", 3);
+      /* 20260905fe: pin + select lamp kit — place needs selected lampKit;
+         tray-full buys left kits bag-only so TAP TILE TO PLACE never armed. */
+      placeToolInTrayFirst("lampKit");
+      selectTool("lampKit");
       shopMsg = "PLUS 3 LAMPS.";
     } else if (item.id === "crateKit") {
       if (bagRoom("crateKit") < 3) {
@@ -14556,6 +14560,9 @@
         return;
       }
       addToBag("crateKit", 3);
+      /* 20260905fe: pin + select crate kit (same place-mode gate as lamps). */
+      placeToolInTrayFirst("crateKit");
+      selectTool("crateKit");
       shopMsg = "PLUS 3 CRATES.";
     } else if (item.id === "pole") {
       poleOwned = true;
@@ -23390,7 +23397,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fd", BUILD);
+      ok("BUILD", BUILD === "20260905fe", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23624,6 +23631,24 @@ if (currentScene === "ocean") goExitOcean();
       ok("leashPinnedTray", !!leashInTray(), "trayHas=" + !!leashInTray() + " bag=" + bagCount("leash"));
       ok("leashSelected", selectedIs("leash"), "sel=" + selectedKey());
       ok("leashDogOn", !!dogOnLeash(), "");
+
+      /* 20260905fe: lamp/crate kit buy pins + selects (place needs selected kit). */
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      gold = 100;
+      syncBagCounts();
+      buyShopItem({ id: "lampKit", name: "LAMP KIT", price: 10, icon: "lanternIcon" });
+      ok("lampKitPinned", bagCount("lampKit") >= 1 && selectedIs("lampKit"), "sel=" + selectedKey() + " n=" + bagCount("lampKit"));
+      ok("lampKitPlaceMode", !!placingLampNow(), "");
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      gold = 100;
+      syncBagCounts();
+      buyShopItem({ id: "crateKit", name: "CRATE KIT", price: 10, icon: "crateIcon" });
+      ok("crateKitPinned", bagCount("crateKit") >= 1 && selectedIs("crateKit"), "sel=" + selectedKey() + " n=" + bagCount("crateKit"));
+      ok("crateKitPlaceMode", !!placingCrateNow(), "");
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
       swordOwned = true;
