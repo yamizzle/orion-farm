@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905hf): town house C/D knock — tapping townHouseC / townHouseD or Space / J / E at the stoop finally knocks (KNOCK float; HOUSE dialogue; tall cottage A + L-house B already enter; C/D were silent solids after knock was removed). Never START OVER.
+
 Local 9/6 (BUILD 20260905he): cottage bed sleep — tapping a cottage / tall-cottage / L-house bed or Space / J / E next to it finally sleeps (day+1 + hearts/energy; SLEEP float already showed; was house-only so those beds were silent solids while the farmhouse bed worked). Never START OVER.
 
 Local 9/6 (BUILD 20260905hd): chair sit — tapping a house / tall-cottage / L-house chair or Space / J / E next to it finally sits for a cozy rest (+energy sparkles; SIT float label; was a silent solid while the bed already slept). Never START OVER.

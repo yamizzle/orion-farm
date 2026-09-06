@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905he";
+  var BUILD = "20260905hf";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14452,6 +14452,8 @@
     var p = propAt(tx, ty);
     if (!p) return null;
     if (p.kind === "statue" || p.kind === "fountain") return p;
+    /* 20260905hf: knock houses C/D (A/B enter; C/D were silent solids). */
+    if (p.kind === "townHouseC" || p.kind === "townHouseD") return p;
     return null;
   }
 
@@ -14499,6 +14501,10 @@
       else openDialogue("STATUE", ["A MOON KID HOLDS", "UP THE NIGHT."]);
     } else if (p.kind === "fountain") {
       openDialogue("FOUNTAIN", ["COOL WATER SPLASHES.", "MAKE A WISH!"]);
+    } else if (p.kind === "townHouseC" || p.kind === "townHouseD") {
+      /* 20260905hf: knock juice — A/B walk in; these stay knock-only. */
+      playSfx("talk");
+      openDialogue("HOUSE", ["KNOCK KNOCK...", "SOMEONE IS HOME."]);
     }
   }
 
@@ -14507,9 +14513,13 @@
     tx = p.tx;
     ty = p.ty;
     if (p.kind === "fountain") { tx = p.tx; ty = p.ty + 1; }
+    /* 20260905hf: walk to stoop in front of knock house (same offsets A/B used). */
+    if (p.kind === "townHouseC") { tx = p.tx + 1; ty = p.ty + 5; }
+    if (p.kind === "townHouseD") { tx = p.tx + 3; ty = p.ty + 4; }
     highlight = { tx: tx, ty: ty };
     if (isNear(player.tx, player.ty, p.tx, p.ty) || isNear(player.tx, player.ty, tx, ty) ||
-        (p.kind === "fountain" && isNear(player.tx, player.ty, p.tx + 1, p.ty))) {
+        (p.kind === "fountain" && isNear(player.tx, player.ty, p.tx + 1, p.ty)) ||
+        ((p.kind === "townHouseC" || p.kind === "townHouseD") && propOccupies(p, player.tx, player.ty))) {
       pending = null;
       talkLandmark(p);
       return;
@@ -14532,16 +14542,35 @@
   /* 20260905ft: Space/J/E talk adjacent town statue or fountain (tap already
      goLandmark'd; talk Space existed for NPCs; plaza Space was a silent no-op). */
   function findNearLandmark() {
-    var i, p, face;
+    var i, p, face, stoop;
     if (currentScene !== "overworld") return null;
     face = facingTile();
     p = landmarkAt(face.tx, face.ty) || landmarkAt(player.tx, player.ty);
     if (p) return p;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
-      if (!p || (p.kind !== "statue" && p.kind !== "fountain")) continue;
+      if (!p || (p.kind !== "statue" && p.kind !== "fountain" &&
+                p.kind !== "townHouseC" && p.kind !== "townHouseD")) continue;
       if (propOccupies(p, face.tx, face.ty) || propOccupies(p, player.tx, player.ty)) return p;
       if (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty)) return p;
+      if (p.kind === "townHouseC" || p.kind === "townHouseD") {
+        /* any ortho edge of the multi-tile house (stoop + side walls). */
+        var ww = (p.kind === "townHouseC") ? 4 : 5;
+        var hh = (p.kind === "townHouseC") ? 5 : 4;
+        var x, y, edge;
+        for (y = 0; y < hh; y++) {
+          for (x = 0; x < ww; x++) {
+            if (isNear(player.tx, player.ty, p.tx + x, p.ty + y) ||
+                (player.tx === p.tx + x && player.ty === p.ty + y)) return p;
+            if (propOccupies(p, face.tx, face.ty)) return p;
+          }
+        }
+        stoop = (p.kind === "townHouseC")
+          ? { tx: p.tx + 1, ty: p.ty + 5 }
+          : { tx: p.tx + 3, ty: p.ty + 4 };
+        if (isNear(player.tx, player.ty, stoop.tx, stoop.ty) ||
+            (player.tx === stoop.tx && player.ty === stoop.ty)) return p;
+      }
       if (p.kind === "fountain") {
         if (isNear(player.tx, player.ty, p.tx + 1, p.ty) ||
             isNear(player.tx, player.ty, p.tx, p.ty + 1) ||
@@ -21095,8 +21124,11 @@
       Assets.draw(g, "townHouseA", x, y);
     } else if (p.kind === "townHouseC") {
       Assets.draw(g, "townHouseC", x, y);
+      /* 20260905hf: KNOCK float so kids spot the knockable house (WELL/SHOP style). */
+      drawShaftLabel(g, { tx: p.tx + 1, ty: p.ty + 4 }, "KNOCK");
     } else if (p.kind === "townHouseD") {
       Assets.draw(g, "townHouseD", x, y);
+      drawShaftLabel(g, { tx: p.tx + 2, ty: p.ty + 3 }, "KNOCK");
     } else if (p.kind === "brokenBridge" || p.kind === "fixedBridge") {
       Assets.draw(g, p.kind, x, y);
       /* 20260905ck: floating cue so the east river gap is obvious */
@@ -24204,6 +24236,11 @@
       goEnterLHouse();
       return;
     }
+    /* 20260905hf: tap townHouse C/D knock (A/B enter; these were silent solids). */
+    if (currentScene === "overworld" && hitProp && (hitProp.kind === "townHouseC" || hitProp.kind === "townHouseD")) {
+      goLandmark(hitProp);
+      return;
+    }
     if (currentScene === "overworld" && hitProp && (hitProp.kind === "statue" || hitProp.kind === "fountain")) {
       goLandmark(hitProp);
       return;
@@ -25187,7 +25224,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905he", BUILD);
+      ok("BUILD", BUILD === "20260905hf", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -27138,6 +27175,54 @@ if (currentScene === "ocean") goExitOcean();
         _en0 = energy;
         ok("chairSpaceSit", !!tryChairAdjacent() && energy === _en0 + 12, "en=" + energy + " was=" + _en0);
         applyScene("overworld");
+      }
+
+      /* 20260905hf: Space knock townHouse C/D (A/B enter; C/D were silent solids). */
+      applyScene("overworld");
+      closeDialogue();
+      toast = null;
+      sleepFx = null;
+      doorFade = null;
+      birdFly = null;
+      birdRideFx = null;
+      var _hc = null, _hd = null, _hi;
+      for (_hi = 0; _hi < PROPS.length; _hi++) {
+        if (!PROPS[_hi]) continue;
+        if (PROPS[_hi].kind === "townHouseC") _hc = PROPS[_hi];
+        if (PROPS[_hi].kind === "townHouseD") _hd = PROPS[_hi];
+      }
+      ok("knockHouseCExists", !!_hc, "");
+      ok("knockHouseDExists", !!_hd, "");
+      if (_hc) {
+        var _hcStoop = { tx: _hc.tx + 1, ty: _hc.ty + 5 };
+        if (!walkable(_hcStoop.tx, _hcStoop.ty)) {
+          if (walkable(_hc.tx + 1, _hc.ty + 5)) _hcStoop = { tx: _hc.tx + 1, ty: _hc.ty + 5 };
+          else if (walkable(_hc.tx, _hc.ty + 5)) _hcStoop = { tx: _hc.tx, ty: _hc.ty + 5 };
+          else if (walkable(_hc.tx + 2, _hc.ty + 5)) _hcStoop = { tx: _hc.tx + 2, ty: _hc.ty + 5 };
+          else _hcStoop = nearestAdjacent(_hc.tx + 1, _hc.ty + 4) || _hcStoop;
+        }
+        placePlayer(_hcStoop.tx, _hcStoop.ty, "up");
+        toast = null; sleepFx = null; doorFade = null;
+        var _hcNear = findNearLandmark();
+        var _hcOk = tryLandmarkAdjacent();
+        ok("knockHouseCSpace", !!_hcOk && !!(dialogue && dialogue.title === "HOUSE"), "ok=" + _hcOk + " near=" + (_hcNear && _hcNear.kind) + " title=" + (dialogue ? dialogue.title : "") + " at=" + player.tx + "," + player.ty + " pause=" + uiPaused());
+        closeDialogue();
+        toast = null;
+      }
+      if (_hd) {
+        var _hdStoop = { tx: _hd.tx + 2, ty: _hd.ty + 4 };
+        if (!walkable(_hdStoop.tx, _hdStoop.ty)) {
+          if (walkable(_hd.tx + 1, _hd.ty + 4)) _hdStoop = { tx: _hd.tx + 1, ty: _hd.ty + 4 };
+          else if (walkable(_hd.tx + 3, _hd.ty + 4)) _hdStoop = { tx: _hd.tx + 3, ty: _hd.ty + 4 };
+          else _hdStoop = nearestAdjacent(_hd.tx + 2, _hd.ty + 3) || _hdStoop;
+        }
+        placePlayer(_hdStoop.tx, _hdStoop.ty, "up");
+        toast = null; sleepFx = null; doorFade = null;
+        var _hdNear = findNearLandmark();
+        var _hdOk = tryLandmarkAdjacent();
+        ok("knockHouseDSpace", !!_hdOk && !!(dialogue && dialogue.title === "HOUSE"), "ok=" + _hdOk + " near=" + (_hdNear && _hdNear.kind) + " title=" + (dialogue ? dialogue.title : "") + " at=" + player.tx + "," + player.ty + " pause=" + uiPaused());
+        closeDialogue();
+        toast = null;
       }
 
 ok("farOpenPath", far.length > 0, "n=" + far.length);
