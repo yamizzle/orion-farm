@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fy";
+  var BUILD = "20260905fz";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -3588,8 +3588,18 @@
     startWalk(player, path, 3.5);
   }
 
+  /* 20260905fz: peak cave / climb Space also accepts orthogonal adjacent
+     (facing-only left side-of-mouth silent; tap already goPeakCave'd). */
   function tryPeakDoors() {
-    var f;
+    var f, spots, i, t;
+    function orthoSpots() {
+      return [
+        { tx: player.tx - 1, ty: player.ty },
+        { tx: player.tx + 1, ty: player.ty },
+        { tx: player.tx, ty: player.ty - 1 },
+        { tx: player.tx, ty: player.ty + 1 }
+      ];
+    }
     if (currentScene === "peak") {
       if (isPeakCave(player.tx, player.ty)) {
         enterClimbFloor(2, "mouth");
@@ -3601,12 +3611,24 @@
       }
       f = facingTile();
       if (isPeakCave(f.tx, f.ty)) {
-        goPeakCave();
+        enterClimbFloor(2, "mouth");
         return true;
       }
       if (isPeakRocks(f.tx, f.ty)) {
         goPeakRocks();
         return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isPeakCave(t.tx, t.ty)) {
+          enterClimbFloor(2, "mouth");
+          return true;
+        }
+        if (isPeakRocks(t.tx, t.ty)) {
+          talkPeakRocks();
+          return true;
+        }
       }
       return false;
     }
@@ -3617,8 +3639,16 @@
     if (currentScene === "mine" && mineFloor === 6) {
       f = facingTile();
       if (isMinePeakStairs(f.tx, f.ty)) {
-        goMinePeakStairs();
+        enterClimbFloor(1, "up");
         return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isMinePeakStairs(t.tx, t.ty)) {
+          enterClimbFloor(1, "up");
+          return true;
+        }
       }
     }
     if (currentScene !== "caveclimb") return false;
@@ -3636,12 +3666,32 @@
     }
     f = facingTile();
     if (isClimbDown(f.tx, f.ty)) {
-      goClimbShaft(false);
+      climbPeakDown();
       return true;
     }
-    if (isClimbUp(f.tx, f.ty) || isClimbMouth(f.tx, f.ty)) {
-      goClimbShaft(true);
+    if (isClimbUp(f.tx, f.ty)) {
+      climbPeakUp();
       return true;
+    }
+    if (isClimbMouth(f.tx, f.ty)) {
+      enterPeak("mouth");
+      return true;
+    }
+    spots = orthoSpots();
+    for (i = 0; i < spots.length; i++) {
+      t = spots[i];
+      if (isClimbDown(t.tx, t.ty)) {
+        climbPeakDown();
+        return true;
+      }
+      if (isClimbUp(t.tx, t.ty)) {
+        climbPeakUp();
+        return true;
+      }
+      if (isClimbMouth(t.tx, t.ty)) {
+        enterPeak("mouth");
+        return true;
+      }
     }
     return false;
   }
@@ -4268,16 +4318,30 @@
 
   function tryOceanDoors() {
     var f, spots, i, t;
+    /* 20260905fz: adjacent beach enter too (facing-only was silent when not facing). */
     if (currentScene === "overworld") {
-      if (isOceanEntrance(player.tx, player.ty)) {
+      if (isOceanEntrance(player.tx, player.ty) ||
+          (propAt(player.tx, player.ty) && propAt(player.tx, player.ty).kind === "oceanSign")) {
         enterOcean();
         return true;
       }
       f = facingTile();
-      if (isOceanEntrance(f.tx, f.ty) || (propAt(f.tx, f.ty) && propAt(f.tx, f.ty).kind === "oceanSign") ||
-          (propAt(player.tx, player.ty) && propAt(player.tx, player.ty).kind === "oceanSign")) {
-        goEnterOcean();
+      if (isOceanEntrance(f.tx, f.ty) || (propAt(f.tx, f.ty) && propAt(f.tx, f.ty).kind === "oceanSign")) {
+        enterOcean();
         return true;
+      }
+      spots = [
+        { tx: player.tx - 1, ty: player.ty },
+        { tx: player.tx + 1, ty: player.ty },
+        { tx: player.tx, ty: player.ty - 1 },
+        { tx: player.tx, ty: player.ty + 1 }
+      ];
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isOceanEntrance(t.tx, t.ty) || (propAt(t.tx, t.ty) && propAt(t.tx, t.ty).kind === "oceanSign")) {
+          enterOcean();
+          return true;
+        }
       }
       return false;
     }
@@ -4288,14 +4352,29 @@
       else talkBoat();
       return true;
     }
-    if (isOceanExit(player.tx, player.ty)) {
+    /* 20260905fz: adjacent pier/beach-exit Space (facing-only left side-of-gate silent). */
+    if (isOceanExit(player.tx, player.ty) ||
+        (propAt(player.tx, player.ty) && propAt(player.tx, player.ty).kind === "oceanSign")) {
       exitOcean();
       return true;
     }
     f = facingTile();
-    if (isOceanExit(f.tx, f.ty)) {
-      goExitOcean();
+    if (isOceanExit(f.tx, f.ty) || (propAt(f.tx, f.ty) && propAt(f.tx, f.ty).kind === "oceanSign")) {
+      exitOcean();
       return true;
+    }
+    spots = [
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      t = spots[i];
+      if (isOceanExit(t.tx, t.ty) || (propAt(t.tx, t.ty) && propAt(t.tx, t.ty).kind === "oceanSign")) {
+        exitOcean();
+        return true;
+      }
     }
     /* 20260905fw: Space/J/E enter island cave mouth (tap already goEnterIslandCave'd;
        boat/beach-exit Space existed; cave mouth Space was a silent no-op).
@@ -14537,8 +14616,20 @@
     return false;
   }
 
+  /* 20260905fz: Space cottage / tall / L-house doors match house/shop 05fx —
+     facing or orthogonally adjacent enters/exits immediately (was facing-only
+     goEnter* walk; adjacent-not-facing was a silent no-op). Island-cave OUT
+     adjacent kept from 05fw. */
   function tryCottageDoors() {
-    var f;
+    var f, spots, i, t;
+    function orthoSpots() {
+      return [
+        { tx: player.tx - 1, ty: player.ty },
+        { tx: player.tx + 1, ty: player.ty },
+        { tx: player.tx, ty: player.ty - 1 },
+        { tx: player.tx, ty: player.ty + 1 }
+      ];
+    }
     if (currentScene === "overworld") {
       if (isCottageEntrance(player.tx, player.ty) || cottageDoorHit(player.tx, player.ty, null)) {
         enterCottage();
@@ -14546,15 +14637,6 @@
       }
       if (isCottage2Entrance(player.tx, player.ty) || cottage2DoorHit(player.tx, player.ty, null)) {
         enterCottage2();
-        return true;
-      }
-      f = facingTile();
-      if (cottageDoorHit(f.tx, f.ty, null) || isCottageEntrance(f.tx, f.ty)) {
-        goEnterCottage();
-        return true;
-      }
-      if (cottage2DoorHit(f.tx, f.ty, null) || isCottage2Entrance(f.tx, f.ty)) {
-        goEnterCottage2();
         return true;
       }
       if (isTallCottageEntrance(player.tx, player.ty) || tallCottageDoorHit(player.tx, player.ty, null)) {
@@ -14566,13 +14648,41 @@
         return true;
       }
       f = facingTile();
+      if (cottageDoorHit(f.tx, f.ty, null) || isCottageEntrance(f.tx, f.ty)) {
+        enterCottage();
+        return true;
+      }
+      if (cottage2DoorHit(f.tx, f.ty, null) || isCottage2Entrance(f.tx, f.ty)) {
+        enterCottage2();
+        return true;
+      }
       if (tallCottageDoorHit(f.tx, f.ty, null) || isTallCottageEntrance(f.tx, f.ty)) {
-        goEnterTallCottage();
+        enterTallCottage();
         return true;
       }
       if (lHouseDoorHit(f.tx, f.ty, null) || isLHouseEntrance(f.tx, f.ty)) {
-        goEnterLHouse();
+        enterLHouse();
         return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (cottageDoorHit(t.tx, t.ty, null) || isCottageEntrance(t.tx, t.ty)) {
+          enterCottage();
+          return true;
+        }
+        if (cottage2DoorHit(t.tx, t.ty, null) || isCottage2Entrance(t.tx, t.ty)) {
+          enterCottage2();
+          return true;
+        }
+        if (tallCottageDoorHit(t.tx, t.ty, null) || isTallCottageEntrance(t.tx, t.ty)) {
+          enterTallCottage();
+          return true;
+        }
+        if (lHouseDoorHit(t.tx, t.ty, null) || isLHouseEntrance(t.tx, t.ty)) {
+          enterLHouse();
+          return true;
+        }
       }
       return false;
     }
@@ -14583,8 +14693,16 @@
       }
       f = facingTile();
       if (isCottageExit(f.tx, f.ty)) {
-        goExitCottage();
+        exitCottage();
         return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isCottageExit(t.tx, t.ty)) {
+          exitCottage();
+          return true;
+        }
       }
       if ((player.tx === 4 && player.ty === 4) || (f.tx === 4 && f.ty === 4)) {
         talkLuna();
@@ -14599,8 +14717,16 @@
       }
       f = facingTile();
       if (isCottage2Exit(f.tx, f.ty)) {
-        goExitCottage2();
+        exitCottage2();
         return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isCottage2Exit(t.tx, t.ty)) {
+          exitCottage2();
+          return true;
+        }
       }
       if ((player.tx === 4 && player.ty === 3) || (f.tx === 4 && f.ty === 3)) {
         talkMaple();
@@ -14615,8 +14741,16 @@
       }
       f = facingTile();
       if (isTallCottageExit(f.tx, f.ty)) {
-        goExitTallCottage();
+        exitTallCottage();
         return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isTallCottageExit(t.tx, t.ty)) {
+          exitTallCottage();
+          return true;
+        }
       }
       return false;
     }
@@ -14627,13 +14761,20 @@
       }
       f = facingTile();
       if (isLHouseExit(f.tx, f.ty)) {
-        goExitLHouse();
+        exitLHouse();
         return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isLHouseExit(t.tx, t.ty)) {
+          exitLHouse();
+          return true;
+        }
       }
       return false;
     }
     if (currentScene === "islandCave") {
-      var icSpots, ici, ict;
       if (isIslandCaveExit(player.tx, player.ty)) {
         exitIslandCave();
         return true;
@@ -14644,15 +14785,10 @@
         return true;
       }
       /* 20260905fw: adjacent OUT too (mine ladder Space style) */
-      icSpots = [
-        { tx: player.tx - 1, ty: player.ty },
-        { tx: player.tx + 1, ty: player.ty },
-        { tx: player.tx, ty: player.ty - 1 },
-        { tx: player.tx, ty: player.ty + 1 }
-      ];
-      for (ici = 0; ici < icSpots.length; ici++) {
-        ict = icSpots[ici];
-        if (isIslandCaveExit(ict.tx, ict.ty)) {
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isIslandCaveExit(t.tx, t.ty)) {
           exitIslandCave();
           return true;
         }
@@ -23867,6 +24003,7 @@ if (currentScene === "ocean") goExitOcean();
       climbPeakUp: climbPeakUp,
       climbPeakDown: climbPeakDown,
       tryPeakDoors: tryPeakDoors,
+      tryOceanDoors: tryOceanDoors,
       buildPeakGround: buildPeakGround,
       buildClimbGround: buildClimbGround,
       treeFloor: function () { return treeFloor; },
@@ -23888,6 +24025,7 @@ if (currentScene === "ocean") goExitOcean();
       exitForest: exitForest,
       enterTree: enterTree,
       tryTreeDoors: tryTreeDoors,
+      tryCottageDoors: tryCottageDoors,
       exitTree: exitTree,
       enterTreeFloor: enterTreeFloor,
       climbTree: climbTree,
@@ -24019,7 +24157,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fy", BUILD);
+      ok("BUILD", BUILD === "20260905fz", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24827,6 +24965,89 @@ if (currentScene === "ocean") goExitOcean();
         var _hxOk = trySceneDoors();
         _flushDoorFade();
         ok("spaceExitHouse", !!_hxOk && currentScene === "overworld", "ok=" + _hxOk + " scene=" + currentScene);
+      }
+
+      /* 20260905fz: Space cottage / tall / L / ocean / peak adjacent doors. */
+      function _flushDoorFadeFz() {
+        if (doorFade && doorFade.pending && !doorFade.did) {
+          doorFade.did = true;
+          try { doorFade.pending(); } catch (errFade2) {}
+          doorFade.pending = null;
+        }
+        doorFade = null;
+      }
+      applyScene("overworld");
+      closeDialogue();
+      var _cStand = null;
+      if (walkable(cottageIn.tx, cottageIn.ty + 1)) _cStand = { tx: cottageIn.tx, ty: cottageIn.ty + 1, face: "down" };
+      else if (walkable(cottageIn.tx + 1, cottageIn.ty)) _cStand = { tx: cottageIn.tx + 1, ty: cottageIn.ty, face: "down" };
+      ok("spaceCottageAdjStand", !!_cStand, "stand");
+      if (_cStand) {
+        placePlayer(_cStand.tx, _cStand.ty, _cStand.face);
+        var _cOk = tryCottageDoors();
+        _flushDoorFadeFz();
+        ok("spaceCottageAdjacent", !!_cOk && currentScene === "cottage", "ok=" + _cOk + " scene=" + currentScene);
+      }
+      applyScene("overworld");
+      closeDialogue();
+      var _tcStand = null;
+      if (walkable(tallCottageIn.tx, tallCottageIn.ty + 1)) _tcStand = { tx: tallCottageIn.tx, ty: tallCottageIn.ty + 1, face: "down" };
+      ok("spaceTallCottageAdjStand", !!_tcStand, "stand");
+      if (_tcStand) {
+        placePlayer(_tcStand.tx, _tcStand.ty, _tcStand.face);
+        var _tcOk = tryCottageDoors();
+        _flushDoorFadeFz();
+        ok("spaceTallCottageAdjacent", !!_tcOk && currentScene === "tallCottage", "ok=" + _tcOk + " scene=" + currentScene);
+      }
+      applyScene("overworld");
+      closeDialogue();
+      var _lhStand = null;
+      if (walkable(lHouseIn.tx, lHouseIn.ty + 1)) _lhStand = { tx: lHouseIn.tx, ty: lHouseIn.ty + 1, face: "down" };
+      ok("spaceLHouseAdjStand", !!_lhStand, "stand");
+      if (_lhStand) {
+        placePlayer(_lhStand.tx, _lhStand.ty, _lhStand.face);
+        var _lhOk = tryCottageDoors();
+        _flushDoorFadeFz();
+        ok("spaceLHouseAdjacent", !!_lhOk && currentScene === "lHouse", "ok=" + _lhOk + " scene=" + currentScene);
+      }
+      /* Ocean beach enter adjacent (face away). */
+      applyScene("overworld");
+      closeDialogue();
+      if (walkable(14, 36)) {
+        placePlayer(14, 36, "up");
+        var _oeOk = tryOceanDoors();
+        ok("spaceOceanEnterAdjacent", !!_oeOk && currentScene === "ocean", "ok=" + _oeOk + " scene=" + currentScene);
+      } else {
+        ok("spaceOceanEnterAdjacent", true, "skip");
+      }
+      /* Ocean pier exit adjacent (exit band is ty<=0 cols 29–32; land is ty=2). */
+      applyScene("ocean");
+      onBoat = false;
+      closeDialogue();
+      var _oxStand = null;
+      if (walkable(30, 1)) _oxStand = { tx: 30, ty: 1, face: "down" };
+      else if (walkable(29, 1)) _oxStand = { tx: 29, ty: 1, face: "down" };
+      else if (walkable(31, 1)) _oxStand = { tx: 31, ty: 1, face: "down" };
+      ok("spaceOceanExitAdjStand", !!_oxStand, "stand");
+      if (_oxStand) {
+        placePlayer(_oxStand.tx, _oxStand.ty, _oxStand.face);
+        var _oxOk = tryOceanDoors();
+        ok("spaceOceanExitAdjacent", !!_oxOk && currentScene === "overworld", "ok=" + _oxOk + " scene=" + currentScene);
+      } else {
+        ok("spaceOceanExitAdjacent", true, "skip");
+      }
+      /* Peak cave adjacent. */
+      applyScene("peak");
+      closeDialogue();
+      var _pkStand = null;
+      if (walkable(peakCaveAt.tx, peakCaveAt.ty + 1)) _pkStand = { tx: peakCaveAt.tx, ty: peakCaveAt.ty + 1, face: "down" };
+      else if (walkable(peakCaveAt.tx + 1, peakCaveAt.ty)) _pkStand = { tx: peakCaveAt.tx + 1, ty: peakCaveAt.ty, face: "left" };
+      else if (walkable(peakCaveAt.tx - 1, peakCaveAt.ty)) _pkStand = { tx: peakCaveAt.tx - 1, ty: peakCaveAt.ty, face: "right" };
+      ok("spacePeakCaveAdjStand", !!_pkStand, "stand");
+      if (_pkStand) {
+        placePlayer(_pkStand.tx, _pkStand.ty, _pkStand.face);
+        var _pkOk = tryPeakDoors();
+        ok("spacePeakCaveAdjacent", !!_pkOk && currentScene === "caveclimb", "ok=" + _pkOk + " scene=" + currentScene);
       }
 
       /* 20260905fy: Space enters TREE from forest door (not TREETOP) + climbs UP. */

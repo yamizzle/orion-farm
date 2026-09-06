@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fz): Space cottage/tall/L + ocean beach + peak cave adjacent — standing next to town cottage / tall cottage / L-house doors (or their OUT mats), Space / J / E finally enters/exits (facing Space existed; adjacent-not-facing was a silent no-op like pre-05fx house); standing next to the farm beach gate or ocean pier exit / peak cave mouth, Space finally warps too. Never START OVER.
+
 Local 9/6 (BUILD 20260905fy): Space TREE doors — standing facing or next to the forest giant-tree door, Space / J / E finally enters TREE 1 (tap already walked-to-enter; Space wrongly called enterTreetop and skipped TREE 1–4); Space also climbs TREE UP/DOWN and exits TREETOP when facing or next to the ladder / OUT. Never START OVER.
 
 Local 9/6 (BUILD 20260905fx): Space scene doors — standing facing or next to the farmhouse / Pip's shop / mine cave / woods door, Space / J / E finally enters (tap already walked-to-enter; cottage/ocean Space existed; these doors were silent no-ops); Space also exits house/shop/forest when facing or next to the OUT mat. Never START OVER.
