@@ -115,7 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905av";
+  var BUILD = "20260905aw";
+  var ASSET_REV = "437639";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -271,8 +272,8 @@
   }
 
   function bustUrl(url) {
-    /* Always bust with THIS html's BUILD — never a stale ?v= from an old version.json redirect */
-    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + encodeURIComponent(BUILD);
+    /* Always bust with THIS html's BUILD + atlas byte size — never a stale ?v= from an old version.json redirect */
+    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + encodeURIComponent(BUILD + "-" + ASSET_REV);
   }
 
   function buildRank(v) {
@@ -290,6 +291,20 @@
   }
 
   function reloadFarm() {
+    persistSave();
+    location.replace((location.pathname || "/") + "?v=" + encodeURIComponent(BUILD + "-" + Date.now()));
+  }
+
+  function artDensityOk() {
+    return !!(Assets.ready && Assets.spr && Assets.spr.rock0 && Assets.spr.rock0.w >= 32 &&
+      Assets.img && (Assets.img.naturalHeight || Assets.img.height) >= 1200);
+  }
+
+  function reloadForArt() {
+    try {
+      if (sessionStorage.getItem("moondrop-art-reload") === "1") return;
+      sessionStorage.setItem("moondrop-art-reload", "1");
+    } catch (err) {}
     persistSave();
     location.replace((location.pathname || "/") + "?v=" + encodeURIComponent(BUILD + "-" + Date.now()));
   }
@@ -18527,7 +18542,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905av", BUILD);
+      ok("BUILD", BUILD === "20260905aw", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -18633,7 +18648,17 @@ if (currentScene === "ocean") goExitOcean();
     window.__runCombatAutotest = runCombatAutotest;
   }
   checkFreshBuild();
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState !== "visible") return;
+    checkFreshBuild();
+    if (Assets.ready && !artDensityOk()) reloadForArt();
+  });
   Assets.load().then(function () {
+    if (!artDensityOk()) {
+      reloadForArt();
+      return;
+    }
+    try { sessionStorage.removeItem("moondrop-art-reload"); } catch (err) {}
     if (currentScene === "overworld") buildSolid();
     unstickPlayer();
     requestAnimationFrame(loop);
