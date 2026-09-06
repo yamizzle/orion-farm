@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905af";
+  var BUILD = "20260905ag";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4685,9 +4685,12 @@
   }
 
   function drawWildflower(g, x, y) {
-    var pink;
+    var pink, smooth;
     if (Assets.wildflower) {
+      smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
       g.drawImage(Assets.wildflower, x, y, 16, 16);
+      g.imageSmoothingEnabled = smooth;
       return;
     }
     pink = ((x + y) & 16) === 0;
@@ -14913,15 +14916,20 @@
       b.y + b.h > camY - 8 && b.y < camY + VIEW_H + 8;
   }
 
-  function drawStandSprite(g, img, x, y) {
-    var w, h, dx, dy;
+  function drawStandSprite(g, img, x, y, dw, dh) {
+    var w, h, dx, dy, iw, ih, smooth;
     if (!img) return false;
-    w = img.naturalWidth || img.width;
-    h = img.naturalHeight || img.height;
+    iw = img.naturalWidth || img.width;
+    ih = img.naturalHeight || img.height;
+    /* 20260905ag: optional dest size — 2× source (e.g. peakRocks 128×96) draws at 64×48 */
+    w = dw || iw;
+    h = dh || ih;
     dx = x + ((TILE - w) / 2 | 0);
     dy = y + TILE - h;
+    smooth = g.imageSmoothingEnabled;
     g.imageSmoothingEnabled = false;
-    g.drawImage(img, dx, dy, w, h);
+    g.drawImage(img, 0, 0, iw, ih, dx, dy, w, h);
+    g.imageSmoothingEnabled = smooth;
     return true;
   }
 
@@ -15114,7 +15122,7 @@
       if (currentScene === "mine") drawShaftLabel(g, p, mineFloor === 1 ? "OUT" : "UP");
       if (currentScene === "tree") drawShaftLabel(g, p, "UP");
     } else if (p.kind === "peakRocks") {
-      drawStandSprite(g, Assets.peakRocks, x, y);
+      drawStandSprite(g, Assets.peakRocks, x, y, 64, 48);
     } else if (p.kind === "caveMouth") {
       /* Outdoor peak already paints the cave in peakMap; caveMouth art is inside-looking-out. */
       if (currentScene !== "peak") {
@@ -18407,7 +18415,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905af", BUILD);
+      ok("BUILD", BUILD === "20260905ag", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
