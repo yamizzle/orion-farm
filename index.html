@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gu";
+  var BUILD = "20260905gv";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -9128,9 +9128,27 @@
     return true;
   }
 
+  function isPlayerFlowerProp(prop) {
+    var j;
+    if (!prop || prop.kind !== "townFlower" || prop.holiday) return false;
+    for (j = 0; j < builds.length; j++) {
+      if (builds[j] && builds[j].kind === "townFlower" && builds[j].tx === prop.tx && builds[j].ty === prop.ty) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function pickPlant(prop) {
-    var i, j, cx, cy;
+    var i, j, cx, cy, playerGrown;
     if (!isPickablePlant(prop)) return false;
+    /* 20260905gv: player-planted townFlower is a placeable (builds[]) — return flower
+       to bag + select like fence/path/kit pick; world/wild still ground-loot harvest. */
+    playerGrown = isPlayerFlowerProp(prop);
+    if (playerGrown && bagRoom("flower") < 1) {
+      showBagFullNote();
+      return false;
+    }
     i = PROPS.indexOf(prop);
     if (i >= 0) PROPS.splice(i, 1);
     if (prop.kind === "townFlower") {
@@ -9147,7 +9165,15 @@
     cy = prop.ty * TILE + 4;
     spawnFlowerSparks(cx, cy);
     spawnSparks(cx, cy);
-    spawnGroundLoot("flower", prop.tx, prop.ty, 1);
+    if (playerGrown) {
+      addToBag("flower", 1);
+      placeToolInTrayFirst("flower");
+      selectTool("flower");
+      showLineNote("FLOWER PICKED UP");
+      playSfx("pickup");
+    } else {
+      spawnGroundLoot("flower", prop.tx, prop.ty, 1);
+    }
     persistSave();
     return true;
   }
@@ -24635,6 +24661,7 @@ if (currentScene === "ocean") goExitOcean();
       canPickupPath: canPickupPath,
       tryBreakPathFacing: tryBreakPathFacing,
       goBreakPath: goBreakPath,
+      isPlayerFlowerProp: isPlayerFlowerProp,
       tryPlaceOrWalk: tryPlaceOrWalk,
       goBuild: goBuild,
       goWalk: goWalk,
@@ -24861,7 +24888,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gu", BUILD);
+      ok("BUILD", BUILD === "20260905gv", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25385,6 +25412,40 @@ if (currentScene === "ocean") goExitOcean();
         selectedSlot = 0;
         syncBagCounts();
         breakPlayerPathAt(_px, _py);
+      }
+
+      /* 20260905gv: player flower pick-up pins + selects flower (replant / path-kit class). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      axeOwned = true;
+      syncBagCounts();
+      if (!walkable(player.tx, player.ty)) placePlayer(16, 30, "right");
+      var _flx = player.tx + 1, _fly = player.ty;
+      if (propAt(_flx, _fly) || !walkable(_flx, _fly)) { _flx = player.tx - 1; _fly = player.ty; }
+      if (propAt(_flx, _fly)) { _flx = player.tx; _fly = player.ty + 1; }
+      PROPS.push({ kind: "townFlower", tx: _flx, ty: _fly });
+      builds.push({ kind: "townFlower", tx: _flx, ty: _fly });
+      ok("playerFlowerPresent", !!isPlayerFlowerProp(propAt(_flx, _fly)), "flower@" + _flx + "," + _fly);
+      ok("playerFlowerPickupEquips", !!pickPlant(propAt(_flx, _fly)) && selectedIs("flower") && bagCount("flower") >= 1 && !propAt(_flx, _fly),
+        "sel=" + selectedKey() + " n=" + bagCount("flower"));
+      /* world townFlower (not in builds) still ground-loots */
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      syncBagCounts();
+      _flx = player.tx + 1; _fly = player.ty;
+      if (propAt(_flx, _fly)) { _flx = player.tx - 1; _fly = player.ty; }
+      PROPS.push({ kind: "townFlower", tx: _flx, ty: _fly });
+      ok("worldFlowerNotPlayer", !isPlayerFlowerProp(propAt(_flx, _fly)), "");
+      ok("worldFlowerGroundLoot", !!pickPlant(propAt(_flx, _fly)) && !selectedIs("flower") && lootAtTile(_flx, _fly).length >= 1,
+        "sel=" + selectedKey() + " loot=" + lootAtTile(_flx, _fly).length);
+      /* clear leftover loot */
+      if (lootAtTile(_flx, _fly).length) {
+        groundLoot = groundLoot.filter(function (L) { return !(L.tx === _flx && L.ty === _fly); });
       }
 
       /* 20260905gt: chest TAKE ALL pins + selects last stack (single TAKE 05gj gap). */

@@ -26,6 +26,9 @@ Fences are **pick-up builds**, not multi-hit chops. With **BUILD off**, tap a fe
 
 Player **dirt paths** are pick-up builds too (same axe / shovel / empty hand gate). Tap a path you placed (or Space while standing on / next to it) to lift it: **1 stone** returns to the bag/tray, toast `PATH PICKED UP`, and the grass/dirt under it comes back. Holding **stone** (path place mode) skips pick-up so you can keep paving. World town cobble is not player path and stays. Pickaxe smash still does not mine paths (05bj).
 
+Player-planted **town flowers** (from the FLOWER item / Pip buy) are pick-up placeables too: tap or Space-pick returns the flower straight to the bag/tray (`FLOWER PICKED UP`) so you can replant. World plaza flowers and wildflowers still pop ground loot to walk onto (harvest rule).
+
+
 Trees occupy **one tile** for clicks and collision (the trunk). The canopy is draw-only. Do not hit-test the 48×64 sprite box.
 
 ## Drops
