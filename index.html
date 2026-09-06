@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cx";
+  var BUILD = "20260905cy";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -5071,9 +5071,22 @@
     else if (p.kind === "canopyClump") drawCanopyDecal(g, Assets.canopyClump, x, y);
     else if (p.kind === "canopyHang") drawCanopyDecal(g, Assets.canopyHang, x, y);
     else if (p.kind === "silver" || p.kind === "goldore") {
+      var oa, ofr;
       bob = Math.round(Math.sin(tick / 280) * 1);
       if (p.kind === "silver") paintSilver(g, x, y + bob);
       else paintGoldore(g, x, y + bob);
+      /* 20260905cy: woods ore nodes twinkle when ready */
+      oa = 0.34 + 0.46 * Math.abs(Math.sin(tick / 240 + p.tx * 1.3 + p.ty));
+      ofr = ((tick / 140 + p.tx * 2 + p.ty * 5) | 0) % 3;
+      g.save();
+      g.globalAlpha = oa;
+      if (Assets.spr.sparkle) Assets.draw(g, "sparkle", x + 4, y + bob - 10, ofr);
+      else {
+        px(g, x + 8, y + bob - 4, "#FFF8E0");
+        px(g, x + 11, y + bob - 2, "#FFE9A0");
+        px(g, x + 5, y + bob - 1, "#FFFDF4");
+      }
+      g.restore();
     }
   }
 
@@ -6860,6 +6873,24 @@
   }
 
   /* 20260905ci: bigger hit/kill spark ring so swings read for kids */
+  /* 20260905cy: gold/warm sparkle when the treasure chest opens */
+  function spawnChestSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#FFE9A0", "#FFF8E0", "#E8C84A", "#FFFDF4", "#F0C060", "#FFD78A", "#C9A227", "#FFF3C0"];
+    for (i = 0; i < 9; i++) {
+      ang = (i / 9) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: x + (Math.random() * 5 - 2.5),
+        y: y + (Math.random() * 3 - 1.5),
+        vx: Math.cos(ang) * (0.028 + Math.random() * 0.03),
+        vy: Math.sin(ang) * 0.014 - 0.042 - Math.random() * 0.022,
+        age: 0,
+        life: 400 + Math.random() * 220,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
     n = big ? 12 : 8;
@@ -10159,6 +10190,7 @@
   }
 
   function openChest() {
+    var box;
     closeCraft();
     chestOpen = true;
     chestSel = 0;
@@ -10166,6 +10198,10 @@
     chestMsgT = 0;
     chestScroll = 0;
     chestDrag = null;
+    /* 20260905cy: sparkle burst when the chest lid opens */
+    box = findHouseChest();
+    if (box) spawnChestSparks(box.tx * TILE + 8, box.ty * TILE + 4);
+    else if (player) spawnChestSparks(player.x, player.y - 8);
     maybeChestAllTip();
   }
 
@@ -18119,6 +18155,20 @@
         }
         /* 20260905v: tray icons are 32px — drawUiIcon shrinks to one tile in the world */
         if (!drawUiIcon(g, p.kind, x, y + bob)) Assets.draw(g, p.kind, x, y + bob, 0, 0.5);
+        /* 20260905cy: ore nodes twinkle when ready to pick */
+        if (!p.deco && (p.kind === "copper" || p.kind === "silver" || p.kind === "goldore" || p.kind === "iron")) {
+          var oa = 0.34 + 0.46 * Math.abs(Math.sin(tick / 240 + p.tx * 1.3 + p.ty));
+          var ofr = ((tick / 140 + p.tx * 2 + p.ty * 5) | 0) % 3;
+          g.save();
+          g.globalAlpha = oa;
+          if (Assets.spr.sparkle) Assets.draw(g, "sparkle", x + 4, y + bob - 10, ofr);
+          else {
+            px(g, x + 8, y + bob - 4, "#FFF8E0");
+            px(g, x + 11, y + bob - 2, "#FFE9A0");
+            px(g, x + 5, y + bob - 1, "#FFFDF4");
+          }
+          g.restore();
+        }
       }
     } else if (p.kind === "shopHouse") {
       Assets.draw(g, "shopHouse", x, y);
