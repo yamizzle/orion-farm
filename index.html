@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fh";
+  var BUILD = "20260905fi";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14537,6 +14537,10 @@
         return;
       }
       addToBag("wood", 4);
+      /* 20260905fi: pin + select wood — fence BUILD needs selected wood;
+         tray-full / sword-selected buys left wood bag-only or unselected so TAP BUILD never armed. */
+      placeToolInTrayFirst("wood");
+      selectTool("wood");
       shopMsg = "PLUS 4 WOOD.";
     } else if (item.id === "path") {
       if (bagRoom("stone") < 1) {
@@ -14547,6 +14551,10 @@
         return;
       }
       addToBag("stone", 3);
+      /* 20260905fi: pin + select stone — path place needs selectedIs(stone);
+         same Pip equip gap as fence wood / flower / kits. */
+      placeToolInTrayFirst("stone");
+      selectTool("stone");
       shopMsg = "PLUS 3 STONE.";
     } else if (item.id === "lampKit") {
       if (bagRoom("lampKit") < 3) {
@@ -23416,7 +23424,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fh", BUILD);
+      ok("BUILD", BUILD === "20260905fi", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23725,6 +23733,24 @@ if (currentScene === "ocean") goExitOcean();
       syncBagCounts();
       buyShopItem({ id: "apple", name: "APPLE", price: 4, icon: "apple" });
       ok("applePinnedSelected", selectedIs("apple") && bagCount("apple") >= 1, "sel=" + selectedKey());
+
+      /* 20260905fi: fence/path kit buy pins + selects wood/stone (BUILD / path place). */
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "veggie", count: 1 };
+      gold = 100;
+      syncBagCounts();
+      buyShopItem({ id: "fence", name: "FENCE KIT", price: 12, icon: "wood" });
+      ok("fenceWoodPinnedSelected", selectedIs("wood") && bagCount("wood") >= 4, "sel=" + selectedKey() + " n=" + bagCount("wood"));
+      ok("fenceBuildBtnArmed", !!showFenceBuildBtn(), "");
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "veggie", count: 1 };
+      gold = 100;
+      syncBagCounts();
+      buyShopItem({ id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" });
+      ok("pathStonePinnedSelected", selectedIs("stone") && bagCount("stone") >= 3, "sel=" + selectedKey() + " n=" + bagCount("stone"));
+      ok("pathPlaceMode", !!selectedIs("stone"), "");
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
       swordOwned = true;
