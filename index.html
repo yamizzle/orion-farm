@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cm";
+  var BUILD = "20260905cn";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7953,6 +7953,7 @@
     if (fishing && key !== "pole") cancelFishing();
     maybeStoveCookTip();
     maybeFireplaceSmeltTip();
+    maybePlantSeedTip();
   }
 
   function tryBuild(tx, ty) {
@@ -9233,7 +9234,29 @@
     return null;
   }
 
-  function hasAnyRawFish() {
+  function hasPlantableSeed() {
+    return bagCount("seed") > 0 || bagCount("potatoSeed") > 0 || bagCount("berrySeed") > 0;
+  }
+
+  function hasAnyCrop() {
+    var k;
+    for (k in crops) {
+      if (Object.prototype.hasOwnProperty.call(crops, k) && crops[k]) return true;
+    }
+    return false;
+  }
+
+  function maybePlantSeedTip() {
+    /* 20260905cn: once toast when a seed is selected outdoors */
+    if (unlocked.plantSeedTip) return;
+    if (currentScene !== "overworld") return;
+    if (!(selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed"))) return;
+    unlocked.plantSeedTip = true;
+    showLineNote("TAP DIRT TO PLANT");
+    persistSave();
+  }
+
+    function hasAnyRawFish() {
     var i, fk;
     for (i = 0; i < FISH_KINDS.length; i++) {
       fk = FISH_KINDS[i];
@@ -11430,6 +11453,8 @@
     if (!quest.flowerAsked) return "SAY HI TO JUNIE";
     if (!found.kickedBall) return "KICK THE CART IN TOWN.";
     if (!found.kickedPlayBall) return "KICK THE BALL ON THE FARM.";
+    /* 20260905cn: town soccer after farm ball tip */
+    if (!found.kickedTownPlayBall) return "KICK THE BALL IN TOWN.";
     /* 20260905cl: fish letter early after welcome; bridge/Moondrop later */
     if (fishMailReady() && !mailRead.fish) return "READ THE NEW LETTER";
     if (!quest.flowerDone) return "BRING A MUSHROOM TO JUNIE";
@@ -11449,7 +11474,14 @@
     if (festivalOn) return "MOONDROP NIGHT SHINES.";
     if (!lilaDone) return "PLANT FLOWERS WITH LILA";
     if (!reedDone) return "HELP REED'S CAR";
-    /* 20260905bv: nest bird cozy loop */
+    /* 20260905cn: holding seeds + empty garden → plant tip (toast covers first select) */
+    if ((selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed")) && !hasAnyCrop()) {
+      return "PLANT SEEDS ON THE GARDEN DIRT.";
+    }
+    /* 20260905bv/05cn: nest bird cozy loop — clearer when wood is ready */
+    if (found.birdArrived && !found.birdNestFixed && bagCount("wood") >= 10) {
+      return "GIVE 10 WOOD TO THE NEST BIRD";
+    }
     if (found.birdArrived && !found.birdNestFixed) return "BRING 10 WOOD TO THE NEST BIRD";
     if (found.birdNestFixed && !unlocked.birdRideTip) return "ASK THE BIRD FOR A RIDE";
     if ((houseTier | 0) < 2) return "PIP SELLS A HOUSE KIT.";
@@ -16757,6 +16789,8 @@
       path.push({ tx: tx, ty: ty });
     }
     if (!found.kickedPlayBall) found.kickedPlayBall = true;
+    /* 20260905cn: town plaza ball has its own Jobs tip */
+    if (pb && pb.id === "town" && !found.kickedTownPlayBall) found.kickedTownPlayBall = true;
     showLineNote("KICK!");
     persistSave();
     if (!path.length) return;
@@ -21324,7 +21358,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cm", BUILD);
+      ok("BUILD", BUILD === "20260905cn", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
