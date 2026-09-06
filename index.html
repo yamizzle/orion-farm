@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905aw";
+  var BUILD = "20260905ax";
   var ASSET_REV = "437639";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -603,6 +603,17 @@
     { tx: 21, ty: 28, loot: "potato" },
     { tx: 8, ty: 43, loot: "flower" },
     { tx: 19, ty: 45, loot: "copper" }
+  ];
+  /* Modest farm shovel mounds on grass — not paths/crops/buildings (31a pattern). */
+  var FARM_DIG_SPOTS = [
+    { tx: 5, ty: 25, loot: "pebble" },
+    { tx: 8, ty: 25, loot: "veggie" },
+    { tx: 11, ty: 25, loot: "stone" },
+    { tx: 21, ty: 26, loot: "potato" },
+    { tx: 3, ty: 31, loot: "flower" },
+    { tx: 5, ty: 36, loot: "pebble" },
+    { tx: 18, ty: 34, loot: "mushroom" },
+    { tx: 10, ty: 24, loot: "veggie" }
   ];
   var forestIn = { tx: 5, ty: 8 };
   var forestOut = { tx: 14, ty: 65 };
@@ -4138,32 +4149,45 @@
     startWalk(player, path, 3.5);
   }
 
+  function drawDigMoundSpot(g, s, dug) {
+    var dx, dy, ox, oy, j, h, leaf;
+    dx = s.tx * TILE;
+    dy = s.ty * TILE;
+    ox = ((hash(s.tx, s.ty, 3) * 3) | 0) - 1;
+    oy = ((hash(s.tx, s.ty, 7) * 3) | 0) - 1;
+    if (dug) {
+      if (Assets.spr["dirt"]) Assets.draw(g, "dirt", dx, dy);
+      else fill(g, dx, dy, 16, 16, C.dirtMid);
+      fillDisk(g, dx + 8, dy + 9, 5, C.tillOut);
+      fillDisk(g, dx + 8, dy + 9, 3, "#241408");
+    } else {
+      if (Assets.spr["dirt"]) Assets.draw(g, "dirt", dx + ox, dy + oy);
+      else fill(g, dx + ox, dy + oy, 16, 16, C.dirtMid);
+      fill(g, dx + ox + 3, dy + oy + 2, 10, 3, C.dirtHi);
+      fill(g, dx + ox + 2, dy + oy + 12, 12, 3, C.dirtSh);
+      for (j = 0; j < 6; j++) {
+        h = hash(s.tx, s.ty, j + 11);
+        leaf = h < 0.45 ? "#3E8A28" : (h < 0.75 ? "#8FD44A" : "#C47A38");
+        px(g, dx + ox + 2 + ((h * 12) | 0), dy + oy + 3 + ((hash(s.ty, j, 5) * 10) | 0), leaf);
+      }
+    }
+  }
+
   function drawWoodsDigSpots(g) {
-    var i, s, dug, dx, dy, ox, oy, j, h, leaf;
+    var i, s;
     if (currentScene !== "forest") return;
     for (i = 0; i < WOODS_DIG_SPOTS.length; i++) {
       s = WOODS_DIG_SPOTS[i];
-      dug = woodsDugAt(s.tx, s.ty);
-      dx = s.tx * TILE;
-      dy = s.ty * TILE;
-      ox = ((hash(s.tx, s.ty, 3) * 3) | 0) - 1;
-      oy = ((hash(s.tx, s.ty, 7) * 3) | 0) - 1;
-      if (dug) {
-        if (Assets.spr["dirt"]) Assets.draw(g, "dirt", dx, dy);
-        else fill(g, dx, dy, 16, 16, C.dirtMid);
-        fillDisk(g, dx + 8, dy + 9, 5, C.tillOut);
-        fillDisk(g, dx + 8, dy + 9, 3, "#241408");
-      } else {
-        if (Assets.spr["dirt"]) Assets.draw(g, "dirt", dx + ox, dy + oy);
-        else fill(g, dx + ox, dy + oy, 16, 16, C.dirtMid);
-        fill(g, dx + ox + 3, dy + oy + 2, 10, 3, C.dirtHi);
-        fill(g, dx + ox + 2, dy + oy + 12, 12, 3, C.dirtSh);
-        for (j = 0; j < 6; j++) {
-          h = hash(s.tx, s.ty, j + 11);
-          leaf = h < 0.45 ? "#3E8A28" : (h < 0.75 ? "#8FD44A" : "#C47A38");
-          px(g, dx + ox + 2 + ((h * 12) | 0), dy + oy + 3 + ((hash(s.ty, j, 5) * 10) | 0), leaf);
-        }
-      }
+      drawDigMoundSpot(g, s, woodsDugAt(s.tx, s.ty));
+    }
+  }
+
+  function drawFarmDigSpots(g) {
+    var i, s;
+    if (currentScene !== "overworld") return;
+    for (i = 0; i < FARM_DIG_SPOTS.length; i++) {
+      s = FARM_DIG_SPOTS[i];
+      drawDigMoundSpot(g, s, farmDugAt(s.tx, s.ty));
     }
   }
 
@@ -5988,12 +6012,37 @@
     return false;
   }
 
-  function woodsLootName(kind) {
+  function farmDigAt(tx, ty) {
+    var i, s;
+    if (currentScene !== "overworld") return null;
+    for (i = 0; i < FARM_DIG_SPOTS.length; i++) {
+      s = FARM_DIG_SPOTS[i];
+      if (s.tx === tx && s.ty === ty) return s;
+    }
+    return null;
+  }
+
+  function farmDugAt(tx, ty) {
+    var i, b;
+    for (i = 0; i < builds.length; i++) {
+      b = builds[i];
+      if (b && (b.kind === "farmHole" || b.kind === "hole") && b.tx === tx && b.ty === ty) return true;
+    }
+    return false;
+  }
+
+  function digLootName(kind) {
     if (kind === "copper") return "COPPER";
     if (kind === "mushroom") return "A MUSHROOM";
     if (kind === "potato") return "A POTATO";
     if (kind === "flower") return "A FLOWER";
+    if (kind === "pebble") return "A PEBBLE";
+    if (kind === "veggie") return "A CARROT";
     return "A STONE";
+  }
+
+  function woodsLootName(kind) {
+    return digLootName(kind);
   }
 
   function canDigOn(tx, ty) {
@@ -6008,8 +6057,10 @@
       if (!spot || woodsDugAt(tx, ty)) return false;
       return true;
     }
-    /* 20260905w: farm grass dig was dropped when woods dig landed — restore it */
+    /* 20260905ax: farm dig only on marked mounds (31a) — not every grass tile */
     if (currentScene !== "overworld") return false;
+    spot = farmDigAt(tx, ty);
+    if (!spot || farmDugAt(tx, ty)) return false;
     if (cell(tx, ty) !== "g") return false;
     if (tx === npc.tx && ty === npc.ty) return false;
     if (tx === chicken.tx && ty === chicken.ty) return false;
@@ -6030,11 +6081,17 @@
       builds.push({ kind: "woodsHole", tx: tx, ty: ty });
       if (spot && spot.loot) {
         spawnGroundLoot(spot.loot, tx, ty, 1);
-        showLineNote("YOU FOUND " + woodsLootName(spot.loot) + "!");
+        showLineNote("YOU FOUND " + digLootName(spot.loot) + "!");
+      }
+    } else if (currentScene === "overworld") {
+      spot = farmDigAt(tx, ty);
+      builds.push({ kind: "farmHole", tx: tx, ty: ty });
+      if (spot && spot.loot) {
+        spawnGroundLoot(spot.loot, tx, ty, 1);
+        showLineNote("YOU FOUND " + digLootName(spot.loot) + "!");
       }
     } else {
-      setCell(tx, ty, "p");
-      builds.push({ kind: "hole", tx: tx, ty: ty });
+      return false;
     }
     spendEnergy(ENERGY_HIT);
     player.workTool = "shovel";
@@ -7623,7 +7680,7 @@
           item = src[bi];
           if (!item || typeof item !== "object") continue;
           bk = item.kind;
-          if (bk !== "path" && bk !== "hole" && bk !== "woodsHole" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR" && bk !== "townFlower" && bk !== "goneFence" && bk !== "lampPost" && bk !== "crate") continue;
+          if (bk !== "path" && bk !== "hole" && bk !== "woodsHole" && bk !== "farmHole" && bk !== "fenceH" && bk !== "fenceL" && bk !== "fenceR" && bk !== "townFlower" && bk !== "goneFence" && bk !== "lampPost" && bk !== "crate") continue;
           builds.push({ kind: bk, tx: item.tx | 0, ty: item.ty | 0 });
         }
       }
@@ -16884,6 +16941,7 @@
     }
 
     if (currentScene === "forest") drawWoodsDigSpots(g);
+    if (currentScene === "overworld") drawFarmDigSpots(g);
 
     if (highlight) {
       if (highlight.ghost && isFenceKind(highlight.ghost)) {
@@ -18238,8 +18296,11 @@ if (currentScene === "ocean") goExitOcean();
       BAG_STACK: BAG_STACK,
       CHEST_STACK: CHEST_STACK,
       WOODS_DIG_SPOTS: WOODS_DIG_SPOTS,
+      FARM_DIG_SPOTS: FARM_DIG_SPOTS,
       woodsDigAt: woodsDigAt,
       woodsDugAt: woodsDugAt,
+      farmDigAt: farmDigAt,
+      farmDugAt: farmDugAt,
       canDigOn: canDigOn,
       tryDig: tryDig,
       tryDigFacing: tryDigFacing,
@@ -18542,7 +18603,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905aw", BUILD);
+      ok("BUILD", BUILD === "20260905ax", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
