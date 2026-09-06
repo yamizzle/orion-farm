@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905eh";
+  var BUILD = "20260905ei";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -9808,8 +9808,20 @@
     return { tx: 5, ty: 5, face: "up" };
   }
 
+  /* 20260905ei: safe stand tile for MINE N (matches enterMineFloor via "down") */
+  function mineRestoreLand() {
+    var f = clampMineFloor(mineFloor);
+    if (f === 2) return { tx: 5, ty: 10, face: "down" };
+    if (f === 3) return { tx: 11, ty: 11, face: "up" };
+    if (f === 4) return { tx: 6, ty: 10, face: "down" };
+    if (f === 5) return { tx: 24, ty: 14, face: "up" };
+    if (f === 6) return { tx: 8, ty: 12, face: "down" };
+    return { tx: 16, ty: 19, face: "up" };
+  }
+
   /* 20260905eg: refresh must not land on auto-warp tiles (ladder/cave/stairs/exit)
-     or the next step instantly dumps you into the wrong scene. */
+     or the next step instantly dumps you into the wrong scene.
+     20260905ei: also HOUSE/SHOP/cottages OUT mats + mine UP/DOWN/OUT ladders. */
   function nudgeRestoreOffGate(tx, ty, face) {
     var spot, land;
     tx = tx | 0;
@@ -9841,9 +9853,34 @@
       if (isIslandCaveEntrance(tx, ty)) {
         return { tx: islandCaveIn.tx, ty: islandCaveIn.ty + 1, face: "down" };
       }
+    } else if (currentScene === "house") {
+      if (isHouseExit(tx, ty)) {
+        return { tx: 10, ty: 9, face: "up" };
+      }
+    } else if (currentScene === "shop") {
+      if (isShopExit(tx, ty)) {
+        return { tx: 8, ty: 7, face: "up" };
+      }
+    } else if (currentScene === "cottage") {
+      if (isCottageExit(tx, ty)) {
+        return { tx: 8, ty: 7, face: "up" };
+      }
+    } else if (currentScene === "cottage2") {
+      if (isCottage2Exit(tx, ty)) {
+        return { tx: 6, ty: 5, face: "up" };
+      }
+    } else if (currentScene === "tallCottage") {
+      if (isTallCottageExit(tx, ty)) {
+        return { tx: 8, ty: 7, face: "up" };
+      }
+    } else if (currentScene === "lHouse") {
+      if (isLHouseExit(tx, ty)) {
+        return { tx: 7, ty: 7, face: "up" };
+      }
     } else if (currentScene === "mine") {
-      if (isMinePeakStairs(tx, ty)) {
-        return { tx: 22, ty: 8, face: "down" };
+      if (isMinePeakStairs(tx, ty) || isMineExit(tx, ty) || isMineUp(tx, ty) || isMineDown(tx, ty)) {
+        land = mineRestoreLand();
+        return { tx: land.tx, ty: land.ty, face: land.face || face };
       }
     }
     return { tx: tx, ty: ty, face: face };
@@ -9912,12 +9949,9 @@
         else { tx = 5; ty = 7; face = "up"; }
       }
       else if (scene === "mine") {
-        if (mineFloor === 2) { tx = 5; ty = 10; face = "down"; }
-        else if (mineFloor === 3) { tx = 11; ty = 11; face = "up"; }
-        else if (mineFloor === 4) { tx = 6; ty = 10; face = "down"; }
-        else if (mineFloor === 5) { tx = 24; ty = 14; face = "up"; }
-        else if (mineFloor === 6) { tx = 8; ty = 12; face = "down"; }
-        else { tx = 16; ty = 19; face = "up"; }
+        /* 20260905ei: floor-aware MINE spawn via mineRestoreLand */
+        land = mineRestoreLand();
+        tx = land.tx; ty = land.ty; face = land.face || "up";
       }
       else {
         spot = nearestWalkable(tx, ty);
@@ -23107,7 +23141,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ed", BUILD);
+      ok("BUILD", BUILD === "20260905ei", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23461,6 +23495,28 @@ if (currentScene === "ocean") goExitOcean();
       applyScene("peak");
       var pk = nudgeRestoreOffGate(18, 25, "up");
       ok("peakCaveNudge", !!(pk && pk.tx === peakLand.tx && pk.ty === peakLand.ty), pk && (pk.tx + "," + pk.ty));
+      /* 20260905ei: HOUSE/SHOP/cottage/mine OUT+ladder gate nudge */
+      ok("mineRestoreLandFn", typeof mineRestoreLand === "function", "");
+      applyScene("house");
+      var hn = nudgeRestoreOffGate(houseOut.tx, houseOut.ty, "down");
+      ok("houseOutNudge", !!(hn && hn.tx === 10 && hn.ty === 9), hn && (hn.tx + "," + hn.ty));
+      applyScene("shop");
+      var sn = nudgeRestoreOffGate(shopOut.tx, shopOut.ty, "down");
+      ok("shopOutNudge", !!(sn && sn.tx === 8 && sn.ty === 7), sn && (sn.tx + "," + sn.ty));
+      applyScene("cottage");
+      var cn = nudgeRestoreOffGate(cottageOut.tx, cottageOut.ty, "down");
+      ok("cottageOutNudge", !!(cn && cn.tx === 8 && cn.ty === 7), cn && (cn.tx + "," + cn.ty));
+      mineFloor = 1;
+      applyScene("mine", 1);
+      var mn = nudgeRestoreOffGate(portalOut.tx, portalOut.ty, "up");
+      var ml = mineRestoreLand();
+      ok("mineOutNudge", !!(mn && ml && mn.tx === ml.tx && mn.ty === ml.ty), mn && (mn.tx + "," + mn.ty));
+      mineFloor = 3;
+      applyScene("mine", 3);
+      var md = mineDownSpot();
+      var mdn = md ? nudgeRestoreOffGate(md.tx, md.ty, "down") : null;
+      var ml3 = mineRestoreLand();
+      ok("mineDownNudgeF3", !!(mdn && ml3 && mdn.tx === ml3.tx && mdn.ty === ml3.ty), mdn && (mdn.tx + "," + mdn.ty));
       /* 20260905eh: ocean saveScene stores visible docked boat + boatDock field */
       onBoat = true;
       applyScene("ocean");
