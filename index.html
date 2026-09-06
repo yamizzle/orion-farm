@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bt";
+  var BUILD = "20260905bu";
   var ASSET_REV = "452632";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -2429,10 +2429,10 @@
         changed = true;
         continue;
       }
-      if (rec.kind === "tree" || rec.kind === "pine" || rec.kind === "oak" || rec.kind === "birch") {
+      if (rec.kind === "tree" || rec.kind === "pine" || rec.kind === "oak" || rec.kind === "birch" || rec.kind === "palm") {
         for (i = 0; i < props.length; i++) {
           p = props[i];
-          if (p.tx === rec.tx && p.ty === rec.ty && (p.kind === rec.kind || p.kind === "tree" || p.kind === "stump")) {
+          if (p.tx === rec.tx && p.ty === rec.ty && (p.kind === rec.kind || p.kind === "tree" || p.kind === "palm" || p.kind === "stump")) {
             p.kind = "stump";
             p.was = rec.kind;
             break;
@@ -2474,11 +2474,11 @@
       props = sceneProps(rec.scene);
       if (!props) continue;
       if (tileBlockedForRespawn(rec.scene, rec.tx, rec.ty)) continue;
-      if (rec.kind === "tree" || rec.kind === "pine" || rec.kind === "oak" || rec.kind === "birch") {
+      if (rec.kind === "tree" || rec.kind === "pine" || rec.kind === "oak" || rec.kind === "birch" || rec.kind === "palm") {
         found = false;
         for (i = 0; i < props.length; i++) {
           p = props[i];
-          if (p.tx === rec.tx && p.ty === rec.ty && (p.kind === "stump" || p.kind === rec.kind || p.kind === "tree")) {
+          if (p.tx === rec.tx && p.ty === rec.ty && (p.kind === "stump" || p.kind === rec.kind || p.kind === "tree" || p.kind === "palm")) {
             p.kind = rec.kind;
             p.shake = 0;
             found = true;
@@ -5612,7 +5612,7 @@
 
   function chickenYield() {
     var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-    var i, j, tmp, d, nx, ny, away, scored, a, b;
+    var i, d, nx, ny, away, scored, dx, dy;
     /* Prefer a step away from Orion so walking into them feels like a bump. */
     scored = [];
     for (i = 0; i < 4; i++) {
@@ -5629,6 +5629,32 @@
     });
     if (scored.length) {
       startWalk(chicken, [{ tx: scored[0].nx, ty: scored[0].ny }], 1.6);
+      chicken.react = 420;
+      return true;
+    }
+    /* 20260905bu: if penned (fences/crops), hop up to 2 tiles so kids are not soft-blocked. */
+    scored = [];
+    for (dy = -2; dy <= 2; dy++) {
+      for (dx = -2; dx <= 2; dx++) {
+        if (!dx && !dy) continue;
+        if (Math.abs(dx) + Math.abs(dy) > 2) continue;
+        nx = chicken.tx + dx;
+        ny = chicken.ty + dy;
+        if (!chickenOk(nx, ny)) continue;
+        away = Math.abs(nx - player.tx) + Math.abs(ny - player.ty);
+        scored.push({ nx: nx, ny: ny, away: away, rnd: Math.random() });
+      }
+    }
+    scored.sort(function (a, b) {
+      if (b.away !== a.away) return b.away - a.away;
+      return a.rnd - b.rnd;
+    });
+    if (scored.length) {
+      chickenStop();
+      chicken.tx = scored[0].nx;
+      chicken.ty = scored[0].ny;
+      chicken.x = tileCenterX(chicken.tx);
+      chicken.y = tileFootY(chicken.ty);
       chicken.react = 420;
       return true;
     }
@@ -7307,15 +7333,15 @@
       persistSave();
       return;
     }
-    if (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch") {
+    if (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch" || prop.kind === "palm") {
       var treeKind = prop.kind;
-      var fellSeed = treeKind === "pine" ? "pinecone" : "acorn";
+      var fellSeed = treeKind === "pine" ? "pinecone" : (treeKind === "palm" ? "" : "acorn");
       prop.kind = "stump";
       prop.was = treeKind;
       prop.shake = 0;
       buildSolid();
       spawnGroundLoot("wood", prop.tx, prop.ty, harvestDropFor(prop));
-      spawnGroundLoot(fellSeed, prop.tx, prop.ty, 1);
+      if (fellSeed) spawnGroundLoot(fellSeed, prop.tx, prop.ty, 1);
       rememberHarvest(prop, treeKind, "stump");
     } else if (prop.kind === "peakRocks") {
       var pri = PROPS.indexOf(prop);
@@ -15911,7 +15937,7 @@
     if (p.kind === "rug" || p.kind === "doormat") return p.ty * TILE + 4;
     if (p.kind === "window") return p.ty * TILE + (currentScene === "house" ? 36 : 8);
     if (p.kind === "inndoor") return p.ty * TILE + 20;
-    if (p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch") return p.ty * TILE + 24;
+    if (p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "palm") return p.ty * TILE + 24;
     if (p.kind === "well") return p.ty * TILE + 28;
     if (p.kind === "mailbox") return p.ty * TILE + 20;
     if (p.kind === "pond") return p.ty * TILE + 20;
@@ -16097,6 +16123,59 @@
     return true;
   }
 
+  /* 20260905bu: progressive crack chips on peak rocks (old rock hurt language, not darken-only). */
+  function peakRockBreakStage(p) {
+    var rec, max, hp, taken;
+    if (!p || p.kind !== "peakRocks") return 0;
+    rec = harvestNodes[nodeKey(liveHarvestScene(), p.tx, p.ty)];
+    if (!rec || rec.state !== "hurt") return 0;
+    max = rec.maxHp || nodeMaxHp(p) || 10;
+    hp = typeof rec.hp === "number" ? rec.hp : max;
+    taken = max - Math.max(0, hp);
+    if (taken <= 0) return 0;
+    if (taken <= 2) return 1;
+    if (taken <= 4) return 2;
+    if (taken <= 6) return 3;
+    if (taken <= 8) return 4;
+    return 5;
+  }
+
+  function drawPeakRockCracks(g, p, x, y) {
+    var st = peakRockBreakStage(p);
+    var ox, oy;
+    if (!st) return;
+    /* Match drawStandSprite 64×48 bottom-center anchor on the tile. */
+    ox = x - 24;
+    oy = y - 32;
+    fill(g, ox + 22, oy + 20, 2, st >= 2 ? 10 : 6, C.stoneSh);
+    fill(g, ox + 24, oy + 22, 3, 2, C.woodOut);
+    if (st >= 2) {
+      fill(g, ox + 34, oy + 26, 8, 2, C.stoneSh);
+      px(g, ox + 18, oy + 28, C.woodOut);
+      fill(g, ox + 40, oy + 18, 2, 8, C.stoneSh);
+    }
+    if (st >= 3) {
+      fill(g, ox + 14, oy + 30, 10, 2, C.stoneSh);
+      fill(g, ox + 28, oy + 14, 2, 12, C.stoneSh);
+      px(g, ox + 30, oy + 16, C.woodOut);
+      fill(g, ox + 48, oy + 28, 6, 2, C.woodOut);
+    }
+    if (st >= 4) {
+      fill(g, ox + 10, oy + 22, 2, 14, C.stoneSh);
+      fill(g, ox + 20, oy + 34, 14, 2, C.stoneSh);
+      fill(g, ox + 36, oy + 32, 3, 3, C.woodOut);
+      px(g, ox + 44, oy + 24, C.woodOut);
+    }
+    if (st >= 5) {
+      fill(g, ox + 16, oy + 16, 12, 2, C.stoneSh);
+      fill(g, ox + 26, oy + 28, 2, 10, C.stoneSh);
+      fill(g, ox + 8, oy + 34, 8, 2, C.woodOut);
+      fill(g, ox + 42, oy + 34, 10, 2, C.woodOut);
+      px(g, ox + 32, oy + 20, C.woodOut);
+      px(g, ox + 22, oy + 36, C.stoneSh);
+    }
+  }
+
   function drawPeakSign(g, x, y) {
     /* 20260905az: same Imagine plaque + shaft label as WOODS (not lamp silhouette) */
     drawWoodsSign(g, x, y, "PEAK");
@@ -16271,6 +16350,7 @@
       if (currentScene === "tree") drawShaftLabel(g, p, "UP");
     } else if (p.kind === "peakRocks") {
       drawStandSprite(g, Assets.peakRocks, x, y, 64, 48);
+      drawPeakRockCracks(g, p, x, y);
     } else if (p.kind === "caveMouth") {
       /* Outdoor peak already paints the cave in peakMap; caveMouth art is inside-looking-out. */
       if (currentScene !== "peak") {
@@ -18434,8 +18514,11 @@
         return;
       }
       if (hitSprite(world, chicken.x, chicken.y, 16, 16, 8, 14)) {
+        /* 20260905bu: tap scoots like walk-into (04g) — not hop-in-place only. */
         chicken.react = 420;
-        chicken.idle = 500;
+        if (!chickenYield()) {
+          goWalk(chicken.tx, chicken.ty);
+        }
         return;
       }
       if (dogSceneOk() && hitSprite(world, dog.x, dog.y, 16, 16, 8, 14)) {
@@ -19740,7 +19823,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bt", BUILD);
+      ok("BUILD", BUILD === "20260905bu", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
