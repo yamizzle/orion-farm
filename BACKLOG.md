@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905cr): axe tree chop white hit flash + wood chip particles; fishing bite bobber splash bigger + bite flash; bird ride flight fade in/out; Pip shop idle bob + talk ! + once greet `PIP: HI! TAP ME TO SHOP.`. Never START OVER.
+
 Local 9/5 (BUILD 20260905cq): dig mound sparkle twinkle on undug farm/woods mounds + once shovel tip `TAP A DIRT MOUND TO DIG` when shovel selected and mounds remain. Never START OVER.
 
 Local 9/5 (BUILD 20260905cp): dusk outdoor slugs bigger (1.05 / 1.2) + warm rim glow; fence wood once-toast `TAP BUILD THEN A TILE`; chest floating CHEST label + once-toast `PUT ALL / TAKE ALL AT THE BOTTOM`. Never START OVER.

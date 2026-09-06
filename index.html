@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cq";
+  var BUILD = "20260905cr";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6753,6 +6753,24 @@
     }
   }
 
+  /* 20260905cr: wood-colored chips on axe tree chops */
+  function spawnWoodChips(x, y) {
+    var i, ang, cols;
+    cols = ["#C47A38", "#8B5A28", "#E8B060", "#5A3A18", "#F3D2A3", "#3D1A0C"];
+    for (i = 0; i < 8; i++) {
+      ang = (i / 8) * Math.PI * 2 + Math.random() * 0.45;
+      sparks.push({
+        x: x + (Math.random() * 4 - 2),
+        y: y + (Math.random() * 4 - 2),
+        vx: Math.cos(ang) * (0.028 + Math.random() * 0.03),
+        vy: Math.sin(ang) * 0.018 - 0.042 - Math.random() * 0.02,
+        age: 0,
+        life: 340 + Math.random() * 200,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
   /* 20260905ci: bigger hit/kill spark ring so swings read for kids */
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
@@ -7544,6 +7562,11 @@
     cx = prop.tx * TILE + 8;
     cy = prop.ty * TILE + (prop.kind === "tree" ? 2 : 6);
     spawnSparks(cx, cy);
+    /* 20260905cr: axe chop hit flash + wood chip spray */
+    if (isWoodChop(prop)) {
+      spawnWoodChips(cx, cy - 4);
+      prop.flash = 280;
+    }
     if (isHarvestable(prop)) {
       if (prop.kind === "peakRocks" && !toolEquipped("diamondPick")) {
         showLineNote(diamondPickOwned ? "SELECT THE DIAMOND PICK" : "NEED A STRONGER PICK");
@@ -7912,6 +7935,10 @@
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
       if (p.shake > 0) p.shake -= dt;
+      if (p.flash > 0) {
+        p.flash -= dt;
+        if (p.flash < 0) p.flash = 0;
+      }
     }
     for (i = sparks.length - 1; i >= 0; i--) {
       sp = sparks[i];
@@ -12356,7 +12383,7 @@
 
   function beginBirdRide(stopId) {
     birdRideFx = { age: 0, life: 1600, stop: stopId };
-    playSfx("talk");
+    playSfx("toast");
   }
 
   function finishBirdRide() {
@@ -12428,7 +12455,7 @@
   }
 
   function drawBirdRideOverlay(g) {
-    var img, w, h, x, y, bob;
+    var img, w, h, x, y, bob, u, fade;
     if (!birdRideFx) return;
     img = Assets.birdRide;
     if (!img) return;
@@ -12437,8 +12464,19 @@
     bob = Math.round(Math.sin(birdRideFx.age / 80) * 2);
     x = ((VIEW_W - w) / 2) | 0;
     y = 36 + bob;
+    /* 20260905cr: soft flight fade in/out */
+    u = birdRideFx.age / birdRideFx.life;
+    if (u < 0) u = 0;
+    if (u > 1) u = 1;
+    fade = 1;
+    if (u < 0.18) fade = u / 0.18;
+    else if (u > 0.72) fade = (1 - u) / 0.28;
+    if (fade < 0) fade = 0;
+    g.save();
+    g.globalAlpha = fade;
     g.imageSmoothingEnabled = false;
     g.drawImage(img, x, y, w, h);
+    g.restore();
   }
 
   function talkFolk(f) {
@@ -12923,6 +12961,11 @@
   function enterShop() {
     applyScene("shop");
     placePlayer(8, 7, "up");
+    /* 20260905cr: Pip greets once so the shop feels alive */
+    if (!unlocked.pipGreetTip) {
+      unlocked.pipGreetTip = true;
+      showLineNote("PIP: HI! TAP ME TO SHOP.");
+    }
     persistSave();
   }
 
@@ -13619,11 +13662,20 @@
       px(g, Math.round(bx), Math.round(by) + 1, "#8B2E1C");
     }
     if (fishing.phase === "reel" && fishing.splash) {
-      for (i = 0; i < 7; i++) {
-        ang = (i / 7) * Math.PI * 2 + fishing.age * 0.01;
-        px0 = Math.round(fishing.bobX + Math.cos(ang) * (2 + fishing.age * 0.018));
-        py0 = Math.round(fishing.bobY + Math.sin(ang) * (1 + fishing.age * 0.012) - fishing.age * 0.01);
-        px(g, px0, py0, i % 2 ? C.waterFm : C.water);
+      /* 20260905cr: bigger bobber bite splash ring */
+      for (i = 0; i < 12; i++) {
+        ang = (i / 12) * Math.PI * 2 + fishing.age * 0.012;
+        px0 = Math.round(fishing.bobX + Math.cos(ang) * (3 + fishing.age * 0.028));
+        py0 = Math.round(fishing.bobY + Math.sin(ang) * (1.5 + fishing.age * 0.016) - fishing.age * 0.014);
+        if (i % 3 === 0) fill(g, px0, py0, 2, 2, i % 2 ? "#E8F6FF" : C.waterFm);
+        else px(g, px0, py0, i % 2 ? C.waterFm : C.water);
+      }
+      if (fishing.bite && fishing.age < 220) {
+        g.save();
+        g.globalAlpha = Math.min(0.7, 0.55 * (1 - fishing.age / 220));
+        g.fillStyle = "#FFFDF8";
+        g.fillRect(Math.round(fishing.bobX) - 3, Math.round(fishing.bobY) - 4, 6, 6);
+        g.restore();
       }
     }
   }
@@ -17847,6 +17899,17 @@
     } else if (p.kind === "townFlower") {
       if (!drawAtlas2x(g, "townFlower", x, y)) Assets.draw(g, "townFlower", x, y);
     }
+    /* 20260905cr: brief white chop flash on wood */
+    if (p.flash > 0 && isWoodChop(p)) {
+      g.save();
+      g.globalAlpha = Math.min(0.82, 0.28 + 0.54 * (p.flash / 280));
+      g.fillStyle = "#FFFDF4";
+      g.fillRect(x - 6, y - 48, 28, 64);
+      g.globalAlpha = Math.min(0.55, 0.18 + 0.4 * (p.flash / 280));
+      g.fillStyle = "#FFE9A0";
+      g.fillRect(x - 2, y - 20, 20, 28);
+      g.restore();
+    }
   }
 
   var washScratch = null;
@@ -18057,8 +18120,11 @@
     else if (item.kind === "nim") drawNim(g);
     else if (item.kind === "mon") drawMonster(g, item.m);
     else if (item.kind === "shopPip") {
+      /* 20260905cr: soft idle bob + talk cue like town folk */
+      var pipBob = Math.round(Math.sin(tick / 390) * 1);
       drawShadow(g, tileCenterX(8), tileFootY(4), 5);
-      Assets.draw(g, "pip-down", tileCenterX(8), tileFootY(4), 0);
+      Assets.draw(g, "pip-down", tileCenterX(8), tileFootY(4) + pipBob, 0);
+      if (talkCueNear(8, 4)) drawTalkCue(g, tileCenterX(8), tileFootY(4) + pipBob);
     } else if (item.kind === "luna") {
       drawShadow(g, tileCenterX(4), tileFootY(4), 5);
       Assets.draw(g, Assets.spr["lila-down"] ? "lila-down" : "pip-down", tileCenterX(4), tileFootY(4), 0);
@@ -21482,7 +21548,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cq", BUILD);
+      ok("BUILD", BUILD === "20260905cr", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
