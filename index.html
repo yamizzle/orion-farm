@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gr";
+  var BUILD = "20260905gs";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6965,6 +6965,127 @@
     path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
     pending = { type: "breakFence", prop: prop };
+    startWalk(player, path, 3.5);
+  }
+
+  /* 20260905gs: player-placed lamp/crate pick-up (fence already; kits stuck forever /
+     TOO MANY LAMPS with no way back — same pick-up class as 05gq fence→wood). */
+  function kitKeyForProp(prop) {
+    if (!prop) return "";
+    if (prop.kind === "lampPost") return "lampKit";
+    if (prop.kind === "crate") return "crateKit";
+    return "";
+  }
+
+  function playerBuiltKitAt(tx, ty, kind) {
+    var i, b;
+    if (kind !== "lampPost" && kind !== "crate") return null;
+    for (i = 0; i < builds.length; i++) {
+      b = builds[i];
+      if (b && b.kind === kind && b.tx === tx && b.ty === ty) return b;
+    }
+    return null;
+  }
+
+  function isPlayerKitProp(prop) {
+    if (!prop || prop.holiday) return false;
+    if (prop.kind !== "lampPost" && prop.kind !== "crate") return false;
+    return !!playerBuiltKitAt(prop.tx, prop.ty, prop.kind);
+  }
+
+  function kitAt(tx, ty) {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!isPlayerKitProp(p)) continue;
+      if (p.tx === tx && p.ty === ty) return p;
+    }
+    return null;
+  }
+
+  function forgetKitBuild(tx, ty, kind) {
+    var j, removed;
+    removed = false;
+    for (j = builds.length - 1; j >= 0; j--) {
+      if (!builds[j]) continue;
+      if (builds[j].kind === kind && builds[j].tx === tx && builds[j].ty === ty) {
+        builds.splice(j, 1);
+        removed = true;
+      }
+    }
+    return removed;
+  }
+
+  function canPickupKit() {
+    /* Axe, shovel, or empty hand — never while lamp/crate/fence place mode is on. */
+    if (fenceBuildOn || placingLampNow() || placingCrateNow()) return false;
+    if (toolEquipped("axe") || toolEquipped("shovel")) return true;
+    return !selectedKey();
+  }
+
+  function breakKit(prop) {
+    var fi, kitKey;
+    if (!isPlayerKitProp(prop)) return false;
+    if (!canPickupKit()) return false;
+    kitKey = kitKeyForProp(prop);
+    if (!kitKey) return false;
+    if (bagRoom(kitKey) < 1) {
+      showBagFullNote();
+      return false;
+    }
+    fi = PROPS.indexOf(prop);
+    if (fi >= 0) PROPS.splice(fi, 1);
+    forgetKitBuild(prop.tx, prop.ty, prop.kind);
+    buildSolid();
+    addToBag(kitKey, 1);
+    /* 20260905gs: pin + select kit — place needs selected lampKit/crateKit;
+       pick left kit bag-only or unselected (same fence-kit buy / fence pick equip gap). */
+    placeToolInTrayFirst(kitKey);
+    selectTool(kitKey);
+    showLineNote(prop.kind === "lampPost" ? "LAMP PICKED UP" : "CRATE PICKED UP");
+    playSfx("pickup");
+    persistSave();
+    return true;
+  }
+
+  function tryBreakKitFacing() {
+    var spots, i, prop;
+    if (uiPaused() || faintFx) return false;
+    if (player.swing > 0) return false;
+    if (!canPickupKit()) return false;
+    spots = [
+      { tx: player.tx, ty: player.ty },
+      facingTile(),
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      prop = kitAt(spots[i].tx, spots[i].ty);
+      if (prop) {
+        breakKit(prop);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function goBreakKit(prop) {
+    var dest, path;
+    if (!isPlayerKitProp(prop) || !canPickupKit()) return;
+    highlight = { tx: prop.tx, ty: prop.ty };
+    if (isNear(player.tx, player.ty, prop.tx, prop.ty) || (player.tx === prop.tx && player.ty === prop.ty)) {
+      pending = null;
+      startWalk(player, [], 3.5);
+      breakKit(prop);
+      return;
+    }
+    dest = nearestAdjacent(prop.tx, prop.ty);
+    if (!dest) return;
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) return;
+    pending = { type: "breakKit", prop: prop };
     startWalk(player, path, 3.5);
   }
 
@@ -18470,6 +18591,13 @@
         startWalk(player, [], 3.5);
         breakFence(act.prop);
       }
+    } else if (act.type === "breakKit") {
+      if (act.prop && isPlayerKitProp(act.prop) &&
+          (isNear(player.tx, player.ty, act.prop.tx, act.prop.ty) ||
+           (player.tx === act.prop.tx && player.ty === act.prop.ty))) {
+        startWalk(player, [], 3.5);
+        breakKit(act.prop);
+      }
     } else if (act.type === "build") {
       if (isNear(player.tx, player.ty, act.tx, act.ty) || (player.tx === act.tx && player.ty === act.ty)) {
         faceToward(player, act.tx, act.ty);
@@ -23788,6 +23916,11 @@ if (currentScene === "ocean") goExitOcean();
       goBreakFence(hitProp);
       return;
     }
+    /* 20260905gs: player lamp/crate pick-up (same axe/shovel/empty hand gate as fence). */
+    if (hitProp && isPlayerKitProp(hitProp) && canPickupKit()) {
+      goBreakKit(hitProp);
+      return;
+    }
     if (harvest) {
       goHarvest(harvest);
       return;
@@ -24137,6 +24270,8 @@ if (currentScene === "ocean") goExitOcean();
       if (tryCarAdjacent()) return;
       if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
+      /* 20260905gs: Space pick adjacent/underfoot player lamp/crate (tap + fence Space existed). */
+      if (tryBreakKitFacing()) return;
       if (trySmashFacing()) return;
       /* 20260905gf: Space smash adjacent rock/log/tree (facing Space existed; side silent). */
       if (trySmashAdjacent()) return;
@@ -24403,6 +24538,12 @@ if (currentScene === "ocean") goExitOcean();
       setFenceBuildOn: setFenceBuildOn,
       toggleFenceBuild: toggleFenceBuild,
       placingFenceNow: placingFenceNow,
+      breakFence: breakFence,
+      breakKit: breakKit,
+      kitAt: kitAt,
+      isPlayerKitProp: isPlayerKitProp,
+      canPickupKit: canPickupKit,
+      tryBreakKitFacing: tryBreakKitFacing,
       tryPlaceOrWalk: tryPlaceOrWalk,
       goBuild: goBuild,
       goWalk: goWalk,
@@ -24629,7 +24770,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gp", BUILD);
+      ok("BUILD", BUILD === "20260905gs", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25066,6 +25207,53 @@ if (currentScene === "ocean") goExitOcean();
       ok("fencePickupEquipsWood", !!breakFence(fenceAt(_fx, _fy)) && selectedIs("wood") && bagCount("wood") >= 1,
         "sel=" + selectedKey() + " n=" + bagCount("wood"));
 
+      /* 20260905gs: player lamp/crate pick-up pins + selects kit (place / fence pick gap). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      axeOwned = true;
+      syncBagCounts();
+      if (!walkable(player.tx, player.ty)) placePlayer(16, 30, "right");
+      var _kx = player.tx + 1, _ky = player.ty;
+      if (propAt(_kx, _ky)) { _kx = player.tx - 1; _ky = player.ty; }
+      PROPS.push({ kind: "lampPost", tx: _kx, ty: _ky });
+      builds.push({ kind: "lampPost", tx: _kx, ty: _ky });
+      buildSolid();
+      ok("lampPickupPresent", !!kitAt(_kx, _ky), "lamp");
+      ok("lampPickupEquipsKit", !!breakKit(kitAt(_kx, _ky)) && selectedIs("lampKit") && bagCount("lampKit") >= 1,
+        "sel=" + selectedKey() + " n=" + bagCount("lampKit"));
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      syncBagCounts();
+      _kx = player.tx + 1; _ky = player.ty;
+      if (propAt(_kx, _ky) || !walkable(_kx, _ky)) { _kx = player.tx - 1; _ky = player.ty; }
+      PROPS.push({ kind: "crate", tx: _kx, ty: _ky });
+      builds.push({ kind: "crate", tx: _kx, ty: _ky });
+      buildSolid();
+      ok("cratePickupEquipsKit", !!breakKit(kitAt(_kx, _ky)) && selectedIs("crateKit") && bagCount("crateKit") >= 1,
+        "sel=" + selectedKey() + " n=" + bagCount("crateKit"));
+      /* world crate (not in builds) must not pick */
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      syncBagCounts();
+      var _wx = player.tx + 1, _wy = player.ty;
+      if (propAt(_wx, _wy)) { _wx = player.tx - 1; _wy = player.ty; }
+      PROPS.push({ kind: "crate", tx: _wx, ty: _wy });
+      buildSolid();
+      ok("worldCrateNoPickup", !breakKit(propAt(_wx, _wy)) && !selectedIs("crateKit"),
+        "sel=" + selectedKey() + " still=" + !!(propAt(_wx, _wy) && propAt(_wx, _wy).kind === "crate"));
+      if (propAt(_wx, _wy) && propAt(_wx, _wy).kind === "crate") {
+        var _wi = PROPS.indexOf(propAt(_wx, _wy));
+        if (_wi >= 0) PROPS.splice(_wi, 1);
+        buildSolid();
+      }
+
       /* 20260905gr: collectible pick pins + selects (tray-tap eat / Pip / smelt tip). */
       applyScene("overworld");
       emptyTray();
@@ -25104,7 +25292,7 @@ if (currentScene === "ocean") goExitOcean();
       ok("ironDeepFindEquips", selectedIs("iron") && bagCount("iron") >= 1 && !!found.iron,
         "sel=" + selectedKey() + " n=" + bagCount("iron"));
       if (typeof closeDialogue === "function") closeDialogue();
-      talkOpen = false;
+      dialogue = null;
 
       /* 20260905fl: Space plant seed / flower / path place facing. */
       applyScene("overworld");

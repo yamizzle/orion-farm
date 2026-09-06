@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gs): lamp/crate pick-up equips kit — picking up a player-placed lamp or crate pins + selects the kit (TAP TILE place needs selected lampKit/crateKit; pick left kit bag-only or unselected — same fence pick / kit buy equip gap as 05gq/05fe); world/holiday lamps+crates stay; axe/shovel/empty hand like fence. Never START OVER.
+
 Local 9/6 (BUILD 20260905gr): collectible pick equips — picking a mushroom / toadstool / copper / moonshard / silver / goldore / iron pins + selects it (tray-tap eat / Pip lantern / smelt / HOME tip need selected; pick left bag-only or unselected — same ground-loot equip gap as 05gn); gem→copper and iron deep finds grant immediately + equip (were fly-in-only). Never START OVER.
 
 Local 9/6 (BUILD 20260905gq): fence pick-up equips wood — picking up a placed fence pins + selects the wood (TAP BUILD needs selected wood; pick left wood bag-only or unselected — same fence-kit buy equip gap as 05fi). Never START OVER.
