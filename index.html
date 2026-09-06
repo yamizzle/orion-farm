@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gz";
+  var BUILD = "20260905ha";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -2589,7 +2589,7 @@
             break;
           }
         }
-      } else if (rec.kind === "berryBush" || rec.kind === "toadstool" || rec.kind === "log" || rec.kind === "wildflower") {
+      } else if (rec.kind === "berryBush" || rec.kind === "toadstool" || rec.kind === "log" || rec.kind === "wildflower" || rec.kind === "fern") {
         for (i = props.length - 1; i >= 0; i--) {
           p = props[i];
           if (p.tx === rec.tx && p.ty === rec.ty && p.kind === rec.kind) props.splice(i, 1);
@@ -2674,6 +2674,15 @@
           }
         }
         if (!found) props.push({ kind: "toadstool", tx: rec.tx, ty: rec.ty });
+      } else if (rec.kind === "fern") {
+        found = false;
+        for (i = 0; i < props.length; i++) {
+          if (props[i].kind === "fern" && props[i].tx === rec.tx && props[i].ty === rec.ty) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) props.push({ kind: "fern", tx: rec.tx, ty: rec.ty });
       } else if (rec.kind === "log") {
         if (tileBlockedForRespawn(rec.scene, rec.tx + 1, rec.ty)) continue;
         found = false;
@@ -6823,11 +6832,12 @@
   }
 
   function isSoftStrike(p) {
-    return p && (p.kind === "tallGrass" || p.kind === "weed" || ((p.kind === "townFlower" || p.kind === "wildflower") && !p.holiday) || p.kind === "crop");
+    return p && (p.kind === "tallGrass" || p.kind === "weed" || p.kind === "fern" || ((p.kind === "townFlower" || p.kind === "wildflower") && !p.holiday) || p.kind === "crop");
   }
 
   function isSliceable(p) {
-    return p && (p.kind === "tallGrass" || p.kind === "weed");
+    /* 20260905ha: fern finally cuts like tall grass / weed (looked planty; tap/Space silent). */
+    return p && (p.kind === "tallGrass" || p.kind === "weed" || p.kind === "fern");
   }
 
   function isPickablePlant(p) {
@@ -7124,7 +7134,7 @@
   }
 
   function isSoftBuildProp(p) {
-    return !!(p && (p.kind === "tallGrass" || p.kind === "weed" || p.kind === "wildflower"));
+    return !!(p && (p.kind === "tallGrass" || p.kind === "weed" || p.kind === "wildflower" || p.kind === "fern"));
   }
 
   function clearSoftBuildProp(tx, ty) {
@@ -9143,6 +9153,8 @@
     var r = Math.random();
     if (!prop) return "";
     if (prop.kind === "weed") return r < 0.12 ? "flower" : "";
+    /* 20260905ha: fern nibble of flower loot (weed-class). */
+    if (prop.kind === "fern") return r < 0.18 ? "flower" : "";
     if (prop.regrow === false) {
       if (r < 0.40) return "flower";
       if (r < 0.48) return "gold";
@@ -9163,6 +9175,10 @@
     if (drop) spawnGroundLoot(drop, prop.tx, prop.ty, 1);
     if (prop.kind === "tallGrass" && prop.regrow !== false) {
       rememberHarvest(prop, "tallGrass", "gone");
+    }
+    /* 20260905ha: fern stays cut (no regrow) so forest floor can clear. */
+    if (prop.kind === "fern") {
+      rememberHarvest(prop, "fern", "gone");
     }
     persistSave();
     return true;
@@ -24965,7 +24981,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gz", BUILD);
+      ok("BUILD", BUILD === "20260905ha", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26837,6 +26853,16 @@ if (currentScene === "ocean") goExitOcean();
       ok("eatCoconutWorks", !!eatCoconut() && bagCount("coconut") === 0, "n=" + bagCount("coconut"));
       ok("palmSeedKind", treeSeedKind({ kind: "palm" }) === "coconut", treeSeedKind({ kind: "palm" }));
       ok("palmStumpSeed", treeSeedKind({ kind: "stump", was: "palm" }) === "coconut", treeSeedKind({ kind: "stump", was: "palm" }));
+      /* 20260905ha: fern is sliceable (tap/Space cut; was decorative silent). */
+      ok("fernSliceable", !!isSliceable({ kind: "fern" }), "");
+      ok("fernNotPickPlant", !isPickablePlant({ kind: "fern" }), "");
+      applyScene("forest");
+      buildSolid();
+      var _fern = { kind: "fern", tx: 6, ty: 10 };
+      PROPS.push(_fern);
+      buildSolid();
+      placePlayer(6, 11, "up");
+      ok("fernSpaceCut", !!tryCutGrassFacing() && !propAt(6, 10), "prop=" + !!(propAt(6, 10)));
       /* Far open ground: always some progress (partway harden). */
       placePlayer(6, 30, "down");
       var far = findPath(6, 30, 6, 35);

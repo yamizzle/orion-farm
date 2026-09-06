@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ha): fern cut — forest ferns finally slice like tall grass / weed (tap or Space / J / E facing or next to them; were pretty silent props kids tried to cut; sometimes drop a flower; stay cut then respawn like toadstool). Never START OVER.
+
 Local 9/6 (BUILD 20260905gz): palm coconut eat — chopping a palm finally drops a coconut you can tray-tap-eat for hearts + energy (oaks/pines already dropped acorn/pinecone food; palm seed was blank so beach chops were wood-only dead ends). Never START OVER.
 
 Local 9/6 (BUILD 20260905gy): Space critter scoot — standing next to a forest/ocean rabbit / squirrel / deer (facing away), Space / J / E finally scoots it with hop dust (tap already critterYield'd; walk-onto fled; side-of-critter was a silent no-op like pre-05gw chicken). Never START OVER.
