@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905er";
+  var BUILD = "20260905es";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -3084,7 +3084,9 @@
 
   function exitTreetop() {
     applyScene("tree", 4);
-    placePlayer(4, 3, "down");
+    /* 20260905es: was (4,3) — only 1 tile south of UP (4,2); one north step
+       re-climbed to TREETOP. Match enterTreeFloor via-down (4,4) 2-tile gap. */
+    placePlayer(4, 4, "down");
     persistSave();
   }
 
@@ -3350,12 +3352,17 @@
 
   function enterMineFromClimb() {
     applyScene("mine", 6);
-    placePlayer(22, 7, "down");
+    /* 20260905es: was (22,7) — only 1 tile south of peak stairs (22,6); one north
+       step auto-reclimbed. 2-tile gap at (22,8) like mine/tree ladder landings. */
+    placePlayer(22, 8, "down");
     if (!walkable(player.tx, player.ty)) {
-      placePlayer(21, 7, "down");
+      placePlayer(21, 8, "down");
     }
     if (!walkable(player.tx, player.ty)) {
-      placePlayer(22, 8, "down");
+      placePlayer(23, 8, "down");
+    }
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(22, 9, "down");
     }
     unstickPlayer();
     persistSave();
@@ -23297,7 +23304,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ep", BUILD);
+      ok("BUILD", BUILD === "20260905es", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23654,6 +23661,14 @@ if (currentScene === "ocean") goExitOcean();
       var t2down = treeDownSpot();
       var t2upLand = { tx: 4, ty: 4 };
       ok("treeF2UpLandOffDown", !!(t2down && t2down.tx === 4 && t2down.ty === 6 && walkable(t2upLand.tx, t2upLand.ty) && (t2down.ty - t2upLand.ty) >= 2), t2down && (t2down.tx + "," + t2down.ty));
+      /* 20260905es: exit TREETOP lands 2 tiles south of TREE 4 UP; peak-stairs return 2 tiles south of stairs */
+      applyScene("tree", 4);
+      var t4up = treeUpSpot();
+      ok("exitTreetopLandOffUp", !!(t4up && t4up.tx === 4 && t4up.ty === 2 && walkable(4, 4) && (4 - t4up.ty) >= 2), t4up && (t4up.tx + "," + t4up.ty));
+      mineFloor = 6;
+      applyScene("mine", 6);
+      ok("minePeakStairsAt", isMinePeakStairs(22, 6), "stairs");
+      ok("mineFromClimbLandOffStairs", walkable(22, 8) && !isMinePeakStairs(22, 8) && (8 - 6) >= 2, "22,8");
       applyScene("peak");
       var pk = nudgeRestoreOffGate(18, 25, "up");
       ok("peakCaveNudge", !!(pk && pk.tx === peakLand.tx && pk.ty === peakLand.ty), pk && (pk.tx + "," + pk.ty));
@@ -23746,10 +23761,14 @@ if (currentScene === "ocean") goExitOcean();
       for (ai = 0; ai < BAG_CELLS; ai++) if (bagCells[ai] && bagCells[ai].key === "axe") bagCells[ai] = null;
       ok("bagCountCountsHeld", bagCount("axe") === 1, "n=" + bagCount("axe"));
       ok("addToolNoDupWhileHeld", addToBag("axe", 1) === 0 && bagCount("axe") === 1, "n=" + bagCount("axe"));
+      /* Clear pocket wood so takeFromBag must spend the mid-drag stack (prior
+         tests leave tray/bag wood that was draining first and flaking left=4). */
+      for (var wi = 0; wi < TRAY_CELLS; wi++) if (trayCells[wi] && trayCells[wi].key === "wood") trayCells[wi] = null;
+      for (wi = 0; wi < BAG_CELLS; wi++) if (bagCells[wi] && bagCells[wi].key === "wood") bagCells[wi] = null;
       bagHeld = { key: "wood", count: 5 };
       bagHeldFrom = { place: "bag", i: 0 };
       syncBagCounts();
-      ok("syncCountsHeldWood", (inventory.wood | 0) >= 5, "wood=" + inventory.wood);
+      ok("syncCountsHeldWood", (inventory.wood | 0) === 5, "wood=" + inventory.wood);
       var took = takeFromBag("wood", 3);
       ok("takeFromHeld", took === 3 && bagHeld && (bagHeld.count | 0) === 2, "took=" + took + " left=" + (bagHeld && bagHeld.count));
       bagHeld = null; bagHeldFrom = null;

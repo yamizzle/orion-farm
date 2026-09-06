@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905es): peak stairs + treetop exit landings — climb-down from cave stairs into MINE 6 no longer drops you one tile south of the UP stairs (22,6); land at (22,8) so a single north step cannot auto-reclimb; exit TREETOP onto TREE 4 lands at (4,4) (2 tiles from UP ty=2) matching other tree climb gaps. Never START OVER.
+
 Local 9/6 (BUILD 20260905er): tree climb landings — UP/DOWN onto TREE 1–4 land at ty=4 (2 tiles from UP ty=2 / DOWN ty=6) so one step cannot auto-reclimb or fall; enterTree + treeRestoreLand match. Never START OVER.
 
 Local 9/6 (BUILD 20260905eq): held select gates — selectedKey/selectedHas/selectedCount count the mid-drag bagHeld tray ghost (fence/flower/kits/eat gates match spendSelected 05en; empty tray slot while dragging wood/flower no longer looks "unequipped"). Never START OVER.
