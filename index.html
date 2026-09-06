@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cu";
+  var BUILD = "20260905cv";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -12720,6 +12720,8 @@
         try { doorFade.pending(); } catch (err) {}
         doorFade.pending = null;
       }
+      /* 20260905cv: tiny warm spark at Orion's feet on the new side of the door */
+      if (player) spawnSparks(player.x, player.y - 6);
     }
     if (doorFade.age >= doorFade.life) doorFade = null;
   }
@@ -21755,7 +21757,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cu", BUILD);
+      ok("BUILD", BUILD === "20260905cv", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
