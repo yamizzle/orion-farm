@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ai";
+  var BUILD = "20260905aj";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -14927,6 +14927,30 @@
       b.y + b.h > camY - 8 && b.y < camY + VIEW_H + 8;
   }
 
+
+  function drawAtlas2x(g, id, x, y, frame) {
+    /* 2× atlas source (e.g. 32×32) drawn into half logical size with NN */
+    var s = Assets.spr[id];
+    var fr, fw, ox, oy, dw, dh, smooth;
+    if (!s || !Assets.img) return false;
+    fr = frame || 0;
+    fw = s.fw || s.w;
+    ox = s.ox || 0;
+    oy = s.oy || 0;
+    dw = fw / 2;
+    dh = s.h / 2;
+    smooth = g.imageSmoothingEnabled;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(
+      Assets.img,
+      s.x + fr * fw, s.y, fw, s.h,
+      Math.round(x + ox / 2), Math.round(y + oy / 2),
+      dw, dh
+    );
+    g.imageSmoothingEnabled = smooth;
+    return true;
+  }
+
   function drawStandSprite(g, img, x, y, dw, dh) {
     var w, h, dx, dy, iw, ih, smooth;
     if (!img) return false;
@@ -15087,7 +15111,7 @@
                p.kind === "canopyBough" || p.kind === "canopySpan" || p.kind === "canopyClump" || p.kind === "canopyHang") {
       drawForestProp(g, p, x, y);
     } else if (p.kind === "stump") {
-      Assets.draw(g, "stump", x, y);
+      if (!drawAtlas2x(g, "stump", x, y)) Assets.draw(g, "stump", x, y);
     } else if (p.kind === "well") {
       Assets.draw(g, "well", x, y);
     } else if (p.kind === "mailbox") {
@@ -15098,7 +15122,7 @@
         Assets.draw(g, "mailbox", x, y);
       }
     } else if (p.kind === "crate") {
-      Assets.draw(g, "crate", x, y);
+      if (!drawAtlas2x(g, "crate", x, y)) Assets.draw(g, "crate", x, y);
     } else if (p.kind === "pond") {
       Assets.draw(g, "pond", x, y);
       if (((tick / 700) | 0) % 2) {
@@ -15106,7 +15130,7 @@
         px(g, x + 10, y + 19, C.waterFm);
       }
     } else if (p.kind === "rock") {
-      Assets.draw(g, harvestSprite(p), x, y);
+      if (!drawAtlas2x(g, harvestSprite(p), x, y)) Assets.draw(g, harvestSprite(p), x, y);
     } else if (p.kind === "weed") {
       Assets.draw(g, "weed" + ((p.tx + p.ty) & 1), x, y);
     } else if (p.kind === "tallGrass") {
@@ -15127,7 +15151,9 @@
         g.fillRect(x - (cozyLamp ? 10 : 12), y - (cozyLamp ? 14 : 16), cozyLamp ? 36 : 40, cozyLamp ? 36 : 40);
       }
       if (currentScene === "house") Assets.draw(g, "houseLamp", x, y);
-      else Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
+      else if (!drawAtlas2x(g, lit ? "lantern" : "lanternOff", x, y)) {
+        Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
+      }
     } else if (p.kind === "ladder") {
       Assets.draw(g, "ladder", x, y);
       if (currentScene === "mine") drawShaftLabel(g, p, mineFloor === 1 ? "OUT" : "UP");
@@ -18426,7 +18452,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ai", BUILD);
+      ok("BUILD", BUILD === "20260905aj", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

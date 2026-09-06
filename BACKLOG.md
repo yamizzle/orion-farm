@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905aj): 2× rock/stump/crate/lantern props (32→16 / lantern 32×48→16×24 NN). Never START OVER.
 Local 9/5 (BUILD 20260905ai): 2× berryBush + toadstool. Never START OVER.
 Local 9/5 (BUILD 20260905ah): 2× fern prop. Never START OVER.
 Local 9/5 (BUILD 20260905ag): 2× peakRocks + wildflower props; prior 05af cave fixes + island diamond pick. Never START OVER.
