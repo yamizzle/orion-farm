@@ -66,6 +66,7 @@ Status column: **KEEP** = still required in new builds.
 
 | Invariant | BUILD | Status |
 | --- | --- | --- |
+| **Chicken body opaque** — white feathers solid (no checkerboard / grass bleed-through); atlas stamp must keep height ≥1200 + rock0.w ≥32 (no full 1× repack) | 20260905ht | KEEP |
 | World evening/morning **BUFFER× grade scratch** so outdoor props stay as crisp as tray (no soft half-res upscale) | 20260905hg | KEEP |
 | Internal **BUFFER=2** canvas (640×384) for dense tray/world blit | 20260905g | KEEP |
 | Props keep denser Imagine frames (2× / 3× src) — car uses dense frames but **draws vehicle-sized** (~0.75 of 3× ≈ a bit taller than Orion), not house-tall | 20260905hi (was 05hh/05cc) | KEEP |
@@ -123,4 +124,4 @@ Do not re-open that wave item-by-item unless a specific interaction goes silent 
 
 ---
 
-*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05hs) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*
+*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05ht) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*
