@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fz";
+  var BUILD = "20260905ga";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6597,6 +6597,15 @@
     if (!prop || prop.hidden) return false;
     if (isNear(player.tx, player.ty, prop.tx, prop.ty) || (player.tx === prop.tx && player.ty === prop.ty)) return true;
     if (prop.kind === "log" && (isNear(player.tx, player.ty, prop.tx + 1, prop.ty) || (player.tx === prop.tx + 1 && player.ty === prop.ty))) return true;
+    /* 20260905ga: bridge footprint — Space/talk from any edge tile (tap already goTalkBridge'd). */
+    if (prop.kind === "brokenBridge" || prop.kind === "fixedBridge") {
+      for (y = 0; y < 3; y++) {
+        for (x = 0; x < 5; x++) {
+          if (isNear(player.tx, player.ty, prop.tx + x, prop.ty + y) ||
+              (player.tx === prop.tx + x && player.ty === prop.ty + y)) return true;
+        }
+      }
+    }
     if (prop.kind === "rowboat") {
       for (y = 0; y < 2; y++) {
         for (x = 0; x < 3; x++) {
@@ -18279,9 +18288,15 @@
         f = townFolk[fi];
         if (nearWho(f)) { goTalkFolk(f); return true; }
       }
-      face = facingTile();
-      p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
-      if (p && (p.kind === "brokenBridge" || p.kind === "fixedBridge")) { talkBridge(p); return true; }
+      /* 20260905ga: adjacent bridge Space (facing-only left side-of-span silent;
+         tap already goTalkBridge'd; nearProp now covers the 5x3 footprint). */
+      for (fi = 0; fi < PROPS.length; fi++) {
+        p = PROPS[fi];
+        if (p && (p.kind === "brokenBridge" || p.kind === "fixedBridge") && nearProp(p)) {
+          talkBridge(p);
+          return true;
+        }
+      }
     } else if (currentScene === "shop") {
       if (tilesTouch(me, [{ tx: 8, ty: 4 }])) { talkPip(); return true; }
     } else if (currentScene === "cottage") {
@@ -18311,9 +18326,10 @@
       if (isPeakRocks(player.tx, player.ty) || isPeakRocks(face.tx, face.ty)) { talkPeakRocks(); return true; }
     } else if (currentScene === "ocean") {
       if (onBoat) { talkBoat(); return true; }
-      face = facingTile();
-      p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
-      if (p && p.kind === "rowboat") { talkBoat(); return true; }
+      /* 20260905ga: adjacent boat Space uses nearProp (rowboat footprint already
+         wired; facing-only propAt left side-of-hull silent; tap already goTalkBoat'd). */
+      p = findRowboat();
+      if (p && !p.hidden && nearProp(p)) { talkBoat(); return true; }
     }
     return false;
   }
@@ -24157,7 +24173,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fz", BUILD);
+      ok("BUILD", BUILD === "20260905ga", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25048,6 +25064,53 @@ if (currentScene === "ocean") goExitOcean();
         placePlayer(_pkStand.tx, _pkStand.ty, _pkStand.face);
         var _pkOk = tryPeakDoors();
         ok("spacePeakCaveAdjacent", !!_pkOk && currentScene === "caveclimb", "ok=" + _pkOk + " scene=" + currentScene);
+      }
+
+      /* 20260905ga: Space talks adjacent bridge + boat (facing away). */
+      applyScene("overworld");
+      closeDialogue();
+      found.bridgeFixed = false;
+      var _br = null, _bi;
+      for (_bi = 0; _bi < PROPS.length; _bi++) {
+        if (PROPS[_bi] && PROPS[_bi].kind === "brokenBridge") { _br = PROPS[_bi]; break; }
+      }
+      ok("spaceBridgeFound", !!_br, "bridge");
+      if (_br) {
+        var _brStand = null;
+        if (walkable(_br.tx + 2, _br.ty + 3)) _brStand = { tx: _br.tx + 2, ty: _br.ty + 3, face: "down" };
+        else if (walkable(_br.tx + 2, _br.ty - 1)) _brStand = { tx: _br.tx + 2, ty: _br.ty - 1, face: "up" };
+        else if (walkable(_br.tx - 1, _br.ty + 1)) _brStand = { tx: _br.tx - 1, ty: _br.ty + 1, face: "right" };
+        else if (walkable(_br.tx + 5, _br.ty + 1)) _brStand = { tx: _br.tx + 5, ty: _br.ty + 1, face: "left" };
+        ok("spaceBridgeAdjStand", !!_brStand, "stand");
+        if (_brStand) {
+          placePlayer(_brStand.tx, _brStand.ty, _brStand.face);
+          var _brOk = tryTalkAdjacent();
+          ok("spaceBridgeAdjacent", !!_brOk && !!(dialogue && dialogue.title), "ok=" + _brOk + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
+      }
+      applyScene("ocean");
+      onBoat = false;
+      closeDialogue();
+      var _boat = findRowboat();
+      if (_boat) {
+        _boat.hidden = false;
+        _boat.aboard = false;
+      }
+      ok("spaceBoatFound", !!_boat, "boat");
+      if (_boat) {
+        var _boStand = null;
+        if (walkable(_boat.tx, _boat.ty - 1)) _boStand = { tx: _boat.tx, ty: _boat.ty - 1, face: "up" };
+        else if (walkable(_boat.tx + 1, _boat.ty - 1)) _boStand = { tx: _boat.tx + 1, ty: _boat.ty - 1, face: "up" };
+        else if (walkable(_boat.tx - 1, _boat.ty)) _boStand = { tx: _boat.tx - 1, ty: _boat.ty, face: "right" };
+        else if (walkable(_boat.tx + 3, _boat.ty)) _boStand = { tx: _boat.tx + 3, ty: _boat.ty, face: "left" };
+        ok("spaceBoatAdjStand", !!_boStand, "stand");
+        if (_boStand) {
+          placePlayer(_boStand.tx, _boStand.ty, _boStand.face);
+          var _boOk = tryTalkAdjacent();
+          ok("spaceBoatAdjacent", !!_boOk && !!(dialogue && dialogue.title), "ok=" + _boOk + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
       }
 
       /* 20260905fy: Space enters TREE from forest door (not TREETOP) + climbs UP. */
