@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ax";
+  var BUILD = "20260905ay";
   var ASSET_REV = "437639";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6296,6 +6296,72 @@
       key === "pick" || key === "diamondPick" || key === "pole" || key === "bow" || key === "leash";
   }
 
+  /* 20260905ay — weapons for the one-at-a-time hotbar rule.
+     Counts as a weapon: sword (cave / iron — tray key stays "sword";
+     ironSwordOwned only changes art + damage), bow.
+     NOT weapons (tools may share the tray freely): axe, pick, diamondPick,
+     shovel, pole (fishing), hat, leash, seeds/kits. */
+  function isWeaponKey(key) {
+    return key === "sword" || key === "bow";
+  }
+
+  function parkRecInBag(rec) {
+    var empty, i, out;
+    if (!rec || !rec.key) return;
+    out = isToolKey(rec.key)
+      ? { key: rec.key, count: 1 }
+      : { key: rec.key, count: (rec.count | 0) < 1 ? 1 : (rec.count | 0) };
+    empty = firstEmptyBag();
+    if (empty >= 0) {
+      bagCells[empty] = out;
+      return;
+    }
+    for (i = BAG_CELLS - 1; i >= 0; i--) {
+      if (bagCells[i] && !isToolKey(bagCells[i].key)) {
+        bagCells[i] = out;
+        return;
+      }
+    }
+    bagCells[BAG_CELLS - 1] = out;
+  }
+
+  /* Keep at most one weapon in the 10-tray. preferKey wins when present;
+     otherwise the first weapon found stays. Extra weapons go to the bag
+     (swap). Does not run mid setPocket swap — call after a full tray write. */
+  function enforceOneWeaponInTray(preferKey) {
+    var i, c, keep, keepIdx;
+    keep = null;
+    keepIdx = -1;
+    if (preferKey && isWeaponKey(preferKey)) {
+      for (i = 0; i < TRAY_CELLS; i++) {
+        c = trayCells[i];
+        if (c && c.key === preferKey) {
+          keep = preferKey;
+          keepIdx = i;
+          break;
+        }
+      }
+    }
+    if (keep == null) {
+      for (i = 0; i < TRAY_CELLS; i++) {
+        c = trayCells[i];
+        if (c && isWeaponKey(c.key)) {
+          keep = c.key;
+          keepIdx = i;
+          break;
+        }
+      }
+    }
+    if (keep == null) return;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      c = trayCells[i];
+      if (!c || !isWeaponKey(c.key)) continue;
+      if (c.key === keep && i === keepIdx) continue;
+      trayCells[i] = null;
+      if (c.key !== keep) parkRecInBag(c);
+    }
+  }
+
   function isStackKey(key) {
     return !!stackKey(key);
   }
@@ -8525,9 +8591,12 @@
 
   function placeToolInTrayFirst(key) {
     var idx, i, c, bagIdx, swapIdx, empty;
+    function done() {
+      if (isWeaponKey(key)) enforceOneWeaponInTray(key);
+    }
     if (!key) return;
     for (i = 0; i < TRAY_CELLS; i++) {
-      if (trayCells[i] && trayCells[i].key === key) return;
+      if (trayCells[i] && trayCells[i].key === key) { done(); return; }
     }
     bagIdx = -1;
     for (i = 0; i < BAG_CELLS; i++) {
@@ -8540,7 +8609,7 @@
       if (idx >= 0) {
         trayCells[idx] = { key: c.key, count: c.count | 0 };
         bagCells[bagIdx] = null;
-        return;
+        done(); return;
       }
       /* Tray full: swap a non-tool stack out (prefer end of tray). */
       swapIdx = -1;
@@ -8557,12 +8626,12 @@
         bagCells[bagIdx] = { key: trayCells[swapIdx].key, count: trayCells[swapIdx].count | 0 };
         trayCells[swapIdx] = { key: c.key, count: c.count | 0 };
       }
-      return;
+      done(); return;
     }
     idx = firstEmptyTray();
     if (idx >= 0) {
       trayCells[idx] = { key: key, count: 1 };
-      return;
+      done(); return;
     }
     /* Not in bag/tray: create in tray via non-tool swap if possible. */
     swapIdx = -1;
@@ -8574,7 +8643,7 @@
       if (empty >= 0) {
         bagCells[empty] = { key: trayCells[swapIdx].key, count: trayCells[swapIdx].count | 0 };
         trayCells[swapIdx] = { key: key, count: 1 };
-        return;
+        done(); return;
       }
       /* Bag full too: merge displaced stack into an existing bag pile, else swap with a bag cell. */
       c = trayCells[swapIdx];
@@ -8582,14 +8651,14 @@
         if (bagCells[i] && bagCells[i].key === c.key && !isToolKey(c.key)) {
           bagCells[i].count = (bagCells[i].count | 0) + (c.count | 0);
           trayCells[swapIdx] = { key: key, count: 1 };
-          return;
+          done(); return;
         }
       }
       for (i = BAG_CELLS - 1; i >= 0; i--) {
         if (bagCells[i] && !isToolKey(bagCells[i].key)) {
           bagCells[i] = { key: c.key, count: c.count | 0 };
           trayCells[swapIdx] = { key: key, count: 1 };
-          return;
+          done(); return;
         }
       }
     }
@@ -8683,6 +8752,8 @@
       }
     }
     trayCells[0] = { key: "sword", count: 1 };
+    /* Cave sword hard-pin wins: bow (or any other weapon) leaves the tray. */
+    enforceOneWeaponInTray("sword");
     selectedSlot = 0;
     syncBagCounts();
   }
@@ -16402,7 +16473,7 @@
   }
 
   function stashBagHeld() {
-    var i;
+    var i, stashPrefer;
     if (!bagHeld) return;
     if (bagHeldFrom && !pocketAt(bagHeldFrom.place, bagHeldFrom.i)) {
       setPocket(bagHeldFrom.place, bagHeldFrom.i, bagHeld);
@@ -16415,8 +16486,10 @@
         else if (bagHeldFrom) setPocket(bagHeldFrom.place, bagHeldFrom.i, bagHeld);
       }
     }
+    stashPrefer = (bagHeld && isWeaponKey(bagHeld.key)) ? bagHeld.key : null;
     bagHeld = null;
     bagHeldFrom = null;
+    enforceOneWeaponInTray(stashPrefer);
     syncBagCounts();
   }
 
@@ -16468,10 +16541,18 @@
   }
 
   function tapPocket(place, idx) {
-    var rec, heldSnap, targetSnap, max, fromPlace, fromIdx, empty, room, take, cap;
+    var rec, heldSnap, targetSnap, max, fromPlace, fromIdx, empty, room, take, cap, preferWeapon;
     max = place === "tray" ? TRAY_CELLS : BAG_CELLS;
     if (idx < 0 || idx >= max) return;
     rec = pocketAt(place, idx);
+    preferWeapon = null;
+    if (bagHeld && place === "tray" && isWeaponKey(bagHeld.key)) preferWeapon = bagHeld.key;
+    function finishPocketDrop() {
+      /* One weapon in the 10-tray: newly dropped weapon wins; else first stays. */
+      enforceOneWeaponInTray(preferWeapon);
+      syncBagCounts();
+      playSfx("ui");
+    }
     if (bagHeld) {
       fromPlace = bagHeldFrom ? bagHeldFrom.place : null;
       fromIdx = bagHeldFrom ? (bagHeldFrom.i | 0) : -1;
@@ -16480,8 +16561,7 @@
         setPocket(place, idx, bagHeld);
         bagHeld = null;
         bagHeldFrom = null;
-        syncBagCounts();
-        playSfx("ui");
+        finishPocketDrop();
         return;
       }
       /* Same stackable key → merge into the target (leftover stays held). */
@@ -16496,8 +16576,7 @@
             bagHeld = null;
             bagHeldFrom = null;
           }
-          syncBagCounts();
-          playSfx("ui");
+          finishPocketDrop();
           return;
         }
       }
@@ -16505,8 +16584,7 @@
         setPocket(place, idx, bagHeld);
         bagHeld = null;
         bagHeldFrom = null;
-        syncBagCounts();
-        playSfx("ui");
+        finishPocketDrop();
         return;
       }
       /* Atomic index swap: snapshot held + target first, then write both cells.
@@ -16514,16 +16592,14 @@
       heldSnap = pocketCopy(bagHeld);
       targetSnap = pocketCopy(rec);
       if (!heldSnap) {
-        syncBagCounts();
-        playSfx("ui");
+        finishPocketDrop();
         return;
       }
       if (!targetSnap) {
         setPocket(place, idx, heldSnap);
         bagHeld = null;
         bagHeldFrom = null;
-        syncBagCounts();
-        playSfx("ui");
+        finishPocketDrop();
         return;
       }
       setPocket(place, idx, heldSnap);
@@ -16550,8 +16626,7 @@
           }
         }
       }
-      syncBagCounts();
-      playSfx("ui");
+      finishPocketDrop();
       return;
     }
     if (!rec) {
@@ -18565,6 +18640,8 @@ if (currentScene === "ocean") goExitOcean();
       swordEquipped: swordEquipped,
       setSwordOwned: function (v) { swordOwned = !!v; },
       forceSwordIntoTray: forceSwordIntoTray,
+      enforceOneWeaponInTray: enforceOneWeaponInTray,
+      isWeaponKey: isWeaponKey,
       ensureCaveSword: ensureCaveSword,
       getSwordOwned: function () { return !!swordOwned; },
       openBag: openBag,
@@ -18603,7 +18680,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ax", BUILD);
+      ok("BUILD", BUILD === "20260905ay", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -18690,6 +18767,27 @@ if (currentScene === "ocean") goExitOcean();
       ok("ensureClaimsSword", !!swordOwned, "swordOwned=" + swordOwned);
       ok("ensurePinsTray0", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
       ok("ensureRemovesPedestal", !PROPS.some(function (p) { return p && p.kind === "swordPedestal"; }), "");
+      /* 20260905ay: at most one weapon in the 10-tray (sword + bow). */
+      bowOwned = true;
+      trayCells[0] = { key: "sword", count: 1 };
+      trayCells[1] = { key: "bow", count: 1 };
+      trayCells[2] = { key: "axe", count: 1 };
+      enforceOneWeaponInTray("bow");
+      ok("oneWeaponKeepsBow", !!(trayCells[1] && trayCells[1].key === "bow"), trayCells[1] && trayCells[1].key);
+      ok("oneWeaponDropsSword", !(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      ok("oneWeaponKeepsAxe", !!(trayCells[2] && trayCells[2].key === "axe"), trayCells[2] && trayCells[2].key);
+      var bagBowOrSword = 0, bj;
+      for (bj = 0; bj < BAG_CELLS; bj++) {
+        if (bagCells[bj] && (bagCells[bj].key === "sword" || bagCells[bj].key === "bow")) bagBowOrSword++;
+      }
+      ok("oneWeaponParkedPrior", bagBowOrSword >= 1, "parked=" + bagBowOrSword);
+      forceSwordIntoTray();
+      ok("forceSwordEvictsBow", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      var trayBow = false;
+      for (bj = 0; bj < TRAY_CELLS; bj++) {
+        if (trayCells[bj] && trayCells[bj].key === "bow") { trayBow = true; break; }
+      }
+      ok("forceSwordNoTrayBow", !trayBow, trayBow ? "bow still in tray" : "");
     } catch (e) {
       fail++;
       log.push("FAIL exception — " + (e && e.message ? e.message : e));
