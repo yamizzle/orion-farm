@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gd";
+  var BUILD = "20260905ge";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -17665,6 +17665,36 @@
     return false;
   }
 
+  /* 20260905ge: Space/J/E pick adjacent collectible / ground loot (facing-only left
+     side silent; tap already goCollect / goCollectLootAt'd; underfoot/facing Space
+     existed via tryPickupHere / tryPickupFacing). */
+  function tryPickupAdjacent() {
+    var i, p, spots, s, before;
+    if (uiPaused() || faintFx) return false;
+    spots = [
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      s = spots[i];
+      if (lootAtTile(s.tx, s.ty).length) {
+        if (collectLootAt(s.tx, s.ty)) return true;
+      }
+    }
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || !isCollectible(p)) continue;
+      if (!(isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty))) continue;
+      before = PROPS.indexOf(p);
+      pickupCollectible(p);
+      /* Skip already-taken unique finds (pickupCollectible no-ops; do not eat Space). */
+      if (before >= 0 && PROPS.indexOf(p) < 0) return true;
+    }
+    return false;
+  }
+
   function goCollect(prop) {
     if (!isCollectible(prop)) return;
     if (prop.kind === "gem" && found.gem) return;
@@ -23752,6 +23782,8 @@ if (currentScene === "ocean") goExitOcean();
       if (tryPickupFacing()) return;
       /* 20260905gc: Space pick adjacent berry bush (facing Space existed; side-of-bush silent). */
       if (tryPickBerryAdjacent()) return;
+      /* 20260905ge: Space pick adjacent collectible / ground loot (facing Space existed; side silent). */
+      if (tryPickupAdjacent()) return;
       /* 20260905fo: Space pick flower before smash/talk so facing wildflower is not a no-op. */
       if (tryPickPlantFacing()) return;
       /* 20260905fp: Space cut tall grass / weed (tap already goCutGrass'd). */
@@ -23974,6 +24006,7 @@ if (currentScene === "ocean") goExitOcean();
       tryPickupHere: tryPickupHere,
       tryPickupFacing: tryPickupFacing,
       tryPickBerryAdjacent: tryPickBerryAdjacent,
+      tryPickupAdjacent: tryPickupAdjacent,
       goCollectLootAt: goCollectLootAt,
       tileBlockedForRespawn: tileBlockedForRespawn,
       updateHarvestNodes: updateHarvestNodes,
@@ -24236,7 +24269,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gd", BUILD);
+      ok("BUILD", BUILD === "20260905ge", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25293,6 +25326,58 @@ if (currentScene === "ocean") goExitOcean();
           var _pksOk = tryPeakDoors();
           ok("spacePeakSignAdjacent", !!_pksOk && currentScene === "caveclimb", "ok=" + _pksOk + " scene=" + currentScene);
         }
+      }
+
+      /* 20260905ge: Space picks adjacent collectible / ground loot (facing away). */
+      applyScene("forest");
+      closeDialogue();
+      groundLoot.length = 0;
+      var _col = null, _ci;
+      for (_ci = 0; _ci < PROPS.length; _ci++) {
+        if (PROPS[_ci] && PROPS[_ci].kind === "toadstool" && isCollectible(PROPS[_ci])) { _col = PROPS[_ci]; break; }
+      }
+      if (!_col) {
+        for (_ci = 0; _ci < PROPS.length; _ci++) {
+          if (PROPS[_ci] && isCollectible(PROPS[_ci])) { _col = PROPS[_ci]; break; }
+        }
+      }
+      ok("spaceCollectFound", !!_col, "prop");
+      if (_col) {
+        var _colStand = null;
+        if (walkable(_col.tx, _col.ty + 1)) _colStand = { tx: _col.tx, ty: _col.ty + 1, face: "down" };
+        else if (walkable(_col.tx + 1, _col.ty)) _colStand = { tx: _col.tx + 1, ty: _col.ty, face: "left" };
+        else if (walkable(_col.tx - 1, _col.ty)) _colStand = { tx: _col.tx - 1, ty: _col.ty, face: "right" };
+        else if (walkable(_col.tx, _col.ty - 1)) _colStand = { tx: _col.tx, ty: _col.ty - 1, face: "up" };
+        ok("spaceCollectAdjStand", !!_colStand, "stand");
+        if (_colStand) {
+          /* Clear neighbor loot so Space hits the prop, not a leftover pile. */
+          groundLoot.length = 0;
+          placePlayer(_colStand.tx, _colStand.ty, _colStand.face);
+          var _colBefore = PROPS.indexOf(_col) >= 0;
+          var _colOk = tryPickupAdjacent();
+          var _colGone = PROPS.indexOf(_col) < 0;
+          ok("spaceCollectAdjacent", !!_colOk && _colBefore && _colGone, "ok=" + _colOk + " before=" + _colBefore + " gone=" + _colGone + " kind=" + (_col.kind || ""));
+        }
+      }
+      applyScene("overworld");
+      closeDialogue();
+      var _lx = player.tx + 1, _ly = player.ty;
+      if (!walkable(_lx, _ly)) { _lx = player.tx - 1; _ly = player.ty; }
+      if (!walkable(_lx, _ly)) { _lx = player.tx; _ly = player.ty + 1; }
+      if (!walkable(_lx, _ly)) { _lx = player.tx; _ly = player.ty - 1; }
+      ok("spaceLootAdjTile", walkable(_lx, _ly), "tile");
+      if (walkable(_lx, _ly)) {
+        spawnGroundLoot("stone", _lx, _ly, 1);
+        var _lootBefore = lootAtTile(_lx, _ly).length;
+        placePlayer(player.tx, player.ty, "down");
+        /* Face away from loot tile */
+        if (_lx > player.tx) player.face = "left";
+        else if (_lx < player.tx) player.face = "right";
+        else if (_ly > player.ty) player.face = "up";
+        else player.face = "down";
+        var _lootOk = tryPickupAdjacent();
+        var _lootAfter = lootAtTile(_lx, _ly).length;
+        ok("spaceLootAdjacent", !!_lootOk && _lootBefore > 0 && _lootAfter === 0, "ok=" + _lootOk + " before=" + _lootBefore + " after=" + _lootAfter);
       }
 
       /* 20260905fy: Space enters TREE from forest door (not TREETOP) + climbs UP. */

@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ge): Space collectible / loot adjacent — standing next to a mushroom / copper / moonshard / diamond pick / toadstool / ground loot pile (facing away), Space / J / E finally picks it (tap already goCollect / goCollectLootAt'd; underfoot/facing Space existed; adjacent-not-facing was a silent no-op like pre-05gc berry). Never START OVER.
+
 Local 9/6 (BUILD 20260905gd): Space peakSign adjacent — standing on or next to the MINE 6 / peak PEAK SIGN (facing away), Space / J / E finally climbs (tap already goMinePeakStairs / goPeakCave'd; cave/stairs ortho existed; sign tile is diagonal from mine stairs and south-of-mouth on peak so Space was a silent no-op). Never START OVER.
 
 Local 9/6 (BUILD 20260905gc): Space berry bush adjacent — standing next to a berry bush (facing away), Space / J / E finally picks it (tap already goPickBerry'd; facing Space existed via tryPickupFacing / trySmashFacing; adjacent-not-facing was a silent no-op like pre-05gb nest). Never START OVER.
