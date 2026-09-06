@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hq";
+  var BUILD = "20260905hr";
   var ASSET_REV = "464870";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -26100,7 +26100,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hq", BUILD);
+      ok("BUILD", BUILD === "20260905hr", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26820,17 +26820,23 @@ if (currentScene === "ocean") goExitOcean();
       emptyBag();
       trayCells[0] = { key: "flower", count: 2 };
       selectedSlot = 0;
-      /* Stand on grass; plant underfoot via facing helper fallback. */
-      placePlayer(20, 28, "down");
-      _ch = cell(20, 28);
-      ok("spaceFlowerGrass", _ch === "g" || _ch === "m", "ch=" + _ch);
-      if (_ch === "g" || _ch === "m") {
-        /* Clear any prop on tile so plant can land. */
-        var _pi, _pr;
-        for (_pi = PROPS.length - 1; _pi >= 0; _pi--) {
-          _pr = PROPS[_pi];
-          if (_pr && _pr.tx === 20 && _pr.ty === 28) PROPS.splice(_pi, 1);
+      /* Stand on open grass (not the well at 20,28 — 05hr: that splice
+         poisoned overworld sceneCache and made wellExists fail later). */
+      var _fgx = -1, _fgy = -1, _fgx2, _fgy2, _fgch;
+      for (_fgy2 = 30; _fgy2 < 40 && _fgx < 0; _fgy2++) {
+        for (_fgx2 = 5; _fgx2 < 25; _fgx2++) {
+          _fgch = cell(_fgx2, _fgy2);
+          if (_fgch !== "g" && _fgch !== "m") continue;
+          if (propAt(_fgx2, _fgy2)) continue;
+          if (_fgx2 === 20 && _fgy2 === 28) continue;
+          _fgx = _fgx2; _fgy = _fgy2; break;
         }
+      }
+      if (_fgx < 0) { _fgx = 18; _fgy = 32; }
+      placePlayer(_fgx, _fgy, "down");
+      _ch = cell(_fgx, _fgy);
+      ok("spaceFlowerGrass", _ch === "g" || _ch === "m", "ch=" + _ch + "@" + _fgx + "," + _fgy);
+      if (_ch === "g" || _ch === "m") {
         ok("spacePlantFlower", !!tryPlantFlowerFacing() && bagCount("flower") === 1, "n=" + bagCount("flower"));
       }
       emptyTray();
@@ -27716,7 +27722,12 @@ if (currentScene === "ocean") goExitOcean();
         ok("spaceDigAdjacent", !!_dgOk && farmDugAt(_dg.tx, _dg.ty), "ok=" + _dgOk + " dug=" + farmDugAt(_dg.tx, _dg.ty) + " face=" + _dgStand.face);
         ok("spaceDigTillsDirt", cell(_dg.tx, _dg.ty) === "p", "cell=" + cell(_dg.tx, _dg.ty));
       }
-      /* 20260905hi: plain farm grass (not a mound) tills to plantable dirt via Space. */
+      /* 20260905hi: plain farm grass (not a mound) tills to plantable dirt via Space.
+         20260905hr: clear leftover swing from spaceDigAdjacent — kids wait for
+         the shovel anim; same-frame re-dig is not a gameplay path. */
+      player.swing = 0;
+      player.hitting = null;
+      selectedSlot = 0;
       var _tgx = -1, _tgy = -1, _tsx, _tsy, _tgStand = null;
       for (_tsy = 0; _tsy < ROWS && _tgx < 0; _tsy++) {
         for (_tsx = 0; _tsx < COLS; _tsx++) {
@@ -27730,6 +27741,7 @@ if (currentScene === "ocean") goExitOcean();
       ok("grassTillFound", _tgx >= 0, "g");
       if (_tgx >= 0 && _tgStand) {
         placePlayer(_tgStand.tx, _tgStand.ty, _tgStand.face);
+        player.swing = 0;
         var _tgOk = tryDigAdjacent();
         ok("grassTillDirt", !!_tgOk && cell(_tgx, _tgy) === "p" && farmDugAt(_tgx, _tgy),
           "ok=" + _tgOk + " cell=" + cell(_tgx, _tgy) + " dug=" + farmDugAt(_tgx, _tgy));
@@ -28097,14 +28109,26 @@ if (currentScene === "ocean") goExitOcean();
       ok("fernNotPickPlant", !isPickablePlant({ kind: "fern" }), "");
       applyScene("forest");
       buildSolid();
+      closeDialogue();
+      toast = null;
+      doorFade = null;
       var _fern = { kind: "fern", tx: 6, ty: 10 };
+      /* Prefer a clear facing tile if 6,10 is already occupied. */
+      if (propAt(6, 10)) {
+        _fern.tx = 5; _fern.ty = 10;
+        if (propAt(_fern.tx, _fern.ty)) { _fern.tx = 7; _fern.ty = 12; }
+      }
       PROPS.push(_fern);
       buildSolid();
-      placePlayer(6, 11, "up");
-      ok("fernSpaceCut", !!tryCutGrassFacing() && !propAt(6, 10), "prop=" + !!(propAt(6, 10)));
+      placePlayer(_fern.tx, _fern.ty + 1, "up");
+      ok("fernSpaceCut", !!tryCutGrassFacing() && !propAt(_fern.tx, _fern.ty), "prop=" + !!(propAt(_fern.tx, _fern.ty)));
       /* 20260905hb: farm well Space splash (tap goWell; was silent). */
       applyScene("overworld");
       buildSolid();
+      closeDialogue();
+      toast = null;
+      doorFade = null;
+      if (!findWell()) PROPS.push({ kind: "well", tx: 20, ty: 28 });
       var _well = findWell();
       ok("wellExists", !!_well, "");
       if (_well) {
@@ -28133,8 +28157,13 @@ if (currentScene === "ocean") goExitOcean();
         applyScene("overworld");
       }
 
-      /* 20260905hd: Space sit adjacent chair (tap goChair; was silent solid). */
+      /* 20260905hd: Space sit adjacent chair (tap goChair; was silent solid).
+         20260905hr: clear shopSign doorFade / dialogue so uiPaused does not block. */
       applyScene("house");
+      closeDialogue();
+      toast = null;
+      doorFade = null;
+      sleepFx = null;
       chairSitCool = 0;
       var _ch = null, _chi, _en0;
       for (_chi = 0; _chi < PROPS.length; _chi++) {

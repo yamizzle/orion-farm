@@ -78,7 +78,7 @@ Status column: **KEEP** = still required in new builds.
 
 | Invariant | BUILD | Status |
 | --- | --- | --- |
-| **Shovel tills farm grass** into plantable dirt again; mounds still loot; far plain-grass taps WALK (no whole-farm dig-steal); `farmHole` persists as dirt | 20260905hi | KEEP |
+| **Shovel tills farm grass** into plantable dirt again; mounds still loot; far plain-grass taps WALK (no whole-farm dig-steal); `farmHole` persists as dirt (05hr autotest clears swing so KEEP stays green) | 20260905hi + 20260905hr | KEEP |
 | **Chicken scoot** on walk/tap/Space (penned hens hop ≤2) | 20260904g + 20260905bu + 05gw | KEEP |
 | **Palm axe-chop** finishes to stump + wood (and coconut eat path) | 20260905bu + 05gz | KEEP |
 | Reed car beep / kick-cart / Jobs kept at the smaller draw size | 20260905hi | KEEP |
@@ -123,4 +123,4 @@ Do not re-open that wave item-by-item unless a specific interaction goes silent 
 
 ---
 
-*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05hq) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*
+*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05hr) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*
