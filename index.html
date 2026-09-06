@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bu";
+  var BUILD = "20260905bv";
   var ASSET_REV = "452632";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -5243,8 +5243,10 @@
     fill(g, x + 1, y + 8, 14, 5, "#6D4427");
     fill(g, x + 2, y + 7, 12, 4, "#8B5A28");
     fill(g, x + 3, y + 9, 10, 3, "#5A3A18");
-    fill(g, x + 4, y + 8, 3, 2, "#F3D2A3");
-    fill(g, x + 8, y + 8, 3, 2, "#E8C84A");
+    /* TREE 1: three eggs stay (no pickup) */
+    fill(g, x + 3, y + 8, 3, 2, "#F3D2A3");
+    fill(g, x + 7, y + 8, 3, 2, "#E8C84A");
+    fill(g, x + 11, y + 8, 3, 2, "#F0C878");
   }
 
   function drawGiantBird(g, x, y) {
@@ -6013,7 +6015,7 @@
   }
 
   function nearProp(prop) {
-    var x, y;
+    var x, y, dx, dy;
     if (!prop || prop.hidden) return false;
     if (isNear(player.tx, player.ty, prop.tx, prop.ty) || (player.tx === prop.tx && player.ty === prop.ty)) return true;
     if (prop.kind === "log" && (isNear(player.tx, player.ty, prop.tx + 1, prop.ty) || (player.tx === prop.tx + 1 && player.ty === prop.ty))) return true;
@@ -6022,6 +6024,16 @@
         for (x = 0; x < 3; x++) {
           if (isNear(player.tx, player.ty, prop.tx + x, prop.ty + y) ||
               (player.tx === prop.tx + x && player.ty === prop.ty + y)) return true;
+        }
+      }
+    }
+    /* 20260905bv: giant bird / canopy nest — kid can talk from the big sprite footprint */
+    if (prop.kind === "giantBird" || (prop.kind === "nest" && currentScene === "treetop")) {
+      for (dy = -2; dy <= 1; dy++) {
+        for (dx = -2; dx <= 2; dx++) {
+          if (!dx && !dy) continue;
+          if (isNear(player.tx, player.ty, prop.tx + dx, prop.ty + dy) ||
+              (player.tx === prop.tx + dx && player.ty === prop.ty + dy)) return true;
         }
       }
     }
@@ -10791,6 +10803,9 @@
     if (!lilaDone) return "PLANT FLOWERS WITH LILA";
     if (!pipDone) return "BRING COPPER TO PIP";
     if (!reedDone) return "HELP REED'S CAR";
+    /* 20260905bv: nest bird cozy loop */
+    if (found.birdArrived && !found.birdNestFixed) return "BRING 10 WOOD TO THE NEST BIRD";
+    if (found.birdNestFixed && !unlocked.birdRideTip) return "ASK THE BIRD FOR A RIDE";
     if (!found.peakLight) return "THE PEAK LIGHT WAITS.";
     if (!festivalOn && threeLightsOn()) return "A SHY GLOW WAITS AT NIGHT.";
     if (festivalOn) return "MOONDROP NIGHT SHINES.";
@@ -11344,7 +11359,8 @@
     { id: "home", label: "HOME" },
     { id: "town", label: "TOWN" },
     { id: "cave", label: "CAVE" },
-    { id: "peak", label: "PEAK" }
+    { id: "peak", label: "PEAK" },
+    { id: "stay", label: "STAY" }
   ];
 
   function findEggNest() {
@@ -11425,7 +11441,9 @@
         found.birdNestFixed = true;
         persistSave();
         unlockAch("birdStar");
-        openDialogue("BIRD", ["THANK YOU.", "THE NEST IS SAFE.", "A STAR FOR YOU."]);
+        showLineNote("GAVE 10 WOOD!");
+        /* 20260905bv: thank-you + star toast + ride picks in one cozy talk */
+        openDialogue("BIRD", ["THANK YOU.", "THE NEST IS SAFE.", "WANT A RIDE?"], BIRD_STOPS);
         return;
       }
       openDialogue("BIRD", ["MY NEST NEEDS", "10 WOOD PLEASE."]);
@@ -11467,24 +11485,41 @@
 
   function finishBirdRide() {
     var stop = birdRideFx ? birdRideFx.stop : "";
+    var note = "";
     birdRideFx = null;
+    if (stop === "stay" || !stop) {
+      ensureGiantBirdLanded();
+      return;
+    }
     if (stop === "tree") {
       applyScene("forest");
       placePlayer(giantTreeLand.tx, giantTreeLand.ty, "up");
+      note = "LANDED BY THE BIG TREE.";
     } else if (stop === "home") {
       applyScene("overworld");
       placePlayer(houseIn.tx, houseIn.ty + 1, "up");
+      note = "LANDED AT HOME.";
     } else if (stop === "town") {
       applyScene("overworld");
       placePlayer(43, 27, "up");
+      note = "LANDED IN TOWN.";
     } else if (stop === "cave") {
       applyScene("overworld");
       placePlayer(portalIn.tx, portalIn.ty + 1, "up");
+      note = "LANDED BY THE MINE.";
     } else if (stop === "peak") {
       applyScene("peak");
       placePlayer(peakLand.tx, peakLand.ty, "up");
+      note = "LANDED ON THE PEAK.";
+    } else {
+      ensureGiantBirdLanded();
+      return;
+    }
+    if (!unlocked.birdRideTip) {
+      unlocked.birdRideTip = true;
     }
     persistSave();
+    if (note) showLineNote(note);
   }
 
   function updateBirdFx(dt) {
@@ -16854,6 +16889,8 @@
   function closeDialogue() {
     if (!dialogue) return false;
     dialogue = null;
+    /* 20260905bv: nest bird stays on the branch after talk dismiss */
+    if (currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded();
     return true;
   }
 
@@ -16868,18 +16905,20 @@
           dialogue = null;
           if (r.id === "boardBoat") boardBoat();
           else if (r.id === "leaveBoat") leaveBoat();
-          else if (r.id === "boatNope") { /* dismiss */ }
-          else if (r.id) beginBirdRide(r.id);
+          else if (r.id === "boatNope" || r.id === "stay") { if (r.id === "stay" && currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded(); }
+          else if (r.id === "tree" || r.id === "home" || r.id === "town" || r.id === "cave" || r.id === "peak") beginBirdRide(r.id);
           return true;
         }
       }
       if (p.x >= L.closeX && p.x < L.closeX + L.closeW && p.y >= L.closeY && p.y < L.closeY + L.closeH) {
         dialogue = null;
+        if (currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded();
         return true;
       }
       return true;
     }
     dialogue = null;
+    if (currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded();
     return true;
   }
 
@@ -19336,6 +19375,22 @@ if (currentScene === "ocean") goExitOcean();
     else if (e.code && e.code.indexOf("Numpad") === 0) slotN = e.code.charAt(6) | 0;
     else if (e.key && e.key.length === 1 && e.key >= "1" && e.key <= "9") slotN = e.key | 0;
     if (e.code === "Digit0" || e.code === "Numpad0" || e.key === "0") slotN = 10;
+    /* 20260905bv: number keys pick dialogue choices (bird rides / boat) before hotbar */
+    if (!e.repeat && dialogue && dialogue.choices && dialogue.choices.length && slotN >= 1 && slotN <= dialogue.choices.length) {
+      e.preventDefault();
+      (function () {
+        var ch = dialogue.choices[slotN - 1];
+        var id = ch && ch.id;
+        dialogue = null;
+        if (id === "boardBoat") boardBoat();
+        else if (id === "leaveBoat") leaveBoat();
+        else if (id === "boatNope" || id === "stay") {
+          if (currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded();
+        }
+        else if (id === "tree" || id === "home" || id === "town" || id === "cave" || id === "peak") beginBirdRide(id);
+      })();
+      return;
+    }
     if (slotN >= 1 && slotN <= 10) {
       e.preventDefault();
       if (!e.repeat) selectHotbarIndex(slotN - 1);
