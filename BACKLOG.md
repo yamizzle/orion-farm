@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fx): Space scene doors — standing facing or next to the farmhouse / Pip's shop / mine cave / woods door, Space / J / E finally enters (tap already walked-to-enter; cottage/ocean Space existed; these doors were silent no-ops); Space also exits house/shop/forest when facing or next to the OUT mat. Never START OVER.
+
 Local 9/6 (BUILD 20260905fw): Space enter island cave — standing facing or next to the ocean island cave mouth, Space / J / E finally enters (tap already walked-to-enter; boat/beach-exit Space existed; cave mouth Space was a silent no-op); island cave OUT also accepts adjacent Space. Never START OVER.
 
 Local 9/6 (BUILD 20260905fv): Space beep car — standing next to the town car, Space / J / E finally beeps CAR (tap already walked-to-beep; NPC talk Space existed; car Space was a silent no-op). Never START OVER.

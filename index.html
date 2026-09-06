@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fw";
+  var BUILD = "20260905fx";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14292,6 +14292,141 @@
     openDialogue("MAPLE", withHolidayLines("maple", ["HELLO.", "COME AGAIN."]));
   }
 
+  /* 20260905fx: Space/J/E house / Pip shop / mine / forest doors (tap already
+     goEnter*'d; cottage/ocean Space existed; these scene doors were silent no-ops).
+     Enter/exit immediately when facing or orthogonally adjacent — go* walks first. */
+  function trySceneDoors() {
+    var f, spots, i, t, p;
+    function orthoSpots() {
+      return [
+        { tx: player.tx - 1, ty: player.ty },
+        { tx: player.tx + 1, ty: player.ty },
+        { tx: player.tx, ty: player.ty - 1 },
+        { tx: player.tx, ty: player.ty + 1 }
+      ];
+    }
+    if (currentScene === "overworld") {
+      if (isHouseEntrance(player.tx, player.ty) || houseDoorHit(player.tx, player.ty, null)) {
+        enterHouse();
+        return true;
+      }
+      if (isShopEntrance(player.tx, player.ty) || shopDoorHit(player.tx, player.ty, null)) {
+        enterShop();
+        return true;
+      }
+      p = propAt(player.tx, player.ty);
+      if (isMineEntrance(player.tx, player.ty) || caveAt(player.tx, player.ty) || (p && p.kind === "mineSign")) {
+        enterMine();
+        return true;
+      }
+      if (isForestEntrance(player.tx, player.ty) || (p && p.kind === "woodsSign")) {
+        enterForest();
+        return true;
+      }
+      f = facingTile();
+      if (houseDoorHit(f.tx, f.ty, null) || isHouseEntrance(f.tx, f.ty)) {
+        enterHouse();
+        return true;
+      }
+      if (shopDoorHit(f.tx, f.ty, null) || isShopEntrance(f.tx, f.ty)) {
+        enterShop();
+        return true;
+      }
+      p = propAt(f.tx, f.ty);
+      if (isMineEntrance(f.tx, f.ty) || caveAt(f.tx, f.ty) || (p && p.kind === "mineSign")) {
+        enterMine();
+        return true;
+      }
+      if (isForestEntrance(f.tx, f.ty) || (p && p.kind === "woodsSign")) {
+        enterForest();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (houseDoorHit(t.tx, t.ty, null) || isHouseEntrance(t.tx, t.ty)) {
+          enterHouse();
+          return true;
+        }
+        if (shopDoorHit(t.tx, t.ty, null) || isShopEntrance(t.tx, t.ty)) {
+          enterShop();
+          return true;
+        }
+        p = propAt(t.tx, t.ty);
+        if (isMineEntrance(t.tx, t.ty) || caveAt(t.tx, t.ty) || (p && p.kind === "mineSign")) {
+          enterMine();
+          return true;
+        }
+        if (isForestEntrance(t.tx, t.ty) || (p && p.kind === "woodsSign")) {
+          enterForest();
+          return true;
+        }
+      }
+      return false;
+    }
+    if (currentScene === "house") {
+      if (isHouseExit(player.tx, player.ty)) {
+        exitHouse();
+        return true;
+      }
+      f = facingTile();
+      if (isHouseExit(f.tx, f.ty)) {
+        exitHouse();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isHouseExit(t.tx, t.ty)) {
+          exitHouse();
+          return true;
+        }
+      }
+      return false;
+    }
+    if (currentScene === "shop") {
+      if (isShopExit(player.tx, player.ty)) {
+        exitShop();
+        return true;
+      }
+      f = facingTile();
+      if (isShopExit(f.tx, f.ty)) {
+        exitShop();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isShopExit(t.tx, t.ty)) {
+          exitShop();
+          return true;
+        }
+      }
+      return false;
+    }
+    if (currentScene === "forest") {
+      if (isForestExit(player.tx, player.ty)) {
+        exitForest();
+        return true;
+      }
+      f = facingTile();
+      if (isForestExit(f.tx, f.ty)) {
+        exitForest();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isForestExit(t.tx, t.ty)) {
+          exitForest();
+          return true;
+        }
+      }
+      return false;
+    }
+    return false;
+  }
+
   function tryCottageDoors() {
     var f;
     if (currentScene === "overworld") {
@@ -23280,6 +23415,8 @@ if (currentScene === "ocean") goExitOcean();
       /* 20260905fw: tryOceanDoors also enters island cave mouth (facing/adjacent). */
       if (tryOceanDoors()) return;
       if (tryCottageDoors()) return;
+      /* 20260905fx: Space house/shop/mine/forest doors (tap already worked). */
+      if (trySceneDoors()) return;
       if (isTreetopEntrance(player.tx, player.ty)) {
         enterTreetop();
         return;
@@ -23781,7 +23918,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fw", BUILD);
+      ok("BUILD", BUILD === "20260905fx", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24518,6 +24655,77 @@ if (currentScene === "ocean") goExitOcean();
         ok("spaceIslandCaveAdjacent", !!_icAdj && currentScene === "islandCave", "ok=" + _icAdj + " scene=" + currentScene);
       } else {
         ok("spaceIslandCaveAdjacent", true, "skip-no-south");
+      }
+
+      /* 20260905fx: Space enters house / shop / forest / mine when facing door. */
+      function _flushDoorFade() {
+        if (doorFade && doorFade.pending && !doorFade.did) {
+          doorFade.did = true;
+          try { doorFade.pending(); } catch (errFade) {}
+          doorFade.pending = null;
+        }
+        doorFade = null;
+      }
+      applyScene("overworld");
+      closeDialogue();
+      var _hStand = null;
+      if (walkable(houseIn.tx, houseIn.ty + 1)) _hStand = { tx: houseIn.tx, ty: houseIn.ty + 1, face: "up" };
+      else if (walkable(houseIn.tx, houseIn.ty)) _hStand = { tx: houseIn.tx, ty: houseIn.ty, face: "up" };
+      ok("spaceHouseStand", !!_hStand, "stand");
+      if (_hStand) {
+        placePlayer(_hStand.tx, _hStand.ty, _hStand.face);
+        var _hOk = trySceneDoors();
+        _flushDoorFade();
+        ok("spaceEnterHouse", !!_hOk && currentScene === "house", "ok=" + _hOk + " scene=" + currentScene);
+      }
+      applyScene("overworld");
+      closeDialogue();
+      var _sStand = null;
+      if (walkable(shopIn.tx, shopIn.ty + 1)) _sStand = { tx: shopIn.tx, ty: shopIn.ty + 1, face: "up" };
+      else if (walkable(shopIn.tx, shopIn.ty)) _sStand = { tx: shopIn.tx, ty: shopIn.ty, face: "up" };
+      ok("spaceShopStand", !!_sStand, "stand");
+      if (_sStand) {
+        placePlayer(_sStand.tx, _sStand.ty, _sStand.face);
+        var _sOk = trySceneDoors();
+        _flushDoorFade();
+        ok("spaceEnterShop", !!_sOk && currentScene === "shop", "ok=" + _sOk + " scene=" + currentScene);
+      }
+      applyScene("overworld");
+      closeDialogue();
+      var _fStand = null;
+      if (walkable(forestIn.tx, forestIn.ty + 1)) _fStand = { tx: forestIn.tx, ty: forestIn.ty + 1, face: "up" };
+      else if (walkable(forestIn.tx + 1, forestIn.ty)) _fStand = { tx: forestIn.tx + 1, ty: forestIn.ty, face: "left" };
+      else if (walkable(forestIn.tx - 1, forestIn.ty)) _fStand = { tx: forestIn.tx - 1, ty: forestIn.ty, face: "right" };
+      ok("spaceForestStand", !!_fStand, "stand");
+      if (_fStand) {
+        placePlayer(_fStand.tx, _fStand.ty, _fStand.face);
+        var _fOk = trySceneDoors();
+        ok("spaceEnterForest", !!_fOk && currentScene === "forest", "ok=" + _fOk + " scene=" + currentScene);
+      }
+      applyScene("overworld");
+      closeDialogue();
+      var _mStand = null;
+      if (walkable(portalIn.tx, portalIn.ty + 1)) _mStand = { tx: portalIn.tx, ty: portalIn.ty + 1, face: "up" };
+      else if (walkable(portalIn.tx + 1, portalIn.ty)) _mStand = { tx: portalIn.tx + 1, ty: portalIn.ty, face: "left" };
+      ok("spaceMineStand", !!_mStand, "stand");
+      if (_mStand) {
+        placePlayer(_mStand.tx, _mStand.ty, _mStand.face);
+        var _mOk = trySceneDoors();
+        _flushDoorFade();
+        ok("spaceEnterMine", !!_mOk && currentScene === "mine", "ok=" + _mOk + " scene=" + currentScene);
+      }
+      /* Space exit house when facing OUT mat. */
+      applyScene("house");
+      closeDialogue();
+      var _hxStand = null;
+      if (walkable(houseOut.tx, houseOut.ty - 1)) _hxStand = { tx: houseOut.tx, ty: houseOut.ty - 1, face: "down" };
+      else if (walkable(houseOut.tx, houseOut.ty + 1)) _hxStand = { tx: houseOut.tx, ty: houseOut.ty + 1, face: "up" };
+      ok("spaceHouseExitStand", !!_hxStand, "stand");
+      if (_hxStand) {
+        placePlayer(_hxStand.tx, _hxStand.ty, _hxStand.face);
+        var _hxOk = trySceneDoors();
+        _flushDoorFade();
+        ok("spaceExitHouse", !!_hxOk && currentScene === "overworld", "ok=" + _hxOk + " scene=" + currentScene);
       }
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
