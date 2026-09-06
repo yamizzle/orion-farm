@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fg";
+  var BUILD = "20260905fh";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14515,6 +14515,10 @@
         return;
       }
       addToBag(item.id, 1);
+      /* 20260905fh: pin + select food — tray-tap eat needs selected snack/apple/etc;
+         tray-full buys left food bag-only (same Pip equip gap as flower/kits/seeds). */
+      placeToolInTrayFirst(item.id);
+      selectTool(item.id);
       if (item.id === "apple") shopMsg = "HEALS ONE HEART.";
       else if (item.id === "pie") shopMsg = "HEALS HEARTS AND ENERGY.";
       else if (item.id === "cookedTrout") shopMsg = "COOKED FISH — HEALS MORE!";
@@ -23412,7 +23416,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fg", BUILD);
+      ok("BUILD", BUILD === "20260905fh", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23705,6 +23709,22 @@ if (currentScene === "ocean") goExitOcean();
       monsters = [_slugSpace];
       ok("poleSpaceGateOpen", !canSwordSwing(), "canSwing should be false with pole outdoors");
       ok("poleSpaceStrike", !!tryStrikeAction() && _slugSpace.hp < _slugSpace.maxHp, "hp=" + _slugSpace.hp + "/" + _slugSpace.maxHp);
+
+      /* 20260905fh: honey bun / apple buy pins + selects (tray-tap eat). */
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      gold = 100;
+      syncBagCounts();
+      buyShopItem({ id: "snack", name: "HONEY BUN", price: 6, icon: "honeybun" });
+      ok("snackPinnedSelected", selectedIs("snack") && bagCount("snack") >= 1, "sel=" + selectedKey());
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      gold = 100;
+      syncBagCounts();
+      buyShopItem({ id: "apple", name: "APPLE", price: 4, icon: "apple" });
+      ok("applePinnedSelected", selectedIs("apple") && bagCount("apple") >= 1, "sel=" + selectedKey());
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
       swordOwned = true;

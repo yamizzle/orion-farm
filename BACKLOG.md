@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fh): Pip food buy equips — honey bun / apple / bread / pie / cooked trout buys pin into the tray and select (was bag-only when the tray was full of tools; tray-tap eat never armed). Never START OVER.
+
 Local 9/6 (BUILD 20260905fg): Space pole-foe key path — Space / J / E finally call tryStrikeAction even when canSwordSwing is false outdoors, so pole/hat/axe/seed adjacent foes chip (05ff put the fallback inside tryStrike but the key still gated on sword/bow/mine; tap + direct autotest already worked). Never START OVER.
 
 Local 9/6 (BUILD 20260905ff): Pip seed/flower buy equips + Space pole-foe — potato/berry seed buys select the seed (was pin-only so TAP DIRT never armed); flower buy pins + selects (tray-full left it bag-only); Space with pole/hat/axe selected finally chips an adjacent outdoor foe (tap worked in 05fd; Space still no-op'd). Never START OVER.
