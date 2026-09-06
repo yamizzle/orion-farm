@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bd";
+  var BUILD = "20260905be";
   var ASSET_REV = "441506";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -448,7 +448,7 @@
   var LOOT_POP_MS = 280;
   var selectedSlot = 0;
   var fenceBuildOn = false;
-  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, leash: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, cookedMinnow: 0, cookedBluegill: 0, cookedPerch: 0, cookedCatfish: 0, cookedTrout: 0, cookedBass: 0, cookedGoldenCarp: 0, cookedMoonfish: 0, cookedStarfin: 0, cookedGoldenSwordfish: 0, leash: 0 };
   var BAG_CELLS = 90;
   var TRAY_CELLS = 10;
   var BAG_COLS = 15;
@@ -515,17 +515,18 @@
   var ENERGY_CAST = 2;
   var FISH_MISS = 0.28;
   var FISH_KINDS = [
-    { id: "minnow", name: "MINNOW", weight: 19, slot: SLOT_MINNOW, hue: "silver" },
-    { id: "bluegill", name: "BLUEGILL", weight: 18, slot: SLOT_BLUEGILL, hue: "blue" },
-    { id: "perch", name: "PERCH", weight: 18, slot: SLOT_PERCH, hue: "olive" },
-    { id: "catfish", name: "CATFISH", weight: 10, slot: SLOT_CATFISH, hue: "brown" },
-    { id: "trout", name: "TROUT", weight: 10, slot: SLOT_TROUT, hue: "pink" },
-    { id: "bass", name: "BASS", weight: 10, slot: SLOT_BASS, hue: "green" },
-    { id: "goldenCarp", name: "GOLDEN CARP", weight: 6, slot: SLOT_GOLDEN_CARP, hue: "gold" },
-    { id: "moonfish", name: "MOONFISH", weight: 6, slot: SLOT_MOONFISH, hue: "moon" },
-    { id: "starfin", name: "STARFIN", weight: 3, slot: SLOT_STARFIN, hue: "star" },
-    { id: "goldenSwordfish", name: "GOLDEN SWORDFISH", weight: 0, slot: SLOT_GOLDEN_SWORDFISH, hue: "goldSword", oceanOnly: true }
+    { id: "minnow", name: "MINNOW", weight: 19, slot: SLOT_MINNOW, hue: "silver", cookedId: "cookedMinnow", rawHeal: 10, cookedHeal: 20, rawEnergy: 8, cookedEnergy: 16 },
+    { id: "bluegill", name: "BLUEGILL", weight: 18, slot: SLOT_BLUEGILL, hue: "blue", cookedId: "cookedBluegill", rawHeal: 10, cookedHeal: 20, rawEnergy: 8, cookedEnergy: 16 },
+    { id: "perch", name: "PERCH", weight: 18, slot: SLOT_PERCH, hue: "olive", cookedId: "cookedPerch", rawHeal: 10, cookedHeal: 20, rawEnergy: 8, cookedEnergy: 16 },
+    { id: "catfish", name: "CATFISH", weight: 10, slot: SLOT_CATFISH, hue: "brown", cookedId: "cookedCatfish", rawHeal: 10, cookedHeal: 22, rawEnergy: 9, cookedEnergy: 18 },
+    { id: "trout", name: "TROUT", weight: 10, slot: SLOT_TROUT, hue: "pink", cookedId: "cookedTrout", rawHeal: 10, cookedHeal: 24, rawEnergy: 9, cookedEnergy: 20 },
+    { id: "bass", name: "BASS", weight: 10, slot: SLOT_BASS, hue: "green", cookedId: "cookedBass", rawHeal: 10, cookedHeal: 24, rawEnergy: 9, cookedEnergy: 20 },
+    { id: "goldenCarp", name: "GOLDEN CARP", weight: 6, slot: SLOT_GOLDEN_CARP, hue: "gold", cookedId: "cookedGoldenCarp", rawHeal: 12, cookedHeal: 28, rawEnergy: 12, cookedEnergy: 24 },
+    { id: "moonfish", name: "MOONFISH", weight: 6, slot: SLOT_MOONFISH, hue: "moon", cookedId: "cookedMoonfish", rawHeal: 12, cookedHeal: 28, rawEnergy: 12, cookedEnergy: 24 },
+    { id: "starfin", name: "STARFIN", weight: 3, slot: SLOT_STARFIN, hue: "star", cookedId: "cookedStarfin", rawHeal: 15, cookedHeal: 32, rawEnergy: 14, cookedEnergy: 28 },
+    { id: "goldenSwordfish", name: "GOLDEN SWORDFISH", weight: 0, slot: SLOT_GOLDEN_SWORDFISH, hue: "goldSword", oceanOnly: true, cookedId: "cookedGoldenSwordfish", rawHeal: 20, cookedHeal: 40, rawEnergy: 18, cookedEnergy: 35 }
   ];
+  var COOKED_FISH_KEYS = ["cookedMinnow","cookedBluegill","cookedPerch","cookedCatfish","cookedTrout","cookedBass","cookedGoldenCarp","cookedMoonfish","cookedStarfin","cookedGoldenSwordfish"];
   var fishing = null;
   var SWING_MS = 300;
   var SWING_HIT_AT = 0.20;
@@ -721,7 +722,7 @@
   var BAG_STACK = 150;
   var CHEST_STACK = 500;
   var CROP_STACK = 1000;
-  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0 };
+  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, cookedMinnow: 0, cookedBluegill: 0, cookedPerch: 0, cookedCatfish: 0, cookedTrout: 0, cookedBass: 0, cookedGoldenCarp: 0, cookedMoonfish: 0, cookedStarfin: 0, cookedGoldenSwordfish: 0 };
   var chestOpen = false;
   var chestSel = 0;
   var chestMsg = "";
@@ -759,7 +760,17 @@
     { key: "goldenCarp", name: "GOLDEN CARP", icon: "goldenCarp" },
     { key: "moonfish", name: "MOONFISH", icon: "moonfish" },
     { key: "starfin", name: "STARFIN", icon: "starfin" },
-    { key: "goldenSwordfish", name: "GOLDEN SWORDFISH", icon: "goldenSwordfish" }
+    { key: "goldenSwordfish", name: "GOLDEN SWORDFISH", icon: "goldenSwordfish" },
+    { key: "cookedMinnow", name: "COOKED MINNOW", icon: "cookedMinnow" },
+    { key: "cookedBluegill", name: "COOKED BLUEGILL", icon: "cookedBluegill" },
+    { key: "cookedPerch", name: "COOKED PERCH", icon: "cookedPerch" },
+    { key: "cookedCatfish", name: "COOKED CATFISH", icon: "cookedCatfish" },
+    { key: "cookedTrout", name: "COOKED TROUT", icon: "cookedTrout" },
+    { key: "cookedBass", name: "COOKED BASS", icon: "cookedBass" },
+    { key: "cookedGoldenCarp", name: "COOKED GOLDEN CARP", icon: "cookedGoldenCarp" },
+    { key: "cookedMoonfish", name: "COOKED MOONFISH", icon: "cookedMoonfish" },
+    { key: "cookedStarfin", name: "COOKED STARFIN", icon: "cookedStarfin" },
+    { key: "cookedGoldenSwordfish", name: "COOKED GOLDEN SWORDFISH", icon: "cookedGoldenSwordfish" }
   ];
   var shieldSkip = false;
   var arrows = [];
@@ -1307,6 +1318,7 @@
     { id: "apple", name: "APPLE", price: 4, icon: "apple" },
     { id: "bread", name: "BREAD", price: 8, icon: "bread" },
     { id: "pie", name: "BERRY PIE", price: 14, icon: "pie" },
+    { id: "cookedTrout", name: "COOKED TROUT", price: 12, icon: "cookedTrout" },
     { id: "hat", name: "STRAW HAT", price: 25, icon: "strawHat" },
     { id: "fence", name: "FENCE KIT", price: 12, icon: "wood" },
     { id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" },
@@ -2207,6 +2219,7 @@
       { kind: "desk", tx: 9, ty: 2 },
       { kind: "chair", tx: 9, ty: 3 },
       { kind: "fireplace", tx: tier >= 2 ? 21 : 17, ty: 1 },
+      { kind: "stove", tx: tier >= 2 ? 19 : 15, ty: 4 },
       { kind: "rug", tx: 7, ty: 4 },
       { kind: "table", tx: 14, ty: 5 },
       { kind: "lantern", tx: 16, ty: 3 },
@@ -4400,7 +4413,7 @@
       if (drawUiIcon(g, "fishingPole", x, y)) return;
       paintFishingPole(g, x, y); return;
     }
-    if (fishKindById(id)) { paintFishIcon(g, x, y, id); return; }
+    if (fishKindById(id) || cookedFishKindById(id)) { paintFishIcon(g, x, y, id); return; }
     drawUiIcon(g, id, x, y);
   }
 
@@ -4420,6 +4433,25 @@
     return null;
   }
 
+  function cookedFishKindById(id) {
+    var i, fk;
+    if (!id || id.indexOf("cooked") !== 0) return null;
+    for (i = 0; i < FISH_KINDS.length; i++) {
+      fk = FISH_KINDS[i];
+      if (fk.cookedId === id) return fk;
+    }
+    return null;
+  }
+
+  function cookedFishName(fk) {
+    if (!fk) return "COOKED FISH";
+    return "COOKED " + fk.name;
+  }
+
+  function anyFishKindById(id) {
+    return fishKindById(id) || cookedFishKindById(id);
+  }
+
   function paintFishingPole(g, x, y) {
     fill(g, x + 3, y + 12, 4, 2, "#6D4427");
     fill(g, x + 4, y + 11, 3, 2, "#C47A38");
@@ -4435,21 +4467,43 @@
 
   function paintFishIcon(g, x, y, id) {
     if (drawUiIcon(g, id, x, y)) return;
-    var body, belly, fin, eye;
+    var body, belly, fin, eye, cooked, rawId, ck;
+    cooked = false;
+    rawId = id;
+    ck = cookedFishKindById(id);
+    if (ck) {
+      cooked = true;
+      rawId = ck.id;
+    }
     body = "#8A8A7A";
     belly = "#D8D0C0";
     fin = "#5A5A4E";
     eye = "#3A2210";
-    if (id === "minnow") { body = "#C8C8D4"; belly = "#F0F0F8"; fin = "#8A8A7A"; }
-    else if (id === "bluegill") { body = "#3A7AB0"; belly = "#A8D4E8"; fin = "#2E6A96"; }
-    else if (id === "perch") { body = "#C4A060"; belly = "#E8D090"; fin = "#6D4427"; }
-    else if (id === "catfish") { body = "#6D4427"; belly = "#C4A060"; fin = "#3D1A0C"; }
-    else if (id === "trout") { body = "#C45A38"; belly = "#F0B428"; fin = "#8B2E1C"; }
-    else if (id === "bass") { body = "#2F7A14"; belly = "#8FD42A"; fin = "#1E5A12"; }
-    else if (id === "goldenCarp") { body = "#E8B028"; belly = "#F8E070"; fin = "#C47A38"; }
-    else if (id === "moonfish") { body = "#A8D4E8"; belly = "#F0F0F8"; fin = "#4A96C8"; }
-    else if (id === "starfin") { body = "#E8C888"; belly = "#F8E070"; fin = "#8B1A1A"; }
-    else if (id === "goldenSwordfish") { body = "#E8B028"; belly = "#FFF0A8"; fin = "#C47A10"; }
+    if (rawId === "minnow") { body = "#C8C8D4"; belly = "#F0F0F8"; fin = "#8A8A7A"; }
+    else if (rawId === "bluegill") { body = "#3A7AB0"; belly = "#A8D4E8"; fin = "#2E6A96"; }
+    else if (rawId === "perch") { body = "#C4A060"; belly = "#E8D090"; fin = "#6D4427"; }
+    else if (rawId === "catfish") { body = "#6D4427"; belly = "#C4A060"; fin = "#3D1A0C"; }
+    else if (rawId === "trout") { body = "#C45A38"; belly = "#F0B428"; fin = "#8B2E1C"; }
+    else if (rawId === "bass") { body = "#2F7A14"; belly = "#8FD42A"; fin = "#1E5A12"; }
+    else if (rawId === "goldenCarp") { body = "#E8B028"; belly = "#F8E070"; fin = "#C47A38"; }
+    else if (rawId === "moonfish") { body = "#A8D4E8"; belly = "#F0F0F8"; fin = "#4A96C8"; }
+    else if (rawId === "starfin") { body = "#E8C888"; belly = "#F8E070"; fin = "#8B1A1A"; }
+    else if (rawId === "goldenSwordfish") { body = "#E8B028"; belly = "#FFF0A8"; fin = "#C47A10"; }
+    if (cooked) {
+      /* plate + warmer cooked fish (reuse hue, browner edges) */
+      fill(g, x + 2, y + 10, 12, 4, "#D8D0C0");
+      fill(g, x + 3, y + 9, 10, 5, "#F0E8D8");
+      fill(g, x + 4, y + 11, 8, 2, "#C8B8A0");
+      body = body;
+      fill(g, x + 4, y + 6, 8, 4, body);
+      fill(g, x + 5, y + 5, 6, 2, belly);
+      fill(g, x + 10, y + 6, 2, 4, fin);
+      px(g, x + 5, y + 7, eye);
+      px(g, x + 6, y + 7, "#F8FCFF");
+      px(g, x + 7, y + 4, "#E8A060");
+      px(g, x + 9, y + 4, "#E8A060");
+      return;
+    }
     fill(g, x + 3, y + 7, 9, 4, body);
     fill(g, x + 4, y + 6, 7, 2, belly);
     fill(g, x + 5, y + 10, 5, 1, belly);
@@ -4458,23 +4512,23 @@
     px(g, x + 12, y + 11, fin);
     px(g, x + 4, y + 8, eye);
     px(g, x + 5, y + 8, "#F8FCFF");
-    if (id === "catfish") {
+    if (rawId === "catfish") {
       px(g, x + 2, y + 8, "#3D1A0C");
       px(g, x + 2, y + 10, "#3D1A0C");
     }
-    if (id === "starfin") {
+    if (rawId === "starfin") {
       px(g, x + 7, y + 5, "#F8E070");
       px(g, x + 6, y + 4, "#F8E070");
       px(g, x + 8, y + 4, "#F8E070");
     }
-    if (id === "goldenSwordfish") {
+    if (rawId === "goldenSwordfish") {
       fill(g, x + 0, y + 7, 3, 2, "#F8E070");
       px(g, x + 0, y + 8, "#E8B028");
       px(g, x + 7, y + 5, "#FFF8C8");
       px(g, x + 9, y + 7, "#FFF8C8");
     }
-    if (id === "moonfish") px(g, x + 8, y + 7, "#F8FCFF");
-    if (id === "perch") {
+    if (rawId === "moonfish") px(g, x + 8, y + 7, "#F8FCFF");
+    if (rawId === "perch") {
       px(g, x + 7, y + 7, "#6D4427");
       px(g, x + 9, y + 8, "#6D4427");
     }
@@ -5172,6 +5226,8 @@
       } else if (p.kind === "fireplace") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
+      } else if (p.kind === "stove") {
+        block(p.tx, p.ty);
       } else if (p.kind === "chair" || p.kind === "housePlant" || p.kind === "flowerbox" || p.kind === "houseChest") {
         block(p.tx, p.ty);
       } else if (p.kind === "pond") {
@@ -6320,6 +6376,9 @@
         kind === "copperBar" || kind === "silverBar" || kind === "goldBar" ||
         kind === "minnow" || kind === "bluegill" || kind === "perch" || kind === "catfish" ||
         kind === "trout" || kind === "bass" || kind === "goldenCarp" || kind === "moonfish" || kind === "starfin" || kind === "goldenSwordfish" ||
+        kind === "cookedMinnow" || kind === "cookedBluegill" || kind === "cookedPerch" || kind === "cookedCatfish" ||
+        kind === "cookedTrout" || kind === "cookedBass" || kind === "cookedGoldenCarp" || kind === "cookedMoonfish" ||
+        kind === "cookedStarfin" || kind === "cookedGoldenSwordfish" ||
         kind === "lampKit" || kind === "crateKit") {
       return kind;
     }
@@ -6580,7 +6639,7 @@
     return Math.max(0, chestCap(key) - chestCount(key));
   }
 
-  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","goldenSwordfish","leash"];
+  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","goldenSwordfish","cookedMinnow","cookedBluegill","cookedPerch","cookedCatfish","cookedTrout","cookedBass","cookedGoldenCarp","cookedMoonfish","cookedStarfin","cookedGoldenSwordfish","leash"];
 
   function addInvCount(k, n) {
     if (Object.prototype.hasOwnProperty.call(inventory, k)) inventory[k] = (inventory[k] | 0) + (n | 0);
@@ -7694,6 +7753,16 @@
         inventory.moonfish = clampCount(data.inventory.moonfish);
         inventory.starfin = clampCount(data.inventory.starfin);
         inventory.goldenSwordfish = clampCount(data.inventory.goldenSwordfish);
+        inventory.cookedMinnow = clampCount(data.inventory.cookedMinnow);
+        inventory.cookedBluegill = clampCount(data.inventory.cookedBluegill);
+        inventory.cookedPerch = clampCount(data.inventory.cookedPerch);
+        inventory.cookedCatfish = clampCount(data.inventory.cookedCatfish);
+        inventory.cookedTrout = clampCount(data.inventory.cookedTrout);
+        inventory.cookedBass = clampCount(data.inventory.cookedBass);
+        inventory.cookedGoldenCarp = clampCount(data.inventory.cookedGoldenCarp);
+        inventory.cookedMoonfish = clampCount(data.inventory.cookedMoonfish);
+        inventory.cookedStarfin = clampCount(data.inventory.cookedStarfin);
+        inventory.cookedGoldenSwordfish = clampCount(data.inventory.cookedGoldenSwordfish);
         inventory.leash = clampCount(data.inventory.leash);
       } else {
         if (typeof data.veggie === "number" && data.veggie > 0) inventory.veggie = clampCount(data.veggie);
@@ -7733,6 +7802,16 @@
         chest.moonfish = clampCount(data.chest.moonfish);
         chest.starfin = clampCount(data.chest.starfin);
         chest.goldenSwordfish = clampCount(data.chest.goldenSwordfish);
+        chest.cookedMinnow = clampCount(data.chest.cookedMinnow);
+        chest.cookedBluegill = clampCount(data.chest.cookedBluegill);
+        chest.cookedPerch = clampCount(data.chest.cookedPerch);
+        chest.cookedCatfish = clampCount(data.chest.cookedCatfish);
+        chest.cookedTrout = clampCount(data.chest.cookedTrout);
+        chest.cookedBass = clampCount(data.chest.cookedBass);
+        chest.cookedGoldenCarp = clampCount(data.chest.cookedGoldenCarp);
+        chest.cookedMoonfish = clampCount(data.chest.cookedMoonfish);
+        chest.cookedStarfin = clampCount(data.chest.cookedStarfin);
+        chest.cookedGoldenSwordfish = clampCount(data.chest.cookedGoldenSwordfish);
       }
       loadPocketsFromSave(data);
       overflowBagToChest();
@@ -7964,6 +8043,16 @@
           moonfish: inventory.moonfish | 0,
           starfin: inventory.starfin | 0,
           goldenSwordfish: inventory.goldenSwordfish | 0,
+          cookedMinnow: inventory.cookedMinnow | 0,
+          cookedBluegill: inventory.cookedBluegill | 0,
+          cookedPerch: inventory.cookedPerch | 0,
+          cookedCatfish: inventory.cookedCatfish | 0,
+          cookedTrout: inventory.cookedTrout | 0,
+          cookedBass: inventory.cookedBass | 0,
+          cookedGoldenCarp: inventory.cookedGoldenCarp | 0,
+          cookedMoonfish: inventory.cookedMoonfish | 0,
+          cookedStarfin: inventory.cookedStarfin | 0,
+          cookedGoldenSwordfish: inventory.cookedGoldenSwordfish | 0,
           leash: (bagCount("leash") >= 1 || (inventory.leash | 0) >= 1) ? 1 : 0
         },
         tray: serializePocket(trayCells, TRAY_CELLS),
@@ -8000,7 +8089,17 @@
           goldenCarp: chest.goldenCarp | 0,
           moonfish: chest.moonfish | 0,
           starfin: chest.starfin | 0,
-          goldenSwordfish: chest.goldenSwordfish | 0
+          goldenSwordfish: chest.goldenSwordfish | 0,
+          cookedMinnow: chest.cookedMinnow | 0,
+          cookedBluegill: chest.cookedBluegill | 0,
+          cookedPerch: chest.cookedPerch | 0,
+          cookedCatfish: chest.cookedCatfish | 0,
+          cookedTrout: chest.cookedTrout | 0,
+          cookedBass: chest.cookedBass | 0,
+          cookedGoldenCarp: chest.cookedGoldenCarp | 0,
+          cookedMoonfish: chest.cookedMoonfish | 0,
+          cookedStarfin: chest.cookedStarfin | 0,
+          cookedGoldenSwordfish: chest.cookedGoldenSwordfish | 0
         },
         hatOwned: !!hatOwned,
         hatOn: !!hatOn,
@@ -8343,6 +8442,102 @@
       return;
     }
     pending = { type: "smelt" };
+    startWalk(player, path, 3.5);
+  }
+
+  function findStove() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p.kind === "stove") return p;
+    }
+    return null;
+  }
+
+  function nearStove() {
+    var stove = findStove();
+    if (!stove) return false;
+    if (isNear(player.tx, player.ty, stove.tx, stove.ty)) return true;
+    if (player.tx === stove.tx && player.ty === stove.ty) return true;
+    return false;
+  }
+
+  function stoveHit(tx, ty, world) {
+    var stove, b;
+    if (currentScene !== "house") return false;
+    stove = findStove();
+    if (!stove) return false;
+    if (propOccupies(stove, tx, ty)) return true;
+    if (!world) return false;
+    b = propBounds(stove);
+    return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
+  }
+
+  function selectedRawFish() {
+    var key = selectedKey();
+    var fk = fishKindById(key);
+    return fk || null;
+  }
+
+  function doCookNow() {
+    var fk, cooked, stove;
+    if (currentScene !== "house") return false;
+    fk = selectedRawFish();
+    if (!fk || bagCount(fk.id) < 1) {
+      showLineNote("PUT A FISH ON THE STOVE.");
+      return false;
+    }
+    cooked = fk.cookedId;
+    if (!cooked) {
+      showLineNote("PUT A FISH ON THE STOVE.");
+      return false;
+    }
+    if (bagRoom(cooked) < 1) {
+      showLineNote("BAG FULL. USE THE CHEST.");
+      return false;
+    }
+    if (spendSelected(fk.id, 1) < 1) {
+      showLineNote("PUT A FISH ON THE STOVE.");
+      return false;
+    }
+    addToBag(cooked, 1);
+    stove = findStove();
+    if (stove) spawnSparks(stove.tx * TILE + 8, stove.ty * TILE + 8);
+    playSfx("smash");
+    showLineNote(cookedFishName(fk) + "!");
+    ensureSelectedSlot();
+    persistSave();
+    return true;
+  }
+
+  function tryCookHere() {
+    if (currentScene !== "house") return false;
+    if (!nearStove()) return false;
+    doCookNow();
+    return true;
+  }
+
+  function goCook() {
+    var stove, dest, path;
+    if (currentScene !== "house") return;
+    stove = findStove();
+    highlight = stove ? { tx: stove.tx, ty: stove.ty } : null;
+    if (!stove || nearStove()) {
+      pending = null;
+      doCookNow();
+      return;
+    }
+    dest = nearestAdjacent(stove.tx, stove.ty);
+    if (!dest) {
+      doCookNow();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      doCookNow();
+      return;
+    }
+    pending = { type: "cook" };
     startWalk(player, path, 3.5);
   }
 
@@ -11462,7 +11657,7 @@
       }
       addToBag("flower", 1);
       shopMsg = "A PRETTY FLOWER.";
-    } else if (item.id === "snack" || item.id === "apple" || item.id === "bread" || item.id === "pie") {
+    } else if (item.id === "snack" || item.id === "apple" || item.id === "bread" || item.id === "pie" || item.id === "cookedTrout") {
       if (bagRoom(item.id) < 1) {
         gold += shopItemPrice(item);
         shopMsg = "BAG FULL.";
@@ -11473,6 +11668,7 @@
       addToBag(item.id, 1);
       if (item.id === "apple") shopMsg = "HEALS ONE HEART.";
       else if (item.id === "pie") shopMsg = "HEALS HEARTS AND ENERGY.";
+      else if (item.id === "cookedTrout") shopMsg = "COOKED FISH — HEALS MORE!";
       else shopMsg = "HEALS TWO HEARTS.";
     } else if (item.id === "hat") {
       hatOwned = true;
@@ -13262,6 +13458,18 @@
     return true;
   }
 
+  function eatRawFish() {
+    var fk = fishKindById(selectedKey());
+    if (!fk) return false;
+    return eatFood(fk.id, fk.rawHeal | 0, fk.rawEnergy | 0, ["YUM! A RAW " + fk.name + ".", "COOK IT ON THE STOVE!"]);
+  }
+
+  function eatCookedFish() {
+    var fk = cookedFishKindById(selectedKey());
+    if (!fk) return false;
+    return eatFood(fk.cookedId, fk.cookedHeal | 0, fk.cookedEnergy | 0, ["YUM! " + cookedFishName(fk) + "!"]);
+  }
+
   function updateCar(dt) {
     var next, dest, ni;
     if (currentScene !== "overworld") return;
@@ -13954,6 +14162,8 @@
       openCraft();
     } else if (act.type === "smelt") {
       if (nearFireplace()) doSmeltNow();
+    } else if (act.type === "cook") {
+      if (nearStove()) doCookNow();
     } else if (act.type === "chest") {
       openChest();
     } else if (act.type === "kickBall") {
@@ -15118,6 +15328,7 @@
     if (p.kind === "fountain") return p.ty * TILE + 28;
     if (p.kind === "statue") return p.ty * TILE + 28;
     if (p.kind === "counter") return p.ty * TILE + 20;
+    if (p.kind === "stove") return p.ty * TILE + 22;
     if (p.kind === "shopSign") return p.ty * TILE + 8;
     if (p.kind === "townFlower") return p.ty * TILE + 12;
     if (p.kind === "bed") return p.ty * TILE + 30;
@@ -15173,6 +15384,7 @@
     if (p.kind === "fountain") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
     if (p.kind === "statue") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
+    if (p.kind === "stove") return { x: p.tx * TILE - 2, y: p.ty * TILE - 10, w: 20, h: 28 };
     if (p.kind === "bed") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 48, h: 48 };
     if (p.kind === "table") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 32, h: 32 };
     if (p.kind === "houseChest") return { x: p.tx * TILE - 6, y: p.ty * TILE - 10, w: 28, h: currentScene === "forest" ? 40 : 28 };
@@ -15374,6 +15586,20 @@
       g.fillStyle = "rgba(240,150,70," + fireFlicker.toFixed(3) + ")";
       g.fillRect(x + 10, y + 14, 28, 22);
       Assets.draw(g, "fireplace", x, y, ((tick / 220) | 0) % 2);
+    } else if (p.kind === "stove") {
+      /* fireplace-adjacent cooktop: counter wood tones + iron burners + STOVE label */
+      fill(g, x - 1, y + 1, 18, 14, "#5A3A1C");
+      fill(g, x, y + 2, 16, 12, "#C47A38");
+      fill(g, x + 1, y + 3, 14, 3, "#E8B060");
+      fill(g, x + 1, y + 7, 14, 6, "#3A3A38");
+      fill(g, x + 2, y + 8, 4, 4, "#2A2A28");
+      fill(g, x + 6, y + 8, 4, 4, "#2A2A28");
+      fill(g, x + 10, y + 8, 4, 4, "#2A2A28");
+      px(g, x + 3, y + 9, "#E07030");
+      px(g, x + 7, y + 9, "#F0A040");
+      px(g, x + 11, y + 9, "#E07030");
+      fill(g, x + 2, y + 0, 12, 2, "#6D4427");
+      drawShaftLabel(g, p, "STOVE");
     } else if (p.kind === "flowerbox") {
       if (!drawAtlas2x(g, "flowerbox", x, y)) Assets.draw(g, "flowerbox", x, y);
     } else if (p.kind === "housePlant") {
@@ -16513,7 +16739,7 @@
     else if (key === "leash") drawUiIcon(g, "leash", x, y);
     else if (key === "lampKit") drawUiIcon(g, "lanternIcon", x, y);
     else if (key === "crateKit") drawUiIcon(g, "crateIcon", x, y);
-    else if (fishKindById(key)) paintFishIcon(g, x, y, key);
+    else if (fishKindById(key) || cookedFishKindById(key)) paintFishIcon(g, x, y, key);
   }
 
   function drawOneBagCell(g, rec, sx, sy, slot, sel, trayish, heldHere) {
@@ -16894,10 +17120,11 @@
   }
 
   function drawFishNameChip(g) {
-    var fk, label, tw, w, x, y;
+    var fk, ck, label, tw, w, x, y;
     fk = fishKindById(selectedKey());
-    if (!fk) return;
-    label = fk.name;
+    ck = cookedFishKindById(selectedKey());
+    if (!fk && !ck) return;
+    label = ck ? cookedFishName(ck) : fk.name;
     tw = textWidth(label);
     w = tw + 10;
     x = ((VIEW_W - w) / 2) | 0;
@@ -17461,6 +17688,8 @@
         if (key === "potato") eatPotato();
         if (key === "berry") eatBerry();
         if (key === "mushroom") eatMushroom();
+        if (fishKindById(key)) eatRawFish();
+        if (cookedFishKindById(key)) eatCookedFish();
         if (key === "hat" && hatOwned) {
           hatOn = !hatOn;
           persistSave();
@@ -17990,6 +18219,10 @@
       goSleep();
       return;
     }
+    if (currentScene === "house" && (stoveHit(tx, ty, world) || (hitProp && hitProp.kind === "stove"))) {
+      goCook();
+      return;
+    }
     if (currentScene === "house" && (fireplaceHit(tx, ty, world) || (hitProp && hitProp.kind === "fireplace"))) {
       goSmelt();
       return;
@@ -18411,6 +18644,7 @@ if (currentScene === "ocean") goExitOcean();
         exitTreetopSouth();
         return;
       }
+      if (tryCookHere()) return;
       if (trySmeltHere()) return;
       if (tryPickupHere()) return;
       if (tryPickupFacing()) return;
@@ -18609,6 +18843,11 @@ if (currentScene === "ocean") goExitOcean();
       doSmeltNow: doSmeltNow,
       goSmelt: goSmelt,
       trySmeltHere: trySmeltHere,
+      doCookNow: doCookNow,
+      goCook: goCook,
+      tryCookHere: tryCookHere,
+      nearStove: nearStove,
+      stoveHit: stoveHit,
       nearFireplace: nearFireplace,
       fireplaceHit: fireplaceHit,
       selectedSmeltOre: selectedSmeltOre,
