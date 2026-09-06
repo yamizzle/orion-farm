@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905dt): bag-full clearer toast `BAG FULL! PUT STUFF IN THE CHEST.` + soft warm warn sparks + toast SFX; chest/shop msgs clearer; river/pond/fountain unstick `TOO WET.` + splash (ocean TOO DEEP kept). Never START OVER.
+
 Local 9/5 (BUILD 20260905ds): mute/unmute click feedback — Jobs MUTE + HUD FX/MU toast SOUND/FX/MUSIC ON|OFF + tiny soft click sparks (music button finally clicks). Never START OVER.
 
 Local 9/5 (BUILD 20260905dr): Nim first-meet soft moon sparkle; cave sword pedestal claim steel/gold sparkle (+ auto-claim ensureCaveSword juice). Never START OVER.

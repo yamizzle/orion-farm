@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ds";
+  var BUILD = "20260905dt";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -5782,12 +5782,25 @@
   }
 
   function unstickPlayer() {
-    var spot;
+    var spot, ch, wet;
     /* 20260905ci: foot on deep water without boat → shore + TOO DEEP */
     if (currentScene === "ocean" && !onBoat && cell(player.tx, player.ty) === "y") {
       spot = nearestWalkable(player.tx, player.ty);
       placePlayer(spot.tx, spot.ty, player.face);
       showLineNote("TOO DEEP.");
+      persistSave();
+      return true;
+    }
+    /* 20260905dt: river/pond water tiles nudge back with a kid toast */
+    ch = cell(player.tx, player.ty);
+    wet = (ch === "w");
+    if (!wet && propAt(player.tx, player.ty) && propAt(player.tx, player.ty).kind === "pond") wet = true;
+    if (!wet && propAt(player.tx, player.ty) && propAt(player.tx, player.ty).kind === "fountain") wet = true;
+    if (wet && !walkable(player.tx, player.ty)) {
+      spot = nearestWalkable(player.tx, player.ty);
+      placePlayer(spot.tx, spot.ty, player.face);
+      showLineNote("TOO WET.");
+      playSfx("splash");
       persistSave();
       return true;
     }
@@ -6559,7 +6572,7 @@
     if (!prop || !isFenceKind(prop.kind)) return false;
     if (!canPickupFence()) return false;
     if (bagRoom("wood") < 1) {
-      showLineNote("BAG FULL. USE THE CHEST.");
+      showBagFullNote();
       return false;
     }
     fi = PROPS.indexOf(prop);
@@ -7432,6 +7445,30 @@
     else spawnMuteClickSparks(VIEW_W / 2, VIEW_H / 2);
   }
 
+  /* 20260905dt: clearer bag-full toast + soft warm warn sparkle */
+  function spawnBagFullSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#FFE9A0", "#FFB070", "#FFF8E0", "#E87850", "#FFFDF4", "#F0C060", "#FFD0A0", "#E8B060"];
+    for (i = 0; i < 8; i++) {
+      ang = (i / 8) * Math.PI * 2 + Math.random() * 0.35;
+      sparks.push({
+        x: x + (Math.random() * 6 - 3),
+        y: y + (Math.random() * 4 - 2),
+        vx: Math.cos(ang) * (0.022 + Math.random() * 0.024),
+        vy: Math.sin(ang) * 0.01 - 0.042 - Math.random() * 0.02,
+        age: 0,
+        life: 420 + Math.random() * 220,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
+  function showBagFullNote() {
+    showLineNote("BAG FULL! PUT STUFF IN THE CHEST.");
+    playSfx("toast");
+    if (player) spawnBagFullSparks(player.x, player.y - 10);
+  }
+
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
     n = big ? 12 : 8;
@@ -7615,7 +7652,7 @@
       took = collectLootPile(piles[i]);
       if (took > 0) any = true;
     }
-    if (!any) showLineNote("BAG FULL. USE THE CHEST.");
+    if (!any) showBagFullNote();
     return any;
   }
 
@@ -8192,7 +8229,7 @@
       return 0;
     }
     took = addToBag(key, n);
-    if (took < n) showLineNote("BAG FULL. USE THE CHEST.");
+    if (took < n) showBagFullNote();
     if (key === "moonshard" && took > 0) pinMoonCarryTray();
     persistSave();
     return took;
@@ -9895,7 +9932,7 @@
       return false;
     }
     if (bagRoom(bar) < 1) {
-      showLineNote("BAG FULL. USE THE CHEST.");
+      showBagFullNote();
       return false;
     }
     /* Prefer selected tray slot; else select the tray ore first. Ore-only (no wood). */
@@ -10074,7 +10111,7 @@
       return false;
     }
     if (bagRoom(cooked) < 1) {
-      showLineNote("BAG FULL. USE THE CHEST.");
+      showBagFullNote();
       return false;
     }
     /* Prefer selected/tray; else spend from bag (kid still at stove). */
@@ -10890,7 +10927,7 @@
       if (n <= 0) {
         chestMsg = "CHEST IS EMPTY.";
         for (i = 0; i < CHEST_ROWS.length; i++) {
-          if (chestCount(CHEST_ROWS[i].key) > 0) { chestMsg = "BAG FULL."; break; }
+          if (chestCount(CHEST_ROWS[i].key) > 0) { chestMsg = "BAG FULL! USE CHEST."; break; }
         }
         chestMsgT = 1200;
         return;
@@ -10905,7 +10942,7 @@
     n = takeFromChest(rec.key, 1);
     if (n <= 0) {
       if (chestCount(rec.key) < 1) chestMsg = "CHEST IS EMPTY.";
-      else chestMsg = "BAG FULL.";
+      else chestMsg = "BAG FULL! USE CHEST.";
       chestMsgT = 1200;
       return;
     }
@@ -13928,7 +13965,7 @@
         return;
       }
       if (bagRoom("leash") < 1) {
-        shopMsg = "BAG FULL.";
+        shopMsg = "BAG FULL! USE CHEST.";
         shopMsgT = 1200;
         return;
       }
@@ -14014,7 +14051,7 @@
     } else if (item.id === "flower") {
       if (bagRoom("flower") < 1) {
         gold += shopItemPrice(item);
-        shopMsg = "BAG FULL.";
+        shopMsg = "BAG FULL! USE CHEST.";
         shopMsgT = 1200;
         persistSave();
         return;
@@ -14024,7 +14061,7 @@
     } else if (item.id === "snack" || item.id === "apple" || item.id === "bread" || item.id === "pie" || item.id === "cookedTrout") {
       if (bagRoom(item.id) < 1) {
         gold += shopItemPrice(item);
-        shopMsg = "BAG FULL.";
+        shopMsg = "BAG FULL! USE CHEST.";
         shopMsgT = 1200;
         persistSave();
         return;
@@ -14042,7 +14079,7 @@
     } else if (item.id === "fence") {
       if (bagRoom("wood") < 1) {
         gold += shopItemPrice(item);
-        shopMsg = "BAG FULL.";
+        shopMsg = "BAG FULL! USE CHEST.";
         shopMsgT = 1200;
         persistSave();
         return;
@@ -14052,7 +14089,7 @@
     } else if (item.id === "path") {
       if (bagRoom("stone") < 1) {
         gold += shopItemPrice(item);
-        shopMsg = "BAG FULL.";
+        shopMsg = "BAG FULL! USE CHEST.";
         shopMsgT = 1200;
         persistSave();
         return;
@@ -14062,7 +14099,7 @@
     } else if (item.id === "lampKit") {
       if (bagRoom("lampKit") < 3) {
         gold += shopItemPrice(item);
-        shopMsg = "BAG FULL.";
+        shopMsg = "BAG FULL! USE CHEST.";
         shopMsgT = 1200;
         persistSave();
         return;
@@ -14072,7 +14109,7 @@
     } else if (item.id === "crateKit") {
       if (bagRoom("crateKit") < 3) {
         gold += shopItemPrice(item);
-        shopMsg = "BAG FULL.";
+        shopMsg = "BAG FULL! USE CHEST.";
         shopMsgT = 1200;
         persistSave();
         return;
