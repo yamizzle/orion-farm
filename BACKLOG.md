@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905eh): ocean saveScene boatDock + mid-drag bag remirror — caching ocean while rowing no longer stores a hidden aboard ghost (visible hull at boatDock + boatDock field on the cache); restore aboard snaps to nearest water if the saved tile is not rowable; stashBagHeld remirrors tray stacks into an open bag so tab-hide mid-drag does not leave a blank grid hole. Never START OVER.
+
 Local 9/6 (BUILD 20260905eg): TREE/TREETOP/peak/stairs refresh spawn — hard-refresh on TREE 2–4 no longer falls back to TREE 1's (5,5); floor-aware land spots match climb landings; refresh while standing on a ladder/cave/stairs/exit gate nudges you off so the next tick cannot auto-warp you into the wrong scene (TREETOP exits, peak cave, STAIRS mouth, island-cave OUT, mine→peak stairs). Never START OVER.
 
 Local 9/6 (BUILD 20260905ef): island-cave + boat save restore — refresh inside the south island cave no longer dumps you on the farm (pendingRestore whitelist + spawn fallback); rowing mid-ocean now persists onBoat so hard-refresh keeps you aboard instead of TOO DEEP unstick; HUD stamp shows ISLAND CAVE. Never START OVER.

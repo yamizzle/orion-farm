@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905eg";
+  var BUILD = "20260905eh";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -2494,9 +2494,26 @@
   }
 
   function saveScene() {
+    var rec, props, i, p, dockTx, dockTy, sawBoat;
     if (!GROUND || !GROUND.length) return;
-    var rec = { cols: COLS, rows: ROWS, ground: GROUND, props: propsWithoutHoliday(PROPS) };
+    props = propsWithoutHoliday(PROPS);
+    /* 20260905eh: ocean cache must not keep a hidden aboard ghost —
+       store a visible boat at boatDock so re-entry / island cave round-trips keep the hull. */
+    if (currentScene === "ocean") {
+      dockTx = (boatDock && typeof boatDock.tx === "number") ? (boatDock.tx | 0) : ((boatHome && boatHome.tx) | 0);
+      dockTy = (boatDock && typeof boatDock.ty === "number") ? (boatDock.ty | 0) : ((boatHome && boatHome.ty) | 0);
+      sawBoat = false;
+      for (i = 0; i < props.length; i++) {
+        p = props[i];
+        if (!p || p.kind !== "rowboat") continue;
+        props[i] = { kind: "rowboat", tx: dockTx, ty: dockTy, hidden: false, aboard: false };
+        sawBoat = true;
+      }
+      if (!sawBoat) props = props.concat([{ kind: "rowboat", tx: dockTx, ty: dockTy, hidden: false, aboard: false }]);
+    }
+    rec = { cols: COLS, rows: ROWS, ground: GROUND, props: props };
     if (currentScene === "house") rec.houseTier = houseTier | 0;
+    if (currentScene === "ocean") rec.boatDock = { tx: dockTx, ty: dockTy };
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
 
@@ -2844,6 +2861,12 @@
     if (name !== "ocean") {
       onBoat = false;
     } else {
+      /* 20260905eh: scene-cache boatDock fills gaps when global dock is stale */
+      if (cached && cached.boatDock && typeof cached.boatDock.tx === "number" && typeof cached.boatDock.ty === "number") {
+        if (!boatDock || typeof boatDock.tx !== "number") {
+          boatDock = { tx: cached.boatDock.tx | 0, ty: cached.boatDock.ty | 0 };
+        }
+      }
       ensureOceanBoat();
       /* Apply last dock so a rebuilt ocean still finds the boat on the island */
       if (boatDock && !onBoat) {
@@ -9827,14 +9850,17 @@
   }
 
   function applyRestore() {
-    var scene, tx, ty, face, spot, wantBoat, land, gate;
+    var scene, tx, ty, face, spot, wantBoat, land, gate, r, x, y, nx, ny;
     if (!pendingRestore) return;
     scene = pendingRestore.scene || "overworld";
     /* 20260905ef: set aboard BEFORE applyScene so ocean walkable + boat hide stick */
     wantBoat = !!(pendingRestore.onBoat && scene === "ocean");
     if (wantBoat) onBoat = true;
     if (scene !== currentScene) applyScene(scene);
-    else if (wantBoat) ensureOceanBoat();
+    else if (wantBoat) {
+      ensureOceanBoat();
+      buildSolid();
+    }
     tx = pendingRestore.tx;
     ty = pendingRestore.ty;
     face = pendingRestore.face || "down";
@@ -9855,7 +9881,27 @@
         tx = land.tx; ty = land.ty; face = land.face || "up";
       }
       else if (scene === "peak") { tx = peakLand.tx; ty = peakLand.ty; face = "up"; }
-      else if (scene === "ocean") { tx = oceanLand.tx; ty = oceanLand.ty; face = "down"; }
+      else if (scene === "ocean") {
+        if (wantBoat) {
+          /* 20260905eh: keep rowing — snap to nearest water, not the pier */
+          spot = null;
+          for (r = 0; r <= 24 && !spot; r++) {
+            for (x = -r; x <= r && !spot; x++) {
+              y = r - Math.abs(x);
+              nx = tx + x; ny = ty + y;
+              if (boatOk(nx, ny)) spot = { tx: nx, ty: ny };
+              if (y && !spot) {
+                ny = ty - y;
+                if (boatOk(nx, ny)) spot = { tx: nx, ty: ny };
+              }
+            }
+          }
+          if (spot) { tx = spot.tx; ty = spot.ty; }
+          else { onBoat = false; wantBoat = false; buildSolid(); tx = oceanLand.tx; ty = oceanLand.ty; face = "down"; }
+        } else {
+          tx = oceanLand.tx; ty = oceanLand.ty; face = "down";
+        }
+      }
       else if (scene === "cottage") { tx = 8; ty = 7; face = "up"; }
       else if (scene === "cottage2") { tx = 6; ty = 5; face = "up"; }
       else if (scene === "tallCottage") { tx = 8; ty = 7; face = "up"; }
@@ -20519,6 +20565,8 @@
     enforceOneWeaponInTray(stashPrefer);
     ensureOnePole();
     syncBagCounts();
+    /* 20260905eh: mid-drag save/close remirrors tray stacks into empty bag grid */
+    if (bagOpen) showOwnedGoodsInBag();
   }
 
   function openBag() {
@@ -23413,6 +23461,23 @@ if (currentScene === "ocean") goExitOcean();
       applyScene("peak");
       var pk = nudgeRestoreOffGate(18, 25, "up");
       ok("peakCaveNudge", !!(pk && pk.tx === peakLand.tx && pk.ty === peakLand.ty), pk && (pk.tx + "," + pk.ty));
+      /* 20260905eh: ocean saveScene stores visible docked boat + boatDock field */
+      onBoat = true;
+      applyScene("ocean");
+      boatDock = { tx: 32, ty: 50 };
+      var liveBoat = findRowboat();
+      if (liveBoat) { liveBoat.hidden = true; liveBoat.aboard = true; liveBoat.tx = 10; liveBoat.ty = 10; }
+      saveScene();
+      var cachedOcean = sceneCache.ocean;
+      var cachedBoat = null, ci;
+      if (cachedOcean && cachedOcean.props) {
+        for (ci = 0; ci < cachedOcean.props.length; ci++) {
+          if (cachedOcean.props[ci] && cachedOcean.props[ci].kind === "rowboat") { cachedBoat = cachedOcean.props[ci]; break; }
+        }
+      }
+      ok("saveSceneBoatDockField", !!(cachedOcean && cachedOcean.boatDock && cachedOcean.boatDock.tx === 32 && cachedOcean.boatDock.ty === 50), cachedOcean && cachedOcean.boatDock && (cachedOcean.boatDock.tx + "," + cachedOcean.boatDock.ty));
+      ok("saveSceneBoatVisible", !!(cachedBoat && !cachedBoat.hidden && !cachedBoat.aboard && cachedBoat.tx === 32 && cachedBoat.ty === 50), cachedBoat && (cachedBoat.tx + "," + cachedBoat.ty + " h=" + cachedBoat.hidden));
+      onBoat = false;
     } catch (e) {
       fail++;
       log.push("FAIL exception — " + (e && e.message ? e.message : e));
