@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ec";
+  var BUILD = "20260905ed";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10361,6 +10361,8 @@
       }
     }
     if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h) return true;
+    /* 20260905ed: outside tap soft click (matches X / Esc) */
+    playSfx("ui");
     closeCraft();
     return true;
   }
@@ -11051,6 +11053,8 @@
       return true;
     }
     if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h) return true;
+    /* 20260905ed: outside tap soft click (matches X / Esc) */
+    playSfx("ui");
     closeChest();
     return true;
   }
@@ -14242,6 +14246,8 @@
       }
     }
     if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h) return true;
+    /* 20260905ed: outside tap soft click (matches X / BYE / Esc) */
+    playSfx("ui");
     closeShop();
     return true;
   }
@@ -19956,6 +19962,8 @@
       return false;
     }
     if (p.x >= L.x && p.x < L.x + L.w && p.y >= L.y && p.y < L.y + L.h) return false;
+    /* 20260905ed: outside tap soft click (matches X / Esc) */
+    playSfx("ui");
     closeAchieveList();
     return true;
   }
@@ -20636,6 +20644,8 @@
       return true;
     }
     if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h) return true;
+    /* 20260905ed: outside tap soft click (matches X / Esc) */
+    playSfx("ui");
     closeBag();
     return true;
   }
@@ -21484,6 +21494,8 @@
     }
     if (questOpen) {
       if (!tapJournal(p)) {
+        /* 20260905ed: outside tap soft click (matches X / Esc) */
+        playSfx("ui");
         questOpen = false;
         swallowDismissTap();
       }
@@ -22977,7 +22989,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ec", BUILD);
+      ok("BUILD", BUILD === "20260905ed", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
