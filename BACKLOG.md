@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fp): Space cut tall grass / weed — with tall grass or a weed underfoot or on the facing tile, Space / J / E finally slices it (tap already walked-to-cut; flower Space landed in 05fo; soft grass Space was a silent no-op). Never START OVER.
+
 Local 9/6 (BUILD 20260905fo): Space pick facing flower — with a wildflower / town flower underfoot or on the facing tile, Space / J / E finally picks it (tap already walked-to-pick; berry-bush Space existed; flower Space was a silent no-op). Never START OVER.
 
 Local 9/6 (BUILD 20260905fn): Space axe chops facing tree — with the axe selected, Space / J / E finally chips a facing pine/oak/birch/palm (tap already walked-to-chop; Space only hit rocks / logs / stumps so a live tree was a silent no-op). Never START OVER.

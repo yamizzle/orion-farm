@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fo";
+  var BUILD = "20260905fp";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14829,6 +14829,27 @@
     return false;
   }
 
+  /* 20260905fp: Space/J/E cut facing/underfoot tallGrass/weed (tap already
+     goCutGrass'd; flower Space landed in 05fo; soft grass Space was a silent no-op).
+     Direct sliceGrass so leftover swing cannot soft-block. */
+  function tryCutGrassFacing() {
+    var t, prop;
+    if (uiPaused() || faintFx) return false;
+    t = facingTile();
+    prop = propAt(t.tx, t.ty);
+    if (prop && isSliceable(prop)) {
+      faceToward(player, t.tx, t.ty);
+      sliceGrass(prop);
+      return true;
+    }
+    prop = propAt(player.tx, player.ty);
+    if (prop && isSliceable(prop)) {
+      sliceGrass(prop);
+      return true;
+    }
+    return false;
+  }
+
   function tryDigFacing() {
     var t;
     if (uiPaused() || faintFx) return false;
@@ -23070,6 +23091,8 @@ if (currentScene === "ocean") goExitOcean();
       if (tryPickupFacing()) return;
       /* 20260905fo: Space pick flower before smash/talk so facing wildflower is not a no-op. */
       if (tryPickPlantFacing()) return;
+      /* 20260905fp: Space cut tall grass / weed (tap already goCutGrass'd). */
+      if (tryCutGrassFacing()) return;
       if (tryOpenChestAdjacent()) return;
       if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
@@ -23535,7 +23558,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fo", BUILD);
+      ok("BUILD", BUILD === "20260905fp", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24027,6 +24050,36 @@ if (currentScene === "ocean") goExitOcean();
           if (PROPS[_fi] && PROPS[_fi].tx === _flx && PROPS[_fi].ty === _fly && isPickablePlant(PROPS[_fi])) { _still = true; break; }
         }
         ok("spacePickFlower", !!_pickOk && !_still, "pick=" + _pickOk + " gone=" + !_still + " loot=" + (groundLoot.length > _flowerLoot0));
+      }
+
+      /* 20260905fp: Space cuts facing tallGrass/weed (tap already goCutGrass'd). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      player.swing = 0;
+      var _gx = -1, _gy = -1, _gi, _gp, _gstand;
+      for (_gi = 0; _gi < PROPS.length; _gi++) {
+        _gp = PROPS[_gi];
+        if (!_gp || !isSliceable(_gp)) continue;
+        if (walkable(_gp.tx + 1, _gp.ty)) { _gx = _gp.tx; _gy = _gp.ty; _gstand = { tx: _gp.tx + 1, ty: _gp.ty, face: "left" }; break; }
+        if (walkable(_gp.tx - 1, _gp.ty)) { _gx = _gp.tx; _gy = _gp.ty; _gstand = { tx: _gp.tx - 1, ty: _gp.ty, face: "right" }; break; }
+        if (walkable(_gp.tx, _gp.ty + 1)) { _gx = _gp.tx; _gy = _gp.ty; _gstand = { tx: _gp.tx, ty: _gp.ty + 1, face: "up" }; break; }
+        if (walkable(_gp.tx, _gp.ty - 1)) { _gx = _gp.tx; _gy = _gp.ty; _gstand = { tx: _gp.tx, ty: _gp.ty - 1, face: "down" }; break; }
+      }
+      if (_gx < 0) {
+        placePlayer(22, 28, "down");
+        PROPS.push({ kind: "tallGrass", tx: 22, ty: 29 });
+        _gx = 22; _gy = 29; _gstand = { tx: 22, ty: 28, face: "down" };
+      }
+      ok("spaceGrassFound", _gx >= 0, "grass");
+      if (_gx >= 0) {
+        placePlayer(_gstand.tx, _gstand.ty, _gstand.face);
+        var _cutOk = tryCutGrassFacing();
+        var _gstill = false;
+        for (_gi = 0; _gi < PROPS.length; _gi++) {
+          if (PROPS[_gi] && PROPS[_gi].tx === _gx && PROPS[_gi].ty === _gy && isSliceable(PROPS[_gi])) { _gstill = true; break; }
+        }
+        ok("spaceCutGrass", !!_cutOk && !_gstill, "cut=" + _cutOk + " gone=" + !_gstill);
       }
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
