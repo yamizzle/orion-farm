@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905an): palm trees on ocean beach/island + 2× dog. Never START OVER.
 Local 9/5 (BUILD 20260905am): 2× mailbox/hole/ladder/swordPedestal. Never START OVER.
 Local 9/5 (BUILD 20260905al): 2× note/log/well props. Never START OVER.
 Local 9/5 (BUILD 20260905ak): 2× weed/tallGrass/chest props. Fence Imagine parked (code-paint overlay). Never START OVER.
@@ -51,7 +52,7 @@ Pick from the top. Expand the world creatively (bigger beach/ocean, fun Imagine 
 | Medium | Done 9/5 1:30am live | Boat at pier | LIVE 9/5 ~1:12–1:30am BUILD 20260905a: GET IN / row / TOO DEEP on deep water / get out on shore PASS; leave-ocean while aboard blocked (GET OUT FIRST.). |
 | Medium | Done 9/5 05ac–05ad | Bigger beach / ocean world | Extend ocean scene logically + creatively with fun Imagine graphics (cove, dunes, more pier room, south deep water toward island). Make the world feel bigger. |
 | Medium | Done 9/5 05af | Island cave Diamond Pickaxe → peak rocks | Row boat further south into deep ocean → tiny island with cave → Diamond Pickaxe inside. Imagine-regen PEAK without painted summit rocks; place matching removable rock sprites; Diamond Pickaxe breaks them in 10 hits. Opens summit path. |
-| Medium | Open | More Imagine trees everywhere | Extra tree types (palm/cove, farm rim, town, woods fillers) via Grok Imagine + BOX/AREA downsample; props not painted-in. |
+| Medium | Partial 9/5 | More Imagine trees everywhere | Extra tree types (palm/cove, farm rim, town, woods fillers) via Grok Imagine + BOX/AREA downsample; props not painted-in. |
 | Low | Done 9/5 05y | Pip shop glow-up | Still queued from earlier (Imagine enhance shopHouse). |
 
 
