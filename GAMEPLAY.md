@@ -45,7 +45,7 @@ Use `spawnGroundLoot`. Do **not** `addItem("stone")` (or wood) inside `finishHar
 
 Unique world finds (copper, mushroom, moon shard on the map) still sit as props until collected.
 
-Tree chop **acorns** / **pinecones** are tray food too (tap the selected stack to nibble hearts + energy). They are not plantable seeds.
+Tree chop **acorns** / **pinecones** / **coconuts** (palms) are tray food too (tap the selected stack to nibble hearts + energy). They are not plantable seeds.
 
 ## Draw order (trees)
 

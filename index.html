@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gy";
+  var BUILD = "20260905gz";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -449,7 +449,7 @@
   var LOOT_POP_MS = 420; /* 20260905ci: longer loot hop so kids see the drop */
   var selectedSlot = 0;
   var fenceBuildOn = false;
-  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, cookedMinnow: 0, cookedBluegill: 0, cookedPerch: 0, cookedCatfish: 0, cookedTrout: 0, cookedBass: 0, cookedGoldenCarp: 0, cookedMoonfish: 0, cookedStarfin: 0, cookedGoldenSwordfish: 0, leash: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, coconut: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, cookedMinnow: 0, cookedBluegill: 0, cookedPerch: 0, cookedCatfish: 0, cookedTrout: 0, cookedBass: 0, cookedGoldenCarp: 0, cookedMoonfish: 0, cookedStarfin: 0, cookedGoldenSwordfish: 0, leash: 0 };
   var BAG_CELLS = 90;
   var TRAY_CELLS = 10;
   var BAG_COLS = 15;
@@ -750,7 +750,7 @@
   var BAG_STACK = 150;
   var CHEST_STACK = 500;
   var CROP_STACK = 1000;
-  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, cookedMinnow: 0, cookedBluegill: 0, cookedPerch: 0, cookedCatfish: 0, cookedTrout: 0, cookedBass: 0, cookedGoldenCarp: 0, cookedMoonfish: 0, cookedStarfin: 0, cookedGoldenSwordfish: 0 };
+  var chest = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, coconut: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, cookedMinnow: 0, cookedBluegill: 0, cookedPerch: 0, cookedCatfish: 0, cookedTrout: 0, cookedBass: 0, cookedGoldenCarp: 0, cookedMoonfish: 0, cookedStarfin: 0, cookedGoldenSwordfish: 0 };
   var chestOpen = false;
   var chestSel = 0;
   var chestMsg = "";
@@ -776,6 +776,7 @@
     { key: "berry", name: "BERRY", icon: "berry" },
     { key: "acorn", name: "ACORN", icon: "acorn" },
     { key: "pinecone", name: "PINECONE", icon: "pinecone" },
+    { key: "coconut", name: "COCONUT", icon: "coconut" },
     { key: "apple", name: "APPLE", icon: "apple" },
     { key: "bread", name: "BREAD", icon: "bread" },
     { key: "pie", name: "BERRY PIE", icon: "pie" },
@@ -4863,7 +4864,10 @@
     return eatFood("pinecone", 2, 10, ["YUM! A PINECONE."]);
   }
 
-
+  function eatCoconut() {
+    /* 20260905gz: palm chop seed was missing — tray-tap eats like acorn/pinecone. */
+    return eatFood("coconut", 3, 14, ["YUM! A COCONUT."]);
+  }
 
   function pickBerryBush(prop) {
     var i;
@@ -5122,6 +5126,7 @@
     if (id === "berry") { if (drawUiIcon(g, "berry", x, y)) return; paintBerry(g, x, y); return; }
     if (id === "acorn") { if (drawUiIcon(g, "acorn", x, y)) return; paintAcorn(g, x, y); return; }
     if (id === "pinecone") { if (drawUiIcon(g, "pinecone", x, y)) return; paintPinecone(g, x, y); return; }
+    if (id === "coconut") { if (drawUiIcon(g, "coconut", x, y)) return; paintCoconut(g, x, y); return; }
     if (id === "apple") { if (drawUiIcon(g, "apple", x, y)) return; paintApple(g, x, y); return; }
     if (id === "bread") { if (drawUiIcon(g, "bread", x, y)) return; paintBread(g, x, y); return; }
     if (id === "pie") { if (drawUiIcon(g, "pie", x, y)) return; paintPie(g, x, y); return; }
@@ -5322,6 +5327,17 @@
     px(g, x + 6, y + 9, "#C47A38");
     px(g, x + 9, y + 10, "#5A3A1A");
     px(g, x + 6, y + 12, "#C47A38");
+  }
+
+  function paintCoconut(g, x, y) {
+    /* 20260905gz: brown oval coconut (paint fallback; no atlas promote). */
+    fill(g, x + 4, y + 6, 8, 7, "#5A3A1A");
+    fill(g, x + 5, y + 5, 6, 9, "#6D4427");
+    fill(g, x + 6, y + 6, 4, 6, "#8B5A28");
+    fill(g, x + 7, y + 7, 2, 2, "#C47A38");
+    px(g, x + 6, y + 8, "#3D1A0C");
+    px(g, x + 9, y + 9, "#3D1A0C");
+    px(g, x + 7, y + 11, "#3D1A0C");
   }
 
   function paintApple(g, x, y) {
@@ -7189,6 +7205,11 @@
     if (kind === "stone") return "A STONE";
     if (kind === "silver") return "SILVER";
     if (kind === "goldore") return "GOLD ORE";
+    if (kind === "acorn") return "AN ACORN";
+    if (kind === "pinecone") return "A PINECONE";
+    if (kind === "coconut") return "A COCONUT";
+    if (kind === "berry") return "A BERRY";
+    if (kind === "apple") return "AN APPLE";
     return "A STONE";
   }
 
@@ -8021,7 +8042,7 @@
       kind === "flower" || kind === "gold" || kind === "goldPile" || kind === "iron" ||
       kind === "copper" || kind === "mushroom" || kind === "sapphire" || kind === "gem" ||
       kind === "mooncrystal" || kind === "silver" || kind === "goldore" ||
-      kind === "potato" || kind === "berry" || kind === "acorn" || kind === "pinecone" ||
+      kind === "potato" || kind === "berry" || kind === "acorn" || kind === "pinecone" || kind === "coconut" ||
       kind === "apple" || kind === "bread" || kind === "pie" ? kind : "";
   }
 
@@ -8206,7 +8227,7 @@
     if (kind === "wood" || kind === "stone" || kind === "veggie" || kind === "flower" ||
         kind === "snack" || kind === "copper" || kind === "mushroom" || kind === "moonshard" || kind === "iron" ||
         kind === "silver" || kind === "goldore" || kind === "potato" || kind === "berry" ||
-        kind === "acorn" || kind === "pinecone" || kind === "apple" || kind === "bread" || kind === "pie" ||
+        kind === "acorn" || kind === "pinecone" || kind === "coconut" || kind === "apple" || kind === "bread" || kind === "pie" ||
         kind === "copperBar" || kind === "silverBar" || kind === "goldBar" ||
         kind === "minnow" || kind === "bluegill" || kind === "perch" || kind === "catfish" ||
         kind === "trout" || kind === "bass" || kind === "goldenCarp" || kind === "moonfish" || kind === "starfin" || kind === "goldenSwordfish" ||
@@ -8512,7 +8533,7 @@
     return Math.max(0, chestCap(key) - chestCount(key));
   }
 
-  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","goldenSwordfish","cookedMinnow","cookedBluegill","cookedPerch","cookedCatfish","cookedTrout","cookedBass","cookedGoldenCarp","cookedMoonfish","cookedStarfin","cookedGoldenSwordfish","leash"];
+  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","coconut","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","goldenSwordfish","cookedMinnow","cookedBluegill","cookedPerch","cookedCatfish","cookedTrout","cookedBass","cookedGoldenCarp","cookedMoonfish","cookedStarfin","cookedGoldenSwordfish","leash"];
 
   function addInvCount(k, n) {
     if (Object.prototype.hasOwnProperty.call(inventory, k)) inventory[k] = (inventory[k] | 0) + (n | 0);
@@ -8976,10 +8997,16 @@
     var k;
     if (!prop) return "";
     if (prop.kind === "pine") return "pinecone";
+    if (prop.kind === "palm") return "coconut";
     if (prop.kind === "oak" || prop.kind === "tree" || prop.kind === "birch") return "acorn";
-    if (prop.kind === "stump") return prop.was === "pine" ? "pinecone" : "acorn";
+    if (prop.kind === "stump") {
+      if (prop.was === "pine") return "pinecone";
+      if (prop.was === "palm") return "coconut";
+      return "acorn";
+    }
     k = prop.was;
     if (k === "pine") return "pinecone";
+    if (k === "palm") return "coconut";
     if (k === "oak" || k === "tree" || k === "birch") return "acorn";
     return "";
   }
@@ -8989,6 +9016,7 @@
     if (!prop) return;
     r = Math.random();
     if (prop.kind === "pine") chance = 0.40;
+    else if (prop.kind === "palm") chance = 0.40;
     else if (prop.kind === "oak") chance = 0.40;
     else if (prop.kind === "tree" || prop.kind === "birch") chance = 0.25;
     else if (prop.kind === "stump") chance = 0.20;
@@ -9062,7 +9090,8 @@
     }
     if (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch" || prop.kind === "palm") {
       var treeKind = prop.kind;
-      var fellSeed = treeKind === "pine" ? "pinecone" : (treeKind === "palm" ? "" : "acorn");
+      /* 20260905gz: palm finally drops coconut (was empty seed; oak/pine already seeded). */
+      var fellSeed = treeKind === "pine" ? "pinecone" : (treeKind === "palm" ? "coconut" : "acorn");
       prop.kind = "stump";
       prop.was = treeKind;
       prop.shake = 0;
@@ -9859,6 +9888,7 @@
         inventory.berry = clampCount(data.inventory.berry);
         inventory.acorn = clampCount(data.inventory.acorn);
         inventory.pinecone = clampCount(data.inventory.pinecone);
+        inventory.coconut = clampCount(data.inventory.coconut);
         inventory.apple = clampCount(data.inventory.apple);
         inventory.bread = clampCount(data.inventory.bread);
         inventory.pie = clampCount(data.inventory.pie);
@@ -9908,6 +9938,7 @@
         chest.berry = clampCount(data.chest.berry);
         chest.acorn = clampCount(data.chest.acorn);
         chest.pinecone = clampCount(data.chest.pinecone);
+        chest.coconut = clampCount(data.chest.coconut);
         chest.apple = clampCount(data.chest.apple);
         chest.bread = clampCount(data.chest.bread);
         chest.pie = clampCount(data.chest.pie);
@@ -10157,6 +10188,7 @@
           berry: inventory.berry | 0,
           acorn: inventory.acorn | 0,
           pinecone: inventory.pinecone | 0,
+          coconut: inventory.coconut | 0,
           apple: inventory.apple | 0,
           bread: inventory.bread | 0,
           pie: inventory.pie | 0,
@@ -10204,6 +10236,7 @@
           berry: chest.berry | 0,
           acorn: chest.acorn | 0,
           pinecone: chest.pinecone | 0,
+          coconut: chest.coconut | 0,
           apple: chest.apple | 0,
           bread: chest.bread | 0,
           pie: chest.pie | 0,
@@ -22199,6 +22232,7 @@
     else if (key === "berry") { if (!drawUiIcon(g, "berry", x, y)) paintBerry(g, x, y); }
     else if (key === "acorn") { if (!drawUiIcon(g, "acorn", x, y)) paintAcorn(g, x, y); }
     else if (key === "pinecone") { if (!drawUiIcon(g, "pinecone", x, y)) paintPinecone(g, x, y); }
+    else if (key === "coconut") { if (!drawUiIcon(g, "coconut", x, y)) paintCoconut(g, x, y); }
     else if (key === "apple") { if (!drawUiIcon(g, "apple", x, y)) paintApple(g, x, y); }
     else if (key === "bread") { if (!drawUiIcon(g, "bread", x, y)) paintBread(g, x, y); }
     else if (key === "pie") { if (!drawUiIcon(g, "pie", x, y)) paintPie(g, x, y); }
@@ -23277,6 +23311,8 @@
         /* 20260905gx: acorn / pinecone tray-tap eat (were loot-only dead ends). */
         if (key === "acorn") eatAcorn();
         if (key === "pinecone") eatPinecone();
+        /* 20260905gz: coconut tray-tap eat (palm chop seed; same yum path). */
+        if (key === "coconut") eatCoconut();
         if (key === "mushroom") eatMushroom();
         if (fishKindById(key)) eatRawFish();
         if (cookedFishKindById(key)) eatCookedFish();
@@ -24929,7 +24965,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gy", BUILD);
+      ok("BUILD", BUILD === "20260905gz", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26793,6 +26829,14 @@ if (currentScene === "ocean") goExitOcean();
         "n=" + bagCount("acorn") + " hp=" + hp + " en=" + energy);
       selectedSlot = 3;
       ok("eatPineconeWorks", !!eatPinecone() && bagCount("pinecone") === 0, "n=" + bagCount("pinecone"));
+      /* 20260905gz: palm coconut drop + tray-tap eat. */
+      emptyTray();
+      emptyBag();
+      trayCells[2] = { key: "coconut", count: 1 };
+      selectedSlot = 2;
+      ok("eatCoconutWorks", !!eatCoconut() && bagCount("coconut") === 0, "n=" + bagCount("coconut"));
+      ok("palmSeedKind", treeSeedKind({ kind: "palm" }) === "coconut", treeSeedKind({ kind: "palm" }));
+      ok("palmStumpSeed", treeSeedKind({ kind: "stump", was: "palm" }) === "coconut", treeSeedKind({ kind: "stump", was: "palm" }));
       /* Far open ground: always some progress (partway harden). */
       placePlayer(6, 30, "down");
       var far = findPath(6, 30, 6, 35);
