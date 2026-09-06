@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cn";
+  var BUILD = "20260905co";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -1323,7 +1323,10 @@
     x: 12 * 16 + 8,
     y: 29 * 16 + 14,
     face: "right",
-    frame: 0
+    frame: 0,
+    /* 20260905co: cozy idle frame flip + breath bob */
+    anim: 0,
+    idle: 0
   };
   function makeFolk(id, name, sprite, tx, ty, x0, y0, x1, y1, lines) {
     return {
@@ -5407,12 +5410,14 @@
     var y = Math.round(f.y);
     var bob = f.frame ? -1 : 0;
     var img, iw, ih;
+    if (!(f.path && f.path.length)) bob += Math.round(Math.sin(tick / 400 + (f.tx || 0)) * 1);
     drawShadow(g, f.x, f.y, 5);
     img = f.id === "hazel" ? Assets.hazel : Assets.rowan;
     if (img) {
       iw = img.width;
       ih = img.height;
       g.drawImage(img, x - ((iw / 2) | 0), y - ih + bob, iw, ih);
+      if (talkCueNear(f.tx, f.ty)) drawTalkCue(g, f.x, f.y + bob);
       return;
     }
     if (f.id === "hazel") {
@@ -5430,6 +5435,7 @@
       fill(g, x - 3, y - 6 + bob, 3, 6, "#3D1A0C");
       fill(g, x + 1, y - 6 + bob, 3, 6, "#3D1A0C");
     }
+    if (talkCueNear(f.tx, f.ty)) drawTalkCue(g, f.x, f.y + bob);
   }
 
   function drawForestCritter(g, c) {
@@ -11756,6 +11762,17 @@
           (player.path && player.path.length && player.path[0].tx === npc.tx && player.path[0].ty === npc.ty)) {
         npcYield();
       }
+      /* 20260905co: soft idle sway when nobody is chatting her up */
+      if (playerNearFolk(npc)) {
+        npc.frame = 0;
+        npc.anim = 0;
+      } else {
+        npc.anim = (npc.anim || 0) + dt;
+        if (npc.anim > 340) {
+          npc.anim = 0;
+          npc.frame = npc.frame ? 0 : 1;
+        }
+      }
     }
     list = liveFolk();
     for (i = 0; i < list.length; i++) {
@@ -17103,11 +17120,31 @@
     }
   }
 
+  function drawTalkCue(g, x, y) {
+    /* 20260905co: bobbing ! so kids see who will talk */
+    var bob, tw, lx, ly;
+    if (dialogue) return;
+    bob = Math.round(Math.sin(tick / 220) * 1.5);
+    tw = textWidth("!");
+    lx = Math.round(x - tw / 2);
+    ly = Math.round(y - 36 + bob);
+    fill(g, lx - 2, ly - 1, tw + 4, 9, "rgba(42,26,16,0.78)");
+    drawText(g, "!", lx, ly, "#FFE28A");
+  }
+
+  function talkCueNear(tx, ty) {
+    return Math.abs(player.tx - tx) + Math.abs(player.ty - ty) <= 2;
+  }
+
   function drawNpc(g) {
     var face = npc.face || "down";
+    var bob;
     if (!Assets.spr["npc-" + face]) face = "down";
+    bob = Math.round(Math.sin(tick / 420) * 1);
+    if (npc.frame) bob -= 1;
     drawShadow(g, npc.x, npc.y, 5);
-    Assets.draw(g, "npc-" + face, npc.x, npc.y, 0);
+    Assets.draw(g, "npc-" + face, npc.x, npc.y + bob, npc.frame || 0);
+    if (currentScene === "overworld" && talkCueNear(npc.tx, npc.ty)) drawTalkCue(g, npc.x, npc.y + bob);
   }
 
   function drawChickenSpr(g) {
@@ -17138,17 +17175,26 @@
   function drawFolk(g, f) {
     var face = f.face || "down";
     var sid = f.sprite + "-" + face;
+    var bob = 0;
     if (!Assets.spr[sid]) sid = f.sprite + "-down";
+    /* 20260905co: idle breath when standing still */
+    if (!(f.path && f.path.length)) bob = Math.round(Math.sin(tick / 400 + (f.tx || 0)) * 1);
+    if (f.frame) bob -= 1;
     drawShadow(g, f.x, f.y, 5);
-    Assets.draw(g, sid, f.x, f.y, f.frame || 0);
+    Assets.draw(g, sid, f.x, f.y + bob, f.frame || 0);
+    if (f && talkCueNear(f.tx, f.ty)) drawTalkCue(g, f.x, f.y + bob);
   }
 
   function drawNim(g) {
     var face = nim.face || "down";
     var sid = "nim-" + face;
+    var bob = 0;
     if (!Assets.spr[sid]) sid = "nim-down";
+    bob = Math.round(Math.sin(tick / 410) * 1);
+    if (nim.frame) bob -= 1;
     drawShadow(g, nim.x, nim.y, 5);
-    Assets.draw(g, sid, nim.x, nim.y, nim.frame || 0);
+    Assets.draw(g, sid, nim.x, nim.y + bob, nim.frame || 0);
+    if (nimVisible() && talkCueNear(nim.tx, nim.ty)) drawTalkCue(g, nim.x, nim.y + bob);
   }
 
   function drawCarSpr(g) {
@@ -21358,7 +21404,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cn", BUILD);
+      ok("BUILD", BUILD === "20260905co", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
