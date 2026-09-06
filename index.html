@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ad";
+  var BUILD = "20260905af";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -518,7 +518,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, islandCave: null };
   var tick = 0;
   var lastTs = 0;
   var dialogue = null;
@@ -591,6 +591,11 @@
   var boatHome = { tx: 22, ty: 25 };
   /* Last docked shore spot — boat stays here so kids aren't stranded on the island */
   var boatDock = { tx: 22, ty: 25 };
+  var ISLAND_CAVE_COLS = 14;
+  var ISLAND_CAVE_ROWS = 10;
+  var islandCaveIn = { tx: 24, ty: 35 };
+  var islandCaveOut = { tx: 7, ty: 8 };
+  var diamondPickOwned = false;
   var onBoat = false;
   var treetopDoor = { tx: 25, ty: 8 };
   var treetopLand = { tx: 20, ty: 21 };
@@ -631,7 +636,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, diamondPick: false, peakRocksCleared: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -2097,7 +2102,11 @@
     if (!props || !floorKey) return;
     /* 20260905v: old saves tagged mine mushrooms deco — clear so kids can pick them */
     for (pi = 0; pi < props.length; pi++) {
-      if (props[pi] && props[pi].kind === "mushroom" && props[pi].deco) delete props[pi].deco;
+      if (props[pi] && props[pi].kind === "mushroom") {
+        if (props[pi].deco) delete props[pi].deco;
+        /* Quest mushroom at floor1 (27,3) stays unique; all others are snacks */
+        if (!(mineFloor === 1 && props[pi].tx === 27 && props[pi].ty === 3)) props[pi].loose = true;
+      }
     }
     plan = MINE_DECOR_SPOTS[floorKey];
     if (!plan) return;
@@ -2111,6 +2120,8 @@
         ty = spots[si][1];
         if (mineDecorBlocked(props, floorKey, tx, ty, kind)) continue;
         item = { kind: kind, tx: tx, ty: ty };
+        /* 20260905af: loose snacks — found.mushroom must not block every cave mush */
+        if (kind === "mushroom") item.loose = true;
         /* 20260905v: mushrooms are snacks to pick, not scenery */
         if (kind === "lantern") item.walk = true;
         props.push(item);
@@ -2450,6 +2461,18 @@
     if (name === "ocean" && cached && (cached.cols !== OCEAN_COLS || cached.rows !== OCEAN_ROWS)) {
       cached = null;
     }
+    /* 20260905ae: rebuild ocean if island cave mouth missing */
+    if (name === "ocean" && cached && cached.props) {
+      var _hasIslandCave = false, _oci;
+      for (_oci = 0; _oci < cached.props.length; _oci++) {
+        if (cached.props[_oci] && cached.props[_oci].kind === "caveMouth" &&
+            cached.props[_oci].tx === islandCaveIn.tx && cached.props[_oci].ty === islandCaveIn.ty) {
+          _hasIslandCave = true;
+          break;
+        }
+      }
+      if (!_hasIslandCave) cached = null;
+    }
     fresh = !cached;
     if (cached) {
       COLS = cached.cols;
@@ -2533,6 +2556,11 @@
       ROWS = OCEAN_ROWS;
       GROUND = buildOceanGround();
       PROPS = buildOceanProps();
+    } else if (name === "islandCave") {
+      COLS = ISLAND_CAVE_COLS;
+      ROWS = ISLAND_CAVE_ROWS;
+      GROUND = buildIslandCaveGround();
+      PROPS = buildIslandCaveProps();
     } else if (name === "caveclimb") {
       COLS = CLIMB_COLS;
       ROWS = CLIMB_ROWS;
@@ -2846,11 +2874,14 @@
   }
 
   function buildPeakProps() {
-    return [
-      { kind: "peakRocks", tx: peakRocksAt.tx, ty: peakRocksAt.ty },
+    var list = [
       { kind: "caveMouth", tx: peakCaveAt.tx, ty: peakCaveAt.ty },
       { kind: "peakSign", tx: 18, ty: 27 }
     ];
+    if (!found.peakRocksCleared) {
+      list.unshift({ kind: "peakRocks", tx: peakRocksAt.tx, ty: peakRocksAt.ty });
+    }
+    return list;
   }
 
   function buildClimbGround() {
@@ -2900,6 +2931,7 @@
   }
 
   function isPeakRocks(tx, ty) {
+    if (found.peakRocksCleared) return false;
     if (currentScene !== "peak") return false;
     return ty >= 3 && ty <= 5 && tx >= 17 && tx <= 21;
   }
@@ -2988,7 +3020,22 @@
   }
 
   function talkPeakRocks() {
-    openDialogue("FALLEN ROCKS.", ["THE PATH IS BLOCKED."]);
+    var prop, i;
+    if (found.peakRocksCleared) return;
+    if (!diamondPickOwned) {
+      openDialogue("FALLEN ROCKS.", ["NEED A STRONGER PICK", "FROM THE SOUTH ISLAND."]);
+      return;
+    }
+    if (!toolEquipped("diamondPick")) {
+      showLineNote("SELECT THE DIAMOND PICK");
+      return;
+    }
+    prop = null;
+    for (i = 0; i < PROPS.length; i++) {
+      if (PROPS[i].kind === "peakRocks") { prop = PROPS[i]; break; }
+    }
+    if (!prop) return;
+    beginHit(prop);
   }
 
   function goPeakCave() {
@@ -3223,11 +3270,96 @@
       { kind: "tallGrass", tx: 27, ty: 12, regrow: true },
       { kind: "tallGrass", tx: 33, ty: 3, regrow: true },
       { kind: "tallGrass", tx: 38, ty: 10, regrow: true },
-      /* south island stub (Diamond Pickaxe cave next) */
-      { kind: "rock", tx: 22, ty: 35 }, { kind: "rock", tx: 25, ty: 36 },
+      /* south island — cave to Diamond Pickaxe */
+      { kind: "caveMouth", tx: islandCaveIn.tx, ty: islandCaveIn.ty },
       { kind: "pine", tx: 23, ty: 35 },
       { kind: "oceanSign", tx: 24, ty: 34, label: "ISLAND" }
     ];
+  }
+
+  function buildIslandCaveGround() {
+    var cols = ISLAND_CAVE_COLS, rows = ISLAND_CAVE_ROWS;
+    var g = [], y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) {
+        row[x] = (x === 0 || y === 0 || x === cols - 1 || y === rows - 1) ? "#" : "f";
+      }
+      g[y] = row;
+    }
+    return g;
+  }
+
+  function buildIslandCaveProps() {
+    var list = [
+      { kind: "doormat", tx: islandCaveOut.tx, ty: islandCaveOut.ty },
+      { kind: "inndoor", tx: islandCaveOut.tx, ty: islandCaveOut.ty + 1 }
+    ];
+    if (!found.diamondPick) {
+      list.push({ kind: "diamondPickaxe", tx: 7, ty: 4 });
+    }
+    return list;
+  }
+
+  function isIslandCaveEntrance(tx, ty) {
+    var p;
+    if (currentScene !== "ocean") return false;
+    if (tx === islandCaveIn.tx && ty === islandCaveIn.ty) return true;
+    p = propAt(tx, ty);
+    return !!(p && p.kind === "caveMouth" && p.tx === islandCaveIn.tx && p.ty === islandCaveIn.ty);
+  }
+
+  function isIslandCaveExit(tx, ty) {
+    return currentScene === "islandCave" && tx === islandCaveOut.tx && ty === islandCaveOut.ty;
+  }
+
+  function enterIslandCave() {
+    applyScene("islandCave");
+    placePlayer(islandCaveOut.tx, islandCaveOut.ty - 1, "up");
+    persistSave();
+  }
+
+  function exitIslandCave() {
+    applyScene("ocean");
+    placePlayer(islandCaveIn.tx, islandCaveIn.ty + 1, "down");
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(islandCaveIn.tx, islandCaveIn.ty, "down");
+    }
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(23, 35, "down");
+    }
+    unstickPlayer();
+    persistSave();
+  }
+
+  function goEnterIslandCave() {
+    var path;
+    highlight = { tx: islandCaveIn.tx, ty: islandCaveIn.ty };
+    if (isIslandCaveEntrance(player.tx, player.ty) || (player.tx === islandCaveIn.tx && player.ty === islandCaveIn.ty)) {
+      enterIslandCave();
+      return;
+    }
+    path = findPath(player.tx, player.ty, islandCaveIn.tx, islandCaveIn.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, islandCaveIn.tx, islandCaveIn.ty)) {
+        enterIslandCave();
+      }
+      return;
+    }
+    pending = { type: "enterIslandCave" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitIslandCave() {
+    highlight = { tx: islandCaveOut.tx, ty: islandCaveOut.ty };
+    if (player.tx === islandCaveOut.tx && player.ty === islandCaveOut.ty) {
+      exitIslandCave();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, islandCaveOut.tx, islandCaveOut.ty);
+    if (!path.length) return;
+    pending = { type: "exitIslandCave" };
+    startWalk(player, path, 3.5);
   }
 
   function isOceanDoorCol(tx) {
@@ -5572,7 +5704,7 @@
   }
 
   function isHarvestable(p) {
-    return p && (isWoodChop(p) || p.kind === "rock");
+    return p && (isWoodChop(p) || p.kind === "rock" || p.kind === "peakRocks");
   }
 
   function isSoftStrike(p) {
@@ -6025,7 +6157,7 @@
   function isToolKey(key) {
     return key === "seed" || key === "potatoSeed" || key === "berrySeed" ||
       key === "hat" || key === "sword" || key === "shovel" || key === "axe" ||
-      key === "pick" || key === "pole" || key === "bow" || key === "leash";
+      key === "pick" || key === "diamondPick" || key === "pole" || key === "bow" || key === "leash";
   }
 
   function isStackKey(key) {
@@ -6430,11 +6562,16 @@
     cy = prop.ty * TILE + (prop.kind === "tree" ? 2 : 6);
     spawnSparks(cx, cy);
     if (isHarvestable(prop)) {
+      if (prop.kind === "peakRocks" && !toolEquipped("diamondPick")) {
+        showLineNote(diamondPickOwned ? "SELECT THE DIAMOND PICK" : "NEED A STRONGER PICK");
+        cancelHit();
+        return;
+      }
       spendEnergy(ENERGY_HIT);
       var leftHp = hurtNode(prop);
       maybeDropTreeSeed(prop);
       if (leftHp <= 0) finishHarvest(prop);
-      playSfx(prop.kind === "rock" ? "smash" : "chop");
+      playSfx(prop.kind === "rock" || prop.kind === "peakRocks" ? "smash" : "chop");
     } else if (isSliceable(prop)) {
       spendEnergy(ENERGY_HIT);
       finishSoftStrike(prop);
@@ -6447,6 +6584,7 @@
   function workToolFor(prop) {
     if (!prop) return "";
     if (isWoodChop(prop) && toolEquipped("axe")) return "axe";
+    if (prop.kind === "peakRocks" && toolEquipped("diamondPick")) return "pickaxe";
     if (prop.kind === "rock" && toolEquipped("pick")) return "pickaxe";
     return "";
   }
@@ -6454,6 +6592,7 @@
   function nodeMaxHp(prop) {
     if (prop && prop.kind === "log") return 2;
     if (isWoodChop(prop)) return HIT_COUNT;
+    if (prop && prop.kind === "peakRocks") return 10;
     if (prop && prop.kind === "rock") {
       if (currentScene === "mine" && mineFloor >= 4) return HIT_DEEP_ROCK;
       if (currentScene === "mine") return HIT_MINE_ROCK;
@@ -6465,6 +6604,10 @@
   function nodeStrikeDmg(prop) {
     if (prop && prop.kind === "log" && toolEquipped("axe")) return 2;
     if (isWoodChop(prop) && toolEquipped("axe")) return 3;
+    if (prop && prop.kind === "peakRocks") {
+      if (toolEquipped("diamondPick")) return 1;
+      return 0;
+    }
     if (prop && prop.kind === "rock" && toolEquipped("pick")) {
       if (currentScene === "mine" && mineFloor >= 4) return 3;
       if (currentScene === "mine") return HIT_MINE_ROCK;
@@ -6505,7 +6648,7 @@
 
   function nodeHurtStage(p) {
     var rec, max, hp;
-    if (!p || (p.kind !== "tree" && p.kind !== "pine" && p.kind !== "oak" && p.kind !== "birch" && p.kind !== "rock")) return 0;
+    if (!p || (p.kind !== "tree" && p.kind !== "pine" && p.kind !== "oak" && p.kind !== "birch" && p.kind !== "rock" && p.kind !== "peakRocks")) return 0;
     rec = harvestNodes[nodeKey(liveHarvestScene(), p.tx, p.ty)];
     if (!rec || rec.state !== "hurt") return 0;
     max = rec.maxHp || nodeMaxHp(p);
@@ -6642,6 +6785,15 @@
       spawnGroundLoot("wood", prop.tx, prop.ty, harvestDropFor(prop));
       spawnGroundLoot(fellSeed, prop.tx, prop.ty, 1);
       rememberHarvest(prop, treeKind, "stump");
+    } else if (prop.kind === "peakRocks") {
+      var pri = PROPS.indexOf(prop);
+      if (pri >= 0) PROPS.splice(pri, 1);
+      found.peakRocksCleared = true;
+      buildSolid();
+      delete harvestNodes[nodeKey(liveHarvestScene(), prop.tx, prop.ty)];
+      showLineNote("PATH CLEAR!");
+      persistSave();
+      return;
     } else if (prop.kind === "rock") {
       var i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
@@ -6927,25 +7079,28 @@
   }
 
   function isEntrance(tx, ty) {
-    return isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || isShopEntrance(tx, ty) || isForestEntrance(tx, ty) || isTreetopEntrance(tx, ty) || isOceanEntrance(tx, ty) || isCottageEntrance(tx, ty) || isCottage2Entrance(tx, ty);
+    return isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || isShopEntrance(tx, ty) || isForestEntrance(tx, ty) || isTreetopEntrance(tx, ty) || isOceanEntrance(tx, ty) || isCottageEntrance(tx, ty) || isCottage2Entrance(tx, ty) || isIslandCaveEntrance(tx, ty);
   }
 
   function isMineExit(tx, ty) {
     return currentScene === "mine" && mineFloor === 1 && tx === portalOut.tx && ty === portalOut.ty;
   }
 
-  /* Fat-finger the OUT ladder / OUT label so one tap exits (label sits 8px north).
-     5x5 tile pad + tall pixel rect: south rungs sit under the hotbar / sword btn. */
+  /* Fat-finger OUT ladder only — keep Nim's note (west of OUT) out of the pad.
+     20260905af: was ±2 and also ate the note tile, warping kids out when leaving wood. */
   function mineExitHit(tx, ty, world) {
-    var bx, by, dx, dy;
+    var bx, by, dx, dy, note;
     if (currentScene !== "mine" || mineFloor !== 1) return false;
+    note = findNote();
+    if (note && tx === note.tx && ty === note.ty) return false;
     dx = tx - portalOut.tx;
     dy = ty - portalOut.ty;
-    if (dx >= -2 && dx <= 2 && dy >= -2 && dy <= 2) return true;
+    /* Ladder tile + immediate neighbors; not the note two tiles west */
+    if (dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1) return true;
     if (!world) return false;
-    bx = portalOut.tx * TILE - 24;
-    by = portalOut.ty * TILE - 32;
-    return world.x >= bx && world.x < bx + 64 && world.y >= by && world.y < by + 80;
+    bx = portalOut.tx * TILE - 16;
+    by = portalOut.ty * TILE - 24;
+    return world.x >= bx && world.x < bx + 48 && world.y >= by && world.y < by + 56;
   }
 
   function hudWorldDoor(tx, ty, world) {
@@ -7171,6 +7326,8 @@
         found.birdNestFixed = !!data.found.birdNestFixed;
         found.bridgeFixed = !!data.found.bridgeFixed;
         found.kickedBall = !!data.found.kickedBall;
+        found.diamondPick = !!data.found.diamondPick;
+        found.peakRocksCleared = !!data.found.peakRocksCleared;
       }
       if (data.ball && typeof data.ball === "object") {
         ball.tx = data.ball.tx | 0;
@@ -7241,6 +7398,7 @@
       if (data.boatDock && typeof data.boatDock.tx === "number" && typeof data.boatDock.ty === "number") {
         boatDock = { tx: data.boatDock.tx | 0, ty: data.boatDock.ty | 0 };
       }
+      diamondPickOwned = !!(data.diamondPickOwned || (data.found && data.found.diamondPick));
       poleOwned = !!data.poleOwned;
       pickaxeOwned = !!data.pickaxeOwned;
       shieldOwned = !!data.shieldOwned;
@@ -7614,6 +7772,7 @@
         axeOwned: !!axeOwned,
         shovelOwned: !!shovelOwned,
         boatDock: { tx: (boatDock && boatDock.tx) | 0, ty: (boatDock && boatDock.ty) | 0 },
+        diamondPickOwned: !!diamondPickOwned,
         poleOwned: !!poleOwned,
         pickaxeOwned: !!pickaxeOwned,
         shieldOwned: !!shieldOwned,
@@ -8312,6 +8471,7 @@
     if (shovelOwned) placeToolInTrayFirst("shovel");
     if (axeOwned) placeToolInTrayFirst("axe");
     if (pickaxeOwned) placeToolInTrayFirst("pick");
+    if (diamondPickOwned) placeToolInTrayFirst("diamondPick");
     if (poleOwned) placeToolInTrayFirst("pole");
     if (bowOwned) placeToolInTrayFirst("bow");
     placeToolInTrayFirst("potatoSeed");
@@ -8458,6 +8618,7 @@
     if (shovelOwned) placeToolInTrayFirst("shovel");
     if (axeOwned) placeToolInTrayFirst("axe");
     if (pickaxeOwned) placeToolInTrayFirst("pick");
+    if (diamondPickOwned) placeToolInTrayFirst("diamondPick");
     if (poleOwned) placeToolInTrayFirst("pole");
     if (bowOwned) placeToolInTrayFirst("bow");
     placeToolInTrayFirst("seed");
@@ -11201,6 +11362,7 @@
   function toolEquipped(id) {
     if (id === "axe") return !!(axeOwned && selectedIs("axe"));
     if (id === "pick") return !!(pickaxeOwned && selectedIs("pick"));
+    if (id === "diamondPick") return !!(diamondPickOwned && selectedIs("diamondPick"));
     if (id === "shovel") return !!(shovelOwned && selectedIs("shovel"));
     if (id === "pole") return !!(poleOwned && selectedIs("pole"));
     if (id === "sword") return swordEquipped();
@@ -11871,17 +12033,14 @@
   }
 
   function swingReachHits(m) {
-    var dx, dy, reach, pt, dtx, dty, flying, tileR;
+    var dx, dy, reach, pt, dtx, dty, tileR;
     if (!m) return false;
-    flying = (m.kind === "bat" || m.kind === "crystalbat");
-    /* 20260903b: ground foes get the same generous reach as bats so pad kills land on slimes. */
-    tileR = 2;
+    /* 20260905af: adjacent only — no sniping from across the cave */
+    tileR = 1;
     dx = m.x - player.x;
     dy = m.y - player.y;
-    /* ~3–4.5 tiles; bats + slimes share wide reach for kid pad taps. */
-    reach = 72 + (m.scale > 1.2 ? 10 : 0);
+    reach = 28 + (m.scale > 1.2 ? 6 : 0);
     if ((dx * dx + dy * dy) <= reach * reach) return true;
-    /* Tile Chebyshev from logical or interpolated tile (any facing). */
     dtx = Math.abs(m.tx - player.tx);
     dty = Math.abs(m.ty - player.ty);
     if (dtx <= tileR && dty <= tileR) return true;
@@ -11889,11 +12048,6 @@
     dtx = Math.abs(pt.tx - player.tx);
     dty = Math.abs(pt.ty - player.ty);
     if (dtx <= tileR && dty <= tileR) return true;
-    if (m.path && m.path.length) {
-      dtx = Math.abs(m.path[0].tx - player.tx);
-      dty = Math.abs(m.path[0].ty - player.ty);
-      if (dtx <= tileR && dty <= tileR) return true;
-    }
     return false;
   }
 
@@ -12690,12 +12844,13 @@
     }
     dest = nearestAdjacent(mon.tx, mon.ty);
     if (!dest) {
-      beginFight(mon);
+      /* 20260905af: can't reach — walk toward, don't snipe */
+      goWalk(mon.tx, mon.ty);
       return;
     }
     path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) {
-      beginFight(mon);
+      goWalk(mon.tx, mon.ty);
       return;
     }
     pending = { type: "fight", mon: mon };
@@ -12956,7 +13111,7 @@
     return p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
       p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
       p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore" ||
-      p.kind === "toadstool";
+      p.kind === "toadstool" || p.kind === "diamondPickaxe";
   }
 
   function findNote() {
@@ -13017,6 +13172,18 @@
   function pickupCollectible(prop) {
     var i;
     if (!isCollectible(prop)) return;
+    if (prop.kind === "diamondPickaxe") {
+      if (found.diamondPick || diamondPickOwned) return;
+      i = PROPS.indexOf(prop);
+      if (i >= 0) PROPS.splice(i, 1);
+      found.diamondPick = true;
+      diamondPickOwned = true;
+      giveTool("diamondPick");
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      persistSave();
+      openDialogue("ORION", ["A DIAMOND PICKAXE!", "IT CAN BREAK THE", "ROCKS ON THE PEAK."]);
+      return;
+    }
     if (prop.kind === "toadstool") {
       i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
@@ -13113,6 +13280,7 @@
     if (prop.kind === "sapphire" && found.sapphire) return;
     if (prop.kind === "chest" && mineFloor === 6 && found.peakChest) return;
     if ((prop.kind === "chest" || prop.kind === "mooncrystal") && mineFloor !== 6 && found.mooncrystal) return;
+    /* Unique world finds only — loose cave mushrooms stay pickable after the quest one */
     if (prop.kind !== "gem" && prop.kind !== "chest" && prop.kind !== "mooncrystal" &&
         prop.kind !== "iron" && prop.kind !== "sapphire" && prop.kind !== "silver" &&
         prop.kind !== "goldore" && !prop.loose && found[prop.kind]) return;
@@ -13549,6 +13717,10 @@
       exitOcean();
     } else if (act.type === "talkBridge") {
       if (act.prop) talkBridge(act.prop);
+    } else if (act.type === "enterIslandCave") {
+      enterIslandCave();
+    } else if (act.type === "exitIslandCave") {
+      exitIslandCave();
     } else if (act.type === "talkBoat") {
       talkBoat();
     } else if (act.type === "peakRocks") {
@@ -14973,6 +15145,9 @@
       Assets.draw(g, "swordPedestal", x, y);
     } else if (p.kind === "note") {
       Assets.draw(g, "note", x, y);
+    } else if (p.kind === "diamondPickaxe") {
+      var dbob = Math.round(Math.sin(tick / 280) * 1);
+      if (!drawUiIcon(g, "diamondPickaxe", x, y + dbob)) Assets.draw(g, "diamondPickaxe", x, y + dbob, 0, 0.5);
     } else if (p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
                p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
                p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore") {
@@ -17127,6 +17302,10 @@
         goMinePeakStairs();
         return;
       }
+      if (propAt(tx, ty) && propAt(tx, ty).kind === "note") {
+        goReadNote();
+        return;
+      }
       if (isMineExit(tx, ty) || mineExitHit(tx, ty, world) || (hitHoleEarly && hitHoleEarly.kind === "ladder" && mineFloor === 1)) {
         exitMine();
         return;
@@ -17288,6 +17467,10 @@
       goMineShaft(false);
       return;
     }
+    if (propAt(tx, ty) && propAt(tx, ty).kind === "note") {
+      goReadNote();
+      return;
+    }
     if (isMineExit(tx, ty) || mineExitHit(tx, ty, world) || (hitHole && hitHole.kind === "ladder" && mineFloor === 1)) {
       exitMine();
       return;
@@ -17401,6 +17584,7 @@
       if (currentScene === "shop") goExitShop();
       else if (currentScene === "cottage") goExitCottage();
       else if (currentScene === "cottage2") goExitCottage2();
+      else if (currentScene === "islandCave") goExitIslandCave();
       else goExitHouse();
       return;
     }
@@ -17479,6 +17663,7 @@ if (currentScene === "ocean") goExitOcean();
     }
     if (hitProp && hitProp.kind === "caveMouth") {
       if (currentScene === "peak") goPeakCave();
+      else if (currentScene === "ocean") goEnterIslandCave();
       else goClimbShaft(true);
       return;
     }
@@ -18222,7 +18407,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ad", BUILD);
+      ok("BUILD", BUILD === "20260905af", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905af): cave note no longer exits (OUT pad shrunk); loose cave mushrooms pickable after quest mush; sword reach adjacent-only; island cave Diamond Pickaxe + 10-hit peak rocks. Never START OVER.
 Local 9/5 (BUILD 20260905ad): rowboat stays where you GET OUT (island-safe); boatDock saved. Never START OVER.
 Local 9/5 (BUILD 20260905ac): ocean cove expanded to 48×40 with wider beach, longer pier path, south sand island stub (cave/Diamond Pickaxe next). Household save rebuilds ocean if old size cached. Never START OVER.
 Local 9/5 (BUILD 20260905x): atomic bag/tray index swap — pickup clears one slot only; drop snapshots held+target then writes both; pocketCopy never nulls a keyed stack (count<1→1). Fixes live 05v wood→silverBar vanish (05d/05e/05f claimed fixes). Bag swap still needs live verify. Never START OVER.
