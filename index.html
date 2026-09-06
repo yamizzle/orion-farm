@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bp";
+  var BUILD = "20260905bq";
   var ASSET_REV = "445667";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -554,6 +554,10 @@
   var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, islandCave: null };
   var tick = 0;
   var lastTs = 0;
+  /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
+     dump a hitch into dayMs; only one rAF chain may run. */
+  var clockMark = 0;
+  var rafScheduled = false;
   var dialogue = null;
   var birdFly = null;
   var birdRideFx = null;
@@ -10233,21 +10237,45 @@
     return !!(uiPaused() || document.hidden);
   }
 
-  function updateClock(dt) {
-    if (timePaused()) return;
-    var before = clockPhase();
-    var beforeDay = dayNumber;
+  function resetClockMark() {
+    clockMark = 0;
+  }
+
+  /* 20260905bq: advance the day from a dedicated mark (not shared gameplay dt).
+     Caps each step, ignores pause/resume gaps, and refuses multi-day spirals so
+     one laggy frame or tab wake cannot skip Evening or jump Day N→N+3. DAY_MS frozen. */
+  function updateClock() {
+    var now, dt, before, beforeDay, rolled;
+    if (timePaused()) {
+      resetClockMark();
+      return;
+    }
+    now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    if (!clockMark) {
+      clockMark = now;
+      return;
+    }
+    dt = now - clockMark;
+    clockMark = now;
+    if (!(dt > 0)) return;
+    if (dt > 50) dt = 50;
+    before = clockPhase();
+    beforeDay = dayNumber;
     dayMs += dt;
-    while (dayMs >= DAY_MS) {
+    rolled = 0;
+    while (dayMs >= DAY_MS && rolled < 1) {
       dayMs -= DAY_MS;
       dayNumber += 1;
+      rolled += 1;
     }
+    if (dayMs >= DAY_MS) dayMs = dayMs % DAY_MS;
     if (clockPhase() !== before || dayNumber !== beforeDay) {
-      persistSave();
       if (currentScene === "overworld") {
         holidaySyncKey = "";
         syncHolidayProps();
       }
+      /* Defer save so a sync localStorage hitch cannot nest inside the tick. */
+      setTimeout(function () { persistSave(); }, 0);
     }
     updateCrops();
     updateHarvestNodes();
@@ -10319,7 +10347,9 @@
   }
 
   function currentTint() {
-    var t = dayMs / DAY_MS;
+    var t;
+    if (frameDayT === null) beginFrameGrade();
+    t = frameDayT;
     var cozy = currentScene === "house" && homeLightOn();
     if (isCozyInterior()) {
       if (t >= 0.72) return { r: 255, g: cozy ? 184 : 200, b: cozy ? 104 : 130, a: cozy ? 0.38 : 0.24 };
@@ -18719,10 +18749,19 @@ if (currentScene === "ocean") goExitOcean();
     goWalk(tx, ty);
   }
 
+  function scheduleLoop() {
+    if (rafScheduled) return;
+    rafScheduled = true;
+    requestAnimationFrame(loop);
+  }
+
   function loop(ts) {
+    var dt;
+    rafScheduled = false;
     if (!lastTs) lastTs = ts;
-    var dt = ts - lastTs;
+    dt = ts - lastTs;
     if (dt > 64) dt = 64;
+    if (dt < 0) dt = 0;
     lastTs = ts;
     applyDrawBuffer(ctx);
     updateSleep(dt);
@@ -18773,11 +18812,11 @@ if (currentScene === "ocean") goExitOcean();
     if (shopMsgT > 0) shopMsgT -= dt;
     if (craftMsgT > 0) craftMsgT -= dt;
     if (chestMsgT > 0) chestMsgT -= dt;
-    updateClock(dt);
+    updateClock();
     updateToasts(dt);
     tickMusic();
     drawWorld(ctx, dt);
-    requestAnimationFrame(loop);
+    scheduleLoop();
   }
 
   function paintLoading() {
@@ -18981,16 +19020,30 @@ if (currentScene === "ocean") goExitOcean();
   }, { passive: true });
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) {
+      resetClockMark();
+      lastTs = 0;
       persistSave();
       clearMoveKeys();
       audioTune = "";
       if (overworldBgm && !overworldBgm.paused) overworldBgm.pause();
       if (forestBgm && !forestBgm.paused) forestBgm.pause();
-    } else if (audioUnlocked && audioCtx && audioCtx.state === "suspended" && (!sfxMuted || !musicMuted)) {
-      audioCtx.resume();
+    } else {
+      /* 20260905bq: discard the wake gap — do not pour tab-sleep into the day clock. */
+      resetClockMark();
+      lastTs = 0;
+      if (audioUnlocked && audioCtx && audioCtx.state === "suspended" && (!sfxMuted || !musicMuted)) {
+        audioCtx.resume();
+      }
     }
   });
-  window.addEventListener("pagehide", persistSave);
+  window.addEventListener("pagehide", function () {
+    resetClockMark();
+    persistSave();
+  });
+  window.addEventListener("pageshow", function () {
+    resetClockMark();
+    lastTs = 0;
+  });
   function unlockFromGesture() { unlockAudio(); }
   document.addEventListener("pointerdown", unlockFromGesture, true);
   document.addEventListener("touchstart", unlockFromGesture, true);
@@ -19192,7 +19245,13 @@ if (currentScene === "ocean") goExitOcean();
       houseWindowPane: houseWindowPane,
       PHASES: PHASES,
       PHASE_MS: PHASE_MS,
-      setDayMs: function (n) { dayMs = n; },
+      setDayMs: function (n) {
+        n = +n;
+        if (!(n >= 0) || n !== n) return;
+        dayMs = n;
+        while (dayMs >= DAY_MS) dayMs -= DAY_MS;
+        resetClockMark();
+      },
       dayMs: function () { return dayMs; },
       flushPickups: flushPickups,
       pickups: function () { return pickups; },
@@ -19559,7 +19618,7 @@ if (currentScene === "ocean") goExitOcean();
     try { sessionStorage.removeItem("moondrop-art-reload"); } catch (err) {}
     if (currentScene === "overworld") buildSolid();
     unstickPlayer();
-    requestAnimationFrame(loop);
+    scheduleLoop();
     if (window.__runCombatAutotest) {
       setTimeout(function () { window.__runCombatAutotest(); }, 200);
     }
