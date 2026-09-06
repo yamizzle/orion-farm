@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905eu";
+  var BUILD = "20260905ev";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -9917,7 +9917,8 @@
     if (f === 4) return { tx: 6, ty: 10, face: "down" };
     if (f === 5) return { tx: 24, ty: 14, face: "up" };
     if (f === 6) return { tx: 8, ty: 12, face: "down" };
-    return { tx: 16, ty: 19, face: "up" };
+    /* 20260905ev: match enterMine 2-tile from OUT (16,20) */
+    return { tx: 16, ty: 18, face: "up" };
   }
 
   /* 20260905eg: refresh must not land on auto-warp tiles (ladder/cave/stairs/exit)
@@ -16935,7 +16936,7 @@
       else if (floor === 4) spot = { tx: 6, ty: 10, face: "down" };
       else if (floor === 5) spot = { tx: 24, ty: 14, face: "up" };
       else if (floor === 6) spot = { tx: 8, ty: 12, face: "down" };
-      else spot = { tx: 16, ty: 19, face: "up" };
+      else spot = { tx: 16, ty: 18, face: "up" }; /* 20260905ev: 2-tile from OUT */
     } else {
       /* 20260905ep: was (16,5) — only 1 tile south of DOWN hole (16,4); one north
          step fell straight back to MINE 2. Match other floors' 2-tile gap at (16,6). */
@@ -16956,7 +16957,9 @@
   function enterMine() {
     startDoorFade(function () {
       applyScene("mine", 1);
-      placePlayer(16, 19, "up");
+      /* 20260905ev: was (16,19) — only 1 tile north of OUT ladder (16,20);
+         one south step auto-exited. 2-tile gap at (16,18) like indoor OUT 05eu. */
+      placePlayer(16, 18, "up");
       unlockAch("caveDoor");
       if (!introSeen) {
         introSeen = true;
@@ -23763,6 +23766,11 @@ if (currentScene === "ocean") goExitOcean();
       applyScene("mine", 1);
       var f1hole = mineDownSpot();
       ok("mineF1UpLandOffHole", !!(f1hole && f1hole.tx === 16 && f1hole.ty === 4 && walkable(16, 6) && !mineHoleRimBlocks(16, 6) && (16 !== f1hole.tx || 6 !== f1hole.ty) && (6 - f1hole.ty) >= 2), f1hole && (f1hole.tx + "," + f1hole.ty));
+      /* 20260905ev: enter MINE 1 / restore land 2 tiles north of OUT */
+      var m1land = mineRestoreLand();
+      ok("mineF1EnterOffOut", !!(m1land && m1land.tx === 16 && m1land.ty === 18 && portalOut.tx === 16 && portalOut.ty === 20 && (portalOut.ty - m1land.ty) >= 2 && walkable(16, 18) && !isMineExit(16, 18)), m1land && (m1land.tx + "," + m1land.ty));
+      var m1n = nudgeRestoreOffGate(portalOut.tx, portalOut.ty, "up");
+      ok("mineOutNudge2tile", !!(m1n && m1n.tx === 16 && m1n.ty === 18), m1n && (m1n.tx + "," + m1n.ty));
       /* 20260905en: spendSelected depletes mid-drag bagHeld */
       selectedSlot = 0;
       trayCells[0] = null;

@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ev): mine floor-1 enter landing — cave door / restore no longer drops you one tile north of the OUT ladder (16,20); land at (16,18) so one south step cannot auto-exit (same 2-tile gap as indoor OUT 05eu + climb-ups). Never START OVER.
+
 Local 9/6 (BUILD 20260905eu): indoor OUT door landings — HOUSE/SHOP/cottage/cottage2/tallCottage/L-house enter + refresh nudge/spawn no longer drop you one tile north of the OUT mat; land 2 tiles north so one south step cannot auto-exit (same gap language as mine/tree/island cave). Never START OVER.
 
 Local 9/6 (BUILD 20260905et): island cave landings — enter lands 2 tiles north of OUT stairs (ty-2); exit to ocean lands 2 tiles south of the cave mouth (ty+2) so one step cannot auto-warp back; refresh nudge + spawn fallback match. Never START OVER.
