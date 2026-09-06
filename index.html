@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fj";
+  var BUILD = "20260905fk";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10481,6 +10481,10 @@
       }
     }
     addToBag(cooked, 1);
+    /* 20260905fk: pin + select cooked fish — tray-tap eat needs selected cooked;
+       tray-full cooks left it bag-only (same equip gap as Pip food buy 05fh). */
+    placeToolInTrayFirst(cooked);
+    selectTool(cooked);
     stove = findStove();
     if (stove) spawnFlameSparks(stove.tx * TILE + 8, stove.ty * TILE + 4);
     playSfx("smash");
@@ -23427,7 +23431,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fj", BUILD);
+      ok("BUILD", BUILD === "20260905fk", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23762,6 +23766,16 @@ if (currentScene === "ocean") goExitOcean();
       buyShopItem({ id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" });
       ok("pathStonePinnedSelected", selectedIs("stone") && bagCount("stone") >= 3, "sel=" + selectedKey() + " n=" + bagCount("stone"));
       ok("pathPlaceMode", !!selectedIs("stone"), "");
+
+      /* 20260905fk: cook pins + selects cooked fish (tray-tap eat). */
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      bagCells[0] = { key: "trout", count: 1 };
+      syncBagCounts();
+      applyScene("house");
+      placePlayer(8, 6, "up");
+      ok("cookPinnedSelected", !!doCookNow() && selectedIs("cookedTrout") && bagCount("cookedTrout") >= 1, "sel=" + selectedKey() + " n=" + bagCount("cookedTrout"));
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
       swordOwned = true;
