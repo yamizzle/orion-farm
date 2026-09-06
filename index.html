@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ck";
+  var BUILD = "20260905cl";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -819,7 +819,7 @@
   var pendingRestore = null;
   var loadingSave = false;
   var persistBlocked = false; /* true during START OVER so pagehide cannot rewrite the wipe */
-  var mailRead = { welcome: false, mine: false, thanks: false };
+  var mailRead = { welcome: false, mine: false, thanks: false, fish: false, bridge: false, moondrop: false };
   var quest = {
     flowerAsked: false,
     flowerDone: false,
@@ -855,6 +855,22 @@
       id: "thanks",
       title: "NIM",
       lines: ["THANKS FOR THE WOOD.", "THE CAVE FEELS WARM.", "COME BACK ANY TIME."]
+    },
+    /* 20260905cl: more mailbox fun — fishing tip, bridge cheer, Moondrop Night */
+    fish: {
+      id: "fish",
+      title: "JUNIE",
+      lines: ["PIP SELLS A POLE!", "BUY ONE IN TOWN.", "FISH THE POND."]
+    },
+    bridge: {
+      id: "bridge",
+      title: "REED",
+      lines: ["NICE BRIDGE FIX!", "THE EAST MEADOW", "IS OPEN NOW."]
+    },
+    moondrop: {
+      id: "moondrop",
+      title: "NIM",
+      lines: ["MOONDROP NIGHT!", "THREE LIGHTS SHONE.", "THE MOUNTAIN HUGGED US."]
     }
   };
   var nim = {
@@ -8327,6 +8343,9 @@
         mailRead.welcome = !!data.mailRead.welcome;
         mailRead.mine = !!data.mailRead.mine;
         mailRead.thanks = !!data.mailRead.thanks;
+        mailRead.fish = !!data.mailRead.fish;
+        mailRead.bridge = !!data.mailRead.bridge;
+        mailRead.moondrop = !!data.mailRead.moondrop;
       }
       if (data.quest) {
         quest.flowerAsked = !!data.quest.flowerAsked;
@@ -10280,6 +10299,17 @@
     playSfx("sleep");
   }
 
+
+  function maybeBedSleepTip() {
+    /* 20260905cl: once-per-save toast so kids know the bed is the sleep button */
+    if (unlocked.bedSleepTip) return;
+    if (currentScene !== "house") return;
+    if (!(hp < MAX_HP || clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) return;
+    unlocked.bedSleepTip = true;
+    showLineNote("TAP THE BED TO SLEEP");
+    persistSave();
+  }
+
   function goSleep() {
     var bed, dest, path, x, y, best, d, cand;
     if (currentScene !== "house" || sleepFx) return;
@@ -11228,16 +11258,37 @@
     return introSeen || found.moonshard;
   }
 
+  function fishMailReady() {
+    /* After welcome — nudge kids toward Pip's fishing pole */
+    return !!mailRead.welcome;
+  }
+
+  function bridgeMailReady() {
+    return !!found.bridgeFixed;
+  }
+
+  function moondropMailReady() {
+    return !!festivalOn;
+  }
+
   function hasUnreadMail() {
     if (!mailRead.welcome) return true;
+    /* fish tip early — right after welcome, before mine/thanks */
+    if (fishMailReady() && !mailRead.fish) return true;
     if (mineMailReady() && !mailRead.mine) return true;
-    return quest.errandDone && !mailRead.thanks;
+    if (quest.errandDone && !mailRead.thanks) return true;
+    if (bridgeMailReady() && !mailRead.bridge) return true;
+    if (moondropMailReady() && !mailRead.moondrop) return true;
+    return false;
   }
 
   function letterToShow() {
     if (!mailRead.welcome) return LETTERS.welcome;
+    if (fishMailReady() && !mailRead.fish) return LETTERS.fish;
     if (mineMailReady() && !mailRead.mine) return LETTERS.mine;
     if (quest.errandDone && !mailRead.thanks) return LETTERS.thanks;
+    if (bridgeMailReady() && !mailRead.bridge) return LETTERS.bridge;
+    if (moondropMailReady() && !mailRead.moondrop) return LETTERS.moondrop;
     if (quest.errandDone) return LETTERS.thanks;
     if (mineMailReady()) return LETTERS.mine;
     return LETTERS.welcome;
@@ -11324,6 +11375,10 @@
   function questHint() {
     /* 20260905bx: while underground, Jobs points kids to UP → OUT ladders */
     if (currentScene === "mine") return "FOLLOW UP SIGNS TO OUT";
+    /* 20260905cl: bed clarity — sleep heals + new morning */
+    if (currentScene === "house" && (hp < MAX_HP || clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
+      return "SLEEP IN YOUR BED.";
+    }
     /* 20260905ck: ocean fishing without a pole — send kids to Pip */
     if (currentScene === "ocean" && !poleOwned) return "BUY A FISHING POLE AT PIP'S.";
     /* 20260905ck: bridge ready to fix once you have the wood */
@@ -11333,10 +11388,14 @@
     if (!quest.flowerAsked) return "SAY HI TO JUNIE";
     if (!found.kickedBall) return "KICK THE CART IN TOWN.";
     if (!found.kickedPlayBall) return "KICK THE BALL ON THE FARM.";
+    /* 20260905cl: fish letter early after welcome; bridge/Moondrop later */
+    if (fishMailReady() && !mailRead.fish) return "READ THE NEW LETTER";
     if (!quest.flowerDone) return "BRING A MUSHROOM TO JUNIE";
     if (mineMailReady() && !mailRead.mine) return "READ THE NEW LETTER";
     if (!quest.errandDone && mailRead.mine) return "LEAVE WOOD AT NIM'S NOTE";
     if (quest.errandDone && !mailRead.thanks) return "READ THE NEW LETTER";
+    if (bridgeMailReady() && !mailRead.bridge) return "READ THE NEW LETTER";
+    if (moondropMailReady() && !mailRead.moondrop) return "READ THE NEW LETTER";
     /* 20260905cb: three-lights story spine — Home / Town / Peak then night */
     if (!homeLightOn()) {
       if (found.moonshard) return "LIGHT THE HOME LAMP.";
@@ -11415,6 +11474,15 @@
     if (hasVeggieToSell()) return sellVeggieLines();
     if (mineMailReady() && !mailRead.mine) {
       return ["THANKS AGAIN!", "CHECK YOUR MAIL."];
+    }
+    if (fishMailReady() && !mailRead.fish) {
+      return ["CHECK YOUR MAIL!", "PIP SELLS A POLE."];
+    }
+    if (moondropMailReady() && !mailRead.moondrop) {
+      return ["MOONDROP NIGHT!", "CHECK YOUR MAIL."];
+    }
+    if (bridgeMailReady() && !mailRead.bridge) {
+      return ["THE BRIDGE IS FIXED!", "CHECK YOUR MAIL."];
     }
     if (!quest.errandDone) {
       return ["NIM WANTS WOOD.", "LEAVE SOME AT", "THE MINE NOTE."];
@@ -15270,6 +15338,7 @@
     placePlayer(10, 9, "up");
     if (dogOnLeash()) bringDogWithPlayer("house");
     else if (dog.scene !== "house") parkDogInHouse();
+    maybeBedSleepTip();
     if (found.moonshard && !quest.homeDone) {
       quest.homeDone = true;
       homeLight = true;
@@ -17366,6 +17435,8 @@
       Assets.draw(g, "house", x, y);
     } else if (p.kind === "bed") {
       Assets.draw(g, "bed", x, y);
+      /* 20260905cl: floating SLEEP so the bed is obvious */
+      drawShaftLabel(g, { tx: p.tx, ty: p.ty }, "SLEEP");
     } else if (p.kind === "workbench") {
       Assets.draw(g, "workbench", x, y);
     } else if (p.kind === "houseChest") {
@@ -17431,6 +17502,8 @@
       if (hasUnreadMail()) {
         if (!drawAtlas2x(g, "mailboxUp", x, y)) Assets.draw(g, "mailboxUp", x, y);
         Assets.draw(g, "letter", x, y - 22 + Math.round(Math.sin(tick / 240) * 1));
+        /* 20260905cl: MAIL float so the flag/letter is kid-readable */
+        drawShaftLabel(g, { tx: p.tx, ty: p.ty - 1 }, "MAIL");
       } else {
         if (!drawAtlas2x(g, "mailbox", x, y)) Assets.draw(g, "mailbox", x, y);
       }
@@ -21205,7 +21278,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ck", BUILD);
+      ok("BUILD", BUILD === "20260905cl", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
