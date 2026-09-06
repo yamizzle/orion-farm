@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dq";
+  var BUILD = "20260905dr";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7371,6 +7371,43 @@
     }
   }
 
+
+  /* 20260905dr: soft moon pastel sparkle the first time you meet Nim */
+  function spawnNimMeetSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#E8C8FF", "#A8D8FF", "#FFF8E0", "#FFB4C8", "#C8F0E0", "#FFFDF4", "#D8C8F8", "#FFE9A0", "#FFFFFF", "#B8E0FF", "#F0D8FF"];
+    for (i = 0; i < 12; i++) {
+      ang = (i / 12) * Math.PI * 2 + Math.random() * 0.35;
+      sparks.push({
+        x: x + (Math.random() * 8 - 4),
+        y: y + (Math.random() * 5 - 2.5),
+        vx: Math.cos(ang) * (0.024 + Math.random() * 0.028),
+        vy: Math.sin(ang) * 0.012 - 0.052 - Math.random() * 0.026,
+        age: 0,
+        life: 560 + Math.random() * 300,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
+  /* 20260905dr: steel/silver/gold sparkle when the cave sword is claimed */
+  function spawnSwordClaimSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#F0F0F8", "#C8C8D4", "#FFFFFF", "#FFE9A0", "#A8A8B8", "#FFF8E0", "#E8E8F0", "#F0C060", "#D0D0DC", "#FFFDF8", "#E8C84A"];
+    for (i = 0; i < 13; i++) {
+      ang = (i / 13) * Math.PI * 2 + Math.random() * 0.35;
+      sparks.push({
+        x: x + (Math.random() * 7 - 3.5),
+        y: y + (Math.random() * 5 - 2.5),
+        vx: Math.cos(ang) * (0.032 + Math.random() * 0.034),
+        vy: Math.sin(ang) * 0.014 - 0.055 - Math.random() * 0.028,
+        age: 0,
+        life: 520 + Math.random() * 280,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
     n = big ? 12 : 8;
@@ -10591,6 +10628,10 @@
     giveTool("sword");
     forceSwordIntoTray();
     if (!silent) showLineNote("GOT THE CAVE SWORD!");
+    /* 20260905dr: auto-claim sparkle too (kids often never Space the pedestal) */
+    if (player) spawnSwordClaimSparks(player.x, player.y - 8);
+    else spawnSwordClaimSparks(18 * TILE + 8, 18 * TILE + 6);
+    playSfx("craft");
     persistSave();
     return true;
   }
@@ -12846,6 +12887,9 @@
     if (!nimMet) {
       nimMet = true;
       persistSave();
+      /* 20260905dr: first hello sparkle at Nim */
+      spawnNimMeetSparks(nim.tx * TILE + 8, nim.ty * TILE + 4);
+      playSfx("toast");
       openDialogue("NIM", ["THANKS.", "THE MOUNTAIN CAN", "SHINE NOW."]);
       return;
     }
@@ -15841,14 +15885,25 @@
   }
 
   function takeSword(prop) {
-    var i;
+    var i, sx, sy;
     if (swordOwned) return;
     swordOwned = true;
     giveTool("sword");
     if (prop) {
       i = PROPS.indexOf(prop);
       if (i >= 0) PROPS.splice(i, 1);
+      sx = prop.tx * TILE + 8;
+      sy = prop.ty * TILE + 6;
+    } else if (player) {
+      sx = player.x;
+      sy = player.y - 8;
+    } else {
+      sx = 0;
+      sy = 0;
     }
+    /* 20260905dr: pedestal claim juice */
+    spawnSwordClaimSparks(sx, sy);
+    playSfx("craft");
     persistSave();
     openDialogue("ORION", ["A CAVE SWORD!", "TAP THE SWORD TO SWING."]);
   }

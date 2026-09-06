@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905dr): Nim first-meet soft moon sparkle; cave sword pedestal claim steel/gold sparkle (+ auto-claim ensureCaveSword juice). Never START OVER.
+
 Local 9/5 (BUILD 20260905dq): soft pastel sparkler when all three lights are on (THREE LIGHTS ON toast + first MOONDROP NIGHT! start). Never START OVER.
 
 Local 9/5 (BUILD 20260905dp): nest bird give-wood wood/gold sparkle + craft SFX (BIRD STAR toast juice kept); soft trailing wake splash droplets while rowing the boat on water. Never START OVER.
