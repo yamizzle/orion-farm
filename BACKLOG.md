@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fm): Space harvest ready crop — with a ripe carrot/potato/berry underfoot or on the facing dirt tile, Space / J / E finally picks it (tap already walked-to-pick; dig/fish/plant had facing helpers; ready-crop Space was a silent no-op). Never START OVER.
+
 Local 9/6 (BUILD 20260905fl): Space plant/place facing — with a seed / flower / path stone / lamp / crate / BUILD-wood selected, Space / J / E finally plants or places on the facing (or underfoot) tile (tap already worked; dig/fish had facing helpers; seed Space was a silent no-op). Never START OVER.
 
 Local 9/6 (BUILD 20260905fk): cook equips cooked fish — stove cook pins + selects the cooked fish (was bag-only when the tray was full of tools; tray-tap eat never armed — same Pip food gap as 05fh). Never START OVER.

@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fl";
+  var BUILD = "20260905fm";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14817,6 +14817,27 @@
     return false;
   }
 
+  /* 20260905fm: Space/J/E harvest ready crop on facing/underfoot dirt (tap already
+     picked via goPickCrop; plant Space landed in 05fl — ready crop Space was a silent no-op).
+     Pick via harvestCropAt (berry-bush Space style) so leftover swing cannot soft-block. */
+  function tryHarvestCropFacing() {
+    var t, k;
+    if (uiPaused() || faintFx) return false;
+    t = facingTile();
+    k = t.tx + "," + t.ty;
+    if (cell(t.tx, t.ty) === "p" && cropIsReady(crops[k])) {
+      faceToward(player, t.tx, t.ty);
+      harvestCropAt(t.tx, t.ty);
+      return true;
+    }
+    k = player.tx + "," + player.ty;
+    if (cell(player.tx, player.ty) === "p" && cropIsReady(crops[k])) {
+      harvestCropAt(player.tx, player.ty);
+      return true;
+    }
+    return false;
+  }
+
   /* 20260905fl: Space/J/E plant seed on facing/underfoot dirt (tap already planted;
      dig/fish had facing helpers; seed Space was a silent no-op). */
   function tryPlantFacing() {
@@ -23029,6 +23050,8 @@ if (currentScene === "ocean") goExitOcean();
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
       if (tryDigFacing()) return;
+      /* 20260905fm: Space harvest ready crop before plant (tap already picked). */
+      if (tryHarvestCropFacing()) return;
       /* 20260905fl: Space plant/place facing — seed/flower/kits matched dig/fish wiring. */
       if (tryPlantFacing()) return;
       if (tryPlantFlowerFacing()) return;
@@ -23166,6 +23189,7 @@ if (currentScene === "ocean") goExitOcean();
       canDigOn: canDigOn,
       tryDig: tryDig,
       tryDigFacing: tryDigFacing,
+      tryHarvestCropFacing: tryHarvestCropFacing,
       tryPlantFacing: tryPlantFacing,
       tryPlantFlowerFacing: tryPlantFlowerFacing,
       tryBuildFacing: tryBuildFacing,
@@ -23486,7 +23510,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fl", BUILD);
+      ok("BUILD", BUILD === "20260905fm", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23887,6 +23911,28 @@ if (currentScene === "ocean") goExitOcean();
       if (_bx >= 0) {
         placePlayer(_bx + 1, _by, "left");
         ok("spaceBuildPath", !!tryBuildFacing() && bagCount("stone") === 2, "stone=" + bagCount("stone"));
+      }
+
+      /* 20260905fm: Space harvest ready crop facing (tap already picked). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      var _htx = -1, _hty = -1, _hx, _hy;
+      for (_hy = 0; _hy < ROWS && _htx < 0; _hy++) {
+        for (_hx = 0; _hx < COLS; _hx++) {
+          if (cell(_hx, _hy) === "p") {
+            if (_hx + 1 < COLS && walkable(_hx + 1, _hy)) { _htx = _hx; _hty = _hy; break; }
+            if (_hx - 1 >= 0 && walkable(_hx - 1, _hy)) { _htx = _hx; _hty = _hy; break; }
+          }
+        }
+      }
+      ok("spaceHarvestPlotFound", _htx >= 0, "plot");
+      if (_htx >= 0) {
+        crops[_htx + "," + _hty] = { stage: "ready", plantTime: 0, crop: "carrot" };
+        if (walkable(_htx + 1, _hty)) placePlayer(_htx + 1, _hty, "left");
+        else placePlayer(_htx - 1, _hty, "right");
+        var _loot0 = groundLoot.length;
+        ok("spaceHarvestCrop", !!tryHarvestCropFacing() && !crops[_htx + "," + _hty], "cropGone=" + !crops[_htx + "," + _hty]);
       }
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
