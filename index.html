@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hr";
+  var BUILD = "20260905hs";
   var ASSET_REV = "464870";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -301,12 +301,17 @@
   }
 
   function reloadForArt() {
+    /* 20260905hs: return true only if a soft-reload was started. sessionStorage
+       miss/deny must NOT location.replace forever (05hn eternal LOADING class). */
     try {
-      if (sessionStorage.getItem("moondrop-art-reload") === "1") return;
+      if (sessionStorage.getItem("moondrop-art-reload") === "1") return false;
       sessionStorage.setItem("moondrop-art-reload", "1");
-    } catch (err) {}
+    } catch (err) {
+      return false;
+    }
     persistSave();
     location.replace((location.pathname || "/") + "?v=" + encodeURIComponent(BUILD + "-" + Date.now()));
+    return true;
   }
 
   function checkFreshBuild() {
@@ -28568,14 +28573,14 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
     if (Assets.ready && !artDensityOk()) reloadForArt();
   });
   Assets.load().then(function () {
-    /* 20260905hn: never leave LOADING FARM forever. Density miss may
-       soft-reload once; if still thin after that, fail soft and boot. */
+    /* 20260905hn + 20260905hs: never leave LOADING FARM forever. Density miss may
+       soft-reload once; if still thin / sessionStorage blocked, fail soft and boot. */
     if (!artDensityOk()) {
       var already;
       try { already = sessionStorage.getItem("moondrop-art-reload") === "1"; } catch (err) { already = false; }
       if (!already) {
-        reloadForArt();
-        return;
+        if (reloadForArt()) return;
+        /* reload refused (no sessionStorage) — fall through fail soft */
       }
       try { console.warn("moondrop: artDensityOk failed after reload — booting anyway"); } catch (err2) {}
     } else {
