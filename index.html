@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905eb";
+  var BUILD = "20260905ec";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -16314,6 +16314,8 @@
   }
 
   function dismissUnlock() {
+    /* 20260905ec: STAR OK / Esc dismiss soft click (was silent) */
+    if (toast) playSfx("ui");
     toast = null;
   }
 
@@ -22483,6 +22485,11 @@ if (currentScene === "ocean") goExitOcean();
       e.preventDefault();
       return;
     }
+    /* 20260905ec: STAR toast OK + sleep/faint overlays — no tray swap under them */
+    if ((toast || sleepFx || faintFx) && slotN >= 1 && slotN <= 10) {
+      e.preventDefault();
+      return;
+    }
     if (slotN >= 1 && slotN <= 10) {
       e.preventDefault();
       if (!e.repeat) selectHotbarIndex(slotN - 1);
@@ -22970,7 +22977,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905df", BUILD);
+      ok("BUILD", BUILD === "20260905ec", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

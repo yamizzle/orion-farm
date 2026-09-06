@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905ec): STAR toast digit guard + soft OK click — number keys ignored while A STAR! toast / sleep / faint overlays are up so tray cannot swap under them; tapping OK or Esc on the star toast finally soft-clicks (was silent). No Jobs tip spam. Never START OVER.
+
 Local 9/5 (BUILD 20260905eb): number keys ignored while Stars/Jobs/shop/craft/chest/wipe open so tray cannot swap under panels (bag tray still selectable); wipe NO/outside soft ui click (YES still careful silent reload); soft sparkle when Stars opens. No Jobs tip spam. Never START OVER.
 
 Local 9/5 (BUILD 20260905ea): Stars X matches craft/Jobs/BAG/talk (13x12 corner) + Pip shop X Y aligned; Nim note boards already share talk-panel X from 05dy (verified, no change). Wipe confirm untouched. Never START OVER.
