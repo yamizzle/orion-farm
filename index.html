@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905an";
+  var BUILD = "20260905ao";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -14407,11 +14407,21 @@
 
   function drawDogSpr(g) {
     var bob = dog.frame ? -1 : 0;
+    var s, smooth, ax, ay;
     drawShadow(g, dog.x, dog.y, 5);
-    if (Assets.spr.dog) {
-      if (!drawAtlas2x(g, "dog", dog.x - 4, dog.y - 8 + bob)) {
-        Assets.draw(g, "dog", dog.x, dog.y + bob);
-      }
+    s = Assets.spr.dog;
+    if (s && Assets.img) {
+      ax = (s.anchor && s.anchor[0]) || 0;
+      ay = (s.anchor && s.anchor[1]) || 0;
+      smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      /* 48×48 atlas → 24×24 logical with same anchor as Assets.draw scale 0.5 */
+      g.drawImage(
+        Assets.img, s.x, s.y, s.w, s.h,
+        Math.round(dog.x - ax / 2), Math.round(dog.y + bob - ay / 2),
+        s.w / 2, s.h / 2
+      );
+      g.imageSmoothingEnabled = smooth;
     }
   }
 
@@ -15178,7 +15188,9 @@
         g.fillStyle = "rgba(240,192,96," + flicker.toFixed(3) + ")";
         g.fillRect(x - (cozyLamp ? 10 : 12), y - (cozyLamp ? 14 : 16), cozyLamp ? 36 : 40, cozyLamp ? 36 : 40);
       }
-      if (currentScene === "house") Assets.draw(g, "houseLamp", x, y);
+      if (currentScene === "house") {
+        if (!drawAtlas2x(g, "houseLamp", x, y)) Assets.draw(g, "houseLamp", x, y);
+      }
       else if (!drawAtlas2x(g, lit ? "lantern" : "lanternOff", x, y)) {
         Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
       }
@@ -15213,7 +15225,7 @@
         g.fillStyle = "rgba(255,214,120," + peakGlow.toFixed(3) + ")";
         g.fillRect(x - 6, y - 18, 28, 36);
       }
-      Assets.draw(g, "moonAltar", x, y);
+      if (!drawAtlas2x(g, "moonAltar", x, y)) Assets.draw(g, "moonAltar", x, y);
     } else if (p.kind === "swordPedestal") {
       if (!drawAtlas2x(g, "swordPedestal", x, y)) Assets.draw(g, "swordPedestal", x, y);
     } else if (p.kind === "note") {
@@ -15261,7 +15273,7 @@
       }
       Assets.draw(g, "statue", x, y);
     } else if (p.kind === "shopSign") {
-      Assets.draw(g, "shopSign", x, y);
+      if (!drawAtlas2x(g, "shopSign", x, y)) Assets.draw(g, "shopSign", x, y);
     } else if (p.kind === "counter") {
       Assets.draw(g, "counter", x, y);
     } else if (p.kind === "townFlower") {
@@ -18480,7 +18492,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905an", BUILD);
+      ok("BUILD", BUILD === "20260905ao", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
