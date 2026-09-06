@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cv";
+  var BUILD = "20260905cw";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6819,6 +6819,24 @@
     }
   }
 
+  /* 20260905cw: pink/gold petal sparks when picking flowers */
+  function spawnFlowerSparks(x, y) {
+    var i, ang, cols;
+    cols = ["#FF8FA3", "#FFE08A", "#FF6B8A", "#FFF8E0", "#E8C84A", "#FFB4C8", "#FFFDF4", "#F3D2A3"];
+    for (i = 0; i < 8; i++) {
+      ang = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: x + (Math.random() * 4 - 2),
+        y: y + (Math.random() * 3 - 1.5),
+        vx: Math.cos(ang) * (0.026 + Math.random() * 0.028),
+        vy: Math.sin(ang) * 0.014 - 0.04 - Math.random() * 0.02,
+        age: 0,
+        life: 380 + Math.random() * 220,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
   /* 20260905ci: bigger hit/kill spark ring so swings read for kids */
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
@@ -7905,7 +7923,7 @@
   }
 
   function pickPlant(prop) {
-    var i, j;
+    var i, j, cx, cy;
     if (!isPickablePlant(prop)) return false;
     i = PROPS.indexOf(prop);
     if (i >= 0) PROPS.splice(i, 1);
@@ -7918,6 +7936,11 @@
       if (!lilaDone) lilaFlowers = countGreenFlowers();
     }
     if (prop.kind === "wildflower") rememberHarvest(prop, "wildflower", "gone");
+    /* 20260905cw: petal sparkle when a flower is picked */
+    cx = prop.tx * TILE + 8;
+    cy = prop.ty * TILE + 4;
+    spawnFlowerSparks(cx, cy);
+    spawnSparks(cx, cy);
     spawnGroundLoot("flower", prop.tx, prop.ty, 1);
     persistSave();
     return true;
@@ -18926,8 +18949,16 @@
       ly = L.listY + i * L.rowH - achieveScroll;
       if (ly + L.rowH < L.listY || ly > L.listY + L.listH) continue;
       if (unlocked[a.id]) {
-        Assets.draw(g, "trophy", L.listX, ly - 3);
+        /* 20260905cw: little star badge + soft twinkle on earned Stars */
+        if (Assets.spr.starBadge) Assets.draw(g, "starBadge", L.listX, ly - 2);
+        else Assets.draw(g, "trophy", L.listX, ly - 3);
         drawText(g, a.name, L.listX + 20, ly + 1, C.uiText);
+        if (Assets.spr.sparkle) {
+          g.save();
+          g.globalAlpha = 0.28 + 0.42 * Math.abs(Math.sin(tick / 220 + i * 0.7));
+          Assets.draw(g, "sparkle", L.listX + L.listW - 18, ly - 4, ((tick / 160 + i * 2) | 0) % 3);
+          g.restore();
+        }
       } else {
         drawText(g, "....", L.listX + 2, ly + 1, C.woodSh);
         drawText(g, a.name, L.listX + 20, ly + 1, C.woodSh);
@@ -21757,7 +21788,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cv", BUILD);
+      ok("BUILD", BUILD === "20260905cw", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

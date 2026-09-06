@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905cw): flower pick petal sparkle (pink/gold spray when town/wild flowers picked) + Stars panel earned rows use starBadge with soft twinkle. Never START OVER.
+
 Local 9/5 (BUILD 20260905cv): door-arrival foot sparks at fade mid-swap so the new room pops softly. Never START OVER.
 
 Local 9/5 (BUILD 20260905cu): soft cozy door fade (warm wash, ~⅓s) on house/shop/cottages/tall/L-house/mine enter+exit — not a long black screen; dog pet bounce + pink hearts when talked to (extra with leash). Never START OVER.
