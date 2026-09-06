@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bw";
+  var BUILD = "20260905bx";
   var ASSET_REV = "452632";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -712,6 +712,8 @@
   var energy = MAX_ENERGY;
   var walkCharge = 0;
   var lineNote = null;
+  /* 20260905bx: once per page load — FOLLOW UP SIGNS tip in mine */
+  var mineOutSessionTip = false;
   var swordOwned = false;
   var axeOwned = false;
   var shovelOwned = false;
@@ -7695,7 +7697,7 @@
   }
 
   function tryClimbShaft() {
-    var f;
+    var f, spots, i, t;
     if (currentScene !== "mine") return false;
     if (isMineExit(player.tx, player.ty)) {
       exitMine();
@@ -7729,6 +7731,32 @@
     if (isMinePeakStairs(f.tx, f.ty)) {
       goMinePeakStairs();
       return true;
+    }
+    /* 20260905bx: adjacent UP/OUT/DOWN too — Space/E when next to ladder (face optional) */
+    spots = [
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      t = spots[i];
+      if (isMineExit(t.tx, t.ty) || mineExitHit(t.tx, t.ty, null)) {
+        exitMine();
+        return true;
+      }
+      if (isMineUp(t.tx, t.ty)) {
+        goMineShaft(false);
+        return true;
+      }
+      if (isMineDown(t.tx, t.ty)) {
+        goMineShaft(true);
+        return true;
+      }
+      if (isMinePeakStairs(t.tx, t.ty)) {
+        goMinePeakStairs();
+        return true;
+      }
     }
     return false;
   }
@@ -8533,6 +8561,7 @@
     unstickPlayer();
     unstickBall();
     if ((hp <= 0 || energy <= 0) && !faintFx) beginFaint();
+    maybeMineOutTip();
   }
 
   function findBed() {
@@ -10790,6 +10819,8 @@
   }
 
   function questHint() {
+    /* 20260905bx: while underground, Jobs points kids to UP → OUT ladders */
+    if (currentScene === "mine") return "FOLLOW UP SIGNS TO OUT";
     if (hasAnyRawFish()) return "COOK FISH ON THE STOVE";
     if (hasAnySmeltOre()) return "SMELT ORE AT THE FIREPLACE";
     if (!quest.flowerAsked) return "SAY HI TO JUNIE";
@@ -14391,6 +14422,14 @@
     startWalk(player, path, 3.5);
   }
 
+
+  function maybeMineOutTip() {
+    /* 20260905bx: once per session when in the mine — soft-lock exit tip for kids */
+    if (mineOutSessionTip) return;
+    if (currentScene !== "mine") return;
+    mineOutSessionTip = true;
+    showLineNote("FOLLOW UP SIGNS TO OUT");
+  }
   function enterMineFloor(floor, via) {
     var spot;
     floor = clampMineFloor(floor);
@@ -14412,6 +14451,7 @@
     }
     placePlayer(spot.tx, spot.ty, spot.face);
     persistSave();
+    maybeMineOutTip();
   }
 
   function enterMine() {
@@ -14425,6 +14465,7 @@
     } else {
       persistSave();
     }
+    maybeMineOutTip();
   }
 
   function exitMine() {
@@ -16239,13 +16280,26 @@
   }
 
   function drawShaftLabel(g, p, word) {
-    var tw, lx, ly;
+    /* 20260905bx: bigger bobbing OUT/UP like door-sign floats so kids find exit */
+    var tw, lx, ly, bob, glow, exitish;
     if (!word) return;
+    exitish = word === "OUT" || word === "UP";
+    bob = Math.round(Math.sin(tick / 260) * (exitish ? 1.5 : 1));
     tw = textWidth(word);
     lx = p.tx * TILE + ((TILE - tw) / 2) | 0;
-    ly = p.ty * TILE - 8;
-    fill(g, lx - 2, ly - 1, tw + 4, 9, "rgba(42,26,16,0.78)");
-    drawText(g, word, lx, ly, C.parch || "#F3D2A3");
+    ly = p.ty * TILE - (exitish ? 16 : 10) + bob;
+    if (exitish) {
+      glow = 0.16 + 0.14 * (0.5 + 0.5 * Math.sin(tick / 190));
+      g.fillStyle = "rgba(255,214,120," + glow.toFixed(3) + ")";
+      g.fillRect(lx - 6, ly - 4, tw + 12, 15);
+      fill(g, lx - 4, ly - 2, tw + 8, 12, "rgba(18,10,6,0.90)");
+      fill(g, lx - 4, ly - 2, tw + 8, 1, "rgba(255,214,120,0.70)");
+      fill(g, lx - 4, ly + 9, tw + 8, 1, "rgba(232,200,74,0.45)");
+      drawText(g, word, lx, ly, word === "OUT" ? "#FFE28A" : "#F3D2A3");
+    } else {
+      fill(g, lx - 2, ly - 1, tw + 4, 9, "rgba(42,26,16,0.78)");
+      drawText(g, word, lx, ly, C.parch || "#F3D2A3");
+    }
   }
 
   function drawFence(g, kind, x, y) {
@@ -19943,7 +19997,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bw", BUILD);
+      ok("BUILD", BUILD === "20260905bx", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -20032,6 +20086,10 @@ if (currentScene === "ocean") goExitOcean();
       ok("ensureRemovesPedestal", !PROPS.some(function (p) { return p && p.kind === "swordPedestal"; }), "");
       /* 20260905az: door signs share plaque art + floating shaft labels (not lamp woodPanel). */
       ok("doorSignLabelFn", typeof drawDoorSignLabel === "function", "");
+      /* 20260905bx: mine OUT/UP soft-lock helpers */
+      ok("mineOutTipFn", typeof maybeMineOutTip === "function", "");
+      ok("tryClimbShaftFn", typeof tryClimbShaft === "function", "");
+      ok("drawShaftLabelFn", typeof drawShaftLabel === "function", "");
       ok("woodsSignArt", !!(Assets.woodsSign && (Assets.woodsSign.naturalWidth || Assets.woodsSign.width) >= 32), "w=" + (Assets.woodsSign && (Assets.woodsSign.naturalWidth || Assets.woodsSign.width)));
       /* 20260905br: gentle outdoor slugs on farm edges / woods. */
       outdoorMonsterCache.overworld = null;
