@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fs";
+  var BUILD = "20260905ft";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -13872,6 +13872,76 @@
   }
 
 
+  /* 20260905ft: Space/J/E talk adjacent town statue or fountain (tap already
+     goLandmark'd; talk Space existed for NPCs; plaza Space was a silent no-op). */
+  function findNearLandmark() {
+    var i, p, face;
+    if (currentScene !== "overworld") return null;
+    face = facingTile();
+    p = landmarkAt(face.tx, face.ty) || landmarkAt(player.tx, player.ty);
+    if (p) return p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || (p.kind !== "statue" && p.kind !== "fountain")) continue;
+      if (propOccupies(p, face.tx, face.ty) || propOccupies(p, player.tx, player.ty)) return p;
+      if (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty)) return p;
+      if (p.kind === "fountain") {
+        if (isNear(player.tx, player.ty, p.tx + 1, p.ty) ||
+            isNear(player.tx, player.ty, p.tx, p.ty + 1) ||
+            isNear(player.tx, player.ty, p.tx + 1, p.ty + 1) ||
+            (player.tx === p.tx + 1 && player.ty === p.ty) ||
+            (player.tx === p.tx && player.ty === p.ty + 1) ||
+            (player.tx === p.tx + 1 && player.ty === p.ty + 1)) return p;
+      }
+    }
+    return null;
+  }
+
+  function tryLandmarkAdjacent() {
+    var p;
+    if (uiPaused() || faintFx) return false;
+    p = findNearLandmark();
+    if (!p) return false;
+    pending = null;
+    talkLandmark(p);
+    return true;
+  }
+
+  function findMoonAltar() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p && p.kind === "moonAltar") return p;
+    }
+    return null;
+  }
+
+  /* 20260905ft: Space/J/E light/talk peak moon altar on MINE 6 (tap already
+     goPeakAltar'd; landmark Space lands in same build; altar Space was a silent no-op). */
+  function tryPeakAltarAdjacent() {
+    var altar, face, dx, dy, p;
+    if (uiPaused() || faintFx) return false;
+    altar = findMoonAltar();
+    if (!altar) return false;
+    face = facingTile();
+    p = propAt(face.tx, face.ty) || propAt(player.tx, player.ty);
+    if ((p && p.kind === "moonAltar") ||
+        isNear(player.tx, player.ty, altar.tx, altar.ty) ||
+        (player.tx === altar.tx && player.ty === altar.ty)) {
+      pending = null;
+      talkPeakAltar();
+      return true;
+    }
+    dx = Math.abs(player.tx - altar.tx);
+    dy = Math.abs(player.ty - altar.ty);
+    if ((dx + dy) === 1) {
+      pending = null;
+      talkPeakAltar();
+      return true;
+    }
+    return false;
+  }
+
   function isCottageEntrance(tx, ty) {
     return currentScene === "overworld" && tx === cottageIn.tx && ty === cottageIn.ty;
   }
@@ -23178,6 +23248,9 @@ if (currentScene === "ocean") goExitOcean();
       if (tryMailAdjacent()) return;
       /* 20260905fr: Space read Nim note (tap already goReadNote'd). */
       if (tryReadNoteAdjacent()) return;
+      /* 20260905ft: Space talk statue/fountain + peak altar (tap already worked). */
+      if (tryLandmarkAdjacent()) return;
+      if (tryPeakAltarAdjacent()) return;
       if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
@@ -23644,7 +23717,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fs", BUILD);
+      ok("BUILD", BUILD === "20260905ft", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24248,6 +24321,69 @@ if (currentScene === "ocean") goExitOcean();
           placePlayer(_tstand.tx, _tstand.ty, _tstand.face);
           var _homeOk = tryHomeLightHere();
           ok("spaceHomeLightTalk", !!_homeOk && !!(dialogue && dialogue.title), "open=" + _homeOk + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
+      }
+
+      /* 20260905ft: Space talks adjacent statue / fountain (tap already goLandmark'd). */
+      applyScene("overworld");
+      closeDialogue();
+      var _stat = null, _si;
+      for (_si = 0; _si < PROPS.length; _si++) {
+        if (PROPS[_si] && PROPS[_si].kind === "statue") { _stat = PROPS[_si]; break; }
+      }
+      ok("spaceStatueFound", !!_stat, "statue");
+      if (_stat) {
+        var _sstand = null;
+        if (walkable(_stat.tx, _stat.ty + 1)) _sstand = { tx: _stat.tx, ty: _stat.ty + 1, face: "up" };
+        else if (walkable(_stat.tx + 1, _stat.ty)) _sstand = { tx: _stat.tx + 1, ty: _stat.ty, face: "left" };
+        else if (walkable(_stat.tx - 1, _stat.ty)) _sstand = { tx: _stat.tx - 1, ty: _stat.ty, face: "right" };
+        else if (walkable(_stat.tx, _stat.ty - 1)) _sstand = { tx: _stat.tx, ty: _stat.ty - 1, face: "down" };
+        ok("spaceStatueStand", !!_sstand, "stand");
+        if (_sstand) {
+          placePlayer(_sstand.tx, _sstand.ty, _sstand.face);
+          var _statOk = tryLandmarkAdjacent();
+          ok("spaceTalkStatue", !!_statOk && !!(dialogue && dialogue.title === "STATUE"), "open=" + _statOk + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
+      }
+      var _fount = null;
+      for (_si = 0; _si < PROPS.length; _si++) {
+        if (PROPS[_si] && PROPS[_si].kind === "fountain") { _fount = PROPS[_si]; break; }
+      }
+      ok("spaceFountainFound", !!_fount, "fountain");
+      if (_fount) {
+        var _fstand = null;
+        if (walkable(_fount.tx, _fount.ty + 2)) _fstand = { tx: _fount.tx, ty: _fount.ty + 2, face: "up" };
+        else if (walkable(_fount.tx + 1, _fount.ty + 2)) _fstand = { tx: _fount.tx + 1, ty: _fount.ty + 2, face: "up" };
+        else if (walkable(_fount.tx - 1, _fount.ty + 1)) _fstand = { tx: _fount.tx - 1, ty: _fount.ty + 1, face: "right" };
+        else if (walkable(_fount.tx + 2, _fount.ty + 1)) _fstand = { tx: _fount.tx + 2, ty: _fount.ty + 1, face: "left" };
+        ok("spaceFountainStand", !!_fstand, "stand");
+        if (_fstand) {
+          placePlayer(_fstand.tx, _fstand.ty, _fstand.face);
+          var _fountOk = tryLandmarkAdjacent();
+          ok("spaceTalkFountain", !!_fountOk && !!(dialogue && dialogue.title === "FOUNTAIN"), "open=" + _fountOk + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
+      }
+
+      /* 20260905ft: Space lights/talks peak moon altar on MINE 6 (tap already goPeakAltar'd). */
+      applyScene("mine", 6);
+      found.peakLight = false;
+      closeDialogue();
+      var _altar = findMoonAltar();
+      ok("spaceAltarFound", !!_altar, "altar");
+      if (_altar) {
+        var _astand = null;
+        if (walkable(_altar.tx, _altar.ty + 1)) _astand = { tx: _altar.tx, ty: _altar.ty + 1, face: "up" };
+        else if (walkable(_altar.tx + 1, _altar.ty)) _astand = { tx: _altar.tx + 1, ty: _altar.ty, face: "left" };
+        else if (walkable(_altar.tx - 1, _altar.ty)) _astand = { tx: _altar.tx - 1, ty: _altar.ty, face: "right" };
+        else if (walkable(_altar.tx, _altar.ty - 1)) _astand = { tx: _altar.tx, ty: _altar.ty - 1, face: "down" };
+        ok("spaceAltarStand", !!_astand, "stand");
+        if (_astand) {
+          placePlayer(_astand.tx, _astand.ty, _astand.face);
+          var _altarOk = tryPeakAltarAdjacent();
+          ok("spacePeakAltar", !!_altarOk && !!found.peakLight && !!(dialogue && dialogue.title), "open=" + _altarOk + " lit=" + !!found.peakLight + " title=" + (dialogue ? dialogue.title : ""));
           closeDialogue();
         }
       }
