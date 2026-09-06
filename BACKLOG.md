@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fo): Space pick facing flower — with a wildflower / town flower underfoot or on the facing tile, Space / J / E finally picks it (tap already walked-to-pick; berry-bush Space existed; flower Space was a silent no-op). Never START OVER.
+
 Local 9/6 (BUILD 20260905fn): Space axe chops facing tree — with the axe selected, Space / J / E finally chips a facing pine/oak/birch/palm (tap already walked-to-chop; Space only hit rocks / logs / stumps so a live tree was a silent no-op). Never START OVER.
 
 Local 9/6 (BUILD 20260905fm): Space harvest ready crop — with a ripe carrot/potato/berry underfoot or on the facing dirt tile, Space / J / E finally picks it (tap already walked-to-pick; dig/fish/plant had facing helpers; ready-crop Space was a silent no-op). Never START OVER.

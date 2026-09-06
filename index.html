@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fn";
+  var BUILD = "20260905fo";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14808,6 +14808,27 @@
     return false;
   }
 
+  /* 20260905fo: Space/J/E pick facing/underfoot wildflower/townFlower (tap already
+     goPickPlant'd; berry-bush Space existed; flower Space was a silent no-op).
+     Direct pickPlant (berry-bush style) so leftover swing cannot soft-block. */
+  function tryPickPlantFacing() {
+    var t, prop;
+    if (uiPaused() || faintFx) return false;
+    t = facingTile();
+    prop = propAt(t.tx, t.ty);
+    if (prop && isPickablePlant(prop)) {
+      faceToward(player, t.tx, t.ty);
+      pickPlant(prop);
+      return true;
+    }
+    prop = propAt(player.tx, player.ty);
+    if (prop && isPickablePlant(prop)) {
+      pickPlant(prop);
+      return true;
+    }
+    return false;
+  }
+
   function tryDigFacing() {
     var t;
     if (uiPaused() || faintFx) return false;
@@ -23047,6 +23068,8 @@ if (currentScene === "ocean") goExitOcean();
       if (trySmeltHere()) return;
       if (tryPickupHere()) return;
       if (tryPickupFacing()) return;
+      /* 20260905fo: Space pick flower before smash/talk so facing wildflower is not a no-op. */
+      if (tryPickPlantFacing()) return;
       if (tryOpenChestAdjacent()) return;
       if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
@@ -23512,7 +23535,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fn", BUILD);
+      ok("BUILD", BUILD === "20260905fo", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23971,6 +23994,39 @@ if (currentScene === "ocean") goExitOcean();
         /* One Space hit should start hurt node or leave stump if one-shot — at least swing/hit ran. */
         var _node = harvestNodes[nodeKey("overworld", _trx, _try)];
         ok("spaceChopTree", !!_hitOk && (!!_node || (_after && _after.kind === "stump") || _beforeKind !== (_after && _after.kind)), "hit=" + _hitOk + " node=" + !!_node + " kind=" + (_after && _after.kind));
+      }
+
+      /* 20260905fo: Space picks facing wildflower (tap already goPickPlant'd). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      player.swing = 0;
+      var _flx = -1, _fly = -1, _fi, _fp, _fstand;
+      for (_fi = 0; _fi < PROPS.length; _fi++) {
+        _fp = PROPS[_fi];
+        if (!_fp || !isPickablePlant(_fp)) continue;
+        if (walkable(_fp.tx + 1, _fp.ty)) { _flx = _fp.tx; _fly = _fp.ty; _fstand = { tx: _fp.tx + 1, ty: _fp.ty, face: "left" }; break; }
+        if (walkable(_fp.tx - 1, _fp.ty)) { _flx = _fp.tx; _fly = _fp.ty; _fstand = { tx: _fp.tx - 1, ty: _fp.ty, face: "right" }; break; }
+        if (walkable(_fp.tx, _fp.ty + 1)) { _flx = _fp.tx; _fly = _fp.ty; _fstand = { tx: _fp.tx, ty: _fp.ty + 1, face: "up" }; break; }
+        if (walkable(_fp.tx, _fp.ty - 1)) { _flx = _fp.tx; _fly = _fp.ty; _fstand = { tx: _fp.tx, ty: _fp.ty - 1, face: "down" }; break; }
+      }
+      if (_flx < 0) {
+        /* Spawn a test wildflower on walkable grass if map has none reachable. */
+        for (_fi = 0; _fi < PROPS.length && _flx < 0; _fi++) {}
+        placePlayer(18, 28, "down");
+        PROPS.push({ kind: "wildflower", tx: 18, ty: 29 });
+        _flx = 18; _fly = 29; _fstand = { tx: 18, ty: 28, face: "down" };
+      }
+      ok("spaceFlowerFound", _flx >= 0, "flower");
+      if (_flx >= 0) {
+        placePlayer(_fstand.tx, _fstand.ty, _fstand.face);
+        var _flowerLoot0 = groundLoot.length;
+        var _pickOk = tryPickPlantFacing();
+        var _still = false;
+        for (_fi = 0; _fi < PROPS.length; _fi++) {
+          if (PROPS[_fi] && PROPS[_fi].tx === _flx && PROPS[_fi].ty === _fly && isPickablePlant(PROPS[_fi])) { _still = true; break; }
+        }
+        ok("spacePickFlower", !!_pickOk && !_still, "pick=" + _pickOk + " gone=" + !_still + " loot=" + (groundLoot.length > _flowerLoot0));
       }
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
