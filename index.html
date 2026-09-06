@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905en";
+  var BUILD = "20260905eo";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7720,7 +7720,8 @@
     spawnPickup(pile.kind, pile.tx, pile.ty, take);
     /* 20260905da: gold coins get warm sparkle; other loot keeps soft sparks */
     /* 20260905dc: metal / bar piles get metal sparkle */
-    if (pile.kind === "gold" || pile.kind === "goldPile") {
+    if (pile.kind === "gold" || pile.kind === "goldPile" ||
+        pile.kind === "sapphire" || pile.kind === "gem" || pile.kind === "mooncrystal") {
       spawnCoinSparks(pile.tx * TILE + 8, pile.ty * TILE + 6);
     } else if (isMetalLoot(pile.kind)) {
       spawnMetalSparks(pile.tx * TILE + 8, pile.ty * TILE + 6, pile.kind);
@@ -8339,9 +8340,12 @@
       persistSave();
       return n;
     }
+    /* 20260905eo: kill gem/sapphire loot is cash (lootIsCash + GOT +N toast) —
+       was a silent no-op so deep-mine gem/+20 sapphire piles vanished with 0G. */
     if (kind === "sapphire" || kind === "gem" || kind === "mooncrystal") {
+      gold = (gold | 0) + n;
       persistSave();
-      return 0;
+      return n;
     }
     key = stackKey(kind);
     if (!key) {
@@ -8739,7 +8743,8 @@
         addItem(pk.kind, pk.amount);
         /* 20260905da: coin sparkle pops at Orion when gold flies in */
         /* 20260905dc: metal / bar fly-in sparkle */
-        if (pk.kind === "gold" || pk.kind === "goldPile") {
+        if (pk.kind === "gold" || pk.kind === "goldPile" ||
+            pk.kind === "sapphire" || pk.kind === "gem" || pk.kind === "mooncrystal") {
           spawnCoinSparks(player.x, player.y - 8);
         } else if (isMetalLoot(pk.kind)) {
           spawnMetalSparks(player.x, player.y - 8, pk.kind);
@@ -23264,7 +23269,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905el", BUILD);
+      ok("BUILD", BUILD === "20260905eo", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23679,6 +23684,13 @@ if (currentScene === "ocean") goExitOcean();
       ok("spendSelectedHeldClear", !bagHeld, !!bagHeld);
       bagHeld = null; bagHeldFrom = null;
       syncBagCounts();
+      /* 20260905eo: gem/sapphire kill loot grants gold */
+      var g0 = gold | 0;
+      ok("gemCashAddsGold", addItem("gem", 8) === 8 && (gold | 0) === g0 + 8, "gold=" + gold);
+      g0 = gold | 0;
+      ok("sapphireCashAddsGold", addItem("sapphire", 20) === 20 && (gold | 0) === g0 + 20, "gold=" + gold);
+      gold = Math.max(0, (gold | 0) - 28);
+      persistSave();
       bagHeld = { key: "axe", count: 1 };
       bagHeldFrom = { place: "tray", i: 3 };
       for (var ai = 0; ai < TRAY_CELLS; ai++) if (trayCells[ai] && trayCells[ai].key === "axe") trayCells[ai] = null;
