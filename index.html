@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905at";
+  var BUILD = "20260905au";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4943,11 +4943,17 @@
     if (img) {
       iw = img.width;
       ih = img.height;
+      /* 20260905au: 2× source drawn at half logical size (NN) */
+      var dw = (iw / 2) | 0;
+      var dh = (ih / 2) | 0;
+      var smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
       g.save();
       g.translate(x, y + bob + hop);
       if (c.face === "left") g.scale(-1, 1);
-      g.drawImage(img, -((iw / 2) | 0), -ih, iw, ih);
+      g.drawImage(img, -(dw / 2 | 0), -dh, dw, dh);
       g.restore();
+      g.imageSmoothingEnabled = smooth;
       return;
     }
     if (c.kind === "rabbit") {
@@ -18505,7 +18511,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905at", BUILD);
+      ok("BUILD", BUILD === "20260905au", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
