@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905aj";
+  var BUILD = "20260905ak";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -15066,7 +15066,7 @@
       Assets.draw(g, "workbench", x, y);
     } else if (p.kind === "houseChest") {
       if (currentScene === "forest" || currentScene === "tree") drawForestChest(g, x, y);
-      else Assets.draw(g, "chest", x, y);
+      else if (!drawAtlas2x(g, "chest", x, y)) Assets.draw(g, "chest", x, y);
     } else if (p.kind === "table") {
       Assets.draw(g, "table", x, y);
       if (homeLightOn() || found.mooncrystal || found.gem || found.sapphire) {
@@ -15132,9 +15132,13 @@
     } else if (p.kind === "rock") {
       if (!drawAtlas2x(g, harvestSprite(p), x, y)) Assets.draw(g, harvestSprite(p), x, y);
     } else if (p.kind === "weed") {
-      Assets.draw(g, "weed" + ((p.tx + p.ty) & 1), x, y);
+      if (!drawAtlas2x(g, "weed" + ((p.tx + p.ty) & 1), x, y)) {
+        Assets.draw(g, "weed" + ((p.tx + p.ty) & 1), x, y);
+      }
     } else if (p.kind === "tallGrass") {
-      Assets.draw(g, "tallGrass" + ((p.tx + p.ty) & 1), x, y);
+      if (!drawAtlas2x(g, "tallGrass" + ((p.tx + p.ty) & 1), x, y)) {
+        Assets.draw(g, "tallGrass" + ((p.tx + p.ty) & 1), x, y);
+      }
     } else if (isFenceKind(p.kind)) {
       drawFence(g, p.kind, x, y);
     } else if (p.kind === "cave") {
@@ -15197,7 +15201,7 @@
                p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
                p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore") {
       if (p.kind === "chest") {
-        Assets.draw(g, "chest", x, y);
+        if (!drawAtlas2x(g, "chest", x, y)) Assets.draw(g, "chest", x, y);
       } else {
         var bob = p.deco ? 0 : Math.round(Math.sin(tick / 280) * 1);
         if (p.kind === "moonshard" || p.kind === "mooncrystal" || p.kind === "gem" || p.kind === "sapphire") {
@@ -18452,7 +18456,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905aj", BUILD);
+      ok("BUILD", BUILD === "20260905ak", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
