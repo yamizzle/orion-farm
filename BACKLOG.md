@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gu): path pick-up equips stone — picking up a player-placed dirt path pins + selects the stone (TAP TILE path place needs selectedIs stone; 05bj blocked pickaxe smash but left paths stuck forever with no way back — same fence/lamp/crate pick-up class); axe/shovel/empty hand; stone-selected place mode skips; restores the under-tile (was). Never START OVER.
+
 Local 9/6 (BUILD 20260905gt): chest TAKE ALL equips — TAKE ALL pins + selects the last stack (tray-tap eat / plant / cook tip need selected; TAKE ALL left food/fish bag-only or unselected — same single TAKE equip gap as 05gj). Never START OVER.
 
 Local 9/6 (BUILD 20260905gs): lamp/crate pick-up equips kit — picking up a player-placed lamp or crate pins + selects the kit (TAP TILE place needs selected lampKit/crateKit; pick left kit bag-only or unselected — same fence pick / kit buy equip gap as 05gq/05fe); world/holiday lamps+crates stay; axe/shovel/empty hand like fence. Never START OVER.

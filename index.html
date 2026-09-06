@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gt";
+  var BUILD = "20260905gu";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -9381,9 +9381,11 @@
       builds.push({ kind: fk, tx: tx, ty: ty });
       buildSolid();
     } else {
+      var pathWas = cell(tx, ty);
       spendSelected("stone", PATH_COST);
       setCell(tx, ty, "c");
-      builds.push({ kind: "path", tx: tx, ty: ty });
+      /* 20260905gu: remember under-tile so pick-up can restore (old saves default g). */
+      builds.push({ kind: "path", tx: tx, ty: ty, was: pathWas });
     }
     persistSave();
     return true;
@@ -16285,14 +16287,79 @@
     return null;
   }
 
+  function canPickupPath() {
+    /* Axe, shovel, or empty hand — never while stone/path place or other place modes. */
+    if (fenceBuildOn || placingLampNow() || placingCrateNow() || selectedIs("stone")) return false;
+    if (toolEquipped("axe") || toolEquipped("shovel")) return true;
+    return !selectedKey();
+  }
+
+  function forgetPathBuild(tx, ty) {
+    var j, removed, was;
+    removed = false;
+    was = "g";
+    for (j = builds.length - 1; j >= 0; j--) {
+      if (!builds[j]) continue;
+      if (builds[j].kind === "path" && builds[j].tx === tx && builds[j].ty === ty) {
+        if (builds[j].was && typeof builds[j].was === "string") was = builds[j].was;
+        builds.splice(j, 1);
+        removed = true;
+      }
+    }
+    return removed ? was : null;
+  }
+
   function breakPlayerPathAt(tx, ty) {
-    /* 20260905bj: placed dirt paths stay — pickaxe/axe never lift them (rocks still smash). */
+    /* 20260905gu: player path pick-up (fence/lamp/crate already; 05bj only blocked
+       pickaxe smash — paths stuck forever with no way back). */
+    var was;
+    if (!playerPathAt(tx, ty)) return false;
+    if (!canPickupPath()) return false;
+    if (bagRoom("stone") < PATH_COST) {
+      showBagFullNote();
+      return false;
+    }
+    was = forgetPathBuild(tx, ty);
+    if (was == null) return false;
+    if (was !== "g" && was !== "d" && was !== "h" && was !== "m" && was !== "k") was = "g";
+    setCell(tx, ty, was);
+    addToBag("stone", PATH_COST);
+    /* pin + select stone — path place needs selectedIs(stone);
+       pick left stone bag-only or unselected (same fence/kit pick equip gap). */
+    placeToolInTrayFirst("stone");
+    selectTool("stone");
+    showLineNote("PATH PICKED UP");
+    playSfx("pickup");
+    persistSave();
+    return true;
+  }
+
+  function tryBreakPathFacing() {
+    var spots, i;
+    if (uiPaused() || faintFx) return false;
+    if (player.swing > 0) return false;
+    if (!canPickupPath()) return false;
+    /* Underfoot first — kids stand on paths (fence is adjacent-only). */
+    spots = [
+      { tx: player.tx, ty: player.ty },
+      facingTile(),
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      if (playerPathAt(spots[i].tx, spots[i].ty)) {
+        breakPlayerPathAt(spots[i].tx, spots[i].ty);
+        return true;
+      }
+    }
     return false;
   }
 
   function goBreakPath(tx, ty) {
     var dest, path;
-    if (!playerPathAt(tx, ty)) return;
+    if (!playerPathAt(tx, ty) || !canPickupPath()) return;
     highlight = { tx: tx, ty: ty };
     if ((player.tx === tx && player.ty === ty) || isNear(player.tx, player.ty, tx, ty)) {
       pending = null;
@@ -23934,11 +24001,17 @@ if (currentScene === "ocean") goExitOcean();
       goBreakKit(hitProp);
       return;
     }
+    /* 20260905gu: player path pick-up (axe/shovel/empty; stone-selected place mode skips).
+       05bj only blocked pickaxe smash — tap never called goBreakPath. */
+    if (playerPathAt(tx, ty) && canPickupPath()) {
+      goBreakPath(tx, ty);
+      return;
+    }
     if (harvest) {
       goHarvest(harvest);
       return;
     }
-    /* 20260905bj: pickaxe no longer mines placed paths — walk/tool fallthrough. */
+    /* 20260905bj: pickaxe smash still skips paths — intentional pick-up is above. */
     if (cell(tx, ty) === "p" && cropIsReady(crops[tx + "," + ty])) {
       goPickCrop(tx, ty);
       return;
@@ -24285,6 +24358,8 @@ if (currentScene === "ocean") goExitOcean();
       if (tryBreakFenceFacing()) return;
       /* 20260905gs: Space pick adjacent/underfoot player lamp/crate (tap + fence Space existed). */
       if (tryBreakKitFacing()) return;
+      /* 20260905gu: Space pick underfoot/adjacent player path (tap + fence/kit Space existed). */
+      if (tryBreakPathFacing()) return;
       if (trySmashFacing()) return;
       /* 20260905gf: Space smash adjacent rock/log/tree (facing Space existed; side silent). */
       if (trySmashAdjacent()) return;
@@ -24557,6 +24632,9 @@ if (currentScene === "ocean") goExitOcean();
       isPlayerKitProp: isPlayerKitProp,
       canPickupKit: canPickupKit,
       tryBreakKitFacing: tryBreakKitFacing,
+      canPickupPath: canPickupPath,
+      tryBreakPathFacing: tryBreakPathFacing,
+      goBreakPath: goBreakPath,
       tryPlaceOrWalk: tryPlaceOrWalk,
       goBuild: goBuild,
       goWalk: goWalk,
@@ -24783,7 +24861,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gt", BUILD);
+      ok("BUILD", BUILD === "20260905gu", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25265,6 +25343,48 @@ if (currentScene === "ocean") goExitOcean();
         var _wi = PROPS.indexOf(propAt(_wx, _wy));
         if (_wi >= 0) PROPS.splice(_wi, 1);
         buildSolid();
+      }
+
+      /* 20260905gu: player path pick-up pins + selects stone (path place / fence pick gap). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      axeOwned = true;
+      syncBagCounts();
+      if (!walkable(player.tx, player.ty)) placePlayer(16, 30, "right");
+      var _px = player.tx + 1, _py = player.ty;
+      if (!inBounds(_px, _py) || !canBuildOn(_px, _py)) {
+        _px = player.tx - 1; _py = player.ty;
+      }
+      if (!inBounds(_px, _py) || !canBuildOn(_px, _py)) {
+        _px = player.tx; _py = player.ty + 1;
+      }
+      var _pWas = cell(_px, _py);
+      setCell(_px, _py, "c");
+      builds.push({ kind: "path", tx: _px, ty: _py, was: _pWas });
+      ok("pathPickupPresent", !!playerPathAt(_px, _py) && cell(_px, _py) === "c", "path@" + _px + "," + _py);
+      ok("pathPickupEquipsStone", !!breakPlayerPathAt(_px, _py) && selectedIs("stone") && bagCount("stone") >= PATH_COST && !playerPathAt(_px, _py) && cell(_px, _py) === _pWas,
+        "sel=" + selectedKey() + " n=" + bagCount("stone") + " cell=" + cell(_px, _py));
+      /* stone-selected place mode must not pick */
+      emptyTray();
+      emptyBag();
+      addToBag("stone", 3);
+      placeToolInTrayFirst("stone");
+      selectTool("stone");
+      setCell(_px, _py, "c");
+      builds.push({ kind: "path", tx: _px, ty: _py, was: _pWas });
+      ok("pathNoPickupWhilePlacing", !breakPlayerPathAt(_px, _py) && !!playerPathAt(_px, _py) && selectedIs("stone"),
+        "sel=" + selectedKey() + " still=" + !!playerPathAt(_px, _py));
+      /* cleanup leftover path from place-mode guard */
+      if (playerPathAt(_px, _py)) {
+        emptyTray();
+        emptyBag();
+        trayCells[0] = { key: "axe", count: 1 };
+        selectedSlot = 0;
+        syncBagCounts();
+        breakPlayerPathAt(_px, _py);
       }
 
       /* 20260905gt: chest TAKE ALL pins + selects last stack (single TAKE 05gj gap). */

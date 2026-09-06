@@ -24,6 +24,8 @@ Walking **into** a rock bumps; it does not smash. Smash is tap-on-rock or Space 
 
 Fences are **pick-up builds**, not multi-hit chops. With **BUILD off**, tap a fence (or Space while adjacent/facing) while holding the **axe**, **shovel**, or an **empty hand** to remove it in one action: **1 wood** goes straight into the bag/tray and toast `FENCE PICKED UP`. Bag full keeps the fence and toasts `BAG FULL. USE THE CHEST.` Walking into a fence still bumps. Wood + **BUILD on** place flow is unchanged (still spends `FENCE_COST` wood). Loop: pick up → select wood → tap BUILD → place again.
 
+Player **dirt paths** are pick-up builds too (same axe / shovel / empty hand gate). Tap a path you placed (or Space while standing on / next to it) to lift it: **1 stone** returns to the bag/tray, toast `PATH PICKED UP`, and the grass/dirt under it comes back. Holding **stone** (path place mode) skips pick-up so you can keep paving. World town cobble is not player path and stays. Pickaxe smash still does not mine paths (05bj).
+
 Trees occupy **one tile** for clicks and collision (the trunk). The canopy is draw-only. Do not hit-test the 48×64 sprite box.
 
 ## Drops
