@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ed";
+  var BUILD = "20260905ee";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -9549,6 +9549,9 @@
     if (loadingSave || persistBlocked || persistSave.busy) return;
     persistSave.busy = true;
     try {
+      /* 20260905ee: mid-drag bagHeld is not in tray/bag arrays — stash before serialize
+         so tab-hide / refresh cannot vanish the stack (never wipe). */
+      if (bagHeld) stashBagHeld();
       flushPickups();
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         v: SAVE_VER,

@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ee): save mid-drag bag stash — if you were holding a bag/tray stack (drag ghost) when the game autosaved / tab-hid / refreshed, that stack was missing from the serialized pockets and could vanish; persistSave now stashBagHeld() first so the stack snaps back into a pocket before write. Never START OVER.
+
 Local 9/5 (BUILD 20260905ed): outside-panel soft click — tapping outside craft/shop/chest/BAG/Stars/Jobs now soft ui clicks like the X / Esc / BYE closes (was silent world-dismiss). Never START OVER.
 
 Local 9/5 (BUILD 20260905ec): STAR toast digit guard + soft OK click — number keys ignored while A STAR! toast / sleep / faint overlays are up so tray cannot swap under them; tapping OK or Esc on the star toast finally soft-clicks (was silent). No Jobs tip spam. Never START OVER.
