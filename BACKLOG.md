@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gb): Space peak rocks + TREE bird/nest adjacent — standing next to the summit rock block or the TREE 1 bird / egg nest (facing away), Space / J / E finally talks (tap already goPeakRocks / goTalkBird / goTalkTreeNest'd; facing Space existed; adjacent-not-facing was a silent no-op like pre-05ga bridge). Never START OVER.
+
 Local 9/6 (BUILD 20260905ga): Space bridge + boat adjacent — standing next to the broken/fixed town bridge or the ocean rowboat (facing away), Space / J / E finally talks (tap already goTalkBridge / goTalkBoat'd; facing Space existed; adjacent-not-facing was a silent no-op like pre-05fv car). Never START OVER.
 
 Local 9/6 (BUILD 20260905fz): Space cottage/tall/L + ocean beach + peak cave adjacent — standing next to town cottage / tall cottage / L-house doors (or their OUT mats), Space / J / E finally enters/exits (facing Space existed; adjacent-not-facing was a silent no-op like pre-05fx house); standing next to the farm beach gate or ocean pier exit / peak cave mouth, Space finally warps too. Never START OVER.

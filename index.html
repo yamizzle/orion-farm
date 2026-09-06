@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ga";
+  var BUILD = "20260905gb";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -18309,10 +18309,18 @@
         if (nearWho(f)) { goTalkFolk(f); return true; }
       }
     } else if (currentScene === "tree") {
-      face = facingTile();
-      p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
-      if (p && p.kind === "bird") { talkBird(); return true; }
-      if (p && p.kind === "nest" && p.eggs) { talkTreeNest(); return true; }
+      /* 20260905gb: adjacent TREE bird/nest Space (facing-only left side silent;
+         tap already goTalkBird / goTalkTreeNest'd; treetop already used nearProp). */
+      p = findBird();
+      if (p && (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty))) {
+        talkBird();
+        return true;
+      }
+      p = findTreeEggNest();
+      if (p && (isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty))) {
+        talkTreeNest();
+        return true;
+      }
     } else if (currentScene === "treetop") {
       face = facingTile();
       p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
@@ -18320,10 +18328,18 @@
       if (findGiantBird() && nearProp(findGiantBird())) { talkGiantBird(); return true; }
       if (findEggNest() && nearProp(findEggNest())) { talkGiantBird(); return true; }
     } else if (currentScene === "peak") {
+      /* 20260905gb: adjacent peak-rocks Space (facing-only / underfoot zone left
+         south-of-block silent; tap already goPeakRocks'd). */
       face = facingTile();
       p = propAt(player.tx, player.ty) || propAt(face.tx, face.ty);
       if (p && p.kind === "peakRocks") { talkPeakRocks(); return true; }
       if (isPeakRocks(player.tx, player.ty) || isPeakRocks(face.tx, face.ty)) { talkPeakRocks(); return true; }
+      if (isNear(player.tx, player.ty, peakRocksAt.tx, peakRocksAt.ty) ||
+          isPeakRocks(player.tx - 1, player.ty) || isPeakRocks(player.tx + 1, player.ty) ||
+          isPeakRocks(player.tx, player.ty - 1) || isPeakRocks(player.tx, player.ty + 1)) {
+        talkPeakRocks();
+        return true;
+      }
     } else if (currentScene === "ocean") {
       if (onBoat) { talkBoat(); return true; }
       /* 20260905ga: adjacent boat Space uses nearProp (rowboat footprint already
@@ -24173,7 +24189,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ga", BUILD);
+      ok("BUILD", BUILD === "20260905gb", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25109,6 +25125,61 @@ if (currentScene === "ocean") goExitOcean();
           placePlayer(_boStand.tx, _boStand.ty, _boStand.face);
           var _boOk = tryTalkAdjacent();
           ok("spaceBoatAdjacent", !!_boOk && !!(dialogue && dialogue.title), "ok=" + _boOk + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
+      }
+
+      /* 20260905gb: Space talks adjacent peak rocks + TREE bird/nest (facing away). */
+      applyScene("peak");
+      found.peakRocksCleared = false;
+      diamondPickOwned = false;
+      closeDialogue();
+      var _prStand = null;
+      if (walkable(peakRocksAt.tx, peakRocksAt.ty + 2)) _prStand = { tx: peakRocksAt.tx, ty: peakRocksAt.ty + 2, face: "down" };
+      else if (walkable(peakRocksAt.tx, 6)) _prStand = { tx: peakRocksAt.tx, ty: 6, face: "down" };
+      else if (walkable(16, 4)) _prStand = { tx: 16, ty: 4, face: "left" };
+      else if (walkable(22, 4)) _prStand = { tx: 22, ty: 4, face: "right" };
+      ok("spacePeakRocksAdjStand", !!_prStand, "stand");
+      if (_prStand) {
+        placePlayer(_prStand.tx, _prStand.ty, _prStand.face);
+        var _prOk = tryTalkAdjacent();
+        ok("spacePeakRocksAdjacent", !!_prOk && !!(dialogue && dialogue.title), "ok=" + _prOk + " title=" + (dialogue ? dialogue.title : ""));
+        closeDialogue();
+      }
+      /* Nest is on TREE 1; bird perch is on TREE 2. */
+      applyScene("tree", 1);
+      closeDialogue();
+      var _nest = findTreeEggNest();
+      ok("spaceTreeNestFound", !!_nest, "nest");
+      if (_nest) {
+        var _nsStand = null;
+        if (walkable(_nest.tx, _nest.ty + 1)) _nsStand = { tx: _nest.tx, ty: _nest.ty + 1, face: "down" };
+        else if (walkable(_nest.tx + 1, _nest.ty)) _nsStand = { tx: _nest.tx + 1, ty: _nest.ty, face: "left" };
+        else if (walkable(_nest.tx - 1, _nest.ty)) _nsStand = { tx: _nest.tx - 1, ty: _nest.ty, face: "right" };
+        else if (walkable(_nest.tx, _nest.ty - 1)) _nsStand = { tx: _nest.tx, ty: _nest.ty - 1, face: "up" };
+        ok("spaceTreeNestAdjStand", !!_nsStand, "stand");
+        if (_nsStand) {
+          placePlayer(_nsStand.tx, _nsStand.ty, _nsStand.face);
+          var _nsOk = tryTalkAdjacent();
+          ok("spaceTreeNestAdjacent", !!_nsOk && !!(dialogue && dialogue.title), "ok=" + _nsOk + " title=" + (dialogue ? dialogue.title : ""));
+          closeDialogue();
+        }
+      }
+      applyScene("tree", 2);
+      closeDialogue();
+      var _bird = findBird();
+      ok("spaceTreeBirdFound", !!_bird, "bird");
+      if (_bird) {
+        var _bdStand = null;
+        if (walkable(_bird.tx, _bird.ty + 1)) _bdStand = { tx: _bird.tx, ty: _bird.ty + 1, face: "down" };
+        else if (walkable(_bird.tx + 1, _bird.ty)) _bdStand = { tx: _bird.tx + 1, ty: _bird.ty, face: "left" };
+        else if (walkable(_bird.tx - 1, _bird.ty)) _bdStand = { tx: _bird.tx - 1, ty: _bird.ty, face: "right" };
+        else if (walkable(_bird.tx, _bird.ty - 1)) _bdStand = { tx: _bird.tx, ty: _bird.ty - 1, face: "up" };
+        ok("spaceTreeBirdAdjStand", !!_bdStand, "stand");
+        if (_bdStand) {
+          placePlayer(_bdStand.tx, _bdStand.ty, _bdStand.face);
+          var _bdOk = tryTalkAdjacent();
+          ok("spaceTreeBirdAdjacent", !!_bdOk && !!(dialogue && dialogue.title), "ok=" + _bdOk + " title=" + (dialogue ? dialogue.title : ""));
           closeDialogue();
         }
       }
