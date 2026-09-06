@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dx";
+  var BUILD = "20260905dy";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -19663,9 +19663,10 @@
     okW = 28; okH = 12;
     okX = x + ((w - okW) / 2) | 0;
     okY = y + h - 18;
-    closeW = 14; closeH = 12;
-    closeX = x + w - closeW - 6;
-    closeY = y + 4;
+    /* 20260905dy: X size/pos match craft/Jobs/BAG */
+    closeW = 13; closeH = 12;
+    closeX = x + w - 16;
+    closeY = y + 2;
     choiceRects = [];
     if (n) {
       btnW = 52; btnH = 14; gap = 6;
@@ -19696,31 +19697,49 @@
     return true;
   }
 
+  /* 20260905dy: shared choice apply (tap + number keys). Ride choices must NOT
+     call closeDialogue — that would land the bird before beginBirdRide. */
+  function applyDialogueChoice(id) {
+    dialogue = null;
+    if (id === "boardBoat") boardBoat();
+    else if (id === "leaveBoat") leaveBoat();
+    else if (id === "boatNope" || id === "stay") {
+      if (id === "stay" && currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded();
+    } else if (id === "tree" || id === "home" || id === "town" || id === "cave" || id === "peak") {
+      beginBirdRide(id);
+    }
+  }
+
   function tapDialogue(p) {
     var L, i, r;
     if (!dialogue) return false;
     L = dialogueLayout();
+    /* 20260905dy: X first — fat hit + soft ui click like craft/Jobs/BAG */
+    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 6)) {
+      playSfx("ui");
+      closeDialogue();
+      return true;
+    }
     if (L.choiceRects && L.choiceRects.length) {
       for (i = 0; i < L.choiceRects.length; i++) {
         r = L.choiceRects[i];
-        if (p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h) {
-          dialogue = null;
-          if (r.id === "boardBoat") boardBoat();
-          else if (r.id === "leaveBoat") leaveBoat();
-          else if (r.id === "boatNope" || r.id === "stay") { if (r.id === "stay" && currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded(); }
-          else if (r.id === "tree" || r.id === "home" || r.id === "town" || r.id === "cave" || r.id === "peak") beginBirdRide(r.id);
+        if (hitPad(p.x, p.y, r.x, r.y, r.w, r.h, 4)) {
+          playSfx("ui");
+          applyDialogueChoice(r.id);
           return true;
         }
       }
-      if (p.x >= L.closeX && p.x < L.closeX + L.closeW && p.y >= L.closeY && p.y < L.closeY + L.closeH) {
-        dialogue = null;
-        if (currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded();
-        return true;
-      }
+      /* Stay open until a choice or X (Esc still dismisses). */
       return true;
     }
-    dialogue = null;
-    if (currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded();
+    if (hitPad(p.x, p.y, L.okX, L.okY, L.okW, L.okH, 6)) {
+      playSfx("ui");
+      closeDialogue();
+      return true;
+    }
+    /* Plain talk: tap panel or world dismisses with soft click */
+    playSfx("ui");
+    closeDialogue();
     return true;
   }
 
@@ -19741,6 +19760,7 @@
       woodPanel(g, L.okX, L.okY, L.okW, L.okH);
       drawText(g, "OK", L.okX + 8, L.okY + 3, C.parch);
     }
+    /* 20260905dy: talk X matches other panels */
     woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
     drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
     if (L.choiceRects) {
@@ -22410,17 +22430,8 @@ if (currentScene === "ocean") goExitOcean();
     /* 20260905bv: number keys pick dialogue choices (bird rides / boat) before hotbar */
     if (!e.repeat && dialogue && dialogue.choices && dialogue.choices.length && slotN >= 1 && slotN <= dialogue.choices.length) {
       e.preventDefault();
-      (function () {
-        var ch = dialogue.choices[slotN - 1];
-        var id = ch && ch.id;
-        dialogue = null;
-        if (id === "boardBoat") boardBoat();
-        else if (id === "leaveBoat") leaveBoat();
-        else if (id === "boatNope" || id === "stay") {
-          if (currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded();
-        }
-        else if (id === "tree" || id === "home" || id === "town" || id === "cave" || id === "peak") beginBirdRide(id);
-      })();
+      playSfx("ui");
+      applyDialogueChoice(dialogue.choices[slotN - 1] && dialogue.choices[slotN - 1].id);
       return;
     }
     if (slotN >= 1 && slotN <= 10) {
