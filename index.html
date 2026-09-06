@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905eq";
+  var BUILD = "20260905er";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -3034,7 +3034,8 @@
 
   function enterTree() {
     applyScene("tree", 1);
-    placePlayer(5, 5, "up");
+    /* 20260905er: land 2 tiles north of DOWN (5,6) — was (5,5) one-step fall. */
+    placePlayer(5, 4, "up");
     persistSave();
   }
 
@@ -3048,16 +3049,18 @@
     var spot;
     floor = clampTreeFloor(floor);
     applyScene("tree", floor);
+    /* 20260905er: 2-tile gap from UP (ty=2) / DOWN (ty=6) like mine 05ep —
+       was ty=3/5 so one step re-climbed or fell. */
     if (via === "down") {
-      if (floor === 1) spot = { tx: 5, ty: 3, face: "down" };
-      else if (floor === 2) spot = { tx: 6, ty: 3, face: "down" };
-      else if (floor === 3) spot = { tx: 7, ty: 3, face: "down" };
-      else spot = { tx: 4, ty: 3, face: "down" };
+      if (floor === 1) spot = { tx: 5, ty: 4, face: "down" };
+      else if (floor === 2) spot = { tx: 6, ty: 4, face: "down" };
+      else if (floor === 3) spot = { tx: 7, ty: 4, face: "down" };
+      else spot = { tx: 4, ty: 4, face: "down" };
     } else {
-      if (floor === 1) spot = { tx: 5, ty: 5, face: "up" };
-      else if (floor === 2) spot = { tx: 4, ty: 5, face: "up" };
-      else if (floor === 3) spot = { tx: 3, ty: 5, face: "up" };
-      else spot = { tx: 6, ty: 5, face: "up" };
+      if (floor === 1) spot = { tx: 5, ty: 4, face: "up" };
+      else if (floor === 2) spot = { tx: 4, ty: 4, face: "up" };
+      else if (floor === 3) spot = { tx: 3, ty: 4, face: "up" };
+      else spot = { tx: 6, ty: 4, face: "up" };
     }
     placePlayer(spot.tx, spot.ty, spot.face);
     persistSave();
@@ -9881,13 +9884,14 @@
   }
 
 
-  /* 20260905eg: safe stand tile for TREE N (matches enterTreeFloor via "up") */
+  /* 20260905eg: safe stand tile for TREE N (matches enterTreeFloor via "up")
+     20260905er: ty=4 (2 tiles from DOWN), not ty=5. */
   function treeRestoreLand() {
     var f = clampTreeFloor(treeFloor);
-    if (f === 2) return { tx: 4, ty: 5, face: "up" };
-    if (f === 3) return { tx: 3, ty: 5, face: "up" };
-    if (f === 4) return { tx: 6, ty: 5, face: "up" };
-    return { tx: 5, ty: 5, face: "up" };
+    if (f === 2) return { tx: 4, ty: 4, face: "up" };
+    if (f === 3) return { tx: 3, ty: 4, face: "up" };
+    if (f === 4) return { tx: 6, ty: 4, face: "up" };
+    return { tx: 5, ty: 4, face: "up" };
   }
 
   /* 20260905ei: safe stand tile for MINE N (matches enterMineFloor via "down") */
@@ -23640,10 +23644,16 @@ if (currentScene === "ocean") goExitOcean();
       treeFloor = 3;
       applyScene("tree", 3);
       var tl = treeRestoreLand();
-      ok("treeRestoreLandF3", !!(tl && tl.tx === 3 && tl.ty === 5), tl && (tl.tx + "," + tl.ty));
+      ok("treeRestoreLandF3", !!(tl && tl.tx === 3 && tl.ty === 4), tl && (tl.tx + "," + tl.ty));
       var up = treeUpSpot();
       var nudged = nudgeRestoreOffGate(up.tx, up.ty, "up");
-      ok("treeGateNudge", !!(nudged && nudged.tx === 3 && nudged.ty === 5), nudged && (nudged.tx + "," + nudged.ty));
+      ok("treeGateNudge", !!(nudged && nudged.tx === 3 && nudged.ty === 4), nudged && (nudged.tx + "," + nudged.ty));
+      /* 20260905er: climb-up onto TREE 2 is 2 tiles north of DOWN, not 1 */
+      treeFloor = 2;
+      applyScene("tree", 2);
+      var t2down = treeDownSpot();
+      var t2upLand = { tx: 4, ty: 4 };
+      ok("treeF2UpLandOffDown", !!(t2down && t2down.tx === 4 && t2down.ty === 6 && walkable(t2upLand.tx, t2upLand.ty) && (t2down.ty - t2upLand.ty) >= 2), t2down && (t2down.tx + "," + t2down.ty));
       applyScene("peak");
       var pk = nudgeRestoreOffGate(18, 25, "up");
       ok("peakCaveNudge", !!(pk && pk.tx === peakLand.tx && pk.ty === peakLand.ty), pk && (pk.tx + "," + pk.ty));

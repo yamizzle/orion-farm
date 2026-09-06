@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905er): tree climb landings — UP/DOWN onto TREE 1–4 land at ty=4 (2 tiles from UP ty=2 / DOWN ty=6) so one step cannot auto-reclimb or fall; enterTree + treeRestoreLand match. Never START OVER.
+
 Local 9/6 (BUILD 20260905eq): held select gates — selectedKey/selectedHas/selectedCount count the mid-drag bagHeld tray ghost (fence/flower/kits/eat gates match spendSelected 05en; empty tray slot while dragging wood/flower no longer looks "unequipped"). Never START OVER.
 
 Local 9/6 (BUILD 20260905ep): mine floor-1 climb-up landing — UP from MINE 2 no longer drops you one tile south of the DOWN hole (16,5); land at (16,6) so a single north step cannot auto-fall you back down (same 2-tile gap as floors 2–5). Never START OVER.
