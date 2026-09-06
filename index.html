@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hk";
+  var BUILD = "20260905hl";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -557,7 +557,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, islandCave: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, islandCave: null, mountainMine: null };
   var tick = 0;
   var lastTs = 0;
   /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
@@ -652,6 +652,11 @@
   var climbFloor = 1;
   var minePeakStairs = { tx: 22, ty: 6 };
   var peakRocksAt = { tx: 19, ty: 4 };
+  /* 20260905hl: summit mouth after diamond-pick clears peak rocks → mountain mine */
+  var peakMineMouthAt = { tx: 19, ty: 2 };
+  var MOUNTAIN_MINE_COLS = 18;
+  var MOUNTAIN_MINE_ROWS = 14;
+  var mountainMineOut = { tx: 9, ty: 12 };
   var peakCaveAt = { tx: 18, ty: 25 };
   var OCEAN_COLS = 64;
   var OCEAN_ROWS = 56;
@@ -705,7 +710,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtSapphire: false, mtCrystal: false, mtChest: false, mtChest2: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -1195,7 +1200,7 @@
 
   function wantedTune() {
     if (isCozyInterior()) return "house";
-    if (currentScene === "mine" || currentScene === "caveclimb") return "mine";
+    if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") return "mine";
     if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree") return clockPhaseName() === "NIGHT" ? "forestNight" : "forest";
     if (festivalOn && clockPhaseName() === "NIGHT") return "festival";
     if (clockPhaseName() === "NIGHT") return "farmNight";
@@ -2742,14 +2747,18 @@
     }
     /* 20260905bt: rebuild peak if rocks cleared but cache still has the pile / blocked summit */
     if (name === "peak" && cached) {
-      var _pk, _hasRocks = false, _summitOpen = false;
+      var _pk, _hasRocks = false, _summitOpen = false, _hasMineMouth = false;
       if (cached.props) {
         for (_pk = 0; _pk < cached.props.length; _pk++) {
-          if (cached.props[_pk] && cached.props[_pk].kind === "peakRocks") { _hasRocks = true; break; }
+          if (cached.props[_pk] && cached.props[_pk].kind === "peakRocks") { _hasRocks = true; }
+          if (cached.props[_pk] && cached.props[_pk].kind === "caveMouth" &&
+              cached.props[_pk].tx === peakMineMouthAt.tx && cached.props[_pk].ty === peakMineMouthAt.ty) {
+            _hasMineMouth = true;
+          }
         }
       }
       if (cached.ground && cached.ground[4] && cached.ground[4][19] === "f") _summitOpen = true;
-      if (found.peakRocksCleared && (_hasRocks || !_summitOpen)) cached = null;
+      if (found.peakRocksCleared && (_hasRocks || !_summitOpen || !_hasMineMouth)) cached = null;
       if (!found.peakRocksCleared && !_hasRocks) cached = null;
     }
     /* 20260905bp: rebuild island cave if exit still uses pink wooden door */
@@ -2862,6 +2871,11 @@
       ROWS = ISLAND_CAVE_ROWS;
       GROUND = buildIslandCaveGround();
       PROPS = buildIslandCaveProps();
+    } else if (name === "mountainMine") {
+      COLS = MOUNTAIN_MINE_COLS;
+      ROWS = MOUNTAIN_MINE_ROWS;
+      GROUND = buildMountainMineGround();
+      PROPS = buildMountainMineProps();
     } else if (name === "caveclimb") {
       COLS = CLIMB_COLS;
       ROWS = CLIMB_ROWS;
@@ -3359,6 +3373,9 @@
     ];
     if (!found.peakRocksCleared) {
       list.unshift({ kind: "peakRocks", tx: peakRocksAt.tx, ty: peakRocksAt.ty });
+    } else {
+      /* 20260905hl: secret mountain-mine mouth on the cleared summit path */
+      list.push({ kind: "caveMouth", tx: peakMineMouthAt.tx, ty: peakMineMouthAt.ty, peakMine: true });
     }
     return list;
   }
@@ -3625,6 +3642,11 @@
       ];
     }
     if (currentScene === "peak") {
+      /* 20260905hl: summit mountain-mine mouth (before south stairs cave) */
+      if (isPeakMineMouth(player.tx, player.ty)) {
+        enterMountainMine();
+        return true;
+      }
       if (isPeakCave(player.tx, player.ty)) {
         enterClimbFloor(2, "mouth");
         return true;
@@ -3634,6 +3656,10 @@
         return true;
       }
       f = facingTile();
+      if (isPeakMineMouth(f.tx, f.ty)) {
+        enterMountainMine();
+        return true;
+      }
       if (isPeakCave(f.tx, f.ty)) {
         enterClimbFloor(2, "mouth");
         return true;
@@ -3645,6 +3671,10 @@
       spots = orthoSpots();
       for (i = 0; i < spots.length; i++) {
         t = spots[i];
+        if (isPeakMineMouth(t.tx, t.ty)) {
+          enterMountainMine();
+          return true;
+        }
         if (isPeakCave(t.tx, t.ty)) {
           enterClimbFloor(2, "mouth");
           return true;
@@ -3890,6 +3920,119 @@
   function isIslandCaveExit(tx, ty) {
     return currentScene === "islandCave" && tx === islandCaveOut.tx && ty === islandCaveOut.ty;
   }
+  function buildMountainMineGround() {
+    var cols = MOUNTAIN_MINE_COLS, rows = MOUNTAIN_MINE_ROWS;
+    var g = blankMine(cols, rows);
+    carveMine(g, 2, 2, 15, 11);
+    carveMine(g, 4, 8, 13, 12);
+    carveMine(g, 11, 3, 15, 7);
+    /* a few rock pillars — no lone 1x1 walls */
+    g[5][6] = "#";
+    g[6][6] = "#";
+    g[5][12] = "#";
+    g[6][12] = "#";
+    return g;
+  }
+
+  function buildMountainMineProps() {
+    var list = [
+      { kind: "caveStairs", tx: mountainMineOut.tx, ty: mountainMineOut.ty, dir: "out" },
+      { kind: "caveMouth", tx: mountainMineOut.tx, ty: mountainMineOut.ty, peakMine: true },
+      { kind: "lantern", tx: 4, ty: 4, walk: true },
+      { kind: "lantern", tx: 13, ty: 4, walk: true },
+      { kind: "lantern", tx: 9, ty: 9, walk: true },
+      /* decorative mine carts — Imagine crate props */
+      { kind: "crate", tx: 3, ty: 8, mineCart: true },
+      { kind: "crate", tx: 14, ty: 8, mineCart: true },
+      { kind: "crate", tx: 6, ty: 11, mineCart: true },
+      { kind: "rock", tx: 5, ty: 5 },
+      { kind: "rock", tx: 12, ty: 6 },
+      { kind: "rock", tx: 8, ty: 4 }
+    ];
+    if (!found.mtGem) list.push({ kind: "gem", tx: 4, ty: 3, mt: true });
+    if (!found.mtSapphire) list.push({ kind: "sapphire", tx: 14, ty: 3, mt: true });
+    if (!found.mtCrystal) list.push({ kind: "mooncrystal", tx: 11, ty: 5, mt: true });
+    if (!found.mtChest) list.push({ kind: "chest", tx: 7, ty: 3, mt: true, mtId: 1 });
+    if (!found.mtChest2) list.push({ kind: "chest", tx: 13, ty: 10, mt: true, mtId: 2 });
+    return list;
+  }
+
+  function isPeakMineMouth(tx, ty) {
+    var p;
+    if (!found.peakRocksCleared) return false;
+    if (currentScene !== "peak") return false;
+    if (tx === peakMineMouthAt.tx && ty === peakMineMouthAt.ty) return true;
+    p = propAt(tx, ty);
+    return !!(p && p.kind === "caveMouth" && p.peakMine);
+  }
+
+  function isMountainMineExit(tx, ty) {
+    return currentScene === "mountainMine" && tx === mountainMineOut.tx && ty === mountainMineOut.ty;
+  }
+
+  function maybeMountainMineTip() {
+    if (!found.peakRocksCleared || unlocked.mountainMineTip) return;
+    unlocked.mountainMineTip = true;
+    showLineNote("A SECRET MINE OPENS.");
+    persistSave();
+  }
+
+  function enterMountainMine() {
+    applyScene("mountainMine");
+    unlocked.mountainMineEntered = true;
+    /* 2-tile gap north of OUT so one south step does not auto-exit */
+    placePlayer(mountainMineOut.tx, mountainMineOut.ty - 2, "up");
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(mountainMineOut.tx, mountainMineOut.ty - 1, "up");
+    }
+    unstickPlayer();
+    persistSave();
+  }
+
+  function exitMountainMine() {
+    applyScene("peak");
+    /* land south of summit mouth — 2-tile gap so one north step does not re-enter */
+    placePlayer(peakMineMouthAt.tx, peakMineMouthAt.ty + 2, "down");
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(peakMineMouthAt.tx, peakMineMouthAt.ty + 1, "down");
+    }
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(peakMineMouthAt.tx, peakMineMouthAt.ty + 3, "down");
+    }
+    unstickPlayer();
+    persistSave();
+  }
+
+  function goEnterMountainMine() {
+    highlight = { tx: peakMineMouthAt.tx, ty: peakMineMouthAt.ty };
+    if (isPeakMineMouth(player.tx, player.ty) || (player.tx === peakMineMouthAt.tx && player.ty === peakMineMouthAt.ty)) {
+      enterMountainMine();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, peakMineMouthAt.tx, peakMineMouthAt.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, peakMineMouthAt.tx, peakMineMouthAt.ty)) {
+        enterMountainMine();
+      }
+      return;
+    }
+    pending = { type: "enterMountainMine" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitMountainMine() {
+    highlight = { tx: mountainMineOut.tx, ty: mountainMineOut.ty };
+    if (player.tx === mountainMineOut.tx && player.ty === mountainMineOut.ty) {
+      exitMountainMine();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, mountainMineOut.tx, mountainMineOut.ty);
+    if (!path.length) return;
+    pending = { type: "exitMountainMine" };
+    startWalk(player, path, 3.5);
+  }
+
+
 
   function enterIslandCave() {
     /* 20260905bo: if still rowing, auto-get-out so the boat stays on the island beach */
@@ -6333,7 +6476,7 @@
     }
     camX = Math.round(Math.max(minX, Math.min(maxX, targetX)));
     camY = Math.round(Math.max(minY, Math.min(maxY, targetY)));
-    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb") {
+    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
         if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "ocean") {
@@ -6342,7 +6485,7 @@
           camY = minY;
         }
       }
-      if ((currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
+      if ((currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
         camY = Math.round(player.y - (VIEW_H - CAM_PAD_BOTTOM));
         if (camY > maxY) camY = maxY;
       }
@@ -9136,6 +9279,19 @@
       var pri = PROPS.indexOf(prop);
       if (pri >= 0) PROPS.splice(pri, 1);
       found.peakRocksCleared = true;
+      /* 20260905hl: open summit mouth into the mountain mine */
+      var _mm, _hasMM = false;
+      for (_mm = 0; _mm < PROPS.length; _mm++) {
+        if (PROPS[_mm] && PROPS[_mm].kind === "caveMouth" &&
+            PROPS[_mm].tx === peakMineMouthAt.tx && PROPS[_mm].ty === peakMineMouthAt.ty) {
+          _hasMM = true;
+          PROPS[_mm].peakMine = true;
+          break;
+        }
+      }
+      if (!_hasMM) {
+        PROPS.push({ kind: "caveMouth", tx: peakMineMouthAt.tx, ty: peakMineMouthAt.ty, peakMine: true });
+      }
       /* Drop any cached peak props that still hold the pile. */
       if (sceneCache && sceneCache.peak) {
         sceneCache.peak.props = PROPS;
@@ -9147,6 +9303,7 @@
       /* 20260905do: gold/stone celebration (was plain sparks) */
       spawnPathClearSparks(prop.tx * TILE + 8, prop.ty * TILE + 4);
       playSfx("toast");
+      maybeMountainMineTip();
       persistSave();
       return;
     } else if (prop.kind === "rock") {
@@ -9545,7 +9702,7 @@
     if (isOceanEntrance(tx, ty) || isOceanExit(tx, ty)) return true;
     if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world)) return true;
     if (isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty)) return true;
-    if (isPeakCave(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty)) return true;
+    if (isPeakCave(tx, ty) || isPeakMineMouth(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) || isMountainMineExit(tx, ty)) return true;
     return false;
   }
 
@@ -9620,7 +9777,8 @@
       isTreeDown(tx, ty) || isTreeUp(tx, ty) ||
       isMineEntrance(tx, ty) || isMineExit(tx, ty) ||
       isMineDown(tx, ty) || isMineUp(tx, ty) || isMinePeakStairs(tx, ty) ||
-      isPeakCave(tx, ty) || isPeakFarmExit(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) ||
+      isPeakCave(tx, ty) || isPeakMineMouth(tx, ty) || isPeakFarmExit(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) ||
+      isMountainMineExit(tx, ty) || isIslandCaveExit(tx, ty) || isIslandCaveEntrance(tx, ty) ||
       isOceanEntrance(tx, ty) || isOceanExit(tx, ty) ||
       isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) ||
       isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty);
@@ -9792,6 +9950,11 @@
         found.diamondPick = !!data.found.diamondPick;
         found.peakRocksCleared = !!data.found.peakRocksCleared;
         found.outdoorSlug = !!data.found.outdoorSlug;
+        found.mtGem = !!data.found.mtGem;
+        found.mtSapphire = !!data.found.mtSapphire;
+        found.mtCrystal = !!data.found.mtCrystal;
+        found.mtChest = !!data.found.mtChest;
+        found.mtChest2 = !!data.found.mtChest2;
       }
       if (data.ball && typeof data.ball === "object") {
         ball.tx = data.ball.tx | 0;
@@ -10057,10 +10220,10 @@
         }
       }
       syncLilaFlowers();
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down",
@@ -10449,8 +10612,15 @@
         return { tx: treetopLand.tx, ty: treetopLand.ty, face: "up" };
       }
     } else if (currentScene === "peak") {
+      if (isPeakMineMouth(tx, ty)) {
+        return { tx: peakMineMouthAt.tx, ty: peakMineMouthAt.ty + 2, face: "down" };
+      }
       if (isPeakCave(tx, ty)) {
         return { tx: peakLand.tx, ty: peakLand.ty, face: "up" };
+      }
+    } else if (currentScene === "mountainMine") {
+      if (isMountainMineExit(tx, ty)) {
+        return { tx: mountainMineOut.tx, ty: mountainMineOut.ty - 2, face: "up" };
       }
     } else if (currentScene === "caveclimb") {
       if (isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty)) {
@@ -10609,6 +10779,7 @@
       else if (scene === "tallCottage") { tx = 8; ty = 6; face = "up"; }
       else if (scene === "lHouse") { tx = 7; ty = 6; face = "up"; }
       else if (scene === "islandCave") { tx = islandCaveOut.tx; ty = islandCaveOut.ty - 2; face = "up"; }
+      else if (scene === "mountainMine") { tx = mountainMineOut.tx; ty = mountainMineOut.ty - 2; face = "up"; }
       else if (scene === "caveclimb") {
         if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
         else { tx = 5; ty = 7; face = "up"; }
@@ -12754,6 +12925,7 @@
     if (currentScene === "peak") return "PEAK";
     if (currentScene === "ocean") return "OCEAN";
     if (currentScene === "islandCave") return "ISLAND CAVE";
+    if (currentScene === "mountainMine") return "MOUNTAIN MINE";
     if (currentScene === "cottage") return "COTTAGE";
     if (currentScene === "cottage2") return "COTTAGE 2";
     if (currentScene === "tallCottage") return "TALL COTTAGE";
@@ -12971,7 +13143,7 @@
   var frameOutdoorGrade = null;
 
   function usesOutdoorGrade() {
-    return !(isCozyInterior() || currentScene === "mine" || currentScene === "caveclimb" || currentScene === "islandCave");
+    return !(isCozyInterior() || currentScene === "mine" || currentScene === "caveclimb" || currentScene === "islandCave" || currentScene === "mountainMine");
   }
 
   function liftOutdoorNightGrade(gr, t) {
@@ -13058,6 +13230,9 @@
     if (currentScene === "islandCave") {
       return { r: 148, g: 128, b: 112, a: 0.30 };
     }
+    if (currentScene === "mountainMine") {
+      return { r: 72, g: 58, b: 96, a: 0.46 };
+    }
     if (currentScene === "mine") {
       if (mineFloor >= 6) return { r: 48, g: 36, b: 72, a: 0.56 };
       if (mineFloor >= 5) return { r: 56, g: 42, b: 80, a: 0.52 };
@@ -13071,7 +13246,7 @@
 
   function lanternGlowAmt() {
     var t;
-    if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "islandCave") return 0.55;
+    if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "islandCave" || currentScene === "mountainMine") return 0.55;
     if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "treetop" && currentScene !== "ocean") return 0;
     if (frameDayT === null) beginFrameGrade();
     t = frameDayT;
@@ -13261,7 +13436,7 @@
 
   /* 20260905cd: mine/stairs/cave — soft vignette + warm torch/lamp pools (kid-readable). */
   function isCaveLitScene() {
-    return currentScene === "mine" || currentScene === "caveclimb" || currentScene === "islandCave";
+    return currentScene === "mine" || currentScene === "caveclimb" || currentScene === "islandCave" || currentScene === "mountainMine";
   }
 
   function forEachCaveTorch(fn) {
@@ -13493,6 +13668,10 @@
     if (diamondPickOwned && !found.peakRocksCleared) {
       if (currentScene === "peak") return "SMASH THE PEAK ROCKS.";
       return "SMASH PEAK ROCKS WITH THE DIAMOND PICK.";
+    }
+    /* 20260905hl: after summit rocks clear — Jobs points kids into the mountain mine */
+    if (found.peakRocksCleared && !unlocked.mountainMineEntered) {
+      return "ENTER THE MOUNTAIN MINE.";
     }
     /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
     if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
@@ -15360,6 +15539,26 @@
         t = spots[i];
         if (isIslandCaveExit(t.tx, t.ty)) {
           exitIslandCave();
+          return true;
+        }
+      }
+      return false;
+    }
+    if (currentScene === "mountainMine") {
+      if (isMountainMineExit(player.tx, player.ty)) {
+        exitMountainMine();
+        return true;
+      }
+      f = facingTile();
+      if (isMountainMineExit(f.tx, f.ty)) {
+        exitMountainMine();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isMountainMineExit(t.tx, t.ty)) {
+          exitMountainMine();
           return true;
         }
       }
@@ -18360,6 +18559,47 @@
     return null;
   }
 
+  function takeMtFind(prop) {
+    var i, id;
+    i = PROPS.indexOf(prop);
+    if (i >= 0) PROPS.splice(i, 1);
+    if (prop.kind === "gem") {
+      found.mtGem = true;
+      addItem("gem", 6);
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      persistSave();
+      openDialogue("ORION", ["A MINE CRYSTAL!", "IT SHIMMERS."]);
+      return;
+    }
+    if (prop.kind === "sapphire") {
+      found.mtSapphire = true;
+      addItem("sapphire", 10);
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      persistSave();
+      openDialogue("ORION", ["A BLUE CRYSTAL!", "SPARKLY TREASURE."]);
+      return;
+    }
+    if (prop.kind === "mooncrystal") {
+      found.mtCrystal = true;
+      addItem("gem", 14);
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      persistSave();
+      openDialogue("ORION", ["A GLOW CRYSTAL!", "BRIGHT LIKE MOONLIGHT."]);
+      return;
+    }
+    if (prop.kind === "chest") {
+      id = prop.mtId | 0;
+      if (id === 2) found.mtChest2 = true;
+      else found.mtChest = true;
+      spawnPickup("gold", prop.tx, prop.ty, 10);
+      spawnPickup("goldPile", prop.tx, prop.ty, 6);
+      spawnChestSparks(prop.tx * TILE + 8, prop.ty * TILE + 4);
+      persistSave();
+      openDialogue("ORION", ["A TREASURE CHEST!", "LOOT FROM THE MINE."]);
+      return;
+    }
+  }
+
   function takeDeepFind(prop) {
     var i, j, other;
     i = PROPS.indexOf(prop);
@@ -18448,6 +18688,15 @@
       rememberHarvest(prop, "toadstool", "gone");
       unlockAch("caveSnack");
       persistSave();
+      return;
+    }
+    if (prop.mt && (prop.kind === "gem" || prop.kind === "chest" || prop.kind === "mooncrystal" ||
+        prop.kind === "sapphire")) {
+      if (prop.kind === "gem" && found.mtGem) return;
+      if (prop.kind === "sapphire" && found.mtSapphire) return;
+      if (prop.kind === "mooncrystal" && found.mtCrystal) return;
+      if (prop.kind === "chest" && ((prop.mtId | 0) === 2 ? found.mtChest2 : found.mtChest)) return;
+      takeMtFind(prop);
       return;
     }
     if (prop.kind === "gem" || prop.kind === "chest" || prop.kind === "mooncrystal" ||
@@ -18603,11 +18852,18 @@
 
   function goCollect(prop) {
     if (!isCollectible(prop)) return;
+    if (prop.mt) {
+      if (prop.kind === "gem" && found.mtGem) return;
+      if (prop.kind === "sapphire" && found.mtSapphire) return;
+      if (prop.kind === "mooncrystal" && found.mtCrystal) return;
+      if (prop.kind === "chest" && ((prop.mtId | 0) === 2 ? found.mtChest2 : found.mtChest)) return;
+    } else {
     if (prop.kind === "gem" && found.gem) return;
     if (prop.kind === "iron" && found.iron) return;
     if (prop.kind === "sapphire" && found.sapphire) return;
     if (prop.kind === "chest" && mineFloor === 6 && found.peakChest) return;
     if ((prop.kind === "chest" || prop.kind === "mooncrystal") && mineFloor !== 6 && found.mooncrystal) return;
+    }
     /* Unique world finds only — loose cave mushrooms stay pickable after the quest one */
     if (prop.kind !== "gem" && prop.kind !== "chest" && prop.kind !== "mooncrystal" &&
         prop.kind !== "iron" && prop.kind !== "sapphire" && prop.kind !== "silver" &&
@@ -18931,6 +19187,16 @@
       exitTreetopSouth();
       return;
     }
+    if (isPeakMineMouth(player.tx, player.ty)) {
+      pending = null;
+      enterMountainMine();
+      return;
+    }
+    if (isMountainMineExit(player.tx, player.ty)) {
+      pending = null;
+      exitMountainMine();
+      return;
+    }
     if (isPeakCave(player.tx, player.ty)) {
       pending = null;
       enterClimbFloor(2, "mouth");
@@ -19163,6 +19429,10 @@
       enterIslandCave();
     } else if (act.type === "exitIslandCave") {
       exitIslandCave();
+    } else if (act.type === "enterMountainMine") {
+      enterMountainMine();
+    } else if (act.type === "exitMountainMine") {
+      exitMountainMine();
     } else if (act.type === "talkBoat") {
       talkBoat();
     } else if (act.type === "peakRocks") {
@@ -21097,6 +21367,13 @@
       }
     } else if (p.kind === "crate") {
       if (!drawAtlas2x(g, "crate", x, y)) Assets.draw(g, "crate", x, y);
+      /* 20260905hl: decorative mine-cart wheels on mountain-mine crates */
+      if (p.mineCart) {
+        fill(g, x + 1, y + 12, 4, 3, "#2A2218");
+        fill(g, x + 11, y + 12, 4, 3, "#2A2218");
+        fill(g, x + 2, y + 13, 2, 1, "#5A4A38");
+        fill(g, x + 12, y + 13, 2, 1, "#5A4A38");
+      }
     } else if (p.kind === "pond") {
       Assets.draw(g, "pond", x, y);
       if (((tick / 700) | 0) % 2) {
@@ -21160,14 +21437,15 @@
       drawStandSprite(g, Assets.peakRocks, x, y, 64, 48);
       drawPeakRockCracks(g, p, x, y);
     } else if (p.kind === "caveMouth") {
-      /* Outdoor peak already paints the cave in peakMap; caveMouth art is inside-looking-out. */
-      if (currentScene !== "peak") {
+      /* Outdoor peak south mouth is painted in peakMap; summit mine mouth + interiors draw art. */
+      if (currentScene !== "peak" || p.peakMine) {
         if (!drawStandSprite(g, Assets.caveMouth, x, y)) drawCaveMouth(g, x, y);
       }
-      if (currentScene === "islandCave") drawShaftLabel(g, p, "OUT");
+      if (currentScene === "islandCave" || currentScene === "mountainMine") drawShaftLabel(g, p, "OUT");
+      if (currentScene === "peak" && p.peakMine) drawShaftLabel(g, p, "MINE");
     } else if (p.kind === "caveStairs") {
       drawStandSprite(g, Assets.caveStairs, x, y);
-      if (p.dir === "out" || (currentScene === "islandCave" && p.dir !== "up" && p.dir !== "down")) {
+      if (p.dir === "out" || ((currentScene === "islandCave" || currentScene === "mountainMine") && p.dir !== "up" && p.dir !== "down")) {
         drawShaftLabel(g, p, "OUT");
       } else if (p.dir === "up") drawShaftLabel(g, p, "UP");
       else if (p.dir === "down") drawShaftLabel(g, p, (currentScene === "caveclimb" && climbFloor === 1) ? "MINE" : "DOWN");
@@ -23325,7 +23603,7 @@
     frameDayT = null;
     beginFrameGrade();
     updateCamera();
-    g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "ocean") ? (currentScene === "peak" ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "ocean") ? (currentScene === "peak" ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -23344,7 +23622,7 @@
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -23355,11 +23633,11 @@
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
           if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") drawSkyTile(g, tx, ty, dx, dy);
           else if (currentScene === "ocean") { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
           else if (isCozyInterior()) Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
-          else if (currentScene === "mine" || currentScene === "caveclimb") {
+          else if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") {
             if ((currentScene === "mine" && mineFloor >= 4) || (currentScene === "caveclimb" && climbFloor === 1)) Assets.draw(g, "deepFloor", dx, dy);
             else Assets.draw(g, ((tx + ty) & 1) ? "mineFloor1" : "mineFloor", dx, dy);
           } else drawMossTile(g, tx, ty, dx, dy);
@@ -23408,7 +23686,7 @@
             }
           }
         } else if (ch === "s") {
-          if (currentScene === "mine" || currentScene === "caveclimb") {
+          if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") {
             if ((currentScene === "mine" && mineFloor >= 4) || (currentScene === "caveclimb" && climbFloor === 1)) Assets.draw(g, "deepFloor", dx, dy);
             else Assets.draw(g, ((tx + ty) & 1) ? "mineFloor1" : "mineFloor", dx, dy);
             if (cell(tx, ty - 1) === "#") fill(g, dx, dy, TILE, 2, "rgba(8,6,10,0.55)");
@@ -23438,7 +23716,7 @@
             Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
           }
         } else if (ch === "#") {
-          if (currentScene === "mine" || currentScene === "caveclimb") {
+          if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") {
             Assets.draw(g, ((currentScene === "mine" && mineFloor >= 4) || (currentScene === "caveclimb" && climbFloor === 1)) ? "deepWall" : "mineWall", dx, dy);
           } else if (currentScene === "tree") {
             drawBarkWall(g, tx, ty, dx, dy);
@@ -24295,7 +24573,11 @@
       goTalkBoat(propAt(tx, ty));
       return;
     }
-    if (currentScene === "peak" && (isPeakCave(tx, ty) || (propAt(tx, ty) && (propAt(tx, ty).kind === "caveMouth" || propAt(tx, ty).kind === "peakSign")))) {
+    if (currentScene === "peak" && (isPeakMineMouth(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "caveMouth" && propAt(tx, ty).peakMine))) {
+      goEnterMountainMine();
+      return;
+    }
+    if (currentScene === "peak" && (isPeakCave(tx, ty) || (propAt(tx, ty) && ((propAt(tx, ty).kind === "caveMouth" && !propAt(tx, ty).peakMine) || propAt(tx, ty).kind === "peakSign")))) {
       goPeakCave();
       return;
     }
@@ -24360,6 +24642,10 @@
       goExitIslandCave();
       return;
     }
+    if (isMountainMineExit(tx, ty)) {
+      goExitMountainMine();
+      return;
+    }
     if (isForestExit(tx, ty)) {
       goExitForest();
       return;
@@ -24407,7 +24693,11 @@
       goTalkBoat(propAt(tx, ty));
       return;
     }
-    if (currentScene === "peak" && (isPeakCave(tx, ty) || (propAt(tx, ty) && (propAt(tx, ty).kind === "caveMouth" || propAt(tx, ty).kind === "peakSign")))) {
+    if (currentScene === "peak" && (isPeakMineMouth(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "caveMouth" && propAt(tx, ty).peakMine))) {
+      goEnterMountainMine();
+      return;
+    }
+    if (currentScene === "peak" && (isPeakCave(tx, ty) || (propAt(tx, ty) && ((propAt(tx, ty).kind === "caveMouth" && !propAt(tx, ty).peakMine) || propAt(tx, ty).kind === "peakSign")))) {
       goPeakCave();
       return;
     }
@@ -24577,13 +24867,16 @@ if (currentScene === "ocean") goExitOcean();
       return;
     }
     if (hitProp && hitProp.kind === "caveMouth") {
-      if (currentScene === "peak") goPeakCave();
+      if (currentScene === "peak" && hitProp.peakMine) goEnterMountainMine();
+      else if (currentScene === "peak") goPeakCave();
       else if (currentScene === "ocean") goEnterIslandCave();
       else if (currentScene === "islandCave") goExitIslandCave();
+      else if (currentScene === "mountainMine") goExitMountainMine();
       else goClimbShaft(true);
       return;
     }
     if (hitProp && hitProp.kind === "caveStairs") {
+      if (currentScene === "mountainMine" || (hitProp.dir === "out" && currentScene === "mountainMine")) { goExitMountainMine(); return; }
       if (currentScene === "islandCave" || hitProp.dir === "out") { goExitIslandCave(); return; }
       if (currentScene === "mine") goMinePeakStairs();
       else goClimbShaft(hitProp.dir === "up");
@@ -25331,6 +25624,12 @@ if (currentScene === "ocean") goExitOcean();
       CLIMB_ROWS: CLIMB_ROWS,
       peakLand: peakLand,
       peakCaveAt: peakCaveAt,
+      peakMineMouthAt: peakMineMouthAt,
+      mountainMineOut: mountainMineOut,
+      isPeakMineMouth: isPeakMineMouth,
+      isMountainMineExit: isMountainMineExit,
+      enterMountainMine: enterMountainMine,
+      exitMountainMine: exitMountainMine,
       isPeakFarmExit: isPeakFarmExit,
       exitPeakToFarm: exitPeakToFarm,
       peakRocksAt: peakRocksAt,
@@ -25505,7 +25804,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hj", BUILD);
+      ok("BUILD", BUILD === "20260905hl", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -27570,6 +27869,27 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("islandCaveExitLandOffIn", walkable(ocLand.tx, ocLand.ty) && (ocLand.ty - islandCaveIn.ty) >= 2 && !isIslandCaveEntrance(ocLand.tx, ocLand.ty), ocLand.tx + "," + ocLand.ty);
       var ocN = nudgeRestoreOffGate(islandCaveIn.tx, islandCaveIn.ty, "down");
       ok("islandCaveInNudge", !!(ocN && ocN.tx === islandCaveIn.tx && ocN.ty === islandCaveIn.ty + 2), ocN && (ocN.tx + "," + ocN.ty));
+      /* 20260905hl: mountain mine summit mouth + OUT landing */
+      found.peakRocksCleared = true;
+      applyScene("peak");
+      var _mmHas = false, _mmi;
+      for (_mmi = 0; _mmi < PROPS.length; _mmi++) {
+        if (PROPS[_mmi] && PROPS[_mmi].kind === "caveMouth" && PROPS[_mmi].peakMine) { _mmHas = true; break; }
+      }
+      ok("peakMineMouthProp", _mmHas && isPeakMineMouth(peakMineMouthAt.tx, peakMineMouthAt.ty), "mouth");
+      enterMountainMine();
+      var mmLand = { tx: mountainMineOut.tx, ty: mountainMineOut.ty - 2 };
+      ok("mountainMineEnterLand", currentScene === "mountainMine" && walkable(mmLand.tx, mmLand.ty) && (mountainMineOut.ty - mmLand.ty) >= 2, mmLand.tx + "," + mmLand.ty);
+      var _mtCrystal = 0, _mtCart = 0, _mtChest = 0;
+      for (_mmi = 0; _mmi < PROPS.length; _mmi++) {
+        if (!PROPS[_mmi]) continue;
+        if (PROPS[_mmi].mt && (PROPS[_mmi].kind === "gem" || PROPS[_mmi].kind === "sapphire" || PROPS[_mmi].kind === "mooncrystal")) _mtCrystal++;
+        if (PROPS[_mmi].mineCart) _mtCart++;
+        if (PROPS[_mmi].mt && PROPS[_mmi].kind === "chest") _mtChest++;
+      }
+      ok("mountainMineLootProps", _mtCrystal >= 3 && _mtCart >= 2 && _mtChest >= 2, "c=" + _mtCrystal + " cart=" + _mtCart + " chest=" + _mtChest);
+      exitMountainMine();
+      ok("mountainMineExitPeak", currentScene === "peak" && player.ty >= peakMineMouthAt.ty + 2, player.tx + "," + player.ty);
       applyScene("peak");
       var pk = nudgeRestoreOffGate(18, 25, "up");
       ok("peakCaveNudge", !!(pk && pk.tx === peakLand.tx && pk.ty === peakLand.ty), pk && (pk.tx + "," + pk.ty));
