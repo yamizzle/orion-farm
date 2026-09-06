@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ci";
+  var BUILD = "20260905cj";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14610,15 +14610,14 @@
   }
 
   function spawnMineDrop(mon) {
+    /* 20260905cj: every kill drops something so loot flash always shows */
     var roll = Math.random();
     var deep = mineFloor >= 4;
     var shift = Math.min(0.10, (mineFloor - 1) * 0.018);
-    var tNothing = 0.22 - shift; /* 20260905ci: fewer empty kills so loot flash shows */
-    if (tNothing < 0.08) tNothing = 0.08;
-    var tJunk = tNothing + 0.45;
-    var tUseful = tJunk + 0.22;
+    var tJunk = 0.52 - shift;
+    if (tJunk < 0.40) tJunk = 0.40;
+    var tUseful = tJunk + 0.30;
     var j, u, v, goldAmt;
-    if (roll < tNothing) return false;
     if (roll < tJunk) {
       j = Math.random();
       if (j < 0.34) spawnKillLoot("pebble", mon, 1);
@@ -14650,21 +14649,20 @@
   }
 
   function spawnOutdoorDrop(mon) {
+    /* 20260905cj: always a pebble/mushroom/coin so outdoor kills flash too */
     var roll = Math.random();
-    if (roll < 0.18) return false; /* 20260905ci: fewer empty outdoor kills */
-    if (roll < 0.58) spawnKillLoot("pebble", mon, 1);
-    else if (roll < 0.84) spawnKillLoot("mushroom", mon, 1);
+    if (roll < 0.48) spawnKillLoot("pebble", mon, 1);
+    else if (roll < 0.82) spawnKillLoot("mushroom", mon, 1);
     else spawnKillLoot("gold", mon, 1);
     return true;
   }
 
   function defeatMonster(mon) {
-    var i, dropped;
+    var i;
     mon.hp = 0;
     spawnKillBurst(mon.x, mon.y - 2);
-    if (currentScene === "mine") dropped = spawnMineDrop(mon);
-    else dropped = spawnOutdoorDrop(mon);
-    if (!dropped) showLineNote("POOF!");
+    if (currentScene === "mine") spawnMineDrop(mon);
+    else spawnOutdoorDrop(mon);
     i = monsters.indexOf(mon);
     if (i >= 0) monsters.splice(i, 1);
     if (currentScene === "overworld" || currentScene === "forest") {
@@ -17991,15 +17989,19 @@
     filled = Math.ceil((m.hp / maxHp) * pips);
     if (filled < 0) filled = 0;
     if (filled > pips) filled = pips;
-    gap = 3;
+    gap = 4; /* 20260905cj: bigger HP pips */
     totalW = pips * gap;
     px = Math.round(m.x + sx - totalW / 2);
-    py = Math.round(m.y + bob - 20 * sc - 3);
+    py = Math.round(m.y + bob - 20 * sc - 4);
     for (i = 0; i < pips; i++) {
-      g.fillStyle = i < filled ? "#E84848" : "#3A2A2A";
-      g.fillRect(px + i * gap, py, 2, 2);
-      g.fillStyle = i < filled ? "#FFD0D0" : "#1A1212";
-      g.fillRect(px + i * gap, py, 1, 1);
+      g.fillStyle = "#1A1212";
+      g.fillRect(px + i * gap - 1, py - 1, 4, 4);
+      g.fillStyle = i < filled ? "#E84848" : "#4A3A3A";
+      g.fillRect(px + i * gap, py, 3, 3);
+      if (i < filled) {
+        g.fillStyle = "#FFD0D0";
+        g.fillRect(px + i * gap, py, 1, 1);
+      }
     }
   }
 
@@ -21186,7 +21188,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ci", BUILD);
+      ok("BUILD", BUILD === "20260905cj", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -21212,6 +21214,7 @@ if (currentScene === "ocean") goExitOcean();
         ok("padKillsSlime", !monsters.some(function (x) { return x === slime && x.hp > 0; }) && slime.hp <= 0, "hp=" + slime.hp);
         ok("killBurstOn", killBursts.length > 0, "bursts=" + killBursts.length);
         ok("killFeedbackFns", typeof spawnKillBurst === "function" && typeof spawnKillLoot === "function" && typeof lootDropNote === "function", "");
+        ok("killAlwaysLoot", groundLoot.some(function (L) { return L.scene === "mine" && L.popTall; }) || groundLoot.length > 0, "loot=" + groundLoot.length);
         /* 20260905bz: diagonal left foe dies on pad regardless of facing */
         player.arc = 0;
         player.arcHit = false;
