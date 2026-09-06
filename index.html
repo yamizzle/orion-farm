@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dz";
+  var BUILD = "20260905ea";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14015,7 +14015,8 @@
     return {
       x: x, y: y, w: w, h: h, listY: y + 16, rowH: 12,
       buyX: x + 16, buyY: y + 182, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14,
-      closeX: x + w - 16, closeY: y + 4, closeW: 13, closeH: 12
+      /* 20260905ea: X Y matches craft/Jobs/BAG */
+      closeX: x + w - 16, closeY: y + 2, closeW: 13, closeH: 12
     };
   }
 
@@ -19907,8 +19908,9 @@
     var contentH = ACH.length * rowH;
     var maxScroll = contentH - listH;
     if (maxScroll < 0) maxScroll = 0;
-    var closeW = 16, closeH = 14;
-    var closeX = x + w - closeW - 4;
+    /* 20260905ea: X size/pos match craft/Jobs/BAG/talk (note boards use talk) */
+    var closeW = 13, closeH = 12;
+    var closeX = x + w - 16;
     var closeY = y + 2;
     return {
       x: x, y: y, w: w, h: h,
@@ -19963,7 +19965,7 @@
     woodPanel(g, L.x + 8, L.y - 6, 50, 11);
     drawText(g, "STARS", L.x + 12, L.y - 3, C.parch);
     woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
-    drawText(g, "X", L.closeX + 5, L.closeY + 3, C.parch);
+    drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
     g.save();
     g.beginPath();
     g.rect(L.listX, L.listY, L.listW, L.listH);

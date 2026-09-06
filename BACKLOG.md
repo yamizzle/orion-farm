@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905ea): Stars X matches craft/Jobs/BAG/talk (13x12 corner) + Pip shop X Y aligned; Nim note boards already share talk-panel X from 05dy (verified, no change). Wipe confirm untouched. Never START OVER.
+
 Local 9/5 (BUILD 20260905dz): empty tray slot soft click (quieter screen sparks + short rim; filled slots keep 05dx select juice) + number keys ignored while talk is open so tray cannot swap under dialogue. Never START OVER.
 
 Local 9/5 (BUILD 20260905dy): talk panel X consistency — fat-finger hitPad + soft ui click like craft/Jobs/BAG/chest/shop; OK button same; choice taps/number keys soft click via shared applyDialogueChoice (ride choices still skip bird-land close). Never START OVER.
