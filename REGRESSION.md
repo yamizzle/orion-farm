@@ -93,6 +93,14 @@ Status column: **KEEP** = still required in new builds.
 
 ---
 
+## Boot / Loading
+
+| Invariant | BUILD | Status |
+| --- | --- | --- |
+| Boot **must leave LOADING FARM** — `artDensityOk` miss may soft-reload atlas once; after that **fail soft** and still `scheduleLoop` (never eternal green LOADING). Dense atlas height ≥1200 + rock0.w ≥32; weapon-dock chrome append must not shrink/repack to 1× | 20260905hn | KEEP |
+
+---
+
 ## Clock / Perf / Story
 
 | Invariant | BUILD | Status |
@@ -113,4 +121,4 @@ Do not re-open that wave item-by-item unless a specific interaction goes silent 
 
 ---
 
-*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05hl) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*
+*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05hn) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*

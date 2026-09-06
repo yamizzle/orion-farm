@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hm";
-  var ASSET_REV = "467520";
+  var BUILD = "20260905hn";
+  var ASSET_REV = "464870";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -26064,7 +26064,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hl", BUILD);
+      ok("BUILD", BUILD === "20260905hn", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -28430,11 +28430,19 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
     if (Assets.ready && !artDensityOk()) reloadForArt();
   });
   Assets.load().then(function () {
+    /* 20260905hn: never leave LOADING FARM forever. Density miss may
+       soft-reload once; if still thin after that, fail soft and boot. */
     if (!artDensityOk()) {
-      reloadForArt();
-      return;
+      var already;
+      try { already = sessionStorage.getItem("moondrop-art-reload") === "1"; } catch (err) { already = false; }
+      if (!already) {
+        reloadForArt();
+        return;
+      }
+      try { console.warn("moondrop: artDensityOk failed after reload — booting anyway"); } catch (err2) {}
+    } else {
+      try { sessionStorage.removeItem("moondrop-art-reload"); } catch (err) {}
     }
-    try { sessionStorage.removeItem("moondrop-art-reload"); } catch (err) {}
     if (currentScene === "overworld") buildSolid();
     unstickPlayer();
     scheduleLoop();
