@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cr";
+  var BUILD = "20260905cs";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6771,6 +6771,24 @@
     }
   }
 
+  /* 20260905cs: stone chip spray on pickaxe rocks (farm + peak + mine) */
+  function spawnRockChips(x, y) {
+    var i, ang, cols;
+    cols = ["#E8E0D0", "#9A9488", "#5A5A4E", "#C8C0B0", "#FFF8E8", "#3A3830", "#D4C4A0", "#F3EDE0"];
+    for (i = 0; i < 9; i++) {
+      ang = (i / 9) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: x + (Math.random() * 5 - 2.5),
+        y: y + (Math.random() * 4 - 2),
+        vx: Math.cos(ang) * (0.03 + Math.random() * 0.032),
+        vy: Math.sin(ang) * 0.016 - 0.045 - Math.random() * 0.022,
+        age: 0,
+        life: 360 + Math.random() * 220,
+        col: cols[i % cols.length]
+      });
+    }
+  }
+
   /* 20260905ci: bigger hit/kill spark ring so swings read for kids */
   function spawnHitSparks(x, y, big) {
     var i, ang, n, speed;
@@ -7566,6 +7584,11 @@
     if (isWoodChop(prop)) {
       spawnWoodChips(cx, cy - 4);
       prop.flash = 280;
+    }
+    /* 20260905cs: pickaxe rock spark chips (farm rocks too, not only peak) */
+    if (prop.kind === "rock" || prop.kind === "peakRocks") {
+      spawnRockChips(cx, cy - (prop.kind === "peakRocks" ? 10 : 2));
+      prop.flash = 260;
     }
     if (isHarvestable(prop)) {
       if (prop.kind === "peakRocks" && !toolEquipped("diamondPick")) {
@@ -17910,6 +17933,19 @@
       g.fillRect(x - 2, y - 20, 20, 28);
       g.restore();
     }
+    /* 20260905cs: brief pale smash flash on rocks / peak pile */
+    if (p.flash > 0 && (p.kind === "rock" || p.kind === "peakRocks")) {
+      g.save();
+      g.globalAlpha = Math.min(0.85, 0.3 + 0.55 * (p.flash / 260));
+      g.fillStyle = "#FFFDF8";
+      if (p.kind === "peakRocks") g.fillRect(x - 22, y - 30, 60, 46);
+      else g.fillRect(x - 2, y - 6, 20, 20);
+      g.globalAlpha = Math.min(0.5, 0.16 + 0.36 * (p.flash / 260));
+      g.fillStyle = "#E8E0D0";
+      if (p.kind === "peakRocks") g.fillRect(x - 10, y - 18, 36, 28);
+      else g.fillRect(x + 2, y - 2, 12, 12);
+      g.restore();
+    }
   }
 
   var washScratch = null;
@@ -21548,7 +21584,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cr", BUILD);
+      ok("BUILD", BUILD === "20260905cs", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

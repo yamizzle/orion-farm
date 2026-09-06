@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905cs): pickaxe rock spark chips — farm/mine/peak rocks spray stone chips + pale smash flash on hit (same juice language as axe wood chips). Never START OVER.
+
 Local 9/5 (BUILD 20260905cr): axe tree chop white hit flash + wood chip particles; fishing bite bobber splash bigger + bite flash; bird ride flight fade in/out; Pip shop idle bob + talk ! + once greet `PIP: HI! TAP ME TO SHOP.`. Never START OVER.
 
 Local 9/5 (BUILD 20260905cq): dig mound sparkle twinkle on undug farm/woods mounds + once shovel tip `TAP A DIRT MOUND TO DIG` when shovel selected and mounds remain. Never START OVER.
