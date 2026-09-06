@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ez";
+  var BUILD = "20260905fa";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14706,7 +14706,11 @@
 
   function toolEquipped(id) {
     if (id === "axe") return !!(axeOwned && selectedIs("axe"));
-    if (id === "pick") return !!(pickaxeOwned && selectedIs("pick"));
+    /* 20260905fa: diamond pick counts as a pick for rocks/grubs (peak rocks still need diamondPick). */
+    if (id === "pick") {
+      return !!(pickaxeOwned && selectedIs("pick")) ||
+        !!(diamondPickOwned && selectedIs("diamondPick"));
+    }
     if (id === "diamondPick") return !!(diamondPickOwned && selectedIs("diamondPick"));
     if (id === "shovel") return !!(shovelOwned && selectedIs("shovel"));
     if (id === "pole") return !!(poleOwned && selectedIs("pole"));
@@ -14723,7 +14727,8 @@
       persistSave();
     } else if (prop.kind === "rock" && !toolEquipped("pick") && !pickHintSeen) {
       pickHintSeen = true;
-      showLineNote(pickaxeOwned ? "SELECT THE PICK." : "A PICKAXE WOULD BE FASTER.");
+      /* 20260905fa: diamond-only kids were told A PICKAXE WOULD BE FASTER while holding diamond. */
+      showLineNote((pickaxeOwned || diamondPickOwned) ? "SELECT THE PICK." : "A PICKAXE WOULD BE FASTER.");
       persistSave();
     }
   }
@@ -23374,7 +23379,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ex", BUILD);
+      ok("BUILD", BUILD === "20260905fa", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23568,6 +23573,19 @@ if (currentScene === "ocean") goExitOcean();
       ok("bowShowStrike", !!showStrikeBtn(), "");
       ok("bowShoot", !!tryStrikeAction() && arrows.length === 1, "arrows=" + arrows.length);
       ok("bowArrowFace", !!(arrows[0] && arrows[0].dx === 1 && arrows[0].dy === 0), arrows[0] && (arrows[0].dx + "," + arrows[0].dy));
+
+      /* 20260905fa: selected diamond pick mines rocks like a pick (was bare-hand dmg). */
+      diamondPickOwned = true;
+      pickaxeOwned = false;
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = null;
+      trayCells[0] = { key: "diamondPick", count: 1 };
+      selectedSlot = 0;
+      ok("diamondIsPick", !!toolEquipped("pick") && !!toolEquipped("diamondPick"), "pick=" + toolEquipped("pick"));
+      var _dpRock = { kind: "rock", tx: 12, ty: 12 };
+      ok("diamondRockTool", workToolFor(_dpRock) === "pickaxe", workToolFor(_dpRock));
+      ok("diamondRockDmg", nodeStrikeDmg(_dpRock) === 3, "dmg=" + nodeStrikeDmg(_dpRock));
+      ok("diamondRockDrop", harvestDropFor(_dpRock) === 2, "drop=" + harvestDropFor(_dpRock));
+
 
       /* 20260905bg: only 1 fishing pole forever (tray/bag/chest/held). */
       poleOwned = true;

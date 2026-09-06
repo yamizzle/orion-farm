@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fa): diamond pick mines rocks — selecting the island diamond pick finally chips farm/mine rocks like a pick (faster hits + extra stone + pick swing art); was bare-hand dmg while peak rocks already worked; tip no longer says A PICKAXE WOULD BE FASTER when you already own the diamond. Never START OVER.
+
 Local 9/6 (BUILD 20260905ez): bow strike works — selecting the bow shows the strike pad outdoors and pad/Space/tap-foe finally shoots an arrow (shootArrow existed but was never called; pad always sword-swung / hid when only bow was in the tray). Never START OVER.
 
 Local 9/6 (BUILD 20260905ey): bag-only ore smelt — fireplace now smelts copper/silver/goldore that live only in the BAG grid (Jobs already tip'd SMELT ORE; cook fish already had this fallback; was THE FIRE WANTS ORE with ore in bag). Never START OVER.
