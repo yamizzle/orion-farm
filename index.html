@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ge";
+  var BUILD = "20260905gf";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -15373,6 +15373,23 @@
     return false;
   }
 
+  /* 20260905gf: Space/J/E smash adjacent rock/log/stump/tree (facing-only left
+     side silent; tap already goHarvest'd; facing Space existed via trySmashFacing). */
+  function trySmashAdjacent() {
+    var i, p;
+    if (uiPaused() || faintFx) return false;
+    if (player.swing > 0) return false;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p) continue;
+      if (!(p.kind === "rock" || p.kind === "log" || p.kind === "stump" || isWoodChop(p))) continue;
+      if (!(nearProp(p) || isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty))) continue;
+      beginHit(p);
+      return true;
+    }
+    return false;
+  }
+
   /* 20260905fo: Space/J/E pick facing/underfoot wildflower/townFlower (tap already
      goPickPlant'd; berry-bush Space existed; flower Space was a silent no-op).
      Direct pickPlant (berry-bush style) so leftover swing cannot soft-block. */
@@ -23801,6 +23818,8 @@ if (currentScene === "ocean") goExitOcean();
       if (tryTalkAdjacent()) return;
       if (tryBreakFenceFacing()) return;
       if (trySmashFacing()) return;
+      /* 20260905gf: Space smash adjacent rock/log/tree (facing Space existed; side silent). */
+      if (trySmashAdjacent()) return;
       if (tryDigFacing()) return;
       /* 20260905fm: Space harvest ready crop before plant (tap already picked). */
       if (tryHarvestCropFacing()) return;
@@ -23994,6 +24013,7 @@ if (currentScene === "ocean") goExitOcean();
       breakPlayerPathAt: breakPlayerPathAt,
       playerPathAt: playerPathAt,
       trySmashFacing: trySmashFacing,
+      trySmashAdjacent: trySmashAdjacent,
       pickBerryBush: pickBerryBush,
       pickupCollectible: pickupCollectible,
       isCollectible: isCollectible,
@@ -24269,7 +24289,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ge", BUILD);
+      ok("BUILD", BUILD === "20260905gf", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25378,6 +25398,37 @@ if (currentScene === "ocean") goExitOcean();
         var _lootOk = tryPickupAdjacent();
         var _lootAfter = lootAtTile(_lx, _ly).length;
         ok("spaceLootAdjacent", !!_lootOk && _lootBefore > 0 && _lootAfter === 0, "ok=" + _lootOk + " before=" + _lootBefore + " after=" + _lootAfter);
+      }
+
+      /* 20260905gf: Space smashes adjacent rock (facing away). */
+      applyScene("overworld");
+      closeDialogue();
+      player.swing = 0;
+      player.hitting = null;
+      pickaxeOwned = true;
+      giveTool("pick");
+      selectTool("pick");
+      var _rk = null, _ri;
+      for (_ri = 0; _ri < PROPS.length; _ri++) {
+        if (PROPS[_ri] && PROPS[_ri].kind === "rock") { _rk = PROPS[_ri]; break; }
+      }
+      ok("spaceRockFound", !!_rk, "rock");
+      if (_rk) {
+        var _rkStand = null;
+        if (walkable(_rk.tx, _rk.ty + 1)) _rkStand = { tx: _rk.tx, ty: _rk.ty + 1, face: "down" };
+        else if (walkable(_rk.tx + 1, _rk.ty)) _rkStand = { tx: _rk.tx + 1, ty: _rk.ty, face: "left" };
+        else if (walkable(_rk.tx - 1, _rk.ty)) _rkStand = { tx: _rk.tx - 1, ty: _rk.ty, face: "right" };
+        else if (walkable(_rk.tx, _rk.ty - 1)) _rkStand = { tx: _rk.tx, ty: _rk.ty - 1, face: "up" };
+        ok("spaceRockAdjStand", !!_rkStand, "stand");
+        if (_rkStand) {
+          placePlayer(_rkStand.tx, _rkStand.ty, _rkStand.face);
+          player.swing = 0;
+          player.hitting = null;
+          var _rkHpBefore = (_rk.hp | 0) || harvestHitsFor(_rk);
+          var _rkOk = trySmashAdjacent();
+          var _rkHit = !!(player.hitting && player.hitting.prop === _rk) || (_rk.hp | 0) < _rkHpBefore || PROPS.indexOf(_rk) < 0 || !!_rk.shake;
+          ok("spaceRockAdjacent", !!_rkOk && _rkHit, "ok=" + _rkOk + " hit=" + _rkHit + " swing=" + (player.swing | 0));
+        }
       }
 
       /* 20260905fy: Space enters TREE from forest door (not TREETOP) + climbs UP. */
