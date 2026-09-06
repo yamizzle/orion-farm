@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dv";
+  var BUILD = "20260905dw";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10280,7 +10280,11 @@
     var w = 292, h = 172;
     var x = ((VIEW_W - w) / 2) | 0;
     var y = 12;
-    return { x: x, y: y, w: w, h: h, listY: y + 24, rowH: 20, backX: x + w - 46, backY: y + 6, backW: 36, backH: 12 };
+    /* 20260905dw: X close like Jobs/BAG/Stars (Esc + world-tap already work) */
+    return {
+      x: x, y: y, w: w, h: h, listY: y + 24, rowH: 20,
+      closeX: x + w - 16, closeY: y + 2, closeW: 13, closeH: 12
+    };
   }
 
   function doCraft(rec) {
@@ -10319,7 +10323,8 @@
   function tapCraft(p) {
     var L = craftLayout();
     var i, rec, rowY;
-    if (hitPad(p.x, p.y, L.backX, L.backY, L.backW, L.backH, 6)) {
+    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 6)) {
+      playSfx("ui");
       closeCraft();
       return true;
     }
@@ -10356,8 +10361,9 @@
     fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
     woodPanel(g, L.x + 8, L.y - 6, 92, 11);
     drawText(g, "WORKBENCH", L.x + 12, L.y - 3, C.parch);
-    woodPanel(g, L.backX, L.backY, L.backW, L.backH);
-    drawText(g, "BACK", L.backX + ((L.backW - textWidth("BACK")) / 2) | 0, L.backY + 2, C.parch);
+    /* 20260905dw: X closes craft (same as Esc / Jobs / BAG) */
+    woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
+    drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
     woodLine = bagCount("wood") + " WOOD  " + bagCount("stone") + " STONE  " + bagCount("iron") + " IRON";
     drawText(g, woodLine, L.x + 10, L.y + 12, C.woodSh);
     for (i = 0; i < CRAFT_RECIPES.length; i++) {
@@ -10869,9 +10875,8 @@
       headY: y + 6,
       listX: listX, listY: listY, listW: listW, listH: listH,
       rowH: rowH, contentH: contentH, maxScroll: maxScroll,
-      backX: x + w - 46,
-      backY: y - 8,
-      backW: 36, backH: 12,
+      /* 20260905dw: X close like craft/Jobs/BAG */
+      closeX: x + w - 16, closeY: y + 2, closeW: 13, closeH: 12,
       putX: x + 8, takeX: x + w - 8 - btnW,
       allY: allY,
       btnW: btnW, btnH: btnH,
@@ -11011,7 +11016,8 @@
 
   function tapChest(p, e) {
     var L = chestLayout();
-    if (hitPad(p.x, p.y, L.backX, L.backY, L.backW, L.backH, 6)) {
+    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 6)) {
+      playSfx("ui");
       closeChest();
       return true;
     }
@@ -11058,8 +11064,8 @@
     fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
     woodPanel(g, L.x + 8, L.y - 8, 72, 11);
     drawText(g, "CHEST", L.x + 16, L.y - 5, C.parch);
-    woodPanel(g, L.backX, L.backY, L.backW, L.backH);
-    drawText(g, "BACK", L.backX + ((L.backW - textWidth("BACK")) / 2) | 0, L.backY + 2, C.parch);
+    woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
+    drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
     drawText(g, "BAG", L.bagX, L.headY, C.woodSh);
     drawText(g, "BOX", L.chestX - textWidth("BOX"), L.headY, C.woodSh);
     g.save();
@@ -13991,7 +13997,12 @@
     var x = ((VIEW_W - w) / 2) | 0;
     var y = 3;
     /* rowH 12 → ~13 visible rows so pole/leash sit on the first screen. */
-    return { x: x, y: y, w: w, h: h, listY: y + 16, rowH: 12, buyX: x + 16, buyY: y + 182, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14 };
+    /* 20260905dw: corner X close (BYE kept) */
+    return {
+      x: x, y: y, w: w, h: h, listY: y + 16, rowH: 12,
+      buyX: x + 16, buyY: y + 182, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14,
+      closeX: x + w - 16, closeY: y + 4, closeW: 13, closeH: 12
+    };
   }
 
   function buyShopItem(item) {
@@ -14182,7 +14193,13 @@
   function tapShop(p) {
     var L = shopLayout();
     var i, rowY;
+    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 6)) {
+      playSfx("ui");
+      closeShop();
+      return true;
+    }
     if (hitPad(p.x, p.y, L.byeX, L.buyY, L.byeW, L.btnH, 6)) {
+      playSfx("ui");
       closeShop();
       return true;
     }
@@ -14249,6 +14266,9 @@
     fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
     woodPanel(g, L.x + 8, L.y - 6, 78, 11);
     drawText(g, "PIP'S SHOP", L.x + 12, L.y - 3, C.parch);
+    /* 20260905dw: X closes shop (BYE still there too) */
+    woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
+    drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
     goldLine = (gold | 0) + "G";
     drawText(g, goldLine, L.x + L.w - textWidth(goldLine) - 10, L.y + 8, C.gold);
     start = shopListStart();
