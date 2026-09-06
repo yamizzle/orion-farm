@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hj";
+  var BUILD = "20260905hk";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -2717,6 +2717,8 @@
     if (name === "tree") treeFloor = floor ? clampTreeFloor(floor) : clampTreeFloor(treeFloor);
     if (name === "caveclimb") climbFloor = floor ? clampClimbFloor(floor) : clampClimbFloor(climbFloor);
     currentScene = name;
+    /* 20260905hk: drop graded-prop bitmaps when leaving a map (free + avoid stale). */
+    if (typeof clearGradedPropCache === "function") clearGradedPropCache();
     key = sceneCacheKey(name);
     cached = sceneCache[key];
     if (name === "house" && cached && (cached.houseTier | 0) !== (houseTier | 0)) {
@@ -12990,10 +12992,43 @@
     return out;
   }
 
+  /* 20260905hk: quantized grade token so prop grade caches survive many frames
+     while dayMs ticks; evening color math itself is unchanged. */
+  var frameGradeCacheKey = "";
+  var frameNightLights = null;
+
+  function gradeCacheToken(gr) {
+    if (!gr) return "";
+    return [
+      (gr.sat * 50 + 0.5) | 0,
+      (gr.hueA * 50 + 0.5) | 0,
+      (gr.colorA * 50 + 0.5) | 0,
+      (gr.ovA * 50 + 0.5) | 0,
+      (gr.mulA * 50 + 0.5) | 0,
+      (gr.mulR / 3) | 0, (gr.mulG / 3) | 0, (gr.mulB / 3) | 0,
+      (gr.hueR / 3) | 0, (gr.hueG / 3) | 0, (gr.hueB / 3) | 0,
+      (gr.colorR / 3) | 0, (gr.colorG / 3) | 0, (gr.colorB / 3) | 0,
+      (gr.ovR / 3) | 0, (gr.ovG / 3) | 0, (gr.ovB / 3) | 0
+    ].join(".");
+  }
+
   function beginFrameGrade() {
     frameDayT = dayMs / DAY_MS;
     frameGradeRaw = sampleKeys(GRADE_KEYS, frameDayT);
     frameOutdoorGrade = liftOutdoorNightGrade(frameGradeRaw, frameDayT);
+    frameGradeCacheKey = usesOutdoorGrade() ? gradeCacheToken(frameOutdoorGrade) : "";
+    frameNightLights = null;
+  }
+
+  function ensureFrameNightLights() {
+    var list;
+    if (frameNightLights) return frameNightLights;
+    list = [];
+    forEachNightLight(function (wx, wy, scale) {
+      list.push(wx, wy, scale);
+    });
+    frameNightLights = list;
+    return list;
   }
 
   function currentGrade() {
@@ -21302,21 +21337,83 @@
     }
   }
 
+  /* 20260905hk: cache BUFFER-dense graded props when art+grade token unchanged.
+     Keeps 05hg crisp density; skips rebuild of trees/houses every frame. */
   var washScratch = null;
+  var washScratchCtx = null;
+  var propScratch = null;
+  var propMask = null;
+  var propScratchCtx = null;
+  var propMaskCtx = null;
+  var gradedPropCache = Object.create(null);
+  var gradedPropCacheLRU = [];
+  var GRADED_PROP_CACHE_MAX = 80;
+
+  function clearGradedPropCache() {
+    gradedPropCache = Object.create(null);
+    gradedPropCacheLRU = [];
+  }
+
+  function gradedPropAnimates(p) {
+    var k;
+    if (!p) return true;
+    if (p.shake > 0 || p.flash > 0) return true;
+    k = p.kind;
+    /* Live juice / bobbing labels — keep per-frame grade so sparkles still move. */
+    if (k === "fountain" || k === "well" || k === "pond" || k === "fireplace" ||
+        k === "lantern" || k === "lampPost" || k === "mailbox" || k === "table" ||
+        k === "hole" || k === "moonAltar" || k === "diamondPickaxe" || k === "statue" ||
+        k === "brokenBridge" || k === "rowboat" || k === "shopSign" ||
+        k === "townHouseC" || k === "townHouseD" || k === "bird" || k === "giantBird" ||
+        k === "ladder" || k === "caveStairs" || k === "caveMouth" || k === "doormat" ||
+        k === "bed" || k === "chair" || k === "stove" || k === "houseChest") return true;
+    if ((k === "copper" || k === "silver" || k === "goldore" || k === "iron" ||
+         k === "mushroom" || k === "moonshard" || k === "gem" || k === "sapphire" ||
+         k === "mooncrystal") && !p.deco) return true;
+    return false;
+  }
+
+  function gradedPropStateKey(p) {
+    var hs = 0;
+    var extra = "";
+    if (gradedPropAnimates(p)) return null;
+    if (p.kind === "tree" || p.kind === "rock" || p.kind === "pine" || p.kind === "oak" ||
+        p.kind === "birch" || p.kind === "palm") hs = nodeHurtStage(p);
+    else if (p.kind === "peakRocks") hs = peakRockBreakStage(p);
+    if (p.kind === "berryBush") extra += p.picked ? "P" : "F";
+    if (p.kind === "nest") extra += p.eggs ? ("e" + p.eggs) : "0";
+    if (p.kind === "fixedBridge") extra += "fix";
+    return p.kind + "@" + p.tx + "," + p.ty + ":" + hs + extra;
+  }
+
+  function touchGradedPropCache(key) {
+    var i = gradedPropCacheLRU.indexOf(key);
+    if (i >= 0) gradedPropCacheLRU.splice(i, 1);
+    gradedPropCacheLRU.push(key);
+    while (gradedPropCacheLRU.length > GRADED_PROP_CACHE_MAX) {
+      delete gradedPropCache[gradedPropCacheLRU.shift()];
+    }
+  }
+
 
   function lanternPopAt(wx, wy) {
     var amt = lanternGlowAmt();
     var best = 0;
+    var lights, i, lx, ly, scale, rad, dx, dy, t;
     if (amt < 0.02) return 0;
-    forEachNightLight(function (lx, ly, scale) {
-      var rad = 46 * amt * scale;
-      var dx, dy, t;
-      if (rad < 1) return;
+    /* 20260905hk: one light list per frame — was re-walking PROPS per washed actor. */
+    lights = ensureFrameNightLights();
+    for (i = 0; i < lights.length; i += 3) {
+      lx = lights[i];
+      ly = lights[i + 1];
+      scale = lights[i + 2];
+      rad = 46 * amt * scale;
+      if (rad < 1) continue;
       dx = wx - lx;
       dy = wy - ly;
       t = 1 - Math.sqrt(dx * dx + dy * dy) / rad;
       if (t > best) best = t;
-    });
+    }
     if (best < 0) best = 0;
     if (best > 1) best = 1;
     return best;
@@ -21444,42 +21541,55 @@
     g.restore();
   }
 
+  /* 20260905hk: skip off-camera critters/NPCs (player always kept). Pad covers car/folk tall art. */
+  function actorRoughlyOnScreen(ax, ay, pad) {
+    if (pad == null) pad = 64;
+    return ax > camX - pad && ax < camX + VIEW_W + pad &&
+      ay > camY - pad && ay < camY + VIEW_H + pad;
+  }
+
   function collectCreatureActors() {
     var list = [];
-    var i;
+    var i, m, f, c, pb;
     list.push({ foot: playerDrawFoot(), kind: "player" });
     if (currentScene === "mine" || currentScene === "overworld" || currentScene === "forest") {
       for (i = 0; i < monsters.length; i++) {
-        if (monsters[i].hp > 0) list.push({ foot: monsters[i].y, kind: "mon", m: monsters[i] });
+        m = monsters[i];
+        if (m.hp > 0 && actorRoughlyOnScreen(m.x, m.y, 48)) list.push({ foot: m.y, kind: "mon", m: m });
       }
     }
-    if (dogSceneOk()) {
+    if (dogSceneOk() && actorRoughlyOnScreen(dog.x, dog.y, 48)) {
       list.push({ foot: dog.y, kind: "dog" });
     }
     if (currentScene === "overworld") {
-      list.push({ foot: chicken.y, kind: "chicken" });
-      list.push({ foot: ball.y, kind: "ball" });
+      if (actorRoughlyOnScreen(chicken.x, chicken.y, 40)) list.push({ foot: chicken.y, kind: "chicken" });
+      if (actorRoughlyOnScreen(ball.x, ball.y, 32)) list.push({ foot: ball.y, kind: "ball" });
       for (i = 0; i < playBalls.length; i++) {
-        list.push({ foot: playBalls[i].y, kind: "playBall", pb: playBalls[i] });
+        pb = playBalls[i];
+        if (actorRoughlyOnScreen(pb.x, pb.y, 32)) list.push({ foot: pb.y, kind: "playBall", pb: pb });
       }
-      list.push({ foot: npc.y, kind: "npc" });
-      list.push({ foot: car.y, kind: "car" });
+      if (actorRoughlyOnScreen(npc.x, npc.y, 48)) list.push({ foot: npc.y, kind: "npc" });
+      if (actorRoughlyOnScreen(car.x, car.y, 80)) list.push({ foot: car.y, kind: "car" });
       for (i = 0; i < townFolk.length; i++) {
-        list.push({ foot: townFolk[i].y, kind: "folk", f: townFolk[i] });
+        f = townFolk[i];
+        if (actorRoughlyOnScreen(f.x, f.y, 48)) list.push({ foot: f.y, kind: "folk", f: f });
       }
-      if (nimVisible()) list.push({ foot: nim.y, kind: "nim" });
+      if (nimVisible() && actorRoughlyOnScreen(nim.x, nim.y, 48)) list.push({ foot: nim.y, kind: "nim" });
     }
     if (currentScene === "forest") {
       for (i = 0; i < forestFolk.length; i++) {
-        list.push({ foot: forestFolk[i].y, kind: "folk", f: forestFolk[i] });
+        f = forestFolk[i];
+        if (actorRoughlyOnScreen(f.x, f.y, 48)) list.push({ foot: f.y, kind: "folk", f: f });
       }
       for (i = 0; i < forestCritters.length; i++) {
-        list.push({ foot: forestCritters[i].y, kind: "critter", c: forestCritters[i] });
+        c = forestCritters[i];
+        if (actorRoughlyOnScreen(c.x, c.y, 40)) list.push({ foot: c.y, kind: "critter", c: c });
       }
     }
     if (currentScene === "ocean") {
       for (i = 0; i < oceanCritters.length; i++) {
-        list.push({ foot: oceanCritters[i].y, kind: "critter", c: oceanCritters[i] });
+        c = oceanCritters[i];
+        if (actorRoughlyOnScreen(c.x, c.y, 40)) list.push({ foot: c.y, kind: "critter", c: c });
       }
     }
     if (currentScene === "shop") {
@@ -21527,67 +21637,78 @@
   function drawWashedActor(g, item) {
     var pos = actorWorldPos(item);
     var wash = creatureNightWash(pos.x, pos.y);
-    var sc, sg, ox, oy, ix, iy, img, px, i, inv, mr, mgv, mb, lw, lh;
+    var sc, sg, mk, mg, ox, oy, ix, iy, lw, lh, fr, fg, fb, dbw, dbh;
     if (!wash) {
       paintActor(g, item);
       return;
     }
     lw = 96;
     lh = 96;
-    /* 20260905hg: scratch must be BUFFER-dense — 1× scratch made 2× actors soft */
-    if (!washScratch || washScratch.width !== lw * BUFFER || washScratch.height !== lh * BUFFER) {
+    dbw = lw * BUFFER;
+    dbh = lh * BUFFER;
+    /* 20260905hg: scratch must be BUFFER-dense — 1x scratch made 2x actors soft */
+    /* 20260905hk: multiply+mask instead of per-pixel ImageData walk (same tint math). */
+    if (!washScratch || washScratch.width !== dbw || washScratch.height !== dbh) {
       washScratch = document.createElement("canvas");
-      washScratch.width = lw * BUFFER;
-      washScratch.height = lh * BUFFER;
+      washScratch.width = dbw;
+      washScratch.height = dbh;
+      washScratchCtx = null;
     }
+    if (!washScratchCtx) washScratchCtx = washScratch.getContext("2d");
     sc = washScratch;
-    sg = sc.getContext("2d");
+    sg = washScratchCtx;
+    ensurePropScratch(lw, lh);
+    mk = propMask;
+    mg = propMaskCtx;
     ox = 48;
     oy = 68;
     ix = Math.round(pos.x);
     iy = Math.round(pos.y);
+    /* factor = 1 - a + a*(c/255) => full-opacity multiply by rgb(factor*255) */
+    fr = ((1 - wash.a + wash.a * (wash.r / 255)) * 255 + 0.5) | 0;
+    fg = ((1 - wash.a + wash.a * (wash.g / 255)) * 255 + 0.5) | 0;
+    fb = ((1 - wash.a + wash.a * (wash.b / 255)) * 255 + 0.5) | 0;
     sg.setTransform(1, 0, 0, 1, 0, 0);
     sg.globalCompositeOperation = "source-over";
     sg.globalAlpha = 1;
     sg.imageSmoothingEnabled = false;
-    sg.clearRect(0, 0, sc.width, sc.height);
+    sg.clearRect(0, 0, dbw, dbh);
+    mg.setTransform(1, 0, 0, 1, 0, 0);
+    mg.globalCompositeOperation = "source-over";
+    mg.globalAlpha = 1;
+    mg.imageSmoothingEnabled = false;
+    mg.clearRect(0, 0, mk.width, mk.height);
     sg.setTransform(BUFFER, 0, 0, BUFFER, 0, 0);
     sg.imageSmoothingEnabled = false;
     sg.save();
     sg.translate(ox - ix, oy - iy);
     paintActor(sg, item);
     sg.restore();
+    mg.drawImage(sc, 0, 0, dbw, dbh, 0, 0, dbw, dbh);
+    sg.setTransform(BUFFER, 0, 0, BUFFER, 0, 0);
+    sg.globalCompositeOperation = "multiply";
+    sg.globalAlpha = 1;
+    sg.fillStyle = "rgb(" + fr + "," + fg + "," + fb + ")";
+    sg.fillRect(0, 0, lw, lh);
     sg.setTransform(1, 0, 0, 1, 0, 0);
-    img = sg.getImageData(0, 0, sc.width, sc.height);
-    px = img.data;
-    inv = 1 - wash.a;
-    mr = wash.r / 255;
-    mgv = wash.g / 255;
-    mb = wash.b / 255;
-    for (i = 0; i < px.length; i += 4) {
-      if (!px[i + 3]) continue;
-      px[i] = (px[i] * inv + px[i] * mr * wash.a + 0.5) | 0;
-      px[i + 1] = (px[i + 1] * inv + px[i + 1] * mgv * wash.a + 0.5) | 0;
-      px[i + 2] = (px[i + 2] * inv + px[i + 2] * mb * wash.a + 0.5) | 0;
-    }
-    sg.putImageData(img, 0, 0);
+    sg.globalCompositeOperation = "destination-in";
+    sg.imageSmoothingEnabled = false;
+    sg.drawImage(mk, 0, 0, dbw, dbh, 0, 0, dbw, dbh);
+    sg.globalCompositeOperation = "source-over";
     g.imageSmoothingEnabled = false;
-    g.drawImage(sc, 0, 0, lw * BUFFER, lh * BUFFER, ix - ox, iy - oy, lw, lh);
+    g.drawImage(sc, 0, 0, dbw, dbh, ix - ox, iy - oy, lw, lh);
   }
 
   function sortActors(list) {
     list.sort(function (a, b) { return a.foot - b.foot; });
   }
 
-  var propScratch = null;
-  var propMask = null;
-
   function ensurePropScratch(w, h) {
     var size = 160;
     var dw;
     if (w > size) size = w;
     if (h > size) size = h;
-    /* 20260905hg: device pixels = logical × BUFFER so graded props keep 2× density */
+    /* 20260905hg: device pixels = logical x BUFFER so graded props keep 2x density */
     dw = size * BUFFER;
     if (!propScratch || propScratch.width < dw || propScratch.height < dw) {
       propScratch = document.createElement("canvas");
@@ -21596,31 +21717,24 @@
       propMask = document.createElement("canvas");
       propMask.width = dw;
       propMask.height = dw;
+      propScratchCtx = propScratch.getContext("2d");
+      propMaskCtx = propMask.getContext("2d");
     }
+    if (!propScratchCtx) propScratchCtx = propScratch.getContext("2d");
+    if (!propMaskCtx) propMaskCtx = propMask.getContext("2d");
     return propScratch;
   }
 
-  function drawGradedProp(g, item) {
-    var p = item.p;
-    var b, pad, bx, by, bw, bh, sc, sg, mk, mg, dbw, dbh;
-    if (!outdoorGradeActive()) {
-      paintActor(g, item);
-      return;
-    }
-    b = propBounds(p);
-    pad = 24;
-    bx = b.x - pad;
-    by = b.y - pad;
-    bw = b.w + pad * 2;
-    bh = b.h + pad * 2;
+  function rebuildGradedPropScratch(p, bx, by, bw, bh) {
+    var sc, sg, mk, mg, dbw, dbh;
     sc = ensurePropScratch(bw, bh);
-    sg = sc.getContext("2d");
+    sg = propScratchCtx;
     mk = propMask;
-    mg = mk.getContext("2d");
+    mg = propMaskCtx;
     dbw = bw * BUFFER;
     dbh = bh * BUFFER;
     /* Clear in device space; paint in BUFFER logical space so drawAtlas2x stays dense.
-       Pre-05hg scratch was 1× so evening/morning grade upscaled soft 1× world vs crisp tray. */
+       Pre-05hg scratch was 1x so evening/morning grade upscaled soft 1x world vs crisp tray. */
     sg.setTransform(1, 0, 0, 1, 0, 0);
     mg.setTransform(1, 0, 0, 1, 0, 0);
     sg.imageSmoothingEnabled = false;
@@ -21644,8 +21758,71 @@
     sg.imageSmoothingEnabled = false;
     sg.drawImage(mk, 0, 0, dbw, dbh, 0, 0, dbw, dbh);
     sg.globalCompositeOperation = "source-over";
-    g.imageSmoothingEnabled = false;
-    g.drawImage(sc, 0, 0, dbw, dbh, bx, by, bw, bh);
+    return { sc: sc, dbw: dbw, dbh: dbh };
+  }
+
+  function storeGradedPropCache(key, sc, dbw, dbh, bx, by, bw, bh) {
+    var entry = gradedPropCache[key];
+    var c, cg;
+    if (!entry || entry.c.width !== dbw || entry.c.height !== dbh) {
+      c = document.createElement("canvas");
+      c.width = dbw;
+      c.height = dbh;
+      entry = { c: c, bx: bx, by: by, bw: bw, bh: bh, dbw: dbw, dbh: dbh };
+      gradedPropCache[key] = entry;
+    } else {
+      entry.bx = bx;
+      entry.by = by;
+      entry.bw = bw;
+      entry.bh = bh;
+      c = entry.c;
+    }
+    cg = c.getContext("2d");
+    cg.setTransform(1, 0, 0, 1, 0, 0);
+    cg.globalCompositeOperation = "source-over";
+    cg.globalAlpha = 1;
+    cg.imageSmoothingEnabled = false;
+    cg.clearRect(0, 0, dbw, dbh);
+    cg.drawImage(sc, 0, 0, dbw, dbh, 0, 0, dbw, dbh);
+    touchGradedPropCache(key);
+    return entry;
+  }
+
+  function drawGradedProp(g, item) {
+    var p = item.p;
+    var b, pad, bx, by, bw, bh, built, entry, state, key;
+    if (!outdoorGradeActive()) {
+      paintActor(g, item);
+      return;
+    }
+    b = propBounds(p);
+    pad = 24;
+    bx = b.x - pad;
+    by = b.y - pad;
+    bw = b.w + pad * 2;
+    bh = b.h + pad * 2;
+    state = gradedPropStateKey(p);
+    if (state && frameGradeCacheKey) {
+      key = frameGradeCacheKey + "|" + state;
+      entry = gradedPropCache[key];
+      if (entry) {
+        g.imageSmoothingEnabled = false;
+        g.drawImage(entry.c, 0, 0, entry.dbw, entry.dbh, entry.bx, entry.by, entry.bw, entry.bh);
+        paintForestPropRim(g, p);
+        touchGradedPropCache(key);
+        return;
+      }
+    }
+    built = rebuildGradedPropScratch(p, bx, by, bw, bh);
+    if (state && frameGradeCacheKey) {
+      key = frameGradeCacheKey + "|" + state;
+      entry = storeGradedPropCache(key, built.sc, built.dbw, built.dbh, bx, by, bw, bh);
+      g.imageSmoothingEnabled = false;
+      g.drawImage(entry.c, 0, 0, entry.dbw, entry.dbh, entry.bx, entry.by, entry.bw, entry.bh);
+    } else {
+      g.imageSmoothingEnabled = false;
+      g.drawImage(built.sc, 0, 0, built.dbw, built.dbh, bx, by, bw, bh);
+    }
     paintForestPropRim(g, p);
   }
 
@@ -23082,9 +23259,9 @@
       if (c.age >= c.life || c.y > VIEW_H + 6) festConfetti.splice(i, 1);
     }
     if (!nightOn) return;
-    if (festConfetti.length >= 26) return;
-    /* gentle spawn — a few bits at a time, not a blizzard */
-    if (Math.random() > 0.11) return;
+    if (festConfetti.length >= 22) return;
+    /* 20260905hk: slightly calmer spawn cap — same look, less per-frame dots */
+    if (Math.random() > 0.09) return;
     cols = ["#FFE9A0", "#FFB4C8", "#A8D8FF", "#E8C8FF", "#FFF8E0", "#FFD0A0", "#C8F0E0", "#FFFDF4", "#F0C060"];
     festConfetti.push({
       x: Math.random() * VIEW_W,
