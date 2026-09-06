@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gl";
+  var BUILD = "20260905gm";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -15646,6 +15646,28 @@
     return false;
   }
 
+  /* 20260905gm: Space/J/E place path/lamp/crate/fence on adjacent tile (facing Space existed;
+     adjacent-not-facing was a silent no-op like pre-05gl dig/plant; tap already tryPlaceOrWalk'd). */
+  function tryBuildAdjacent() {
+    var spots, i, s;
+    if (uiPaused() || faintFx) return false;
+    if (!(placingFenceNow() || selectedIs("stone") || placingLampNow() || placingCrateNow())) return false;
+    spots = [
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      s = spots[i];
+      if (tryBuild(s.tx, s.ty)) {
+        faceToward(player, s.tx, s.ty);
+        return true;
+      }
+    }
+    return false;
+  }
+
   function farmPondAt(tx, ty) {
     var i, p;
     if (currentScene !== "overworld") return null;
@@ -23979,6 +24001,8 @@ if (currentScene === "ocean") goExitOcean();
       /* 20260905gl: Space plant flower adjacent (facing Space existed; side silent). */
       if (tryPlantFlowerAdjacent()) return;
       if (tryBuildFacing()) return;
+      /* 20260905gm: Space place path/lamp/crate/fence adjacent (facing Space existed; side silent). */
+      if (tryBuildAdjacent()) return;
       if (tryFishFacing()) return;
       if (tryTakeSwordAdjacent()) return;
       /* 20260905fg: always tryStrike — canSwordSwing gated Space so 05ff pole/hat/axe
@@ -24119,6 +24143,7 @@ if (currentScene === "ocean") goExitOcean();
       tryPlantFlowerFacing: tryPlantFlowerFacing,
       tryPlantFlowerAdjacent: tryPlantFlowerAdjacent,
       tryBuildFacing: tryBuildFacing,
+      tryBuildAdjacent: tryBuildAdjacent,
       buildMine4Ground: buildMine4Ground,
       buildMine5Ground: buildMine5Ground,
       buildMine6Ground: buildMine6Ground,
@@ -24447,7 +24472,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gl", BUILD);
+      ok("BUILD", BUILD === "20260905gm", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24827,6 +24852,7 @@ if (currentScene === "ocean") goExitOcean();
         ok("chestTakePinnedSelected", selectedIs("snack") && bagCount("snack") >= 1 && (chest.snack | 0) === 1,
           "sel=" + selectedKey() + " bag=" + bagCount("snack") + " chest=" + (chest.snack | 0));
       }
+
 
       /* 20260905fl: Space plant seed / flower / path place facing. */
       applyScene("overworld");
@@ -25773,6 +25799,33 @@ if (currentScene === "ocean") goExitOcean();
         var _nFlow0 = bagCount("flower");
         var _faOk = tryPlantFlowerAdjacent();
         ok("spacePlantFlowerAdjacent", !!_faOk && bagCount("flower") === _nFlow0 - 1, "ok=" + _faOk + " n=" + bagCount("flower") + " face=" + _faStand.face);
+      }
+
+      /* 20260905gm: Space places path on adjacent tile facing away. */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "stone", count: 3 };
+      selectedSlot = 0;
+      var _bax = -1, _bay = -1, _bax2, _bay2, _baStand;
+      for (_bay2 = 10; _bay2 < 40 && _bax < 0; _bay2++) {
+        for (_bax2 = 10; _bax2 < 40; _bax2++) {
+          if (!canBuildOn(_bax2, _bay2)) continue;
+          if (_bax2 + 1 < COLS && walkable(_bax2 + 1, _bay2)) {
+            _bax = _bax2; _bay = _bay2; _baStand = { tx: _bax2 + 1, ty: _bay2, face: "right" }; break;
+          }
+          if (_bax2 - 1 >= 0 && walkable(_bax2 - 1, _bay2)) {
+            _bax = _bax2; _bay = _bay2; _baStand = { tx: _bax2 - 1, ty: _bay2, face: "left" }; break;
+          }
+        }
+      }
+      ok("spaceBuildAdjFound", _bax >= 0, "tile");
+      if (_bax >= 0) {
+        placePlayer(_baStand.tx, _baStand.ty, _baStand.face);
+        var _stone0 = bagCount("stone");
+        var _baOk = tryBuildAdjacent();
+        ok("spaceBuildAdjacent", !!_baOk && bagCount("stone") === _stone0 - PATH_COST && cell(_bax, _bay) === "c",
+          "ok=" + _baOk + " stone=" + bagCount("stone") + " cell=" + cell(_bax, _bay) + " face=" + _baStand.face);
       }
 
       /* 20260905fy: Space enters TREE from forest door (not TREETOP) + climbs UP. */
