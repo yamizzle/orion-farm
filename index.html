@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dw";
+  var BUILD = "20260905dx";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -461,6 +461,9 @@
   var bagHeldFrom = null;
   var bagPointer = { x: 160, y: 96 };
   var slotShake = 0;
+  /* 20260905dx: brief hotbar select pop (number keys + tray tap) */
+  var hotbarPop = 0;
+  var hotbarPopSlot = -1;
   var SLOT_SEED = 0;
   var SLOT_WOOD = 1;
   var SLOT_STONE = 2;
@@ -7195,6 +7198,16 @@
     spawnOwnedWarnSparks();
   }
 
+  /* 20260905dx: clearer not-enough-gold toast (need + have) + warn sparks */
+  function notifyNotEnoughGold(need) {
+    var n = need | 0;
+    var have = gold | 0;
+    shopMsg = "NEED MORE GOLD! NEED " + n + "G (HAVE " + have + "G).";
+    shopMsgT = 1600;
+    playSfx("toast");
+    spawnOwnedWarnSparks();
+  }
+
   /* 20260905dh: tiny SAVE toast — sleep day rollover only (not every persist) */
   function showSaveToast() {
     saveToast = { age: 0, life: 1100 };
@@ -8687,6 +8700,7 @@
   function updateFx(dt) {
     var i, p, sp, kb;
     if (slotShake > 0) slotShake -= dt;
+    if (hotbarPop > 0) hotbarPop -= dt;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
       if (p.shake > 0) p.shake -= dt;
@@ -14084,8 +14098,7 @@
         return;
       }
       if (gold < shopItemPrice(item)) {
-        shopMsg = "NOT ENOUGH GOLD";
-        shopMsgT = 1400;
+        notifyNotEnoughGold(shopItemPrice(item));
         return;
       }
       gold -= shopItemPrice(item);
@@ -14102,8 +14115,7 @@
       return;
     }
     if (gold < shopItemPrice(item)) {
-      shopMsg = "NOT ENOUGH GOLD";
-      shopMsgT = 1400;
+      notifyNotEnoughGold(shopItemPrice(item));
       return;
     }
     gold -= shopItemPrice(item);
@@ -20176,10 +20188,40 @@
     if (!selectedIs("wood")) setFenceBuildOn(false);
   }
 
+  /* 20260905dx: soft sparkle + slot pop when picking a hotbar slot */
+  function spawnHotbarSelectSparks(n) {
+    var T, sx, sy, i, ang, cols;
+    T = trayLayout();
+    sx = T.bx + n * (T.slot + T.gap) + ((T.slot / 2) | 0);
+    sy = T.by + ((T.slot / 2) | 0) - 2;
+    cols = ["#FFF8E0", "#FFE9A0", "#E8C888", "#FFFDF4", "#F0D090", "#FFD0A0", "#E8B060", "#FFF0C8"];
+    for (i = 0; i < 7; i++) {
+      ang = (i / 7) * Math.PI * 2 + Math.random() * 0.4;
+      sparks.push({
+        x: sx + (Math.random() * 5 - 2.5),
+        y: sy + (Math.random() * 4 - 2),
+        vx: Math.cos(ang) * (0.018 + Math.random() * 0.02),
+        vy: Math.sin(ang) * 0.01 - 0.036 - Math.random() * 0.018,
+        age: 0,
+        life: 320 + Math.random() * 180,
+        col: cols[i % cols.length],
+        screen: true
+      });
+    }
+  }
+
+  function notifyHotbarSelect(n) {
+    if (n < 0 || n >= TRAY_CELLS) return;
+    hotbarPop = 260;
+    hotbarPopSlot = n;
+    spawnHotbarSelectSparks(n);
+  }
+
   function selectHotbarIndex(n) {
     if (n < 0 || n >= TRAY_CELLS) return false;
     pickHotbarSlot(n);
     playSfx("ui");
+    notifyHotbarSelect(n);
     return true;
   }
 
@@ -20263,7 +20305,7 @@
   }
 
   function drawOneBagCell(g, rec, sx, sy, slot, sel, trayish, heldHere) {
-    var count, label, shakeX;
+    var count, label, shakeX, iconY;
     shakeX = 0;
     if (slotShake > 0 && rec && (rec.key === "wood" || rec.key === "stone") && sel) {
       shakeX = ((tick / 40) | 0) % 2 ? 1 : -1;
@@ -20275,6 +20317,13 @@
     if (sel) {
       fill(g, sx, sy, slot, 1, C.parch);
       fill(g, sx, sy, 1, slot, C.parch);
+    }
+    /* 20260905dx: number-key / tap select pop — bright rim */
+    if (trayish && hotbarPop > 0 && hotbarPopSlot === selectedSlot && sel) {
+      fill(g, sx, sy, slot, 1, "#FFF8E0");
+      fill(g, sx, sy + slot - 1, slot, 1, "#FFF8E0");
+      fill(g, sx, sy, 1, slot, "#FFF8E0");
+      fill(g, sx + slot - 1, sy, 1, slot, "#FFF8E0");
     }
     if (trayish) {
       fill(g, sx, sy, slot, 1, C.flower);
@@ -20291,7 +20340,10 @@
       return;
     }
     if (rec && rec.key) {
-      drawBagKey(g, rec.key, sx + 1, sy + 1);
+      /* 20260905dx: tiny icon lift while pop is alive */
+      iconY = sy + 1;
+      if (trayish && hotbarPop > 0 && hotbarPopSlot === selectedSlot && sel) iconY -= 1;
+      drawBagKey(g, rec.key, sx + 1, iconY);
       if (!isToolKey(rec.key)) {
         label = String(rec.count | 0);
         drawSlotCount(g, label, sx, sy, slot);
@@ -21292,6 +21344,7 @@
         }
         pickHotbarSlot(idx);
         playSfx("ui");
+        notifyHotbarSelect(idx);
         key = selectedKey();
         if (key === "snack") eatSnack();
         if (key === "apple") eatApple();

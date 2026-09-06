@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905dx): clearer Pip not-enough-gold toast `NEED MORE GOLD! NEED NG (HAVE MG).` + warn sparks/toast SFX; hotbar number-key + tray-tap select juice (soft screen sparks + bright rim + tiny icon lift) — keys already had ui click, now visible pop too. Never START OVER.
+
 Local 9/5 (BUILD 20260905dw): craft panel X close (was BACK-only) + chest X close + Pip shop corner X (BYE kept) + soft ui click on those closes — matches Jobs/BAG/Stars. Never START OVER.
 
 Local 9/5 (BUILD 20260905dv): clearer OWNED toast when buying a duplicate pole/leash/seeds (`OWNED! YOU ALREADY HAVE A POLE.` etc) + soft warm warn sparks at BUY; pole shop price shows OWNED (was 0G); craft duplicate tools `OWNED! ALREADY MADE.` + warn sparks; leash bag-full msg matches chest tip. Never START OVER.
