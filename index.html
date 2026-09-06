@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bv";
+  var BUILD = "20260905bw";
   var ASSET_REV = "452632";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -16551,6 +16551,69 @@
     return foot;
   }
 
+  /* 20260905bw: dense Imagine canopy can fully erase Orion (hair-only) while he
+     is correctly Y-sorted north of the trunk. Keep foot sort cozy (south=front,
+     north=behind leaves) — never a global +64 — and peek only the head/shoulders
+     band above canopies that actually painted after him. Mid-map hide stays. */
+  function isCanopyTreeKind(kind) {
+    return kind === "tree" || kind === "pine" || kind === "oak" || kind === "birch" ||
+      kind === "palm" || kind === "giantTree";
+  }
+
+  function canopyHidesPlayerHead() {
+    var i, p, b, tf, drawFoot;
+    var hx0, hx1, hy0, hy1;
+    if (currentScene !== "overworld" && currentScene !== "forest") return false;
+    if (birdRideFx) return false;
+    if (faintFx && faintFx.stage === "out") return false;
+    drawFoot = playerDrawFoot();
+    hx0 = player.x - 7;
+    hx1 = player.x + 7;
+    hy0 = player.y - 32;
+    hy1 = player.y - 18;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || p.hidden || !isCanopyTreeKind(p.kind)) continue;
+      tf = propFoot(p);
+      if (tf <= drawFoot) continue; /* tree behind or equal — already under Orion */
+      b = propBounds(p);
+      if (hx1 <= b.x + 2 || hx0 >= b.x + b.w - 2) continue;
+      if (hy1 <= b.y + 2 || hy0 >= b.y + b.h - 10) continue;
+      return true;
+    }
+    return false;
+  }
+
+  function drawPlayerCanopyPeek(g) {
+    var bob, sx, sy, amp, dur, left, top, peekH;
+    if (!canopyHidesPlayerHead()) return;
+    if (iFrames > 0 && ((tick / 80) | 0) % 2 === 0) return;
+    bob = (player.moving && player.frame) ? -1 : 0;
+    sx = 0;
+    sy = 0;
+    if (player.arc > 0 || player.swing > 0) {
+      dur = player.arc > 0 ? SWING_MS : 220;
+      left = player.arc > 0 ? player.arc : player.swing;
+      amp = Math.round(Math.sin((1 - left / dur) * Math.PI) * 3);
+      if (player.face === "left") sx = -amp;
+      else if (player.face === "right") sx = amp;
+      else if (player.face === "up") sy = -amp;
+      else sy = amp;
+      bob -= 1;
+    }
+    top = Math.round(player.y - 32 + bob + sy);
+    peekH = 14; /* head + shoulders only */
+    g.save();
+    g.beginPath();
+    g.rect(Math.round(player.x - 10 + sx), top, 20, peekH);
+    g.clip();
+    Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
+    if (hatOn) {
+      drawUiIcon(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy));
+    }
+    g.restore();
+  }
+
   function collectCreatureActors() {
     var list = [];
     var i;
@@ -16788,6 +16851,8 @@
         paintActor(g, item);
       }
     }
+    /* 20260905bw: after Y-sort paint, peek head/shoulders if dense canopy fully hid him */
+    drawPlayerCanopyPeek(g);
   }
 
   function drawMonster(g, m) {
@@ -19878,7 +19943,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bu", BUILD);
+      ok("BUILD", BUILD === "20260905bw", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
