@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905dz): empty tray slot soft click (quieter screen sparks + short rim; filled slots keep 05dx select juice) + number keys ignored while talk is open so tray cannot swap under dialogue. Never START OVER.
+
 Local 9/5 (BUILD 20260905dy): talk panel X consistency — fat-finger hitPad + soft ui click like craft/Jobs/BAG/chest/shop; OK button same; choice taps/number keys soft click via shared applyDialogueChoice (ride choices still skip bird-land close). Never START OVER.
 
 Local 9/5 (BUILD 20260905dx): clearer Pip not-enough-gold toast `NEED MORE GOLD! NEED NG (HAVE MG).` + warn sparks/toast SFX; hotbar number-key + tray-tap select juice (soft screen sparks + bright rim + tiny icon lift) — keys already had ui click, now visible pop too. Never START OVER.

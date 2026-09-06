@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dy";
+  var BUILD = "20260905dz";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -20230,6 +20230,28 @@
     }
   }
 
+  /* 20260905dz: quieter soft click when tapping / keying an empty tray slot */
+  function spawnEmptyTrayClickSparks(n) {
+    var T, sx, sy, i, ang, cols;
+    T = trayLayout();
+    sx = T.bx + n * (T.slot + T.gap) + ((T.slot / 2) | 0);
+    sy = T.by + ((T.slot / 2) | 0) - 2;
+    cols = ["#FFF8E0", "#E8E0D0", "#C8D8E8", "#FFE9A0", "#FFFDF4", "#D0D8E0"];
+    for (i = 0; i < 5; i++) {
+      ang = (i / 5) * Math.PI * 2 + Math.random() * 0.45;
+      sparks.push({
+        x: sx + (Math.random() * 4 - 2),
+        y: sy + (Math.random() * 3 - 1.5),
+        vx: Math.cos(ang) * (0.014 + Math.random() * 0.016),
+        vy: Math.sin(ang) * 0.008 - 0.028 - Math.random() * 0.014,
+        age: 0,
+        life: 240 + Math.random() * 140,
+        col: cols[i % cols.length],
+        screen: true
+      });
+    }
+  }
+
   function notifyHotbarSelect(n) {
     if (n < 0 || n >= TRAY_CELLS) return;
     hotbarPop = 260;
@@ -20237,11 +20259,19 @@
     spawnHotbarSelectSparks(n);
   }
 
+  function notifyEmptyTrayClick(n) {
+    if (n < 0 || n >= TRAY_CELLS) return;
+    hotbarPop = 140;
+    hotbarPopSlot = n;
+    spawnEmptyTrayClickSparks(n);
+  }
+
   function selectHotbarIndex(n) {
     if (n < 0 || n >= TRAY_CELLS) return false;
     pickHotbarSlot(n);
     playSfx("ui");
-    notifyHotbarSelect(n);
+    if (trayCells[n]) notifyHotbarSelect(n);
+    else notifyEmptyTrayClick(n);
     return true;
   }
 
@@ -21364,7 +21394,9 @@
         }
         pickHotbarSlot(idx);
         playSfx("ui");
-        notifyHotbarSelect(idx);
+        /* 20260905dz: empty slots get soft click; filled keep select juice */
+        if (trayCells[idx]) notifyHotbarSelect(idx);
+        else notifyEmptyTrayClick(idx);
         key = selectedKey();
         if (key === "snack") eatSnack();
         if (key === "apple") eatApple();
@@ -22432,6 +22464,11 @@ if (currentScene === "ocean") goExitOcean();
       e.preventDefault();
       playSfx("ui");
       applyDialogueChoice(dialogue.choices[slotN - 1] && dialogue.choices[slotN - 1].id);
+      return;
+    }
+    /* 20260905dz: don't swap tray under an open talk panel */
+    if (dialogue && slotN >= 1 && slotN <= 10) {
+      e.preventDefault();
       return;
     }
     if (slotN >= 1 && slotN <= 10) {
