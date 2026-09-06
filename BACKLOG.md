@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905dp): nest bird give-wood wood/gold sparkle + craft SFX (BIRD STAR toast juice kept); soft trailing wake splash droplets while rowing the boat on water. Never START OVER.
+
 Local 9/5 (BUILD 20260905do): peak PATH CLEAR celebration — big gold/stone summit sparkle burst + toast SFX when the last summit rocks smash open (was plain sparks). Never START OVER.
 
 Local 9/5 (BUILD 20260905dn): golden swordfish catch special gold/white sparkle burst on reel-in; diamond pick pickup icy cyan/white diamond sparkle (was plain sparks). Never START OVER.
