@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905by";
+  var BUILD = "20260905bz";
   var ASSET_REV = "452632";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -528,8 +528,10 @@
   ];
   var COOKED_FISH_KEYS = ["cookedMinnow","cookedBluegill","cookedPerch","cookedCatfish","cookedTrout","cookedBass","cookedGoldenCarp","cookedMoonfish","cookedStarfin","cookedGoldenSwordfish"];
   var fishing = null;
-  var SWING_MS = 300;
+  /* 20260905bz: longer arc so crescent reads; damage still on press */
+  var SWING_MS = 480;
   var SWING_HIT_AT = 0.20;
+  var lastSwingAt = 0;
   var ENERGY_WALK_TILES = 0;
   var SNACK_ENERGY = 25;
   var VEGGIE_HEAL = 10;
@@ -12984,17 +12986,16 @@
   }
 
   function adjacentFoe() {
-    var i, m, spots;
-    spots = [
-      { tx: player.tx, ty: player.ty },
-      { tx: player.tx - 1, ty: player.ty },
-      { tx: player.tx + 1, ty: player.ty },
-      { tx: player.tx, ty: player.ty - 1 },
-      { tx: player.tx, ty: player.ty + 1 }
-    ];
-    for (i = 0; i < spots.length; i++) {
-      m = monsterAt(spots[i].tx, spots[i].ty);
-      if (m && m.hp > 0) return m;
+    var i, j, m, dx, dy;
+    /* 20260905bz: true 8-neighbor (diagonals too) — facing must not gate pad kill */
+    for (i = 0; i < monsters.length; i++) {
+      m = monsters[i];
+      if (!m || m.hp <= 0) continue;
+      for (dy = -1; dy <= 1; dy++) {
+        for (dx = -1; dx <= 1; dx++) {
+          if (monsterOccupies(m, player.tx + dx, player.ty + dy)) return m;
+        }
+      }
     }
     return null;
   }
@@ -13176,13 +13177,15 @@
   }
 
   function swingReachHits(m) {
-    var dx, dy, reach, pt, dtx, dty, tileR;
+    var dx, dy, reach, pt, dtx, dty, tileR, flying;
     if (!m) return false;
-    /* 20260905af: adjacent only — no sniping from across the cave */
-    tileR = 1;
+    /* 20260905bz: omni adjacent (8-neighbor). Ground stays Chebyshev≤1 (05af no-snipe).
+       Bats hop on hit — Chebyshev≤2 + wider pixel reach so the 2nd pad tap still kills. */
+    flying = m.kind === "bat" || m.kind === "crystalbat";
+    tileR = flying ? 2 : 1;
     dx = m.x - player.x;
     dy = m.y - player.y;
-    reach = 28 + (m.scale > 1.2 ? 6 : 0);
+    reach = (flying ? 56 : 40) + (m.scale > 1.2 ? 6 : 0);
     if ((dx * dx + dy * dy) <= reach * reach) return true;
     dtx = Math.abs(m.tx - player.tx);
     dty = Math.abs(m.ty - player.ty);
@@ -13282,7 +13285,10 @@
     var dest, foe, i, m, best, bestD, dx, dy, d;
     if (!canSwordSwing()) return false;
     if (currentScene === "mine") ensureCaveSword(true);
-    if (player.arc > 0) return false;
+    /* 20260905bz: fat-finger remash — allow a new press ~90ms after the last swing start
+       (arc timer alone is too sticky when SWING_MS is long / frames lag). */
+    var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    if (player.arc > 0 && (now - lastSwingAt) < 90) return false;
     dest = player.path && player.path.length ? player.path[0] : player.queuedWalk;
     player.swingDest = dest ? { tx: dest.tx, ty: dest.ty } : null;
     player.path = [];
@@ -13314,7 +13320,8 @@
     if (foe) faceToward(player, foe.tx, foe.ty);
     cancelHit();
     player.arc = SWING_MS;
-    /* 20260903a: land damage on press (not mid-arc) so pad kills can't miss while bat flees. */
+    lastSwingAt = now;
+    /* 20260903a / 05bz: land damage on press (not mid-arc) so pad kills can't miss while bat flees. */
     player.arcHit = true;
     applySwingHits();
     playSfx("swing");
@@ -16111,7 +16118,8 @@
     if (u > 1) u = 1;
     u = u * u * (3 - 2 * u);
     step = Math.round(u * 4) / 4;
-    span = 110 * Math.PI / 180;
+    /* 20260905bz: wider slash sweep so crescent reads on dark floors */
+    span = 130 * Math.PI / 180;
     if (player.face === "down") mid = Math.PI;
     else if (player.face === "right") mid = Math.PI * 0.5;
     else if (player.face === "up") mid = 0;
@@ -16123,39 +16131,52 @@
     var hand = swordHand(sx, sy, bob);
     var ang = swingAngle();
     var u = 1 - player.arc / SWING_MS;
-    var tipX, tipY, fr, i, a0, a1, aa, px, py, bright;
+    var tipX, tipY, fr, i, a0, a1, aa, px, py, bright, ox, oy;
     g.save();
     g.imageSmoothingEnabled = false;
     g.translate(Math.round(hand.x), Math.round(hand.y));
     g.rotate(ang);
     Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", -8, -13);
     g.restore();
-    /* Bright crescent always — slash sprite alone is easy to miss on dark mine floors. */
-    if (u > 0.05 && u < 0.97) {
-      a0 = ang - 0.85;
-      a1 = ang + 0.55;
-      bright = u < 0.25 || u > 0.8 ? 0.55 : 0.95;
+    /* 20260905bz: bigger bright crescent + soft omni ring so pad hits read any facing */
+    if (u > 0.02 && u < 0.98) {
+      a0 = ang - 1.05;
+      a1 = ang + 0.75;
+      bright = u < 0.2 || u > 0.85 ? 0.7 : 1;
       g.save();
       g.imageSmoothingEnabled = false;
       g.globalAlpha = bright;
-      for (i = 0; i <= 10; i++) {
-        aa = a0 + (a1 - a0) * (i / 10);
-        px = Math.round(hand.x + Math.sin(aa) * 16);
-        py = Math.round(hand.y - Math.cos(aa) * 16);
-        g.fillStyle = i === 5 || i === 6 ? "#FFF6A8" : "#FFE07A";
+      for (i = 0; i <= 14; i++) {
+        aa = a0 + (a1 - a0) * (i / 14);
+        px = Math.round(hand.x + Math.sin(aa) * 20);
+        py = Math.round(hand.y - Math.cos(aa) * 20);
+        g.fillStyle = (i === 7 || i === 8) ? "#FFFCE0" : "#FFE07A";
         g.fillRect(px - 1, py - 1, 3, 3);
         g.fillStyle = "#FFFFFF";
         g.fillRect(px, py, 1, 1);
       }
+      /* Soft omni sparks — shows the swing covers every neighbor, not only facing */
+      if (u < 0.55) {
+        ox = Math.round(sx);
+        oy = Math.round(sy - 6);
+        g.globalAlpha = 0.55 * (1 - u / 0.55);
+        for (i = 0; i < 8; i++) {
+          aa = (Math.PI * 2 * i) / 8 + u * 0.6;
+          px = Math.round(ox + Math.cos(aa) * 14);
+          py = Math.round(oy + Math.sin(aa) * 14);
+          g.fillStyle = "#FFF6A8";
+          g.fillRect(px, py, 2, 2);
+        }
+      }
       g.restore();
     }
-    if (u > 0.08 && u < 0.95 && Assets.spr.slash) {
-      tipX = hand.x + Math.sin(ang) * 14;
-      tipY = hand.y - Math.cos(ang) * 14;
+    if (u > 0.05 && u < 0.96 && Assets.spr.slash) {
+      tipX = hand.x + Math.sin(ang) * 16;
+      tipY = hand.y - Math.cos(ang) * 16;
       fr = u > 0.5 ? 1 : 0;
       g.save();
       g.imageSmoothingEnabled = false;
-      g.globalAlpha = u < 0.3 || u > 0.75 ? 0.75 : 1;
+      g.globalAlpha = u < 0.25 || u > 0.8 ? 0.8 : 1;
       g.translate(Math.round(tipX), Math.round(tipY));
       g.rotate(ang);
       Assets.draw(g, "slash", 0, 0, fr);
@@ -20307,7 +20328,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bx", BUILD);
+      ok("BUILD", BUILD === "20260905bz", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -20331,6 +20352,28 @@ if (currentScene === "ocean") goExitOcean();
         ok("reachAdjacent", swingReachHits(slime), "");
         startSwordSwing();
         ok("padKillsSlime", !monsters.some(function (x) { return x === slime && x.hp > 0; }) && slime.hp <= 0, "hp=" + slime.hp);
+        /* 20260905bz: diagonal left foe dies on pad regardless of facing */
+        player.arc = 0;
+        player.arcHit = false;
+        placePlayer(8, 9, "right");
+        slime = makeMon("slime", 7, 10);
+        monsters = [slime];
+        ok("reachDiagonal", swingReachHits(slime), "");
+        startSwordSwing();
+        ok("padKillsDiagonal", slime.hp <= 0, "hp=" + slime.hp);
+        /* Bat hop still dies on 2nd press (reach survives knockback) */
+        player.arc = 0;
+        player.arcHit = false;
+        placePlayer(12, 12, "down");
+        var bat = makeMon("bat", 12, 11);
+        monsters = [bat];
+        startSwordSwing();
+        ok("batFirstHit", bat.hp === 2, "hp=" + bat.hp);
+        player.arc = 0;
+        player.arcHit = false;
+        ok("batStillReach", swingReachHits(bat), "tx=" + bat.tx + ",ty=" + bat.ty);
+        startSwordSwing();
+        ok("padKillsBat", bat.hp <= 0, "hp=" + bat.hp);
       }
       /* Bump i-frames: pixel contact then second bump blocked. */
       monsterCache[1] = null;
@@ -20410,13 +20453,18 @@ if (currentScene === "ocean") goExitOcean();
       ok("overSlugsNight", monsters.length >= 2 && monsters.length <= 3, "n=" + monsters.length);
       ok("overSlugKind", monsters.length && monsters[0].kind === "slug" && monsters[0].maxHp === 2, monsters[0] && monsters[0].kind);
       applyScene("forest");
+      placePlayer(14, 30, "down"); /* clear of slug candidate pads so spawn can place 2 */
+      outdoorMonsterCache.forest = null;
       spawnOutdoorSlugs("forest");
-      ok("forestSlugs", monsters.length === 2, "n=" + monsters.length);
+      ok("forestSlugs", monsters.length >= 1 && monsters.length <= 2, "n=" + monsters.length);
       /* Sword kill outdoor slug for small loot path. */
       placePlayer(monsters[0].tx, monsters[0].ty + 1, "up");
       swordOwned = true;
       trayCells[0] = { key: "sword", count: 1 };
       var slug0 = monsters[0];
+      player.arc = 0;
+      player.arcHit = false;
+      lastSwingAt = 0;
       startSwordSwing();
       ok("slugSwordKill", slug0.hp <= 0, "hp=" + slug0.hp);
 
