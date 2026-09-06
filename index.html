@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gn";
+  var BUILD = "20260905go";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -15989,6 +15989,45 @@
     return beginFishing(spot, t.tx, t.ty);
   }
 
+  /* 20260905go: Space/J/E cast adjacent pond/ocean water (facing Space existed via
+     tryFishFacing; adjacent-not-facing was a silent no-op like pre-05gm dig/place;
+     tap already tryFishTap'd). */
+  function tryFishAdjacent() {
+    var spots, i, s, pond, spot;
+    if (uiPaused() || faintFx) return false;
+    if (onBoat) return false;
+    if (fishing) return true;
+    spots = [
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      s = spots[i];
+      pond = farmPondAt(s.tx, s.ty);
+      spot = oceanFishSpotAt(s.tx, s.ty);
+      if (!pond && !spot) continue;
+      if (!poleOwned) {
+        showLineNote("BUY A FISHING POLE AT PIP'S.");
+        return true;
+      }
+      if (!toolEquipped("pole")) {
+        showLineNote("SELECT THE FISHING POLE.");
+        return true;
+      }
+      if (pond) {
+        if (!standingByPond(pond)) continue;
+        faceToward(player, s.tx, s.ty);
+        return beginFishing(pond, s.tx, s.ty);
+      }
+      if (!standingByOceanWater(s.tx, s.ty)) continue;
+      faceToward(player, s.tx, s.ty);
+      return beginFishing(spot, s.tx, s.ty);
+    }
+    return false;
+  }
+
   function tryFishTap(pond, tx, ty) {
     var dest, path;
     if (!pond) return false;
@@ -16017,7 +16056,11 @@
         if (!dest) return true;
         highlight = { tx: dest.tx, ty: dest.ty };
         path = findPath(player.tx, player.ty, dest.tx, dest.ty);
-        if (path.length) startWalk(player, path, 3.5);
+        if (path.length) {
+          /* 20260905go: walk-to-bank then cast (was walk-only silent arrive). */
+          pending = { type: "fish", pond: pond, tx: tx, ty: ty };
+          startWalk(player, path, 3.5);
+        }
         return true;
       }
       return beginFishing(pond, tx, ty);
@@ -16027,7 +16070,11 @@
       if (!dest) return true;
       highlight = { tx: dest.tx, ty: dest.ty };
       path = findPath(player.tx, player.ty, dest.tx, dest.ty);
-      if (path.length) startWalk(player, path, 3.5);
+      if (path.length) {
+        /* 20260905go: walk-to-bank then cast (was walk-only silent arrive). */
+        pending = { type: "fish", pond: pond, tx: tx, ty: ty };
+        startWalk(player, path, 3.5);
+      }
       return true;
     }
     return beginFishing(pond, tx, ty);
@@ -18343,6 +18390,15 @@
       if (isNear(player.tx, player.ty, act.tx, act.ty) || (player.tx === act.tx && player.ty === act.ty)) {
         faceToward(player, act.tx, act.ty);
         tryDig(act.tx, act.ty);
+      }
+    } else if (act.type === "fish") {
+      /* 20260905go: arrive at bank after tap-walk, then cast. */
+      if (act.pond && toolEquipped("pole") && !fishing) {
+        if (act.pond.kind === "ocean") {
+          if (standingByOceanWater(act.tx, act.ty)) beginFishing(act.pond, act.tx, act.ty);
+        } else if (standingByPond(act.pond)) {
+          beginFishing(act.pond, act.tx, act.ty);
+        }
       }
     } else if (act.type === "sleep") {
       beginSleep();
@@ -24013,6 +24069,8 @@ if (currentScene === "ocean") goExitOcean();
       /* 20260905gm: Space place path/lamp/crate/fence adjacent (facing Space existed; side silent). */
       if (tryBuildAdjacent()) return;
       if (tryFishFacing()) return;
+      /* 20260905go: Space cast adjacent pond/ocean (facing Space existed; side silent). */
+      if (tryFishAdjacent()) return;
       if (tryTakeSwordAdjacent()) return;
       /* 20260905fg: always tryStrike — canSwordSwing gated Space so 05ff pole/hat/axe
          foe fallback never ran from the real key (autotest called tryStrikeAction directly). */
@@ -24467,6 +24525,7 @@ if (currentScene === "ocean") goExitOcean();
       beginFishing: beginFishing,
       cancelFishing: cancelFishing,
       tryFishFacing: tryFishFacing,
+      tryFishAdjacent: tryFishAdjacent,
       tryFishTap: tryFishTap,
       farmPondAt: farmPondAt,
       standingByPond: standingByPond,
@@ -24481,7 +24540,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gn", BUILD);
+      ok("BUILD", BUILD === "20260905go", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25848,6 +25907,36 @@ if (currentScene === "ocean") goExitOcean();
         var _baOk = tryBuildAdjacent();
         ok("spaceBuildAdjacent", !!_baOk && bagCount("stone") === _stone0 - PATH_COST && cell(_bax, _bay) === "c",
           "ok=" + _baOk + " stone=" + bagCount("stone") + " cell=" + cell(_bax, _bay) + " face=" + _baStand.face);
+      }
+
+      /* 20260905go: Space casts adjacent pond facing away. */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      poleOwned = true;
+      trayCells[0] = { key: "pole", count: 1 };
+      selectedSlot = 0;
+      cancelFishing();
+      var _fp = null, _fi, _fStand = null, _fx, _fy;
+      for (_fi = 0; _fi < PROPS.length; _fi++) {
+        if (PROPS[_fi] && PROPS[_fi].kind === "pond") { _fp = PROPS[_fi]; break; }
+      }
+      if (_fp) {
+        for (_fy = _fp.ty; _fy < _fp.ty + 2 && !_fStand; _fy++) {
+          for (_fx = _fp.tx; _fx < _fp.tx + 2 && !_fStand; _fx++) {
+            if (walkable(_fx + 1, _fy)) _fStand = { tx: _fx + 1, ty: _fy, face: "right", wx: _fx, wy: _fy };
+            else if (walkable(_fx - 1, _fy)) _fStand = { tx: _fx - 1, ty: _fy, face: "left", wx: _fx, wy: _fy };
+            else if (walkable(_fx, _fy + 1)) _fStand = { tx: _fx, ty: _fy + 1, face: "down", wx: _fx, wy: _fy };
+            else if (walkable(_fx, _fy - 1)) _fStand = { tx: _fx, ty: _fy - 1, face: "up", wx: _fx, wy: _fy };
+          }
+        }
+      }
+      ok("spaceFishAdjFound", !!(_fp && _fStand), _fp ? (_fp.tx + "," + _fp.ty) : "none");
+      if (_fp && _fStand) {
+        placePlayer(_fStand.tx, _fStand.ty, _fStand.face);
+        var _fishOk = tryFishAdjacent();
+        ok("spaceFishAdjacent", !!_fishOk && !!fishing, "ok=" + _fishOk + " fishing=" + !!fishing + " face=" + _fStand.face);
+        cancelFishing();
       }
 
       /* 20260905fy: Space enters TREE from forest door (not TREETOP) + climbs UP. */
