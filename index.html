@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gf";
+  var BUILD = "20260905gg";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -15432,6 +15432,38 @@
     return false;
   }
 
+  /* 20260905gg: Space/J/E pick adjacent wildflower/townFlower (facing-only left
+     side silent; tap already goPickPlant'd; facing Space existed via tryPickPlantFacing). */
+  function tryPickPlantAdjacent() {
+    var i, p;
+    if (uiPaused() || faintFx) return false;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || !isPickablePlant(p)) continue;
+      if (!(isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty))) continue;
+      faceToward(player, p.tx, p.ty);
+      pickPlant(p);
+      return true;
+    }
+    return false;
+  }
+
+  /* 20260905gg: Space/J/E cut adjacent tallGrass/weed (facing-only left side silent;
+     tap already goCutGrass'd; facing Space existed via tryCutGrassFacing). */
+  function tryCutGrassAdjacent() {
+    var i, p;
+    if (uiPaused() || faintFx) return false;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || !isSliceable(p)) continue;
+      if (!(isNear(player.tx, player.ty, p.tx, p.ty) || (player.tx === p.tx && player.ty === p.ty))) continue;
+      faceToward(player, p.tx, p.ty);
+      sliceGrass(p);
+      return true;
+    }
+    return false;
+  }
+
   function tryDigFacing() {
     var t;
     if (uiPaused() || faintFx) return false;
@@ -23803,8 +23835,12 @@ if (currentScene === "ocean") goExitOcean();
       if (tryPickupAdjacent()) return;
       /* 20260905fo: Space pick flower before smash/talk so facing wildflower is not a no-op. */
       if (tryPickPlantFacing()) return;
+      /* 20260905gg: Space pick adjacent flower (facing Space existed; side silent). */
+      if (tryPickPlantAdjacent()) return;
       /* 20260905fp: Space cut tall grass / weed (tap already goCutGrass'd). */
       if (tryCutGrassFacing()) return;
+      /* 20260905gg: Space cut adjacent grass/weed (facing Space existed; side silent). */
+      if (tryCutGrassAdjacent()) return;
       if (tryOpenChestAdjacent()) return;
       /* 20260905fq: Space open mailbox (tap already goMail'd). */
       if (tryMailAdjacent()) return;
@@ -24014,6 +24050,8 @@ if (currentScene === "ocean") goExitOcean();
       playerPathAt: playerPathAt,
       trySmashFacing: trySmashFacing,
       trySmashAdjacent: trySmashAdjacent,
+      tryPickPlantAdjacent: tryPickPlantAdjacent,
+      tryCutGrassAdjacent: tryCutGrassAdjacent,
       pickBerryBush: pickBerryBush,
       pickupCollectible: pickupCollectible,
       isCollectible: isCollectible,
@@ -24289,7 +24327,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gf", BUILD);
+      ok("BUILD", BUILD === "20260905gg", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -25429,6 +25467,66 @@ if (currentScene === "ocean") goExitOcean();
           var _rkHit = !!(player.hitting && player.hitting.prop === _rk) || (_rk.hp | 0) < _rkHpBefore || PROPS.indexOf(_rk) < 0 || !!_rk.shake;
           ok("spaceRockAdjacent", !!_rkOk && _rkHit, "ok=" + _rkOk + " hit=" + _rkHit + " swing=" + (player.swing | 0));
         }
+      }
+
+      /* 20260905gg: Space picks adjacent flower facing away (facing Space existed). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      player.swing = 0;
+      var _afx = -1, _afy = -1, _afi, _afp, _afStand;
+      for (_afi = 0; _afi < PROPS.length; _afi++) {
+        _afp = PROPS[_afi];
+        if (!_afp || !isPickablePlant(_afp)) continue;
+        if (walkable(_afp.tx + 1, _afp.ty)) { _afx = _afp.tx; _afy = _afp.ty; _afStand = { tx: _afp.tx + 1, ty: _afp.ty, face: "right" }; break; }
+        if (walkable(_afp.tx - 1, _afp.ty)) { _afx = _afp.tx; _afy = _afp.ty; _afStand = { tx: _afp.tx - 1, ty: _afp.ty, face: "left" }; break; }
+        if (walkable(_afp.tx, _afp.ty + 1)) { _afx = _afp.tx; _afy = _afp.ty; _afStand = { tx: _afp.tx, ty: _afp.ty + 1, face: "down" }; break; }
+        if (walkable(_afp.tx, _afp.ty - 1)) { _afx = _afp.tx; _afy = _afp.ty; _afStand = { tx: _afp.tx, ty: _afp.ty - 1, face: "up" }; break; }
+      }
+      if (_afx < 0) {
+        placePlayer(19, 28, "up");
+        PROPS.push({ kind: "wildflower", tx: 19, ty: 29 });
+        _afx = 19; _afy = 29; _afStand = { tx: 19, ty: 28, face: "up" };
+      }
+      ok("spaceFlowerAdjFound", _afx >= 0, "flower");
+      if (_afx >= 0) {
+        placePlayer(_afStand.tx, _afStand.ty, _afStand.face);
+        var _afOk = tryPickPlantAdjacent();
+        var _afStill = false;
+        for (_afi = 0; _afi < PROPS.length; _afi++) {
+          if (PROPS[_afi] && PROPS[_afi].tx === _afx && PROPS[_afi].ty === _afy && isPickablePlant(PROPS[_afi])) { _afStill = true; break; }
+        }
+        ok("spaceFlowerAdjacent", !!_afOk && !_afStill, "ok=" + _afOk + " gone=" + !_afStill + " face=" + _afStand.face);
+      }
+
+      /* 20260905gg: Space cuts adjacent tallGrass facing away. */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      player.swing = 0;
+      var _agx = -1, _agy = -1, _agi, _agp, _agStand;
+      for (_agi = 0; _agi < PROPS.length; _agi++) {
+        _agp = PROPS[_agi];
+        if (!_agp || !isSliceable(_agp)) continue;
+        if (walkable(_agp.tx + 1, _agp.ty)) { _agx = _agp.tx; _agy = _agp.ty; _agStand = { tx: _agp.tx + 1, ty: _agp.ty, face: "right" }; break; }
+        if (walkable(_agp.tx - 1, _agp.ty)) { _agx = _agp.tx; _agy = _agp.ty; _agStand = { tx: _agp.tx - 1, ty: _agp.ty, face: "left" }; break; }
+        if (walkable(_agp.tx, _agp.ty + 1)) { _agx = _agp.tx; _agy = _agp.ty; _agStand = { tx: _agp.tx, ty: _agp.ty + 1, face: "down" }; break; }
+        if (walkable(_agp.tx, _agp.ty - 1)) { _agx = _agp.tx; _agy = _agp.ty; _agStand = { tx: _agp.tx, ty: _agp.ty - 1, face: "up" }; break; }
+      }
+      if (_agx < 0) {
+        placePlayer(23, 28, "up");
+        PROPS.push({ kind: "tallGrass", tx: 23, ty: 29 });
+        _agx = 23; _agy = 29; _agStand = { tx: 23, ty: 28, face: "up" };
+      }
+      ok("spaceGrassAdjFound", _agx >= 0, "grass");
+      if (_agx >= 0) {
+        placePlayer(_agStand.tx, _agStand.ty, _agStand.face);
+        var _agOk = tryCutGrassAdjacent();
+        var _agStill = false;
+        for (_agi = 0; _agi < PROPS.length; _agi++) {
+          if (PROPS[_agi] && PROPS[_agi].tx === _agx && PROPS[_agi].ty === _agy && isSliceable(PROPS[_agi])) { _agStill = true; break; }
+        }
+        ok("spaceGrassAdjacent", !!_agOk && !_agStill, "ok=" + _agOk + " gone=" + !_agStill + " face=" + _agStand.face);
       }
 
       /* 20260905fy: Space enters TREE from forest door (not TREETOP) + climbs UP. */

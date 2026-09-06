@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gg): Space flower/grass adjacent — standing next to a wildflower / town flower or tall grass / weed (facing away), Space / J / E finally picks or cuts it (tap already goPickPlant / goCutGrass'd; facing Space existed via tryPickPlantFacing / tryCutGrassFacing; adjacent-not-facing was a silent no-op like pre-05gf smash). Never START OVER.
+
 Local 9/6 (BUILD 20260905gf): Space rock/log/tree adjacent smash — standing next to a farm rock / log / stump / pine (facing away), Space / J / E finally chips it (tap already goHarvest'd; facing Space existed via trySmashFacing; adjacent-not-facing was a silent no-op like pre-05ge collectible). Never START OVER.
 
 Local 9/6 (BUILD 20260905ge): Space collectible / loot adjacent — standing next to a mushroom / copper / moonshard / diamond pick / toadstool / ground loot pile (facing away), Space / J / E finally picks it (tap already goCollect / goCollectLootAt'd; underfoot/facing Space existed; adjacent-not-facing was a silent no-op like pre-05gc berry). Never START OVER.
