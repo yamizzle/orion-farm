@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hg";
+  var BUILD = "20260905hh";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -13980,24 +13980,24 @@
     /* Door / stoop taps enter the shop even when the truck sprite overlaps. */
     if (shopDoorHit(tx, ty, world)) return false;
     face = car.face || "right";
-    /* 20260905cc: fatter tap for denser 3× car drawn at scale 2 */
-    if (face === "up" || face === "down") return hitSprite(world, car.x, car.y, 96, 120, 48, 108);
-    return hitSprite(world, car.x, car.y, 144, 96, 72, 84);
+    /* 20260905hh: tap matches native 3× frames (sc 1; 05cc sc 2 was house-sized) */
+    if (face === "up" || face === "down") return hitSprite(world, car.x, car.y, 48, 60, 24, 54);
+    return hitSprite(world, car.x, car.y, 72, 48, 36, 42);
   }
 
   function carLampSpots() {
     var face = car.face || "right";
-    /* 20260905cc: lamp offsets for ~2× on-screen car vs 05at */
+    /* 20260905hh: lamp offsets for native-size car (same as 05at on-screen) */
     if (face === "right") {
-      return [{ x: car.x + 40, y: car.y - 24 }, { x: car.x + 40, y: car.y - 16 }];
+      return [{ x: car.x + 20, y: car.y - 12 }, { x: car.x + 20, y: car.y - 8 }];
     }
     if (face === "left") {
-      return [{ x: car.x - 44, y: car.y - 24 }, { x: car.x - 44, y: car.y - 16 }];
+      return [{ x: car.x - 22, y: car.y - 12 }, { x: car.x - 22, y: car.y - 8 }];
     }
     if (face === "up") {
-      return [{ x: car.x - 12, y: car.y - 60 }, { x: car.x + 8, y: car.y - 60 }];
+      return [{ x: car.x - 6, y: car.y - 30 }, { x: car.x + 4, y: car.y - 30 }];
     }
-    return [{ x: car.x - 12, y: car.y - 8 }, { x: car.x + 8, y: car.y - 8 }];
+    return [{ x: car.x - 6, y: car.y - 4 }, { x: car.x + 4, y: car.y - 4 }];
   }
 
 
@@ -20531,14 +20531,14 @@
     var sid = "car-" + face;
     var s, fr, ax, ay, sc, smooth;
     if (!Assets.spr[sid]) sid = "car-right";
-    drawShadow(g, car.x, car.y, (face === "up" || face === "down") ? 28 : 40);
+    drawShadow(g, car.x, car.y, (face === "up" || face === "down") ? 16 : 22);
     s = Assets.spr[sid];
     if (s && Assets.img) {
-      /* 20260905cc: 3× denser BOX from Imagine + scale 2 → ~2× on-screen vs 05at (reads as vehicle next to 16×32 NPCs) */
+      /* 20260905hh: keep 05cc 3× dense frames; draw sc 1 (~1.5–2× Orion). 05cc sc 2 was house-sized. */
       fr = car.frame || 0;
       ax = (s.anchor && s.anchor[0]) || 0;
       ay = (s.anchor && s.anchor[1]) || 0;
-      sc = 2;
+      sc = 1;
       smooth = g.imageSmoothingEnabled;
       g.imageSmoothingEnabled = false;
       g.drawImage(
@@ -20548,7 +20548,7 @@
       );
       g.imageSmoothingEnabled = smooth;
     } else {
-      Assets.draw(g, sid, car.x, car.y, car.frame || 0, 4);
+      Assets.draw(g, sid, car.x, car.y, car.frame || 0, 1);
     }
     if (reedDone && lanternGlowAmt() > 0.12) {
       var spots = carLampSpots();
@@ -25246,7 +25246,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hg", BUILD);
+      ok("BUILD", BUILD === "20260905hh", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
