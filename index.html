@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905dj";
+  var BUILD = "20260905dk";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -4515,6 +4515,11 @@
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
+    /* 20260905dk: potato was missing yum hearts + energy juice (other foods had it) */
+    if (player) {
+      spawnEatHearts(player.x, player.y - 12);
+      spawnEnergyRefillSparks(player.x, player.y - 16);
+    }
     openDialogue("ORION", ["YUM! A POTATO."]);
     ensureSelectedSlot();
     return true;
@@ -4528,6 +4533,11 @@
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
+    /* 20260905dk: berry was missing yum hearts + energy juice (other foods had it) */
+    if (player) {
+      spawnEatHearts(player.x, player.y - 12);
+      spawnEnergyRefillSparks(player.x, player.y - 16);
+    }
     openDialogue("ORION", ["SWEET BERRIES!"]);
     ensureSelectedSlot();
     return true;
@@ -11038,6 +11048,8 @@
             spawnSparks(player.x, player.y - 10);
             /* 20260905dj: full energy after sleep — soft green refill juice */
             spawnEnergyRefillSparks(player.x, player.y - 14);
+            /* 20260905dk: full hearts after sleep — pink heal juice */
+            spawnEatHearts(player.x, player.y - 12);
           }
         }
       }
