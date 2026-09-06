@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905aq";
+  var BUILD = "20260905ar";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4789,7 +4789,11 @@
     word = word || (currentScene === "forest" ? "FARM" : "WOODS");
     var tw, sx;
     if (Assets.woodsSign) {
+      var smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      /* 20260905ar: 32×32 → 16×16 logical */
       g.drawImage(Assets.woodsSign, x, y - 8, 16, 16);
+      g.imageSmoothingEnabled = smooth;
     } else {
     fill(g, x + 7, y + 6, 2, 10, C.woodOut);
     fill(g, x + 8, y + 6, 1, 10, C.woodMid);
@@ -15094,7 +15098,7 @@
       g.fillRect(x + 10, y + 14, 28, 22);
       Assets.draw(g, "fireplace", x, y, ((tick / 220) | 0) % 2);
     } else if (p.kind === "flowerbox") {
-      Assets.draw(g, "flowerbox", x, y);
+      if (!drawAtlas2x(g, "flowerbox", x, y)) Assets.draw(g, "flowerbox", x, y);
     } else if (p.kind === "housePlant") {
       if (!drawAtlas2x(g, "housePlant", x, y)) Assets.draw(g, "housePlant", x, y);
     } else if (p.kind === "rug") {
@@ -15241,11 +15245,11 @@
         g.fillStyle = "rgba(255,220,140," + stGlow.toFixed(3) + ")";
         g.fillRect(x - 6, y - 18, 28, 40);
       }
-      Assets.draw(g, "statue", x, y);
+      if (!drawAtlas2x(g, "statue", x, y)) Assets.draw(g, "statue", x, y);
     } else if (p.kind === "shopSign") {
       if (!drawAtlas2x(g, "shopSign", x, y)) Assets.draw(g, "shopSign", x, y);
     } else if (p.kind === "counter") {
-      Assets.draw(g, "counter", x, y);
+      if (!drawAtlas2x(g, "counter", x, y)) Assets.draw(g, "counter", x, y);
     } else if (p.kind === "townFlower") {
       if (!drawAtlas2x(g, "townFlower", x, y)) Assets.draw(g, "townFlower", x, y);
     }
@@ -18462,7 +18466,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905aq", BUILD);
+      ok("BUILD", BUILD === "20260905ar", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
