@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gp";
+  var BUILD = "20260905gq";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6911,6 +6911,10 @@
     rememberGoneFence(prop.tx, prop.ty);
     buildSolid();
     addToBag("wood", 1);
+    /* 20260905gq: pin + select wood — TAP BUILD needs selected wood;
+       fence pick left wood bag-only or unselected (same fence-kit buy equip gap as 05fi). */
+    placeToolInTrayFirst("wood");
+    selectTool("wood");
     delete harvestNodes[nodeKey(liveHarvestScene(), prop.tx, prop.ty)];
     showLineNote("FENCE PICKED UP");
     playSfx("pickup");
@@ -25017,6 +25021,23 @@ if (currentScene === "ocean") goExitOcean();
       ok("lootPilePresent", lootAtTile(_lx, _ly).length >= 1, "n=" + lootAtTile(_lx, _ly).length);
       ok("lootPickPinnedSelected", !!collectLootAt(_lx, _ly) && selectedIs("potato") && bagCount("potato") >= 1,
         "sel=" + selectedKey() + " n=" + bagCount("potato"));
+
+      /* 20260905gq: fence pick-up pins + selects wood (TAP BUILD / fence-kit buy gap). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      axeOwned = true;
+      syncBagCounts();
+      var _fx = player.tx + 1, _fy = player.ty;
+      if (!walkable(player.tx, player.ty)) placePlayer(16, 30, "right");
+      _fx = player.tx + 1; _fy = player.ty;
+      PROPS.push({ kind: "fenceH", tx: _fx, ty: _fy });
+      buildSolid();
+      ok("fencePickupPresent", !!fenceAt(_fx, _fy), "fence");
+      ok("fencePickupEquipsWood", !!breakFence(fenceAt(_fx, _fy)) && selectedIs("wood") && bagCount("wood") >= 1,
+        "sel=" + selectedKey() + " n=" + bagCount("wood"));
 
       /* 20260905fl: Space plant seed / flower / path place facing. */
       applyScene("overworld");
