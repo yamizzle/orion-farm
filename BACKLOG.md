@@ -1,14 +1,15 @@
+LIVE 9/5 ~7:10–7:23pm (BUILD 20260905be, household Day 2484→2485 Spring): first live of 05be — bag drag swap **FIXED** (wood×2↔silver; neither vanished; verifies 05x); OCEAN floating door-sign label **PASS** (05az); farm dig mounds visible **PASS** (05ax visual); panel world-tap dismiss **PASS** (05bc, Orion did not walk); tray icons STILL dense/no pink plates; tray sword STILL FIXED slot 0; south camera STILL PASS; clock STILL races (2484 Eve→2485); stove/woods/chicken/mine/fish UNTESTED. Screenshots `/workspace/playtest-1910/`. Never START OVER.
 Local 9/5 (BUILD 20260905bf): Imagine stove prop + cooked-fish plate UI icons (BOX downsample, atlas 2×); stove gameplay from 05be kept. Never START OVER.
-Local 9/5 (BUILD 20260905be): house stove cooks fish (select raw → tap/Space STOVE → cooked twin); cooked heals more; Pip sells cookedTrout; chest/save keys; stump chroma already clean in atlas. Never START OVER.
+Local 9/5 (BUILD 20260905be): house stove cooks fish (select raw → tap/Space STOVE → cooked twin); cooked heals more; Pip sells cookedTrout; chest/save keys; stump chroma already clean in atlas. LIVE 9/5 ~7:10–7:23pm: first live — bag swap **FIXED**; door signs/dig mounds/panel dismiss PASS; stove UNTESTED (no raw fish); clock STILL races. Never START OVER.
 Local 9/5 (BUILD 20260905bd): HUD Stars uses small starBadge (not trophy); real hen chicken frames; ocean 64×56 (+8 beach L/R, +16 south water, ~3× island further south with enterable cave + visible Diamond Pickaxe); house/shop/cave doormat OUT label; stump pink scrub pass. Never START OVER.
-Local 9/5 (BUILD 20260905bc): world tap that closes bag/Jobs/Stars/talk/shop/notes/wipe confirm swallows that press (ignoreWalkTap until pointerup) and clears frozen walk — no goWalk/tool on the dismiss tap. Never START OVER.
+Local 9/5 (BUILD 20260905bc): world tap that closes bag/Jobs/Stars/talk/shop/notes/wipe confirm swallows that press (ignoreWalkTap until pointerup) and clears frozen walk — no goWalk/tool on the dismiss tap. LIVE 9/5 ~7:10pm: panel dismiss **PASS**. Never START OVER.
 Local 9/5 (BUILD 20260905bb): outdoor day/night tint from one per-frame clock sample; farm uses the same night grade lift as forest (GRADE_KEYS evening frozen; forestNightFlora extras stay forest-only); scene enter clears stale grade so forest→farm cannot skip/lag wash. Never START OVER.
 Local 9/5 (BUILD 20260905ba): Orion stays visible on the northernmost overworld walkable tiles — playerDrawFoot boost on ty<=2 (no global +64), overRim draws after ground so north overhang sits under actors, CAM_PAD_TOP 26→32. Cozy mid-map canopy Y-sort unchanged. Never START OVER.
-Local 9/5 (BUILD 20260905az): WOODS/MINE/OCEAN/PEAK door signs use Imagine plaque + floating shaft labels (WOODS/FARM/MINE/OCEAN/PEAK/ISLAND) so they no longer read as lamp posts; recentered woodsSign art. Never START OVER.
+Local 9/5 (BUILD 20260905az): WOODS/MINE/OCEAN/PEAK door signs use Imagine plaque + floating shaft labels (WOODS/FARM/MINE/OCEAN/PEAK/ISLAND) so they no longer read as lamp posts; recentered woodsSign art. LIVE 9/5 ~7:10pm: OCEAN floating label **PASS**. Never START OVER.
 Local 9/5 (BUILD 20260905ay): only one weapon in the 10-tray at a time (sword/bow; tools stay). Second weapon → bag; cave sword pin still evicts bow. Never START OVER.
 # Moondrop Mountain backlog
 
-Local 9/5 (BUILD 20260905ax): farm dig mounds (8 marked grass spots; shovel walk on normal grass restored; woods dig intact). Never START OVER.
+Local 9/5 (BUILD 20260905ax): farm dig mounds (8 marked grass spots; shovel walk on normal grass restored; woods dig intact). LIVE 9/5 ~7:10pm: mounds visible **PASS** (shovel dig untested). Never START OVER.
 Local 9/5 (BUILD 20260905av): fix 2×→1× flicker — version.json was stuck on 05x; bustUrl now uses HTML BUILD; checkFreshBuild never downgrades to stale version. Never START OVER.
 Local 9/5 (BUILD 20260905au): 2× forest rabbit/deer/squirrel. Never START OVER.
 Local 9/5 (BUILD 20260905at): denser bigger Reed car (~1.5×). Never START OVER.
@@ -28,7 +29,7 @@ Local 9/5 (BUILD 20260905ag): 2× peakRocks + wildflower props; prior 05af cave 
 Local 9/5 (BUILD 20260905af): cave note no longer exits (OUT pad shrunk); loose cave mushrooms pickable after quest mush; sword reach adjacent-only; island cave Diamond Pickaxe + 10-hit peak rocks. Never START OVER.
 Local 9/5 (BUILD 20260905ad): rowboat stays where you GET OUT (island-safe); boatDock saved. Never START OVER.
 Local 9/5 (BUILD 20260905ac): ocean cove expanded to 48×40 with wider beach, longer pier path, south sand island stub (cave/Diamond Pickaxe next). Household save rebuilds ocean if old size cached. Never START OVER.
-Local 9/5 (BUILD 20260905x): atomic bag/tray index swap — pickup clears one slot only; drop snapshots held+target then writes both; pocketCopy never nulls a keyed stack (count<1→1). Fixes live 05v wood→silverBar vanish (05d/05e/05f claimed fixes). Bag swap still needs live verify. Never START OVER.
+Local 9/5 (BUILD 20260905x): atomic bag/tray index swap — pickup clears one slot only; drop snapshots held+target then writes both; pocketCopy never nulls a keyed stack (count<1→1). Fixes live 05v wood→silverBar vanish (05d/05e/05f claimed fixes). LIVE 9/5 ~7:10pm via 05be: bag swap **FIXED**. Never START OVER.
 
 Local 9/5 (BUILD 20260905t): restore pickaxe/carrot (and other icons over-scrubbed in 05s) from Imagine with safer magenta key — no pink bg, icons intact. Never START OVER.
 Local 9/5 (BUILD 20260905s): scrub leftover magenta/pink chroma on pickaxe + carrot (veggie) tray icons (and any other ui/*.png still leaking pink). Never START OVER.
