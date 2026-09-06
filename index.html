@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fm";
+  var BUILD = "20260905fn";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14794,7 +14794,9 @@
       return true;
     }
     prop = harvestableAtTile(t.tx, t.ty);
-    if (prop && (prop.kind === "log" || prop.kind === "stump")) {
+    /* 20260905fn: facing tree/pine/oak/birch/palm — tap already goHarvest'd;
+       Space only hit log/stump so axe Space on a live tree was a silent no-op. */
+    if (prop && (prop.kind === "log" || prop.kind === "stump" || isWoodChop(prop))) {
       beginHit(prop);
       return true;
     }
@@ -23510,7 +23512,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fm", BUILD);
+      ok("BUILD", BUILD === "20260905fn", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23933,6 +23935,42 @@ if (currentScene === "ocean") goExitOcean();
         else placePlayer(_htx - 1, _hty, "right");
         var _loot0 = groundLoot.length;
         ok("spaceHarvestCrop", !!tryHarvestCropFacing() && !crops[_htx + "," + _hty], "cropGone=" + !crops[_htx + "," + _hty]);
+      }
+
+      /* 20260905fn: Space axe chops facing tree (tap already harvested; Space was log/stump-only). */
+      applyScene("overworld");
+      emptyTray();
+      emptyBag();
+      axeOwned = true;
+      trayCells[0] = { key: "axe", count: 1 };
+      selectedSlot = 0;
+      syncBagCounts();
+      player.swing = 0;
+      var _trx = -1, _try = -1, _ti, _tp, _stand;
+      for (_ti = 0; _ti < PROPS.length; _ti++) {
+        _tp = PROPS[_ti];
+        if (!_tp || !(_tp.kind === "tree" || _tp.kind === "pine" || _tp.kind === "oak" || _tp.kind === "birch")) continue;
+        if (walkable(_tp.tx + 1, _tp.ty)) { _trx = _tp.tx; _try = _tp.ty; _stand = { tx: _tp.tx + 1, ty: _tp.ty, face: "left" }; break; }
+        if (walkable(_tp.tx - 1, _tp.ty)) { _trx = _tp.tx; _try = _tp.ty; _stand = { tx: _tp.tx - 1, ty: _tp.ty, face: "right" }; break; }
+        if (walkable(_tp.tx, _tp.ty + 1)) { _trx = _tp.tx; _try = _tp.ty; _stand = { tx: _tp.tx, ty: _tp.ty + 1, face: "up" }; break; }
+        if (walkable(_tp.tx, _tp.ty - 1)) { _trx = _tp.tx; _try = _tp.ty; _stand = { tx: _tp.tx, ty: _tp.ty - 1, face: "down" }; break; }
+      }
+      ok("spaceTreeFound", _trx >= 0, "tree");
+      if (_trx >= 0) {
+        placePlayer(_stand.tx, _stand.ty, _stand.face);
+        player.swing = 0;
+        var _beforeKind = null;
+        for (_ti = 0; _ti < PROPS.length; _ti++) {
+          if (PROPS[_ti] && PROPS[_ti].tx === _trx && PROPS[_ti].ty === _try) { _beforeKind = PROPS[_ti].kind; break; }
+        }
+        var _hitOk = trySmashFacing();
+        var _after = null;
+        for (_ti = 0; _ti < PROPS.length; _ti++) {
+          if (PROPS[_ti] && PROPS[_ti].tx === _trx && PROPS[_ti].ty === _try) { _after = PROPS[_ti]; break; }
+        }
+        /* One Space hit should start hurt node or leave stump if one-shot — at least swing/hit ran. */
+        var _node = harvestNodes[nodeKey("overworld", _trx, _try)];
+        ok("spaceChopTree", !!_hitOk && (!!_node || (_after && _after.kind === "stump") || _beforeKind !== (_after && _after.kind)), "hit=" + _hitOk + " node=" + !!_node + " kind=" + (_after && _after.kind));
       }
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
