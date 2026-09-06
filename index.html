@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bz";
+  var BUILD = "20260905ca";
   var ASSET_REV = "452632";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -697,7 +697,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, diamondPick: false, peakRocksCleared: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, diamondPick: false, peakRocksCleared: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -1261,6 +1261,28 @@
     moving: false,
     anim: 0
   };
+  /* 20260905ca: kid kickballs — farm yard + town plaza (town cart `ball` stays) */
+  function makePlayBall(id, tx, ty) {
+    return {
+      id: id,
+      homeTx: tx, homeTy: ty,
+      tx: tx, ty: ty,
+      x: tx * 16 + 8,
+      y: ty * 16 + 14,
+      face: "down",
+      frame: 0,
+      path: [],
+      stepFrom: null,
+      stepT: 0,
+      queuedWalk: null,
+      moving: false,
+      anim: 0
+    };
+  }
+  var playBalls = [
+    makePlayBall("farm", 12, 32),
+    makePlayBall("town", 44, 31)
+  ];
   var dog = {
     tx: 6, ty: 7,
     x: 6 * 16 + 8,
@@ -5997,6 +6019,8 @@
       if (who === player) {
         tryPickupHere();
         if (ballLive() && player.tx === ball.tx && player.ty === ball.ty && !ballBusy()) kickBall();
+        var steppedPlay = playBallAt(player.tx, player.ty);
+        if (steppedPlay && !playBallBusy(steppedPlay)) kickPlayBall(steppedPlay);
         if (isPathDoor(who.tx, who.ty)) {
           who.path = [];
           who.queuedWalk = null;
@@ -8012,6 +8036,7 @@
         found.birdNestFixed = !!data.found.birdNestFixed;
         found.bridgeFixed = !!data.found.bridgeFixed;
         found.kickedBall = !!data.found.kickedBall;
+        found.kickedPlayBall = !!data.found.kickedPlayBall;
         found.diamondPick = !!data.found.diamondPick;
         found.peakRocksCleared = !!data.found.peakRocksCleared;
       }
@@ -8024,6 +8049,23 @@
         ball.stepFrom = null;
         ball.stepT = 0;
         ball.moving = false;
+      }
+      if (data.playBalls && data.playBalls.length) {
+        var pbi, savedPb, livePb;
+        for (pbi = 0; pbi < data.playBalls.length; pbi++) {
+          savedPb = data.playBalls[pbi];
+          if (!savedPb || typeof savedPb !== "object") continue;
+          livePb = playBallById(savedPb.id);
+          if (!livePb) continue;
+          livePb.tx = savedPb.tx | 0;
+          livePb.ty = savedPb.ty | 0;
+          livePb.x = tileCenterX(livePb.tx);
+          livePb.y = tileFootY(livePb.ty);
+          livePb.path = [];
+          livePb.stepFrom = null;
+          livePb.stepT = 0;
+          livePb.moving = false;
+        }
       }
       if (data.unlocked && typeof data.unlocked === "object") unlocked = data.unlocked;
       introSeen = !!data.introSeen;
@@ -8518,6 +8560,7 @@
         scene: currentScene,
         player: { tx: player.tx | 0, ty: player.ty | 0, face: player.face || "down" },
         ball: { tx: ball.tx | 0, ty: ball.ty | 0 },
+        playBalls: playBalls.map(function (pb) { return { id: pb.id, tx: pb.tx | 0, ty: pb.ty | 0 }; }),
         builds: builds
       }));
     } catch (err) {}
@@ -8642,6 +8685,7 @@
     pendingRestore = null;
     unstickPlayer();
     unstickBall();
+    unstickPlayBalls();
     if ((hp <= 0 || energy <= 0) && !faintFx) beginFaint();
     maybeMineOutTip();
   }
@@ -10353,6 +10397,7 @@
     holidaySyncKey = key;
     buildSolid();
     unstickBall();
+    unstickPlayBalls();
   }
 
 
@@ -10909,6 +10954,7 @@
     if (hasAnySmeltOre()) return "SMELT ORE AT THE FIREPLACE";
     if (!quest.flowerAsked) return "SAY HI TO JUNIE";
     if (!found.kickedBall) return "KICK THE CART IN TOWN.";
+    if (!found.kickedPlayBall) return "KICK THE BALL ON THE FARM.";
     if (!quest.flowerDone) return "BRING A MUSHROOM TO JUNIE";
     if (mineMailReady() && !mailRead.mine) return "READ THE NEW LETTER";
     if (!quest.errandDone && mailRead.mine) return "LEAVE WOOD AT NIM'S NOTE";
@@ -14950,6 +14996,12 @@
       kickBall();
       return;
     }
+    var arrivedPlay = playBallAt(player.tx, player.ty);
+    if (arrivedPlay && !playBallBusy(arrivedPlay) && (!pending || pending.type === "kickPlayBall")) {
+      pending = null;
+      kickPlayBall(arrivedPlay);
+      return;
+    }
     if (!pending) return;
     var act = pending;
     pending = null;
@@ -15043,6 +15095,8 @@
       openChest();
     } else if (act.type === "kickBall") {
       kickBall();
+    } else if (act.type === "kickPlayBall") {
+      if (act.pb) kickPlayBall(act.pb);
     } else if (act.type === "talkFolk") {
       if (act.folk && isNear(player.tx, player.ty, act.folk.tx, act.folk.ty)) talkFolk(act.folk);
     } else if (act.type === "talkNim") {
@@ -15164,6 +15218,14 @@
       faceToward(player, ball.tx, ball.ty);
       kickBall();
       return true;
+    }
+    if (playBallLive()) {
+      var spacePlay = playBallNear(player) || playBallAt(player.tx, player.ty);
+      if (spacePlay) {
+        faceToward(player, spacePlay.tx, spacePlay.ty);
+        kickPlayBall(spacePlay);
+        return true;
+      }
     }
     if (currentScene === "overworld") {
       if (nearWho(npc)) { goTalk(); return true; }
@@ -15843,6 +15905,7 @@
     if (chicken && chicken.tx === tx && chicken.ty === ty) return false;
     if (dogSceneOk() && dog.tx === tx && dog.ty === ty) return false;
     if (nimVisible() && nim.tx === tx && nim.ty === ty) return false;
+    if (playBallOccupies(tx, ty)) return false;
     return true;
   }
 
@@ -15932,6 +15995,183 @@
     fill(g, x + 6, y + 4, 3, 3, "#F3D2A3");
     fill(g, x + 4, y + 11, 8, 2, "#8B2E1C");
     fill(g, x + 7, y + 12, 2, 1, "#3D1A0C");
+  }
+
+  function playBallLive() {
+    return currentScene === "overworld";
+  }
+
+  function playBallById(id) {
+    var i;
+    for (i = 0; i < playBalls.length; i++) {
+      if (playBalls[i].id === id) return playBalls[i];
+    }
+    return null;
+  }
+
+  function playBallBusy(pb) {
+    return !!(pb && pb.path && pb.path.length);
+  }
+
+  function playBallOccupies(tx, ty, skip) {
+    var i, pb;
+    for (i = 0; i < playBalls.length; i++) {
+      pb = playBalls[i];
+      if (skip && pb === skip) continue;
+      if (pb.tx === tx && pb.ty === ty) return true;
+    }
+    return false;
+  }
+
+  function playBallAt(tx, ty) {
+    var i, pb;
+    if (!playBallLive()) return null;
+    for (i = 0; i < playBalls.length; i++) {
+      pb = playBalls[i];
+      if (pb.tx === tx && pb.ty === ty) return pb;
+    }
+    return null;
+  }
+
+  function playBallNear(who) {
+    var me, i, pb;
+    if (!playBallLive() || !who) return null;
+    me = actorTiles(who);
+    for (i = 0; i < playBalls.length; i++) {
+      pb = playBalls[i];
+      if (tilesTouch(me, actorTiles(pb))) return pb;
+    }
+    return null;
+  }
+
+  function playBallOk(pb, tx, ty) {
+    if (!inBounds(tx, ty)) return false;
+    if (!walkable(tx, ty)) return false;
+    if (folkOccupies(tx, ty)) return false;
+    if (npc && npc.tx === tx && npc.ty === ty) return false;
+    if (chicken && chicken.tx === tx && chicken.ty === ty) return false;
+    if (dogSceneOk() && dog.tx === tx && dog.ty === ty) return false;
+    if (nimVisible() && nim.tx === tx && nim.ty === ty) return false;
+    if (ball && ball.tx === tx && ball.ty === ty) return false;
+    if (playBallOccupies(tx, ty, pb)) return false;
+    return true;
+  }
+
+  function parkPlayBall(pb, tx, ty) {
+    pb.tx = tx;
+    pb.ty = ty;
+    pb.x = tileCenterX(tx);
+    pb.y = tileFootY(ty);
+    pb.path = [];
+    pb.stepFrom = null;
+    pb.stepT = 0;
+    pb.moving = false;
+  }
+
+  function unstickPlayBalls() {
+    var i, pb, spot;
+    if (currentScene !== "overworld") return;
+    for (i = 0; i < playBalls.length; i++) {
+      pb = playBalls[i];
+      if (walkable(pb.tx, pb.ty)) continue;
+      spot = nearestWalkable(pb.tx, pb.ty);
+      parkPlayBall(pb, spot.tx, spot.ty);
+    }
+  }
+
+  function bounceKickDelta(pb, tx, ty, dx, dy) {
+    if (dx && !playBallOk(pb, tx + dx, ty) && playBallOk(pb, tx - dx, ty)) dx = -dx;
+    if (dy && !playBallOk(pb, tx, ty + dy) && playBallOk(pb, tx, ty - dy)) dy = -dy;
+    if (playBallOk(pb, tx + dx, ty + dy)) return { dx: dx, dy: dy };
+    if (dx && playBallOk(pb, tx - dx, ty + dy)) return { dx: -dx, dy: dy };
+    if (dy && playBallOk(pb, tx + dx, ty - dy)) return { dx: dx, dy: -dy };
+    if (playBallOk(pb, tx - dx, ty - dy)) return { dx: -dx, dy: -dy };
+    return null;
+  }
+
+  function kickPlayBall(pb) {
+    var d, n, i, tx, ty, path, nx, ny, bounced;
+    if (!playBallLive() || !pb) return;
+    if (playBallBusy(pb)) return;
+    d = faceDelta(player.face);
+    n = 4 + ((Math.random() * 3) | 0);
+    path = [];
+    tx = pb.tx;
+    ty = pb.ty;
+    for (i = 0; i < n; i++) {
+      nx = tx + d.dx;
+      ny = ty + d.dy;
+      if (playBallOk(pb, nx, ny) && !(playerOccupies(nx, ny) && !(nx === pb.tx && ny === pb.ty))) {
+        tx = nx;
+        ty = ny;
+        path.push({ tx: tx, ty: ty });
+        continue;
+      }
+      bounced = bounceKickDelta(pb, tx, ty, d.dx, d.dy);
+      if (!bounced) break;
+      d = bounced;
+      nx = tx + d.dx;
+      ny = ty + d.dy;
+      if (!playBallOk(pb, nx, ny)) break;
+      if (playerOccupies(nx, ny) && !(nx === pb.tx && ny === pb.ty)) break;
+      tx = nx;
+      ty = ny;
+      path.push({ tx: tx, ty: ty });
+    }
+    if (!found.kickedPlayBall) found.kickedPlayBall = true;
+    showLineNote("KICK!");
+    persistSave();
+    if (!path.length) return;
+    startWalk(pb, path, 8);
+  }
+
+  function goTapPlayBall(pb) {
+    var path;
+    if (!playBallLive() || !pb) return;
+    highlight = { tx: pb.tx, ty: pb.ty };
+    if (isNear(player.tx, player.ty, pb.tx, pb.ty) || (player.tx === pb.tx && player.ty === pb.ty)) {
+      pending = null;
+      faceToward(player, pb.tx, pb.ty);
+      kickPlayBall(pb);
+      return;
+    }
+    path = findPath(player.tx, player.ty, pb.tx, pb.ty);
+    if (!path.length) return;
+    pending = { type: "kickPlayBall", pb: pb };
+    startWalk(player, path, 3.5);
+  }
+
+  function updatePlayBalls(dt) {
+    var i, pb, dest;
+    if (!playBallLive()) return;
+    for (i = 0; i < playBalls.length; i++) {
+      pb = playBalls[i];
+      dest = pb.path && pb.path.length ? pb.path[0] : null;
+      if (!dest) continue;
+      if (!playBallOk(pb, dest.tx, dest.ty)) {
+        parkPlayBall(pb, pb.tx, pb.ty);
+        persistSave();
+        continue;
+      }
+      if (advanceWalk(pb, dt)) persistSave();
+    }
+  }
+
+  function drawPlayBallSpr(g, pb) {
+    var bob, x, y;
+    if (!playBallLive() || !pb) return;
+    bob = Math.round(Math.sin((tick + (pb.id === "town" ? 110 : 0)) / 240) * 1);
+    x = Math.round(pb.x) - 6;
+    y = Math.round(pb.y) - 12 + bob;
+    drawShadow(g, pb.x, pb.y, 4);
+    fill(g, x + 2, y + 1, 8, 10, "#3A2616");
+    fill(g, x + 1, y + 2, 10, 8, "#3A2616");
+    fill(g, x + 3, y + 2, 6, 8, "#F3E2C4");
+    fill(g, x + 2, y + 3, 8, 6, "#F3E2C4");
+    fill(g, x + 4, y + 3, 3, 3, "#4A2E18");
+    fill(g, x + 6, y + 6, 2, 2, "#6B4224");
+    fill(g, x + 3, y + 7, 2, 2, "#6B4224");
+    fill(g, x + 4, y + 2, 2, 1, "#FFF6E4");
   }
 
   function drawShadow(g, x, y, hw) {
@@ -16850,6 +17090,7 @@
     if (item.kind === "player") return { x: player.x, y: player.y };
     if (item.kind === "chicken") return { x: chicken.x, y: chicken.y };
     if (item.kind === "ball") return { x: ball.x, y: ball.y };
+    if (item.kind === "playBall" && item.pb) return { x: item.pb.x, y: item.pb.y };
     if (item.kind === "npc") return { x: npc.x, y: npc.y };
     if (item.kind === "car") return { x: car.x, y: car.y };
     if (item.kind === "folk" && item.f) return { x: item.f.x, y: item.f.y };
@@ -16960,6 +17201,9 @@
     if (currentScene === "overworld") {
       list.push({ foot: chicken.y, kind: "chicken" });
       list.push({ foot: ball.y, kind: "ball" });
+      for (i = 0; i < playBalls.length; i++) {
+        list.push({ foot: playBalls[i].y, kind: "playBall", pb: playBalls[i] });
+      }
       list.push({ foot: npc.y, kind: "npc" });
       list.push({ foot: car.y, kind: "car" });
       for (i = 0; i < townFolk.length; i++) {
@@ -16997,6 +17241,7 @@
     else if (item.kind === "player") drawPlayer(g);
     else if (item.kind === "chicken") drawChickenSpr(g);
     else if (item.kind === "ball") drawBallSpr(g);
+    else if (item.kind === "playBall") drawPlayBallSpr(g, item.pb);
     else if (item.kind === "dog") drawDogSpr(g);
     else if (item.kind === "car") drawCarSpr(g);
     else if (item.kind === "folk") {
@@ -19150,6 +19395,10 @@
       goTapBall();
       return;
     }
+    if (playBallLive() && playBallAt(tx, ty)) {
+      goTapPlayBall(playBallAt(tx, ty));
+      return;
+    }
     if (dogSceneOk() && tx === dog.tx && ty === dog.ty) {
       talkDog();
       return;
@@ -19660,6 +19909,7 @@ if (currentScene === "ocean") goExitOcean();
       }
       updateChicken(dt);
       updateBall(dt);
+      updatePlayBalls(dt);
       updateDog(dt);
       updateTownFolk(dt);
       updateForestCritters(dt);
@@ -20328,7 +20578,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bz", BUILD);
+      ok("BUILD", BUILD === "20260905ca", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -20523,6 +20773,37 @@ if (currentScene === "ocean") goExitOcean();
       ok("onePoleAfterGrant", bagCount("pole") === 1, "bagCount=" + bagCount("pole"));
       var putPole = putInChest("pole", 1);
       ok("onePolePutChestBlocked", putPole === 0 && bagCount("pole") === 1, "put=" + putPole + " bag=" + bagCount("pole"));
+      /* 20260905ca: farm/town kickballs bounce off solids */
+      applyScene("overworld");
+      buildSolid();
+      var farmB = playBallById("farm");
+      var townB = playBallById("town");
+      ok("playBallFarmHome", !!(farmB && farmB.homeTx === 12 && farmB.homeTy === 32), farmB && (farmB.tx + "," + farmB.ty));
+      ok("playBallTownHome", !!(townB && townB.homeTx === 44 && townB.homeTy === 31), townB && (townB.tx + "," + townB.ty));
+      if (farmB) {
+        parkPlayBall(farmB, 12, 32);
+        placePlayer(12, 31, "down");
+        kickPlayBall(farmB);
+        var kickEnd = farmB.path.length ? farmB.path[farmB.path.length - 1] : { tx: farmB.tx, ty: farmB.ty };
+        ok("playBallKickSlides", farmB.path.length > 0 && kickEnd.ty > 32, "n=" + farmB.path.length + " end=" + kickEnd.tx + "," + kickEnd.ty);
+        farmB.path = [];
+        farmB.moving = false;
+        var bx, by, bounceTried = false, lastBounce;
+        for (by = 24; by <= 36 && !bounceTried; by++) {
+          for (bx = 2; bx <= 22 && !bounceTried; bx++) {
+            if (!walkable(bx, by) || walkable(bx, by - 1)) continue;
+            parkPlayBall(farmB, bx, by);
+            placePlayer(bx, by + 1, "up");
+            kickPlayBall(farmB);
+            lastBounce = farmB.path.length ? farmB.path[farmB.path.length - 1] : { tx: bx, ty: by };
+            ok("playBallBounceWalkable", walkable(lastBounce.tx, lastBounce.ty), lastBounce.tx + "," + lastBounce.ty);
+            ok("playBallBounceNotIntoSolid", lastBounce.ty !== by - 1, "end=" + lastBounce.tx + "," + lastBounce.ty);
+            bounceTried = true;
+          }
+        }
+        ok("playBallBounceTried", bounceTried);
+        parkPlayBall(farmB, 12, 32);
+      }
     } catch (e) {
       fail++;
       log.push("FAIL exception — " + (e && e.message ? e.message : e));
