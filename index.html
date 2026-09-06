@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gh";
+  var BUILD = "20260905gi";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -15739,6 +15739,12 @@
     player.swing = 0;
     if (fish) {
       addItem(fish.id, 1);
+      /* 20260905gi: pin + select catch — tray-tap eat / stove cook tip need selected fish;
+         tray-full / pole-selected catches left fish bag-only or unselected (same equip gap as cook 05fk). */
+      if (bagCount(fish.id) >= 1) {
+        placeToolInTrayFirst(fish.id);
+        selectTool(fish.id);
+      }
       if (fish.id === "goldenSwordfish") {
         showLineNote("WOW! A GOLDEN SWORDFISH!");
         /* 20260905dn: special gold sparkle for the rare ocean catch */
@@ -24354,7 +24360,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gh", BUILD);
+      ok("BUILD", BUILD === "20260905gi", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24699,6 +24705,23 @@ if (currentScene === "ocean") goExitOcean();
       applyScene("house");
       placePlayer(8, 6, "up");
       ok("cookPinnedSelected", !!doCookNow() && selectedIs("cookedTrout") && bagCount("cookedTrout") >= 1, "sel=" + selectedKey() + " n=" + bagCount("cookedTrout"));
+
+      /* 20260905gi: catch pins + selects fish (tray-tap eat / cook tip). */
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      trayCells[0] = { key: "pole", count: 1 };
+      selectedSlot = 0;
+      poleOwned = true;
+      syncBagCounts();
+      fishing = {
+        pondTx: 3, pondTy: 33, tileTx: 3, tileTy: 33, waterKind: "pond",
+        phase: "reel", age: 9999, castMs: 1, waitMs: 1, reelMs: 1,
+        bite: true, fish: fishKindById("trout"), bobX: 0, bobY: 0, splash: 0
+      };
+      finishFishingReel();
+      ok("catchPinnedSelected", selectedIs("trout") && bagCount("trout") >= 1, "sel=" + selectedKey() + " n=" + bagCount("trout"));
+      fishing = null;
 
       /* 20260905fl: Space plant seed / flower / path place facing. */
       applyScene("overworld");

@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905gi): catch equips fish — landing a fish pins + selects it (tray-tap eat / stove cook tip need selected fish; tray-full / pole-selected catches left fish bag-only or unselected — same Pip/cook equip gap as 05fk). Never START OVER.
+
 Local 9/6 (BUILD 20260905gh): Space ready-crop adjacent — standing next to a ripe carrot/potato/berry plot (facing away), Space / J / E finally picks it (tap already goPickCrop'd; facing/underfoot Space existed via tryHarvestCropFacing; adjacent-not-facing was a silent no-op like pre-05gg flower). Never START OVER.
 
 Local 9/6 (BUILD 20260905gg): Space flower/grass adjacent — standing next to a wildflower / town flower or tall grass / weed (facing away), Space / J / E finally picks or cuts it (tap already goPickPlant / goCutGrass'd; facing Space existed via tryPickPlantFacing / tryCutGrassFacing; adjacent-not-facing was a silent no-op like pre-05gf smash). Never START OVER.
