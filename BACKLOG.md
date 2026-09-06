@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fw): Space enter island cave — standing facing or next to the ocean island cave mouth, Space / J / E finally enters (tap already walked-to-enter; boat/beach-exit Space existed; cave mouth Space was a silent no-op); island cave OUT also accepts adjacent Space. Never START OVER.
+
 Local 9/6 (BUILD 20260905fv): Space beep car — standing next to the town car, Space / J / E finally beeps CAR (tap already walked-to-beep; NPC talk Space existed; car Space was a silent no-op). Never START OVER.
 
 Local 9/6 (BUILD 20260905fu): Space sleep at bed — standing next to the house bed, Space / J / E finally sleeps (tap already walked-to-sleep; cook/smelt/craft/chest Space existed; bed Space was a silent no-op). Never START OVER.

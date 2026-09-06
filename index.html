@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fv";
+  var BUILD = "20260905fw";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -4157,7 +4157,7 @@
   }
 
   function tryOceanDoors() {
-    var f;
+    var f, spots, i, t;
     if (currentScene === "overworld") {
       if (isOceanEntrance(player.tx, player.ty)) {
         enterOcean();
@@ -4186,6 +4186,26 @@
     if (isOceanExit(f.tx, f.ty)) {
       goExitOcean();
       return true;
+    }
+    /* 20260905fw: Space/J/E enter island cave mouth (tap already goEnterIslandCave'd;
+       boat/beach-exit Space existed; cave mouth Space was a silent no-op).
+       Enter now when facing/adjacent — goEnter walks onto the mouth first. */
+    if (isIslandCaveEntrance(player.tx, player.ty) || isIslandCaveEntrance(f.tx, f.ty)) {
+      enterIslandCave();
+      return true;
+    }
+    spots = [
+      { tx: player.tx - 1, ty: player.ty },
+      { tx: player.tx + 1, ty: player.ty },
+      { tx: player.tx, ty: player.ty - 1 },
+      { tx: player.tx, ty: player.ty + 1 }
+    ];
+    for (i = 0; i < spots.length; i++) {
+      t = spots[i];
+      if (isIslandCaveEntrance(t.tx, t.ty)) {
+        enterIslandCave();
+        return true;
+      }
     }
     if (propAt(player.tx, player.ty) && propAt(player.tx, player.ty).kind === "rowboat") {
       talkBoat();
@@ -14368,14 +14388,29 @@
       return false;
     }
     if (currentScene === "islandCave") {
+      var icSpots, ici, ict;
       if (isIslandCaveExit(player.tx, player.ty)) {
         exitIslandCave();
         return true;
       }
       f = facingTile();
       if (isIslandCaveExit(f.tx, f.ty)) {
-        goExitIslandCave();
+        exitIslandCave();
         return true;
+      }
+      /* 20260905fw: adjacent OUT too (mine ladder Space style) */
+      icSpots = [
+        { tx: player.tx - 1, ty: player.ty },
+        { tx: player.tx + 1, ty: player.ty },
+        { tx: player.tx, ty: player.ty - 1 },
+        { tx: player.tx, ty: player.ty + 1 }
+      ];
+      for (ici = 0; ici < icSpots.length; ici++) {
+        ict = icSpots[ici];
+        if (isIslandCaveExit(ict.tx, ict.ty)) {
+          exitIslandCave();
+          return true;
+        }
       }
       return false;
     }
@@ -23242,6 +23277,7 @@ if (currentScene === "ocean") goExitOcean();
       e.preventDefault();
       if (tryClimbShaft()) return;
       if (tryPeakDoors()) return;
+      /* 20260905fw: tryOceanDoors also enters island cave mouth (facing/adjacent). */
       if (tryOceanDoors()) return;
       if (tryCottageDoors()) return;
       if (isTreetopEntrance(player.tx, player.ty)) {
@@ -23745,7 +23781,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fv", BUILD);
+      ok("BUILD", BUILD === "20260905fw", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24456,6 +24492,32 @@ if (currentScene === "ocean") goExitOcean();
           ok("spaceBeepCar", !!_carOk && !!(dialogue && dialogue.title === "CAR"), "open=" + _carOk + " title=" + (dialogue ? dialogue.title : ""));
           closeDialogue();
         }
+      }
+
+      /* 20260905fw: Space enters island cave from facing/adjacent ocean mouth. */
+      onBoat = false;
+      applyScene("ocean");
+      closeDialogue();
+      var _icStand = null;
+      if (walkable(islandCaveIn.tx, islandCaveIn.ty + 1)) _icStand = { tx: islandCaveIn.tx, ty: islandCaveIn.ty + 1, face: "up" };
+      else if (walkable(islandCaveIn.tx + 1, islandCaveIn.ty)) _icStand = { tx: islandCaveIn.tx + 1, ty: islandCaveIn.ty, face: "left" };
+      else if (walkable(islandCaveIn.tx - 1, islandCaveIn.ty)) _icStand = { tx: islandCaveIn.tx - 1, ty: islandCaveIn.ty, face: "right" };
+      else if (walkable(islandCaveIn.tx, islandCaveIn.ty - 1)) _icStand = { tx: islandCaveIn.tx, ty: islandCaveIn.ty - 1, face: "down" };
+      ok("spaceIslandCaveStand", !!_icStand, "stand");
+      if (_icStand) {
+        placePlayer(_icStand.tx, _icStand.ty, _icStand.face);
+        var _icOk = tryOceanDoors();
+        ok("spaceEnterIslandCave", !!_icOk && currentScene === "islandCave", "ok=" + _icOk + " scene=" + currentScene);
+      }
+      /* Facing away but orthogonally adjacent still enters (05bx ladder style). */
+      onBoat = false;
+      applyScene("ocean");
+      if (walkable(islandCaveIn.tx, islandCaveIn.ty + 1)) {
+        placePlayer(islandCaveIn.tx, islandCaveIn.ty + 1, "down");
+        var _icAdj = tryOceanDoors();
+        ok("spaceIslandCaveAdjacent", !!_icAdj && currentScene === "islandCave", "ok=" + _icAdj + " scene=" + currentScene);
+      } else {
+        ok("spaceIslandCaveAdjacent", true, "skip-no-south");
       }
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
