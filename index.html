@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fe";
+  var BUILD = "20260905ff";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14468,6 +14468,9 @@
       }
       gold -= shopItemPrice(item);
       placeToolInTrayFirst(seedKey);
+      /* 20260905ff: select the new seed — plant/Jobs tip need selected tray slot
+         (was pin-only; sword stayed selected so TAP DIRT TO PLANT never armed). */
+      selectTool(seedKey);
       shopMsg = item.id === "potatoSeeds" ? "POTATO SEEDS!" : "BERRY SEEDS!";
       shopMsgT = 1400;
       persistSave();
@@ -14498,6 +14501,10 @@
         return;
       }
       addToBag("flower", 1);
+      /* 20260905ff: pin + select flower — planting needs selected flower;
+         tray-full buys left it bag-only (same Pip equip gap as kits/seeds). */
+      placeToolInTrayFirst("flower");
+      selectTool("flower");
       shopMsg = "A PRETTY FLOWER.";
     } else if (item.id === "snack" || item.id === "apple" || item.id === "bread" || item.id === "pie" || item.id === "cookedTrout") {
       if (bagRoom(item.id) < 1) {
@@ -15252,8 +15259,17 @@
 
   /* 20260905ez: pad / Space / fight — bow shoots; else sword swing. */
   function tryStrikeAction() {
+    var foe;
     if (toolEquipped("bow")) return shootArrow();
-    return startSwordSwing();
+    if (startSwordSwing()) return true;
+    /* 20260905ff: Space with pole/hat/axe/seed still chips an adjacent foe outdoors
+       (tap-foe fixed in 05fd; Space still no-op'd because canSwordSwing needs sword/bow). */
+    foe = adjacentFoe();
+    if (foe && !isCozyInterior() && !uiPaused() && !faintFx && !fishing) {
+      beginFight(foe);
+      return true;
+    }
+    return false;
   }
 
   function updateArrows(dt) {
@@ -23397,7 +23413,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fe", BUILD);
+      ok("BUILD", BUILD === "20260905ff", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23649,6 +23665,45 @@ if (currentScene === "ocean") goExitOcean();
       buyShopItem({ id: "crateKit", name: "CRATE KIT", price: 10, icon: "crateIcon" });
       ok("crateKitPinned", bagCount("crateKit") >= 1 && selectedIs("crateKit"), "sel=" + selectedKey() + " n=" + bagCount("crateKit"));
       ok("crateKitPlaceMode", !!placingCrateNow(), "");
+
+      /* 20260905ff: potato/berry seed buy selects; flower buy pins + selects. */
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      gold = 100;
+      syncBagCounts();
+      buyShopItem({ id: "potatoSeeds", name: "POTATO SEED", price: 8, icon: "potato" });
+      ok("potatoSeedSelected", selectedIs("potatoSeed") && bagCount("potatoSeed") >= 1, "sel=" + selectedKey());
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      gold = 100;
+      syncBagCounts();
+      buyShopItem({ id: "berrySeeds", name: "BERRY SEED", price: 8, icon: "berry" });
+      ok("berrySeedSelected", selectedIs("berrySeed") && bagCount("berrySeed") >= 1, "sel=" + selectedKey());
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      gold = 100;
+      syncBagCounts();
+      buyShopItem({ id: "flower", name: "FLOWER", price: 8, icon: "townFlower" });
+      ok("flowerPinnedSelected", selectedIs("flower") && bagCount("flower") >= 1, "sel=" + selectedKey());
+
+      /* 20260905ff: Space/tryStrike with pole selected still hits adjacent foe. */
+      swordOwned = true;
+      bowOwned = false;
+      poleOwned = true;
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "pole", count: 1 };
+      bagCells[0] = { key: "sword", count: 1 };
+      selectedSlot = 0;
+      syncBagCounts();
+      applyScene("overworld");
+      placePlayer(10, 10, "down");
+      var _slugSpace = makeMon("slug", 10, 11);
+      monsters = [_slugSpace];
+      ok("poleSpaceStrike", !!tryStrikeAction() && _slugSpace.hp < _slugSpace.maxHp, "hp=" + _slugSpace.hp + "/" + _slugSpace.maxHp);
 
       /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
       swordOwned = true;

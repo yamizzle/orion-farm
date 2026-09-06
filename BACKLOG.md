@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ff): Pip seed/flower buy equips + Space pole-foe — potato/berry seed buys select the seed (was pin-only so TAP DIRT never armed); flower buy pins + selects (tray-full left it bag-only); Space with pole/hat/axe selected finally chips an adjacent outdoor foe (tap worked in 05fd; Space still no-op'd). Never START OVER.
+
 Local 9/6 (BUILD 20260905fe): lamp/crate kit buy equips — buying LAMP KIT or CRATE KIT at Pip's pins the stack into the tray and selects it (was bag-only when the tray was full of tools; placing needs selected lampKit/crateKit so TAP TILE never armed). Never START OVER.
 
 Local 9/6 (BUILD 20260905fd): pole/hat tap-foe hits — tapping a farm slug with the fishing pole (or hat/leash/seed) selected finally chips it; was swordOwned path calling startSwordSwing which fails when the sword is not selected, so the tap did nothing. Never START OVER.
