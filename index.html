@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fc";
+  var BUILD = "20260905fd";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -16391,7 +16391,10 @@
       startSwordSwing();
       return;
     }
-    if (swordOwned && !toolEquipped("axe") && !toolEquipped("pick") && !toolEquipped("shovel")) {
+    /* 20260905fd: only sword-swing when sword is selected. Was swordOwned && !axe/pick/shovel —
+       pole/hat/leash/seed still called startSwordSwing (fails outdoors: sword not equipped)
+       and returned without hitting — tap-foe did nothing. */
+    if (swordEquipped()) {
       startSwordSwing();
       return;
     }
@@ -23387,7 +23390,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fc", BUILD);
+      ok("BUILD", BUILD === "20260905fd", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23621,6 +23624,23 @@ if (currentScene === "ocean") goExitOcean();
       ok("leashPinnedTray", !!leashInTray(), "trayHas=" + !!leashInTray() + " bag=" + bagCount("leash"));
       ok("leashSelected", selectedIs("leash"), "sel=" + selectedKey());
       ok("leashDogOn", !!dogOnLeash(), "");
+
+      /* 20260905fd: tap-foe with pole selected still hits (was silent startSwordSwing fail). */
+      swordOwned = true;
+      bowOwned = false;
+      poleOwned = true;
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "pole", count: 1 };
+      bagCells[0] = { key: "sword", count: 1 };
+      selectedSlot = 0;
+      syncBagCounts();
+      applyScene("overworld");
+      placePlayer(10, 10, "down");
+      var _slug = makeMon("slug", 10, 11);
+      monsters = [_slug];
+      beginFight(_slug);
+      ok("poleTapFoeHits", _slug.hp < _slug.maxHp, "hp=" + _slug.hp + "/" + _slug.maxHp);
 
       /* 20260905bg: only 1 fishing pole forever (tray/bag/chest/held). */
       poleOwned = true;

@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fd): pole/hat tap-foe hits — tapping a farm slug with the fishing pole (or hat/leash/seed) selected finally chips it; was swordOwned path calling startSwordSwing which fails when the sword is not selected, so the tap did nothing. Never START OVER.
+
 Local 9/6 (BUILD 20260905fc): leash buy equips — buying the DOG LEASH at Pip's pins it into the tray and selects it (was bag-only when the tray was full; dog walk needs the leash in the 10-tray so the dog would not follow outdoors). Never START OVER.
 
 Local 9/6 (BUILD 20260905fb): iron sword craft equips — finishing the IRON SWORD at the workbench pins the sword into tray slot 0 and selects it (was owned-only upgrade while bow stayed selected / sword stayed bag-parked). Never START OVER.
