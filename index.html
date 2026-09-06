@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hp";
+  var BUILD = "20260905hq";
   var ASSET_REV = "464870";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7104,10 +7104,9 @@
     rememberGoneFence(prop.tx, prop.ty);
     buildSolid();
     addToBag("wood", 1);
-    /* 20260905gq: pin + select wood — TAP BUILD needs selected wood;
-       fence pick left wood bag-only or unselected (same fence-kit buy equip gap as 05fi). */
-    placeToolInTrayFirst("wood");
-    selectTool("wood");
+    /* 20260905gq + 20260905hq: pin wood; keep shovel/axe held (empty hand still
+       selects for TAP BUILD — same keepHeld class as dig loot 05hp). */
+    pinPickupKeepHeld("wood");
     delete harvestNodes[nodeKey(liveHarvestScene(), prop.tx, prop.ty)];
     showLineNote("FENCE PICKED UP");
     playSfx("pickup");
@@ -7231,10 +7230,9 @@
     forgetKitBuild(prop.tx, prop.ty, prop.kind);
     buildSolid();
     addToBag(kitKey, 1);
-    /* 20260905gs: pin + select kit — place needs selected lampKit/crateKit;
-       pick left kit bag-only or unselected (same fence-kit buy / fence pick equip gap). */
-    placeToolInTrayFirst(kitKey);
-    selectTool(kitKey);
+    /* 20260905gs + 20260905hq: pin kit; keep shovel/axe held (empty hand still
+       selects for TAP TILE place — same keepHeld class as dig loot 05hp). */
+    pinPickupKeepHeld(kitKey);
     showLineNote(prop.kind === "lampPost" ? "LAMP PICKED UP" : "CRATE PICKED UP");
     playSfx("pickup");
     persistSave();
@@ -8979,10 +8977,10 @@
     return false;
   }
 
-  /* 20260905hp: pin loot/catch/collectible into the tray, but do NOT yank the
-     kid's held tool (shovel/axe/pick/pole/seeds/weapon/…). Empty hand still
-     auto-selects (05gn tray-tap tip). Shop / craft / chest TAKE / cook / smelt
-     keep calling selectTool directly. */
+  /* 20260905hp + 20260905hq: pin loot/catch/collectible/placeable into the tray,
+     but do NOT yank the kid's held tool (shovel/axe/pick/pole/seeds/weapon/…).
+     Empty hand still auto-selects (05gn tray-tap tip). Shop / craft / chest TAKE /
+     cook / smelt keep calling selectTool directly (intentional menu equip). */
   function pinPickupKeepHeld(key) {
     var held;
     if (!key) return false;
@@ -9544,8 +9542,9 @@
     spawnSparks(cx, cy);
     if (playerGrown) {
       addToBag("flower", 1);
-      placeToolInTrayFirst("flower");
-      selectTool("flower");
+      /* 20260905gv + 20260905hq: pin flower; keep shovel/axe held (empty hand still
+         selects for replant — same keepHeld class as dig loot 05hp). */
+      pinPickupKeepHeld("flower");
       showLineNote("FLOWER PICKED UP");
       playSfx("pickup");
     } else {
@@ -17093,10 +17092,9 @@
     if (was !== "g" && was !== "d" && was !== "h" && was !== "m" && was !== "k") was = "g";
     setCell(tx, ty, was);
     addToBag("stone", PATH_COST);
-    /* pin + select stone — path place needs selectedIs(stone);
-       pick left stone bag-only or unselected (same fence/kit pick equip gap). */
-    placeToolInTrayFirst("stone");
-    selectTool("stone");
+    /* 20260905gu + 20260905hq: pin stone; keep shovel/axe held (empty hand still
+       selects for path place — same keepHeld class as dig loot 05hp). */
+    pinPickupKeepHeld("stone");
     showLineNote("PATH PICKED UP");
     playSfx("pickup");
     persistSave();
@@ -26102,7 +26100,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hp", BUILD);
+      ok("BUILD", BUILD === "20260905hq", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26564,7 +26562,17 @@ if (currentScene === "ocean") goExitOcean();
       PROPS.push({ kind: "fenceH", tx: _fx, ty: _fy });
       buildSolid();
       ok("fencePickupPresent", !!fenceAt(_fx, _fy), "fence");
-      ok("fencePickupEquipsWood", !!breakFence(fenceAt(_fx, _fy)) && selectedIs("wood") && bagCount("wood") >= 1,
+      /* 20260905hq: shovel/axe stay selected; wood still pins into tray. */
+      ok("fencePickupKeepsTool", !!breakFence(fenceAt(_fx, _fy)) && selectedIs("axe") && toolEquipped("axe") && bagCount("wood") >= 1 && trayHasKey("wood") >= 0,
+        "sel=" + selectedKey() + " n=" + bagCount("wood") + " tray=" + trayHasKey("wood"));
+      emptyTray();
+      emptyBag();
+      selectedSlot = 0;
+      axeOwned = true;
+      syncBagCounts();
+      PROPS.push({ kind: "fenceH", tx: _fx, ty: _fy });
+      buildSolid();
+      ok("fencePickupEmptyHandSelects", !!breakFence(fenceAt(_fx, _fy)) && selectedIs("wood") && bagCount("wood") >= 1,
         "sel=" + selectedKey() + " n=" + bagCount("wood"));
 
       /* 20260905gs: player lamp/crate pick-up pins + selects kit (place / fence pick gap). */
@@ -26582,7 +26590,18 @@ if (currentScene === "ocean") goExitOcean();
       builds.push({ kind: "lampPost", tx: _kx, ty: _ky });
       buildSolid();
       ok("lampPickupPresent", !!kitAt(_kx, _ky), "lamp");
-      ok("lampPickupEquipsKit", !!breakKit(kitAt(_kx, _ky)) && selectedIs("lampKit") && bagCount("lampKit") >= 1,
+      ok("lampPickupKeepsTool", !!breakKit(kitAt(_kx, _ky)) && selectedIs("axe") && toolEquipped("axe") && bagCount("lampKit") >= 1 && trayHasKey("lampKit") >= 0,
+        "sel=" + selectedKey() + " n=" + bagCount("lampKit") + " tray=" + trayHasKey("lampKit"));
+      emptyTray();
+      emptyBag();
+      selectedSlot = 0;
+      syncBagCounts();
+      _kx = player.tx + 1; _ky = player.ty;
+      if (propAt(_kx, _ky) || !walkable(_kx, _ky)) { _kx = player.tx - 1; _ky = player.ty; }
+      PROPS.push({ kind: "lampPost", tx: _kx, ty: _ky });
+      builds.push({ kind: "lampPost", tx: _kx, ty: _ky });
+      buildSolid();
+      ok("lampPickupEmptyHandSelects", !!breakKit(kitAt(_kx, _ky)) && selectedIs("lampKit") && bagCount("lampKit") >= 1,
         "sel=" + selectedKey() + " n=" + bagCount("lampKit"));
       emptyTray();
       emptyBag();
@@ -26594,8 +26613,8 @@ if (currentScene === "ocean") goExitOcean();
       PROPS.push({ kind: "crate", tx: _kx, ty: _ky });
       builds.push({ kind: "crate", tx: _kx, ty: _ky });
       buildSolid();
-      ok("cratePickupEquipsKit", !!breakKit(kitAt(_kx, _ky)) && selectedIs("crateKit") && bagCount("crateKit") >= 1,
-        "sel=" + selectedKey() + " n=" + bagCount("crateKit"));
+      ok("cratePickupKeepsTool", !!breakKit(kitAt(_kx, _ky)) && selectedIs("axe") && toolEquipped("axe") && bagCount("crateKit") >= 1 && trayHasKey("crateKit") >= 0,
+        "sel=" + selectedKey() + " n=" + bagCount("crateKit") + " tray=" + trayHasKey("crateKit"));
       /* world crate (not in builds) must not pick */
       emptyTray();
       emptyBag();
@@ -26634,8 +26653,16 @@ if (currentScene === "ocean") goExitOcean();
       setCell(_px, _py, "c");
       builds.push({ kind: "path", tx: _px, ty: _py, was: _pWas });
       ok("pathPickupPresent", !!playerPathAt(_px, _py) && cell(_px, _py) === "c", "path@" + _px + "," + _py);
-      ok("pathPickupEquipsStone", !!breakPlayerPathAt(_px, _py) && selectedIs("stone") && bagCount("stone") >= PATH_COST && !playerPathAt(_px, _py) && cell(_px, _py) === _pWas,
+      ok("pathPickupKeepsTool", !!breakPlayerPathAt(_px, _py) && selectedIs("axe") && toolEquipped("axe") && bagCount("stone") >= PATH_COST && trayHasKey("stone") >= 0 && !playerPathAt(_px, _py) && cell(_px, _py) === _pWas,
         "sel=" + selectedKey() + " n=" + bagCount("stone") + " cell=" + cell(_px, _py));
+      emptyTray();
+      emptyBag();
+      selectedSlot = 0;
+      syncBagCounts();
+      setCell(_px, _py, "c");
+      builds.push({ kind: "path", tx: _px, ty: _py, was: _pWas });
+      ok("pathPickupEmptyHandSelects", !!breakPlayerPathAt(_px, _py) && selectedIs("stone") && bagCount("stone") >= PATH_COST && !playerPathAt(_px, _py),
+        "sel=" + selectedKey() + " n=" + bagCount("stone"));
       /* stone-selected place mode must not pick */
       emptyTray();
       emptyBag();
@@ -26671,7 +26698,15 @@ if (currentScene === "ocean") goExitOcean();
       PROPS.push({ kind: "townFlower", tx: _flx, ty: _fly });
       builds.push({ kind: "townFlower", tx: _flx, ty: _fly });
       ok("playerFlowerPresent", !!isPlayerFlowerProp(propAt(_flx, _fly)), "flower@" + _flx + "," + _fly);
-      ok("playerFlowerPickupEquips", !!pickPlant(propAt(_flx, _fly)) && selectedIs("flower") && bagCount("flower") >= 1 && !propAt(_flx, _fly),
+      ok("playerFlowerPickupKeepsTool", !!pickPlant(propAt(_flx, _fly)) && selectedIs("axe") && toolEquipped("axe") && bagCount("flower") >= 1 && trayHasKey("flower") >= 0 && !propAt(_flx, _fly),
+        "sel=" + selectedKey() + " n=" + bagCount("flower") + " tray=" + trayHasKey("flower"));
+      emptyTray();
+      emptyBag();
+      selectedSlot = 0;
+      syncBagCounts();
+      PROPS.push({ kind: "townFlower", tx: _flx, ty: _fly });
+      builds.push({ kind: "townFlower", tx: _flx, ty: _fly });
+      ok("playerFlowerEmptyHandSelects", !!pickPlant(propAt(_flx, _fly)) && selectedIs("flower") && bagCount("flower") >= 1 && !propAt(_flx, _fly),
         "sel=" + selectedKey() + " n=" + bagCount("flower"));
       /* world townFlower (not in builds) still ground-loots */
       emptyTray();
