@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bg";
+  var BUILD = "20260905bh";
   var ASSET_REV = "451204";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -1250,7 +1250,7 @@
     stepFrom: null,
     stepT: 0,
     queuedWalk: null,
-    idle: 800,
+    idle: 220,
     anim: 0,
     houseTx: 6,
     houseTy: 7,
@@ -14791,7 +14791,23 @@
 
   function dogYield() {
     var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-    var i, j, tmp, d, nx, ny;
+    var i, j, tmp, d, nx, ny, path, tries, tx, ty, spd;
+    /* 20260905bh: indoors — path a few tiles so they cross rooms; outdoors stay 1-step. */
+    spd = currentScene === "house" ? 1.75 : 0.85;
+    if (currentScene === "house") {
+      for (tries = 0; tries < 14; tries++) {
+        tx = dog.tx + (((Math.random() * 13) | 0) - 6);
+        ty = dog.ty + (((Math.random() * 9) | 0) - 4);
+        if (tx === dog.tx && ty === dog.ty) continue;
+        if (Math.abs(tx - dog.tx) + Math.abs(ty - dog.ty) < 3) continue;
+        if (!dogOk(tx, ty)) continue;
+        path = findPath(dog.tx, dog.ty, tx, ty);
+        if (path.length >= 2) {
+          startWalk(dog, path.slice(0, 5), spd);
+          return true;
+        }
+      }
+    }
     for (i = 3; i > 0; i--) {
       j = (Math.random() * (i + 1)) | 0;
       tmp = dirs[i];
@@ -14803,7 +14819,7 @@
       nx = dog.tx + d[0];
       ny = dog.ty + d[1];
       if (dogOk(nx, ny)) {
-        startWalk(dog, [{ tx: nx, ty: ny }], currentScene === "house" ? 1.35 : 0.85);
+        startWalk(dog, [{ tx: nx, ty: ny }], spd);
         return true;
       }
     }
@@ -14896,8 +14912,8 @@
     }
     dog.idle -= dt;
     if (dog.idle > 0) return;
-    /* House: run around more; outdoors (no leash) stay calmer. */
-    if (currentScene === "house") dog.idle = 500 + Math.random() * 900;
+    /* 20260905bh: house idle shorter; outdoors (no leash) stay calmer. */
+    if (currentScene === "house") dog.idle = 160 + Math.random() * 340;
     else dog.idle = 1400 + Math.random() * 2200;
     dogYield();
   }
@@ -19103,7 +19119,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bg", BUILD);
+      ok("BUILD", BUILD === "20260905bh", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
