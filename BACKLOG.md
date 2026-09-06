@@ -1,5 +1,6 @@
 # Moondrop Mountain backlog
 
+Local 9/5 (BUILD 20260905am): 2× mailbox/hole/ladder/swordPedestal. Never START OVER.
 Local 9/5 (BUILD 20260905al): 2× note/log/well props. Never START OVER.
 Local 9/5 (BUILD 20260905ak): 2× weed/tallGrass/chest props. Fence Imagine parked (code-paint overlay). Never START OVER.
 Local 9/5 (BUILD 20260905aj): 2× rock/stump/crate/lantern props (32→16 / lantern 32×48→16×24 NN). Never START OVER.

@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905al";
+  var BUILD = "20260905am";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -15120,10 +15120,10 @@
       if (!drawAtlas2x(g, "well", x, y)) Assets.draw(g, "well", x, y);
     } else if (p.kind === "mailbox") {
       if (hasUnreadMail()) {
-        Assets.draw(g, "mailboxUp", x, y);
+        if (!drawAtlas2x(g, "mailboxUp", x, y)) Assets.draw(g, "mailboxUp", x, y);
         Assets.draw(g, "letter", x, y - 22 + Math.round(Math.sin(tick / 240) * 1));
       } else {
-        Assets.draw(g, "mailbox", x, y);
+        if (!drawAtlas2x(g, "mailbox", x, y)) Assets.draw(g, "mailbox", x, y);
       }
     } else if (p.kind === "crate") {
       if (!drawAtlas2x(g, "crate", x, y)) Assets.draw(g, "crate", x, y);
@@ -15163,7 +15163,7 @@
         Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
       }
     } else if (p.kind === "ladder") {
-      Assets.draw(g, "ladder", x, y);
+      if (!drawAtlas2x(g, "ladder", x, y)) Assets.draw(g, "ladder", x, y);
       if (currentScene === "mine") drawShaftLabel(g, p, mineFloor === 1 ? "OUT" : "UP");
       if (currentScene === "tree") drawShaftLabel(g, p, "UP");
     } else if (p.kind === "peakRocks") {
@@ -15185,7 +15185,7 @@
         g.fillStyle = "rgba(232,200,74," + (0.16 + 0.12 * (0.5 + 0.5 * Math.sin(tick / 180))).toFixed(3) + ")";
         g.fillRect(x - 3, y - 3, 22, 22);
       }
-      Assets.draw(g, "hole", x, y);
+      if (!drawAtlas2x(g, "hole", x, y)) Assets.draw(g, "hole", x, y);
       if (currentScene === "mine") drawShaftLabel(g, p, "DOWN");
     } else if (p.kind === "moonAltar") {
       if (found.peakLight) {
@@ -15195,7 +15195,7 @@
       }
       Assets.draw(g, "moonAltar", x, y);
     } else if (p.kind === "swordPedestal") {
-      Assets.draw(g, "swordPedestal", x, y);
+      if (!drawAtlas2x(g, "swordPedestal", x, y)) Assets.draw(g, "swordPedestal", x, y);
     } else if (p.kind === "note") {
       if (!drawAtlas2x(g, "note", x, y)) Assets.draw(g, "note", x, y);
     } else if (p.kind === "diamondPickaxe") {
@@ -18460,7 +18460,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905al", BUILD);
+      ok("BUILD", BUILD === "20260905am", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
