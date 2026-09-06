@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bi";
+  var BUILD = "20260905bj";
   var ASSET_REV = "451204";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -11960,7 +11960,6 @@
     prop = smashableRockAt(t.tx, t.ty);
     if (prop) {
       beginHit(prop);
-      if (toolEquipped("pick")) breakPlayerPathAt(t.tx, t.ty);
       return true;
     }
     prop = harvestableAtTile(t.tx, t.ty);
@@ -11972,10 +11971,6 @@
     if (prop && prop.kind === "berryBush") {
       pickBerryBush(prop);
       return true;
-    }
-    if (toolEquipped("pick")) {
-      if (breakPlayerPathAt(t.tx, t.ty)) return true;
-      if (breakPlayerPathAt(player.tx, player.ty)) return true;
     }
     return false;
   }
@@ -12339,26 +12334,8 @@
   }
 
   function breakPlayerPathAt(tx, ty) {
-    var i, b, found;
-    if (!toolEquipped("pick")) return false;
-    if (!inBounds(tx, ty)) return false;
-    found = false;
-    for (i = builds.length - 1; i >= 0; i--) {
-      b = builds[i];
-      if (b && b.kind === "path" && b.tx === tx && b.ty === ty) {
-        builds.splice(i, 1);
-        found = true;
-      }
-    }
-    if (!found) return false;
-    setCell(tx, ty, "g");
-    addToBag("stone", PATH_COST);
-    player.workTool = "pickaxe";
-    player.swing = 220;
-    spawnSparks(tx * TILE + 8, ty * TILE + 6);
-    playSfx("smash");
-    persistSave();
-    return true;
+    /* 20260905bj: placed dirt paths stay — pickaxe/axe never lift them (rocks still smash). */
+    return false;
   }
 
   function goBreakPath(tx, ty) {
@@ -12667,11 +12644,6 @@
       if (seen[key]) continue;
       seen[key] = true;
       if (sliceGrass(p)) cut += 1;
-    }
-    if (toolEquipped("pick")) {
-      t = facingTile();
-      breakPlayerPathAt(t.tx, t.ty);
-      breakPlayerPathAt(player.tx, player.ty);
     }
     if (targets.length || cut) spendEnergy(ENERGY_SWING);
     else {
@@ -18449,10 +18421,7 @@ if (currentScene === "ocean") goExitOcean();
       goBreakFence(hitProp);
       return;
     }
-    if (toolEquipped("pick") && playerPathAt(tx, ty)) {
-      goBreakPath(tx, ty);
-      return;
-    }
+    /* 20260905bj: pickaxe no longer mines placed paths — walk/tool fallthrough. */
     if (cell(tx, ty) === "p" && cropIsReady(crops[tx + "," + ty])) {
       goPickCrop(tx, ty);
       return;
