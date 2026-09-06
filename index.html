@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gv";
+  var BUILD = "20260905gw";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -4853,6 +4853,7 @@
     ensureSelectedSlot();
     return true;
   }
+
 
   function pickBerryBush(prop) {
     var i;
@@ -18909,6 +18910,13 @@
       return !!(who && tilesTouch(me, actorTiles(who)));
     }
     if (dogSceneOk() && nearWho(dog)) { talkDog(); return true; }
+    /* 20260905gw: Space/J/E scoot adjacent chicken (tap already walks-onto → chickenYield;
+       ball/dog Space existed; side-of-hen was a silent no-op). */
+    if (currentScene === "overworld" && chicken && nearWho(chicken)) {
+      faceToward(player, chicken.tx, chicken.ty);
+      chickenYield(true);
+      return true;
+    }
     if (ballLive() && (nearWho(ball) || (player.tx === ball.tx && player.ty === ball.ty))) {
       faceToward(player, ball.tx, ball.ty);
       kickBall();
@@ -24888,7 +24896,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gv", BUILD);
+      ok("BUILD", BUILD === "20260905gw", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26707,6 +26715,20 @@ if (currentScene === "ocean") goExitOcean();
       ok("pathOntoChicken", pathChick.length > 0, "n=" + pathChick.length);
       var endC = pathChick[pathChick.length - 1];
       ok("pathOntoChickenEnds", !!(endC && endC.tx === chicken.tx && endC.ty === chicken.ty), endC && (endC.tx + "," + endC.ty));
+      /* 20260905gw: Space adjacent chicken scoots (feather puff path). */
+      chickenStop();
+      chicken.tx = 10; chicken.ty = 33;
+      chicken.x = tileCenterX(chicken.tx); chicken.y = tileFootY(chicken.ty);
+      placePlayer(10, 34, "up");
+      applyScene("overworld");
+      buildSolid();
+      chicken.tx = 10; chicken.ty = 33;
+      chicken.x = tileCenterX(chicken.tx); chicken.y = tileFootY(chicken.ty);
+      placePlayer(10, 34, "up");
+      var chickBefore = { tx: chicken.tx, ty: chicken.ty };
+      var spaceChick = tryTalkAdjacent();
+      ok("spaceChickenScoot", !!spaceChick && (chicken.tx !== chickBefore.tx || chicken.ty !== chickBefore.ty || (chicken.path && chicken.path.length > 0)),
+        "moved=" + chicken.tx + "," + chicken.ty + " path=" + (chicken.path && chicken.path.length));
       /* Far open ground: always some progress (partway harden). */
       placePlayer(6, 30, "down");
       var far = findPath(6, 30, 6, 35);
