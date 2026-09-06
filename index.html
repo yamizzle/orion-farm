@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905em";
+  var BUILD = "20260905en";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -1994,8 +1994,11 @@
     g[9][12] = "#";
     g[10][19] = "#";
     g[11][19] = "#";
+    /* 20260905en: pair lone deepWalls — a 1x1 wall reads as a fake hole */
     g[15][21] = "#";
+    g[16][21] = "#";
     g[6][24] = "#";
+    g[7][24] = "#";
     return g;
   }
 
@@ -2026,8 +2029,11 @@
     g[5][13] = "#";
     g[5][14] = "#";
     g[6][14] = "#";
+    /* 20260905en: pair lone deepWalls — a 1x1 wall reads as a fake hole */
     g[10][6] = "#";
+    g[11][6] = "#";
     g[10][15] = "#";
+    g[11][15] = "#";
     return g;
   }
 
@@ -8167,15 +8173,33 @@
   }
 
   function spendSelected(key, amount) {
-    var n, c;
+    var n, c, take, left, got;
     n = amount | 0;
     if (!key || n <= 0) return 0;
+    got = 0;
+    left = n;
     c = trayCells[selectedSlot];
-    if (!c || c.key !== key || (c.count | 0) < n) return 0;
-    c.count -= n;
-    if (c.count < 1) trayCells[selectedSlot] = null;
-    syncBagCounts();
-    return n;
+    if (c && c.key === key && (c.count | 0) > 0) {
+      take = left < (c.count | 0) ? left : (c.count | 0);
+      c.count -= take;
+      left -= take;
+      got += take;
+      if (c.count < 1) trayCells[selectedSlot] = null;
+    }
+    /* 20260905en: mid-drag cursor stack spends too (eat/fence/flower/kits) —
+       matches takeFromBag 05ej so a held wood/flower is not "gone". */
+    if (left > 0 && bagHeld && bagHeld.key === key) {
+      take = left < (bagHeld.count | 0) ? left : (bagHeld.count | 0);
+      bagHeld.count = (bagHeld.count | 0) - take;
+      left -= take;
+      got += take;
+      if ((bagHeld.count | 0) < 1) {
+        bagHeld = null;
+        bagHeldFrom = null;
+      }
+    }
+    if (got) syncBagCounts();
+    return got;
   }
 
   function selectTool(key) {
@@ -23644,6 +23668,17 @@ if (currentScene === "ocean") goExitOcean();
       applyScene("mine", 3);
       var f3hole = mineDownSpot();
       ok("mineF3UpLandOffRim", !!(f3hole && !mineHoleRimBlocks(16, 8) && walkable(16, 8) && mineHoleRimBlocks(f3hole.tx, f3hole.ty - 1)), f3hole && (f3hole.tx + "," + f3hole.ty));
+      /* 20260905en: spendSelected depletes mid-drag bagHeld */
+      selectedSlot = 0;
+      trayCells[0] = null;
+      bagHeld = { key: "flower", count: 2 };
+      bagHeldFrom = { place: "tray", i: 0 };
+      var spentFl = spendSelected("flower", 1);
+      ok("spendSelectedHeld", spentFl === 1 && bagHeld && (bagHeld.count | 0) === 1, "spent=" + spentFl + " left=" + (bagHeld && bagHeld.count));
+      spendSelected("flower", 1);
+      ok("spendSelectedHeldClear", !bagHeld, !!bagHeld);
+      bagHeld = null; bagHeldFrom = null;
+      syncBagCounts();
       bagHeld = { key: "axe", count: 1 };
       bagHeldFrom = { place: "tray", i: 3 };
       for (var ai = 0; ai < TRAY_CELLS; ai++) if (trayCells[ai] && trayCells[ai].key === "axe") trayCells[ai] = null;
