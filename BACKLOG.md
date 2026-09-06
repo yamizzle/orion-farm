@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905ek): forest/overworld/ocean door refresh — hard-refresh on WOODS door, mine/house/shop/cottage stoops, beach band, forest FARM exit, giant TREE door, or ocean pier exit no longer auto-warps you next tick (nudge to the matching exit landing). Never START OVER.
+
 Local 9/6 (BUILD 20260905ej): held cursor stack counts + mine hole rim — bagCount/syncBagCounts/takeFromBag include the mid-drag bagHeld ghost so tab-hide/craft/shop/giveTool cannot treat a held axe/wood as gone and mint a duplicate; mine DOWN hole's north rim tile is no longer walkable (looks like the pit; hole tile itself still walkable to fall). Never START OVER.
 
 Local 9/6 (BUILD 20260905ei): HOUSE/SHOP/cottages/mine refresh spawn — hard-refresh on an OUT mat or mine UP/DOWN/OUT ladder no longer auto-warps you outside/deeper next tick; floor-aware mineRestoreLand matches enter landings (same pattern as TREE 05eg). Never START OVER.

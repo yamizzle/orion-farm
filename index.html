@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ej";
+  var BUILD = "20260905ek";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -9852,7 +9852,8 @@
 
   /* 20260905eg: refresh must not land on auto-warp tiles (ladder/cave/stairs/exit)
      or the next step instantly dumps you into the wrong scene.
-     20260905ei: also HOUSE/SHOP/cottages OUT mats + mine UP/DOWN/OUT ladders. */
+     20260905ei: also HOUSE/SHOP/cottages OUT mats + mine UP/DOWN/OUT ladders.
+     20260905ek: forest FARM/TREE doors + overworld door stoops + ocean pier exit. */
   function nudgeRestoreOffGate(tx, ty, face) {
     var spot, land;
     tx = tx | 0;
@@ -9883,6 +9884,47 @@
     } else if (currentScene === "ocean") {
       if (isIslandCaveEntrance(tx, ty)) {
         return { tx: islandCaveIn.tx, ty: islandCaveIn.ty + 1, face: "down" };
+      }
+      /* Pier north strip auto-exits to farm — land on oceanLand instead. */
+      if (isOceanExit(tx, ty)) {
+        return { tx: oceanLand.tx, ty: oceanLand.ty, face: "down" };
+      }
+    } else if (currentScene === "forest") {
+      /* South FARM exit row + giant TREE door both auto-warp next tick. */
+      if (isForestExit(tx, ty)) {
+        return { tx: 14, ty: 63, face: "up" };
+      }
+      if (isTreetopEntrance(tx, ty)) {
+        return { tx: giantTreeLand.tx, ty: giantTreeLand.ty, face: "down" };
+      }
+    } else if (currentScene === "overworld") {
+      /* Door stoops / WOODS / beach band — match the exit* landings. */
+      if (isForestEntrance(tx, ty)) {
+        return { tx: 5, ty: 11, face: "down" };
+      }
+      if (isMineEntrance(tx, ty)) {
+        return { tx: portalIn.tx, ty: portalIn.ty + 1, face: "down" };
+      }
+      if (isHouseEntrance(tx, ty)) {
+        return { tx: houseIn.tx, ty: houseIn.ty + 1, face: "down" };
+      }
+      if (isShopEntrance(tx, ty)) {
+        return { tx: shopIn.tx, ty: shopIn.ty + 1, face: "down" };
+      }
+      if (isOceanEntrance(tx, ty)) {
+        return { tx: 14, ty: 36, face: "down" };
+      }
+      if (isCottageEntrance(tx, ty)) {
+        return { tx: cottageLand.tx, ty: cottageLand.ty, face: "down" };
+      }
+      if (isCottage2Entrance(tx, ty)) {
+        return { tx: cottage2Land.tx, ty: cottage2Land.ty, face: "down" };
+      }
+      if (isTallCottageEntrance(tx, ty)) {
+        return { tx: tallCottageLand.tx, ty: tallCottageLand.ty, face: "down" };
+      }
+      if (isLHouseEntrance(tx, ty)) {
+        return { tx: lHouseLand.tx, ty: lHouseLand.ty, face: "down" };
       }
     } else if (currentScene === "house") {
       if (isHouseExit(tx, ty)) {
@@ -23172,7 +23214,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ej", BUILD);
+      ok("BUILD", BUILD === "20260905ek", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23548,6 +23590,22 @@ if (currentScene === "ocean") goExitOcean();
       var mdn = md ? nudgeRestoreOffGate(md.tx, md.ty, "down") : null;
       var ml3 = mineRestoreLand();
       ok("mineDownNudgeF3", !!(mdn && ml3 && mdn.tx === ml3.tx && mdn.ty === ml3.ty), mdn && (mdn.tx + "," + mdn.ty));
+      /* 20260905ek: forest / overworld / ocean gate nudge */
+      applyScene("forest");
+      var fe = nudgeRestoreOffGate(14, FOREST_ROWS - 1, "down");
+      ok("forestExitNudge", !!(fe && fe.tx === 14 && fe.ty === 63), fe && (fe.tx + "," + fe.ty));
+      var ft = nudgeRestoreOffGate(treetopDoor.tx, treetopDoor.ty, "up");
+      ok("forestTreeDoorNudge", !!(ft && ft.tx === giantTreeLand.tx && ft.ty === giantTreeLand.ty), ft && (ft.tx + "," + ft.ty));
+      applyScene("overworld");
+      var fo = nudgeRestoreOffGate(forestIn.tx, forestIn.ty, "up");
+      ok("woodsDoorNudge", !!(fo && fo.tx === 5 && fo.ty === 11), fo && (fo.tx + "," + fo.ty));
+      var mi = nudgeRestoreOffGate(portalIn.tx, portalIn.ty, "up");
+      ok("mineDoorNudge", !!(mi && mi.tx === portalIn.tx && mi.ty === portalIn.ty + 1), mi && (mi.tx + "," + mi.ty));
+      var oe = nudgeRestoreOffGate(14, 37, "down");
+      ok("beachGateNudge", !!(oe && oe.tx === 14 && oe.ty === 36), oe && (oe.tx + "," + oe.ty));
+      applyScene("ocean");
+      var ox = nudgeRestoreOffGate(oceanLand.tx, 0, "up");
+      ok("oceanPierNudge", !!(ox && ox.tx === oceanLand.tx && ox.ty === oceanLand.ty), ox && (ox.tx + "," + ox.ty));
       /* 20260905ej: bagHeld counts + mine hole rim blocked */
       ok("mineHoleRimFn", typeof mineHoleRimBlocks === "function", "");
       mineFloor = 1;
