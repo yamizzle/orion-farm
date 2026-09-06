@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bb";
+  var BUILD = "20260905bc";
   var ASSET_REV = "437639";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -689,6 +689,8 @@
   var achieveScroll = 0;
   var achieveDrag = null;
   var questOpen = false;
+  /* 20260905bc: one-shot — world tap that closed an overlay must not walk/tool. */
+  var ignoreWalkTap = false;
   var sleepFx = null;
   var wipeAsk = false;
   var shopOpen = false;
@@ -9435,11 +9437,18 @@
     var L = wipeLayout();
     if (hitPad(p.x, p.y, L.yesX, L.by, L.yesW, L.bh, 6)) {
       wipeAndReload();
-      return;
+      return "yes";
     }
     if (hitPad(p.x, p.y, L.noX, L.by, L.noW, L.bh, 6)) {
       wipeAsk = false;
+      return "no";
     }
+    /* Outside the confirm box — cancel, same as NO (swallow in tap). */
+    if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
+      wipeAsk = false;
+      return "outside";
+    }
+    return "panel";
   }
 
   function tapJournal(p) {
@@ -9468,6 +9477,8 @@
       persistSave();
       return true;
     }
+    /* Taps on the Jobs plaque stay on the panel; only world taps dismiss. */
+    if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h) return true;
     return false;
   }
 
@@ -9708,6 +9719,21 @@
 
   function uiPaused() {
     return !!(toast || modalOpen() || birdFly || birdRideFx);
+  }
+
+  function clearWalkIntent() {
+    pending = null;
+    kbDrive = false;
+    if (player.path) player.path = [];
+    player.queuedWalk = null;
+    player.moving = false;
+  }
+
+  /* World tap closed a panel — swallow this press (no goWalk / tool) and
+     drop any frozen path so Orion does not resume walking after dismiss. */
+  function swallowDismissTap() {
+    ignoreWalkTap = true;
+    clearWalkIntent();
   }
 
   function dismissTopDialog() {
@@ -14116,6 +14142,7 @@
 
   function goWalk(tx, ty) {
     var dest, path, spot;
+    if (ignoreWalkTap) return;
     pending = null;
     if (tx < 0) tx = 0;
     if (ty < 0) ty = 0;
@@ -17428,49 +17455,99 @@
 
   function tap(e) {
     var p = pointFromEvent(e);
+    var L, wasOpen;
     if (p.x < 0 || p.y < 0 || p.x >= VIEW_W || p.y >= VIEW_H) return;
 
     if (toast) {
-      if (toast.ready) dismissUnlock();
+      if (toast.ready) {
+        dismissUnlock();
+        swallowDismissTap();
+      }
       return;
     }
     if (dialogue) {
+      wasOpen = !!dialogue;
       tapDialogue(p);
+      if (wasOpen && !dialogue) swallowDismissTap();
       return;
     }
     if (birdFly || birdRideFx) return;
     if (wipeAsk) {
+      wasOpen = true;
       tapWipeAsk(p);
+      if (wasOpen && !wipeAsk) swallowDismissTap();
       return;
     }
     if (sleepFx || faintFx) return;
     if (achieveOpen) {
+      wasOpen = true;
+      L = achieveLayout();
       tapAchieve(p, e);
+      /* Outside the Stars panel → closed by world tap; swallow walk/tool. */
+      if (wasOpen && !achieveOpen) {
+        if (!(p.x >= L.x && p.x < L.x + L.w && p.y >= L.y - 8 && p.y < L.y + L.h)) {
+          swallowDismissTap();
+        }
+      }
       return;
     }
     if (questOpen) {
-      if (!tapJournal(p)) questOpen = false;
+      if (!tapJournal(p)) {
+        questOpen = false;
+        swallowDismissTap();
+      }
       return;
     }
     if (shopOpen) {
+      wasOpen = true;
+      L = shopLayout();
       tapShop(p);
+      if (wasOpen && !shopOpen) {
+        if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
+          swallowDismissTap();
+        }
+      }
       return;
     }
     if (craftOpen) {
+      wasOpen = true;
+      L = craftLayout();
       tapCraft(p);
+      if (wasOpen && !craftOpen) {
+        if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
+          swallowDismissTap();
+        }
+      }
       return;
     }
     if (chestOpen) {
+      wasOpen = true;
+      L = chestLayout();
       tapChest(p, e);
+      if (wasOpen && !chestOpen) {
+        if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
+          swallowDismissTap();
+        }
+      }
       return;
     }
     if (bagOpen) {
       bagPointer.x = p.x;
       bagPointer.y = p.y;
       if (tapHud(p)) return;
+      wasOpen = true;
+      L = bagLayout();
       tapBagUi(p);
+      if (wasOpen && !bagOpen) {
+        if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
+          swallowDismissTap();
+        }
+      }
       return;
     }
+
+    /* Belt-and-suspenders: never walk/tool on the press that closed a panel. */
+    if (ignoreWalkTap) return;
 
     if (tapHud(p)) return;
     if (player.arc > 0) return;
@@ -18375,10 +18452,12 @@ if (currentScene === "ocean") goExitOcean();
   canvas.addEventListener("pointerup", function (e) {
     if (chestDrag) finishChestDrag(e);
     endAchieveDrag();
+    ignoreWalkTap = false;
   }, { passive: true });
   canvas.addEventListener("pointercancel", function () {
     chestDrag = null;
     endAchieveDrag();
+    ignoreWalkTap = false;
   }, { passive: true });
   canvas.addEventListener("wheel", function (e) {
     var p, L;
@@ -18725,7 +18804,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bb", BUILD);
+      ok("BUILD", BUILD === "20260905bc", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
