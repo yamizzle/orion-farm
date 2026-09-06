@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905fa";
+  var BUILD = "20260905fb";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -10639,7 +10639,11 @@
     if (rec.id === "pickaxe") giveTool("pick");
     if (rec.id === "bow") giveTool("bow");
     if (rec.id === "shield") {}
-    if (rec.id === "ironSword") {}
+    /* 20260905fb: iron sword upgrade was owned-only — bow stayed selected / sword stayed bag-parked. */
+    if (rec.id === "ironSword") {
+      forceSwordIntoTray();
+      selectTool("sword");
+    }
     persistSave();
     playSfx("craft");
     craftMsg = rec.made;
@@ -23379,7 +23383,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905fa", BUILD);
+      ok("BUILD", BUILD === "20260905fb", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23586,6 +23590,22 @@ if (currentScene === "ocean") goExitOcean();
       ok("diamondRockDmg", nodeStrikeDmg(_dpRock) === 3, "dmg=" + nodeStrikeDmg(_dpRock));
       ok("diamondRockDrop", harvestDropFor(_dpRock) === 2, "drop=" + harvestDropFor(_dpRock));
 
+      /* 20260905fb: craft iron sword pins + selects sword (upgrade was owned-only). */
+      swordOwned = true;
+      ironSwordOwned = false;
+      bowOwned = true;
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = null;
+      for (bj = 0; bj < BAG_CELLS; bj++) bagCells[bj] = null;
+      trayCells[0] = { key: "bow", count: 1 };
+      bagCells[0] = { key: "sword", count: 1 };
+      selectedSlot = 0;
+      bagCells[1] = { key: "wood", count: 10 };
+      bagCells[2] = { key: "iron", count: 10 };
+      syncBagCounts();
+      doCraft({ id: "ironSword", name: "IRON SWORD", wood: 4, iron: 3, icon: "ironSword", needSword: true, made: "YOU MADE AN IRON SWORD!" });
+      ok("ironSwordOwnedCraft", !!ironSwordOwned, "owned=" + ironSwordOwned);
+      ok("ironSwordPinned", !!(trayCells[0] && trayCells[0].key === "sword"), trayCells[0] && trayCells[0].key);
+      ok("ironSwordSelected", !!swordEquipped() && selectedIs("sword"), "sel=" + selectedKey());
 
       /* 20260905bg: only 1 fishing pole forever (tray/bag/chest/held). */
       poleOwned = true;

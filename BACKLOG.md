@@ -1,3 +1,5 @@
+Local 9/6 (BUILD 20260905fb): iron sword craft equips — finishing the IRON SWORD at the workbench pins the sword into tray slot 0 and selects it (was owned-only upgrade while bow stayed selected / sword stayed bag-parked). Never START OVER.
+
 Local 9/6 (BUILD 20260905fa): diamond pick mines rocks — selecting the island diamond pick finally chips farm/mine rocks like a pick (faster hits + extra stone + pick swing art); was bare-hand dmg while peak rocks already worked; tip no longer says A PICKAXE WOULD BE FASTER when you already own the diamond. Never START OVER.
 
 Local 9/6 (BUILD 20260905ez): bow strike works — selecting the bow shows the strike pad outdoors and pad/Space/tap-foe finally shoots an arrow (shootArrow existed but was never called; pad always sword-swung / hid when only bow was in the tray). Never START OVER.
