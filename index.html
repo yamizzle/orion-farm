@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bs";
+  var BUILD = "20260905bt";
   var ASSET_REV = "452632";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -2576,6 +2576,18 @@
       }
       if (!_hasIslandCave) cached = null;
     }
+    /* 20260905bt: rebuild peak if rocks cleared but cache still has the pile / blocked summit */
+    if (name === "peak" && cached) {
+      var _pk, _hasRocks = false, _summitOpen = false;
+      if (cached.props) {
+        for (_pk = 0; _pk < cached.props.length; _pk++) {
+          if (cached.props[_pk] && cached.props[_pk].kind === "peakRocks") { _hasRocks = true; break; }
+        }
+      }
+      if (cached.ground && cached.ground[4] && cached.ground[4][19] === "f") _summitOpen = true;
+      if (found.peakRocksCleared && (_hasRocks || !_summitOpen)) cached = null;
+      if (!found.peakRocksCleared && !_hasRocks) cached = null;
+    }
     /* 20260905bp: rebuild island cave if exit still uses pink wooden door */
     if (name === "islandCave" && cached && cached.props) {
       var _hasCaveExit = false, _ice;
@@ -3012,7 +3024,37 @@
       }
       g[y] = row;
     }
+    /* 20260905bt: after diamond pick clears the pile, open the summit walk */
+    if (found.peakRocksCleared) applyPeakSummitOpen(g);
     return g;
+  }
+
+  function applyPeakSummitOpen(g) {
+    var cells, i, tx, ty, row;
+    if (!g) return;
+    /* Continue the painted dirt through the old rock choke (cols 18-20, rows 2-5). */
+    cells = [
+      [18, 5], [19, 5], [20, 5],
+      [18, 4], [19, 4], [20, 4],
+      [18, 3], [19, 3], [20, 3],
+      [18, 2], [19, 2], [20, 2]
+    ];
+    for (i = 0; i < cells.length; i++) {
+      tx = cells[i][0];
+      ty = cells[i][1];
+      if (ty < 0 || ty >= g.length) continue;
+      row = g[ty];
+      if (!row || tx < 0 || tx >= row.length) continue;
+      row[tx] = "f";
+    }
+  }
+
+  function openPeakSummitPathLive() {
+    applyPeakSummitOpen(GROUND);
+    if (sceneCache && sceneCache.peak && sceneCache.peak.ground) {
+      applyPeakSummitOpen(sceneCache.peak.ground);
+    }
+    buildSolid();
   }
 
   function buildPeakProps() {
@@ -7279,9 +7321,15 @@
       var pri = PROPS.indexOf(prop);
       if (pri >= 0) PROPS.splice(pri, 1);
       found.peakRocksCleared = true;
-      buildSolid();
+      /* Drop any cached peak props that still hold the pile. */
+      if (sceneCache && sceneCache.peak) {
+        sceneCache.peak.props = PROPS;
+        sceneCache.peak.ground = GROUND;
+      }
+      openPeakSummitPathLive();
       delete harvestNodes[nodeKey(liveHarvestScene(), prop.tx, prop.ty)];
       showLineNote("PATH CLEAR!");
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 4);
       persistSave();
       return;
     } else if (prop.kind === "rock") {
@@ -19692,7 +19740,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bs", BUILD);
+      ok("BUILD", BUILD === "20260905bt", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
