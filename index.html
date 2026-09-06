@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905cd";
+  var BUILD = "20260905ce";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6932,12 +6932,26 @@
   }
 
   function showOwnedGoodsInBag() {
-    var i, c;
-    /* Bag grid is bag-only. Strip any tray↔bag shared-object aliases left in old saves.
-       Do NOT re-mirror tray stacks into bagCells — shared refs broke one-tap swaps. */
+    var i, c, idx;
+    /* Strip tray↔bag shared-object aliases left in old saves / prior mirrors. */
     for (i = 0; i < BAG_CELLS; i++) {
       c = bagCells[i];
       if (c && trayHoldsRec(c)) bagCells[i] = null;
+    }
+    /* 20260905ce / Local 30k: if the 90-grid is empty and the tray has stacks,
+       share those stack objects into bag cells (hotbar stays). Shared refs keep
+       bagCount/syncBagCounts from double-counting; serializePocket(skipTrayAlias)
+       does not persist the mirrors. Tools stay tray-only (no sword BAG orphan). */
+    if (pocketHasStacks(bagCells, BAG_CELLS)) return;
+    if (!pocketHasStacks(trayCells, TRAY_CELLS)) return;
+    for (i = 0; i < TRAY_CELLS; i++) {
+      c = trayCells[i];
+      if (!c || !c.key) continue;
+      if (isToolKey(c.key)) continue;
+      if (bagHoldsRec(c)) continue;
+      idx = firstEmptyBag();
+      if (idx < 0) break;
+      bagCells[idx] = c;
     }
   }
 
@@ -18455,7 +18469,10 @@
       playSfx("ui");
       return;
     }
-    /* Pickup: copy value, clear THIS slot only (index-based). */
+    /* Pickup: copy value, clear THIS slot only (index-based).
+       If tray↔bag still share one object (30k/05ce empty-bag mirror), clear every
+       alias and remember the tray as origin so a drop cannot mint a second stack
+       or orphan the hotbar — keeps 05be/05x atomic swap FIXED. */
     bagHeld = pocketCopy(rec);
     if (!bagHeld) {
       setPocket(place, idx, null);
@@ -18463,8 +18480,18 @@
       playSfx("ui");
       return;
     }
-    bagHeldFrom = { place: place, i: idx };
-    setPocket(place, idx, null);
+    var originPlace = place, originIdx = idx, ti;
+    if (trayHoldsRec(rec) && bagHoldsRec(rec)) {
+      if (place === "bag") {
+        for (ti = 0; ti < TRAY_CELLS; ti++) {
+          if (trayCells[ti] === rec) { originPlace = "tray"; originIdx = ti; break; }
+        }
+      }
+      clearRecEverywhere(rec);
+    } else {
+      setPocket(place, idx, null);
+    }
+    bagHeldFrom = { place: originPlace, i: originIdx };
     syncBagCounts();
     playSfx("ui");
   }
@@ -20725,7 +20752,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905cd", BUILD);
+      ok("BUILD", BUILD === "20260905ce", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -20920,6 +20947,58 @@ if (currentScene === "ocean") goExitOcean();
       ok("onePoleAfterGrant", bagCount("pole") === 1, "bagCount=" + bagCount("pole"));
       var putPole = putInChest("pole", 1);
       ok("onePolePutChestBlocked", putPole === 0 && bagCount("pole") === 1, "put=" + putPole + " bag=" + bagCount("pole"));
+      /* 20260905ce: empty 90-grid mirrors tray stacks (not tools); swap stays atomic. */
+      emptyTray();
+      emptyBag();
+      trayCells[0] = { key: "seed", count: 1 };
+      trayCells[1] = { key: "axe", count: 1 };
+      trayCells[2] = { key: "wood", count: 4 };
+      trayCells[3] = { key: "stone", count: 2 };
+      trayCells[4] = { key: "flower", count: 6 };
+      showOwnedGoodsInBag();
+      var bagWood = false, bagStone = false, bagFlower = false, bagSeed = false, bagAxe = false, bi2;
+      for (bi2 = 0; bi2 < BAG_CELLS; bi2++) {
+        if (!bagCells[bi2]) continue;
+        if (bagCells[bi2].key === "wood") bagWood = bagCells[bi2];
+        if (bagCells[bi2].key === "stone") bagStone = bagCells[bi2];
+        if (bagCells[bi2].key === "flower") bagFlower = bagCells[bi2];
+        if (bagCells[bi2].key === "seed") bagSeed = true;
+        if (bagCells[bi2].key === "axe") bagAxe = true;
+      }
+      ok("bagMirrorsWood", !!(bagWood && (bagWood.count | 0) === 4 && bagWood === trayCells[2]), bagWood && bagWood.count);
+      ok("bagMirrorsStone", !!(bagStone && (bagStone.count | 0) === 2 && bagStone === trayCells[3]), bagStone && bagStone.count);
+      ok("bagMirrorsFlower", !!(bagFlower && (bagFlower.count | 0) === 6 && bagFlower === trayCells[4]), bagFlower && bagFlower.count);
+      ok("bagNoToolSeed", !bagSeed, bagSeed ? "seed mirrored" : "");
+      ok("bagNoToolAxe", !bagAxe, bagAxe ? "axe mirrored" : "");
+      ok("trayStillHasWood", !!(trayCells[2] && trayCells[2].key === "wood" && (trayCells[2].count | 0) === 4), trayCells[2] && trayCells[2].count);
+      syncBagCounts();
+      ok("bagCountNoDoubleWood", bagCount("wood") === 4, "bagCount=" + bagCount("wood"));
+      /* Pickup mirrored bag cell must not mint a second wood stack. */
+      var woodBagIdx = -1;
+      for (bi2 = 0; bi2 < BAG_CELLS; bi2++) {
+        if (bagCells[bi2] && bagCells[bi2].key === "wood") { woodBagIdx = bi2; break; }
+      }
+      tapPocket("bag", woodBagIdx);
+      ok("mirrorPickupHeldWood", !!(bagHeld && bagHeld.key === "wood" && (bagHeld.count | 0) === 4), bagHeld && bagHeld.key);
+      ok("mirrorPickupClearsTray", !trayCells[2], trayCells[2] && trayCells[2].key);
+      ok("mirrorPickupClearsBagAlias", !bagCells[woodBagIdx], bagCells[woodBagIdx] && bagCells[woodBagIdx].key);
+      ok("mirrorPickupOriginTray", !!(bagHeldFrom && bagHeldFrom.place === "tray" && bagHeldFrom.i === 2), bagHeldFrom && (bagHeldFrom.place + ":" + bagHeldFrom.i));
+      /* Drop back onto empty tray slot 2 — tray restored, bag still empty of wood until remirror. */
+      tapPocket("tray", 2);
+      ok("mirrorDropRestoresTray", !!(trayCells[2] && trayCells[2].key === "wood" && (trayCells[2].count | 0) === 4), trayCells[2] && trayCells[2].count);
+      ok("bagCountAfterRestore", bagCount("wood") === 4, "bagCount=" + bagCount("wood"));
+      /* 05x/05be swap: bag silverBar ↔ tray wood — neither vanishes. */
+      emptyBag();
+      emptyTray();
+      trayCells[0] = { key: "wood", count: 2 };
+      bagCells[0] = { key: "silverBar", count: 1 };
+      bagOpen = true;
+      tapPocket("bag", 0);
+      tapPocket("tray", 0);
+      ok("swapTrayGetsSilver", !!(trayCells[0] && trayCells[0].key === "silverBar" && (trayCells[0].count | 0) === 1), trayCells[0] && trayCells[0].key);
+      ok("swapBagGetsWood", !!(bagCells[0] && bagCells[0].key === "wood" && (bagCells[0].count | 0) === 2), bagCells[0] && bagCells[0].key);
+      ok("swapNoHeldLeft", !bagHeld, bagHeld && bagHeld.key);
+      if (bagOpen) closeBag();
       /* 20260905ca: farm/town kickballs bounce off solids */
       applyScene("overworld");
       buildSolid();
