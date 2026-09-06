@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905gi";
+  var BUILD = "20260905gj";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -11602,6 +11602,10 @@
       chestMsgT = 1200;
       return;
     }
+    /* 20260905gj: pin + select the taken stack — tray-tap eat / plant / cook tip need selected;
+       chest TAKE left food/fish bag-only or unselected (same Pip/cook/catch equip gap as 05gi). */
+    placeToolInTrayFirst(rec.key);
+    selectTool(rec.key);
     playSfx("ui");
     chestMsg = "";
     chestMsgT = 0;
@@ -24360,7 +24364,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905gi", BUILD);
+      ok("BUILD", BUILD === "20260905gj", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -24722,6 +24726,24 @@ if (currentScene === "ocean") goExitOcean();
       finishFishingReel();
       ok("catchPinnedSelected", selectedIs("trout") && bagCount("trout") >= 1, "sel=" + selectedKey() + " n=" + bagCount("trout"));
       fishing = null;
+
+      /* 20260905gj: chest TAKE pins + selects (tray-tap eat). */
+      emptyTray();
+      emptyBag();
+      for (bj = 0; bj < TRAY_CELLS; bj++) trayCells[bj] = { key: "wood", count: 1 };
+      selectedSlot = 0;
+      chest.snack = 2;
+      syncBagCounts();
+      chestSel = -1;
+      for (bj = 0; bj < CHEST_ROWS.length; bj++) {
+        if (CHEST_ROWS[bj].key === "snack") { chestSel = bj; break; }
+      }
+      ok("chestSnackRow", chestSel >= 0, "selRow=" + chestSel);
+      if (chestSel >= 0) {
+        chestTake(false);
+        ok("chestTakePinnedSelected", selectedIs("snack") && bagCount("snack") >= 1 && (chest.snack | 0) === 1,
+          "sel=" + selectedKey() + " bag=" + bagCount("snack") + " chest=" + (chest.snack | 0));
+      }
 
       /* 20260905fl: Space plant seed / flower / path place facing. */
       applyScene("overworld");
