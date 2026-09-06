@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ce";
+  var BUILD = "20260905cf";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -5594,7 +5594,7 @@
         for (x = 0; x < 5; x++) block(p.tx + x, p.ty);
       }
     }
-    if (currentScene === "overworld") block(npc.tx, npc.ty);
+    /* 20260905cf: Junie is a soft blocker (path around / scoot) — not a hard wall. */
     if (currentScene === "overworld" && hasOverRim()) {
       for (x = 0; x < COLS; x++) {
         block(x, 0);
@@ -5869,31 +5869,67 @@
     return path;
   }
 
-  function findPath(sx, sy, ex, ey) {
-    if (sx === ex && sy === ey) return [];
+  /* 20260905cf: chickens / critters / NPCs / folk / dog / slugs are soft —
+     prefer path-around; else walk through so they scoot; never hard-dead-end. */
+  function softBlockAt(tx, ty) {
+    var i, c, list;
+    if (!inBounds(tx, ty)) return false;
+    if (currentScene === "overworld") {
+      if (npc && npc.tx === tx && npc.ty === ty) return true;
+      if (chicken && chicken.tx === tx && chicken.ty === ty) return true;
+    }
+    if (dogSceneOk() && dog && dog.tx === tx && dog.ty === ty) return true;
+    if (folkOccupies(tx, ty)) return true;
+    if (currentScene === "forest") list = forestCritters;
+    else if (currentScene === "ocean") list = oceanCritters;
+    else list = null;
+    if (list) {
+      for (i = 0; i < list.length; i++) {
+        c = list[i];
+        if (!c) continue;
+        if (c.tx === tx && c.ty === ty) return true;
+        if (c.path && c.path.length && c.path[0].tx === tx && c.path[0].ty === ty) return true;
+      }
+    }
+    if (typeof monsterAt === "function" && monsterAt(tx, ty)) return true;
+    return false;
+  }
+
+  function pathTileOk(tx, ty, allowSoft, ex, ey) {
+    if (!walkable(tx, ty)) return false;
+    /* Goal tile always OK if walkable — chicken scoot / talk approach must land. */
+    if (ex != null && ey != null && tx === ex && ty === ey) return true;
+    if (!allowSoft && softBlockAt(tx, ty)) return false;
+    return true;
+  }
+
+  function findPathSearch(sx, sy, ex, ey, allowSoft) {
     var q = [[sx, sy]];
     var came = {};
     function key(x, y) { return x + "," + y; }
     came[key(sx, sy)] = null;
     var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
     var head = 0;
-    var i, cur, nx, ny, nk;
+    var i, cur, nx, ny, nk, d;
     var goalOk = walkable(ex, ey);
     var bestX = sx, bestY = sy;
     var bestD = Math.abs(sx - ex) + Math.abs(sy - ey);
-    var d;
-    var near;
+    var reached = false;
     while (head < q.length) {
       cur = q[head++];
       if (goalOk && cur[0] === ex && cur[1] === ey) {
-        return rebuildPath(came, sx, sy, ex, ey);
+        reached = true;
+        bestX = ex;
+        bestY = ey;
+        bestD = 0;
+        break;
       }
       for (i = 0; i < 4; i++) {
         nx = cur[0] + dirs[i][0];
         ny = cur[1] + dirs[i][1];
         nk = key(nx, ny);
         if (came[nk] !== undefined) continue;
-        if (!walkable(nx, ny)) continue;
+        if (!pathTileOk(nx, ny, allowSoft, ex, ey)) continue;
         came[nk] = [cur[0], cur[1], nx, ny];
         q.push([nx, ny]);
         d = Math.abs(nx - ex) + Math.abs(ny - ey);
@@ -5904,47 +5940,70 @@
         }
       }
     }
-    /* Taps on snow/cliff/sky: walk toward the walkable tile nearest the tap,
-       not just the BFS node closest-to-goal from the start (often the start itself). */
-    if (!goalOk || (bestX === sx && bestY === sy)) {
-      near = nearestWalkable(ex, ey);
-      if (near && (near.tx !== sx || near.ty !== sy) && came[key(near.tx, near.ty)] !== undefined) {
-        return rebuildPath(came, sx, sy, near.tx, near.ty);
-      }
-      if (near && (near.tx !== sx || near.ty !== sy) && walkable(near.tx, near.ty)) {
-        return findPathToKnown(sx, sy, near.tx, near.ty);
+    return {
+      reached: reached,
+      bestX: bestX,
+      bestY: bestY,
+      bestD: bestD,
+      came: came,
+      path: (reached || (bestX !== sx || bestY !== sy)) ? rebuildPath(came, sx, sy, bestX, bestY) : []
+    };
+  }
+
+  function stepToward(sx, sy, ex, ey) {
+    var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    var best = null, bestD = Math.abs(sx - ex) + Math.abs(sy - ey), i, nx, ny, d;
+    for (i = 0; i < 4; i++) {
+      nx = sx + dirs[i][0];
+      ny = sy + dirs[i][1];
+      if (!pathTileOk(nx, ny, true, ex, ey)) continue;
+      d = Math.abs(nx - ex) + Math.abs(ny - ey);
+      if (d < bestD) {
+        bestD = d;
+        best = { tx: nx, ty: ny };
       }
     }
-    if (bestX === sx && bestY === sy) return [];
-    return rebuildPath(came, sx, sy, bestX, bestY);
+    return best ? [best] : [];
+  }
+
+  function findPath(sx, sy, ex, ey) {
+    var goalOk, avoid, through, near, best;
+    if (sx === ex && sy === ey) return [];
+    goalOk = walkable(ex, ey);
+    /* Prefer path around soft blockers when a full route exists. */
+    avoid = findPathSearch(sx, sy, ex, ey, false);
+    if (goalOk && avoid.reached) return avoid.path;
+    /* Else walk through soft blockers (they scoot) so taps never silently die. */
+    through = findPathSearch(sx, sy, ex, ey, true);
+    if (goalOk && through.reached) return through.path;
+    /* Taps on snow/cliff/sky: walk toward nearest walkable tile by the tap. */
+    if (!goalOk || (avoid.bestX === sx && avoid.bestY === sy && through.bestX === sx && through.bestY === sy)) {
+      near = nearestWalkable(ex, ey);
+      if (near && (near.tx !== sx || near.ty !== sy)) {
+        if (through.came[near.tx + "," + near.ty] !== undefined) {
+          return rebuildPath(through.came, sx, sy, near.tx, near.ty);
+        }
+        if (avoid.came[near.tx + "," + near.ty] !== undefined) {
+          return rebuildPath(avoid.came, sx, sy, near.tx, near.ty);
+        }
+        if (walkable(near.tx, near.ty)) {
+          return findPathToKnown(sx, sy, near.tx, near.ty);
+        }
+      }
+    }
+    best = (through.bestD < avoid.bestD) ? through : avoid;
+    if (best.bestX === sx && best.bestY === sy) return stepToward(sx, sy, ex, ey);
+    return best.path;
   }
 
   function findPathToKnown(sx, sy, ex, ey) {
+    var res;
     if (sx === ex && sy === ey) return [];
     if (!walkable(ex, ey)) return [];
-    var q = [[sx, sy]];
-    var came = {};
-    function key(x, y) { return x + "," + y; }
-    came[key(sx, sy)] = null;
-    var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-    var head = 0;
-    var i, cur, nx, ny, nk;
-    while (head < q.length) {
-      cur = q[head++];
-      if (cur[0] === ex && cur[1] === ey) {
-        return rebuildPath(came, sx, sy, ex, ey);
-      }
-      for (i = 0; i < 4; i++) {
-        nx = cur[0] + dirs[i][0];
-        ny = cur[1] + dirs[i][1];
-        nk = key(nx, ny);
-        if (came[nk] !== undefined) continue;
-        if (!walkable(nx, ny)) continue;
-        came[nk] = [cur[0], cur[1], nx, ny];
-        q.push([nx, ny]);
-      }
-    }
-    return [];
+    res = findPathSearch(sx, sy, ex, ey, true);
+    if (res.reached) return res.path;
+    if (res.bestX === sx && res.bestY === sy) return stepToward(sx, sy, ex, ey);
+    return res.path;
   }
 
   function faceToward(who, tx, ty) {
@@ -11273,11 +11332,76 @@
     return tile.tx === f.tx && tile.ty === f.ty;
   }
 
+  function npcYield() {
+    var dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    var i, d, nx, ny, away, scored, dx, dy;
+    if (currentScene !== "overworld" || !npc) return false;
+    scored = [];
+    for (i = 0; i < 4; i++) {
+      d = dirs[i];
+      nx = npc.tx + d[0];
+      ny = npc.ty + d[1];
+      if (!walkable(nx, ny)) continue;
+      if (playerOccupies(nx, ny)) continue;
+      if (chicken && chicken.tx === nx && chicken.ty === ny) continue;
+      if (carOccupies(nx, ny)) continue;
+      if (folkOccupies(nx, ny)) continue;
+      away = Math.abs(nx - player.tx) + Math.abs(ny - player.ty);
+      scored.push({ nx: nx, ny: ny, away: away, rnd: Math.random() });
+    }
+    scored.sort(function (a, b) {
+      if (b.away !== a.away) return b.away - a.away;
+      return a.rnd - b.rnd;
+    });
+    if (scored.length) {
+      npc.tx = scored[0].nx;
+      npc.ty = scored[0].ny;
+      npc.x = tileCenterX(npc.tx);
+      npc.y = tileFootY(npc.ty);
+      return true;
+    }
+    /* Penned / crowded: hop up to 2 tiles like chicken 05bu. */
+    scored = [];
+    for (dy = -2; dy <= 2; dy++) {
+      for (dx = -2; dx <= 2; dx++) {
+        if (!dx && !dy) continue;
+        if (Math.abs(dx) + Math.abs(dy) > 2) continue;
+        nx = npc.tx + dx;
+        ny = npc.ty + dy;
+        if (!walkable(nx, ny)) continue;
+        if (playerOccupies(nx, ny)) continue;
+        if (chicken && chicken.tx === nx && chicken.ty === ny) continue;
+        if (carOccupies(nx, ny)) continue;
+        if (folkOccupies(nx, ny)) continue;
+        away = Math.abs(nx - player.tx) + Math.abs(ny - player.ty);
+        scored.push({ nx: nx, ny: ny, away: away, rnd: Math.random() });
+      }
+    }
+    scored.sort(function (a, b) {
+      if (b.away !== a.away) return b.away - a.away;
+      return a.rnd - b.rnd;
+    });
+    if (scored.length) {
+      npc.tx = scored[0].nx;
+      npc.ty = scored[0].ny;
+      npc.x = tileCenterX(npc.tx);
+      npc.y = tileFootY(npc.ty);
+      return true;
+    }
+    return false;
+  }
+
   function updateTownFolk(dt) {
     var i, f, dest;
     var list;
     if (currentScene !== "overworld" && currentScene !== "forest") return;
-    if (currentScene === "overworld" && npc && playerNearFolk(npc)) folkStop(npc);
+    /* 20260905cf: Junie scoots when Orion walks into / toward her tile. */
+    if (currentScene === "overworld" && npc) {
+      if (playerOccupies(npc.tx, npc.ty) ||
+          (player.path && player.path.length && player.path[0].tx === npc.tx && player.path[0].ty === npc.ty)) {
+        npcYield();
+      }
+    }
     list = liveFolk();
     for (i = 0; i < list.length; i++) {
       f = list[i];
@@ -15525,6 +15649,8 @@
     }
     if (dest.tx === player.tx && dest.ty === player.ty) return;
     path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    /* 20260905cf: far/open taps must walk at least one step when any neighbor is freer. */
+    if (!path.length) path = stepToward(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) return;
     startWalk(player, path, 3.5);
   }
@@ -20752,7 +20878,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ce", BUILD);
+      ok("BUILD", BUILD === "20260905cf", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -21030,6 +21156,48 @@ if (currentScene === "ocean") goExitOcean();
         ok("playBallBounceTried", bounceTried);
         parkPlayBall(farmB, 12, 32);
       }
+      /* 20260905cf: soft blockers never permanently dead-end far taps. */
+      applyScene("overworld");
+      buildSolid();
+      var junieTx = npc.tx, junieTy = npc.ty;
+      /* Use clear farm-yard grass (away from houseIn 17,28 footprint). */
+      placePlayer(6, 30, "right");
+      npc.tx = 8; npc.ty = 30;
+      npc.x = tileCenterX(npc.tx); npc.y = tileFootY(npc.ty);
+      buildSolid();
+      ok("npcNotHardSolid", walkable(npc.tx, npc.ty), "junie@" + npc.tx + "," + npc.ty);
+      ok("softBlockDetectsNpc", softBlockAt(npc.tx, npc.ty), "");
+      var pathAround = findPath(player.tx, player.ty, 12, 30);
+      ok("pathPastNpc", pathAround.length > 0, "n=" + pathAround.length);
+      var endNpc = pathAround.length ? pathAround[pathAround.length - 1] : null;
+      ok("pathPastNpcReaches", !!(endNpc && endNpc.tx === 12 && endNpc.ty === 30), endNpc && (endNpc.tx + "," + endNpc.ty));
+      /* Soft on the line: still finds a route (around or through+scoot). */
+      placePlayer(6, 31, "right");
+      npc.tx = 8; npc.ty = 31;
+      npc.x = tileCenterX(npc.tx); npc.y = tileFootY(npc.ty);
+      var pathThru = findPath(6, 31, 12, 31);
+      ok("pathThroughNpc", pathThru.length > 0, "n=" + pathThru.length);
+      /* Chicken scoot target still pathable. */
+      chicken.tx = 10; chicken.ty = 33;
+      chicken.x = tileCenterX(chicken.tx); chicken.y = tileFootY(chicken.ty);
+      placePlayer(10, 35, "up");
+      var pathChick = findPath(player.tx, player.ty, chicken.tx, chicken.ty);
+      ok("pathOntoChicken", pathChick.length > 0, "n=" + pathChick.length);
+      var endC = pathChick[pathChick.length - 1];
+      ok("pathOntoChickenEnds", !!(endC && endC.tx === chicken.tx && endC.ty === chicken.ty), endC && (endC.tx + "," + endC.ty));
+      /* Far open ground: always some progress (partway harden). */
+      placePlayer(6, 30, "down");
+      var far = findPath(6, 30, 6, 35);
+      ok("farOpenPath", far.length > 0, "n=" + far.length);
+      /* House door path still works with soft Junie on the stoop below. */
+      npc.tx = houseIn.tx; npc.ty = houseIn.ty + 1;
+      npc.x = tileCenterX(npc.tx); npc.y = tileFootY(npc.ty);
+      placePlayer(houseIn.tx, houseIn.ty + 4, "up");
+      var pathDoor = findPath(player.tx, player.ty, houseIn.tx, houseIn.ty);
+      ok("doorPathWithSoftNpc", pathDoor.length > 0, "n=" + pathDoor.length);
+      npc.tx = junieTx; npc.ty = junieTy;
+      npc.x = tileCenterX(npc.tx); npc.y = tileFootY(npc.ty);
+      buildSolid();
     } catch (e) {
       fail++;
       log.push("FAIL exception — " + (e && e.message ? e.message : e));
