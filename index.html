@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ha";
+  var BUILD = "20260905hb";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -14472,6 +14472,70 @@
     return true;
   }
 
+  /* 20260905hb: farm well Space/tap splash (fountain already talked; well was silent solid). */
+  function findWell() {
+    var i, p;
+    if (currentScene !== "overworld") return null;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p && p.kind === "well") return p;
+    }
+    return null;
+  }
+
+  function nearWell() {
+    var w = findWell();
+    if (!w) return false;
+    if (isNear(player.tx, player.ty, w.tx, w.ty) || (player.tx === w.tx && player.ty === w.ty)) return true;
+    return false;
+  }
+
+  function talkWell() {
+    var w = findWell();
+    if (w) {
+      spawnBoatSplash(w.tx * TILE + 8, w.ty * TILE + 6);
+      faceToward(player, w.tx, w.ty);
+    } else if (player) {
+      spawnBoatSplash(player.x, player.y - 4);
+    }
+    playSfx("splash");
+    showLineNote("SPLASH!");
+    openDialogue("WELL", ["COOL WATER.", "SPLASH!"]);
+  }
+
+  function goWell() {
+    var w, dest, path;
+    w = findWell();
+    if (!w) return;
+    highlight = { tx: w.tx, ty: w.ty };
+    if (nearWell()) {
+      pending = null;
+      talkWell();
+      return;
+    }
+    dest = nearestAdjacent(w.tx, w.ty);
+    if (!dest) {
+      talkWell();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkWell();
+      return;
+    }
+    pending = { type: "well" };
+    startWalk(player, path, 3.5);
+  }
+
+  function tryWellAdjacent() {
+    if (uiPaused() || faintFx) return false;
+    if (currentScene !== "overworld") return false;
+    if (!nearWell()) return false;
+    pending = null;
+    talkWell();
+    return true;
+  }
+
   function findMoonAltar() {
     var i, p;
     for (i = 0; i < PROPS.length; i++) {
@@ -18809,6 +18873,8 @@
       talkPeakAltar();
     } else if (act.type === "landmark") {
       if (act.prop) talkLandmark(act.prop);
+    } else if (act.type === "well") {
+      if (nearWell()) talkWell();
     } else if (act.type === "enterShop") {
       enterShop();
     } else if (act.type === "exitShop") {
@@ -20761,6 +20827,8 @@
     } else if (p.kind === "well") {
       var wp, wa, wfr;
       if (!drawAtlas2x(g, "well", x, y)) Assets.draw(g, "well", x, y);
+      /* 20260905hb: WELL float so kids spot the splashable well (SLEEP/CHEST style). */
+      drawShaftLabel(g, p, "WELL");
       /* 20260905db: soft water shimmer in the farm well bucket */
       wp = 0.09 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 240 + p.tx));
       g.fillStyle = "rgba(120,180,210," + wp.toFixed(3) + ")";
@@ -24015,6 +24083,11 @@
       goLandmark(hitProp);
       return;
     }
+    /* 20260905hb: tap farm well splash (was silent solid; fountain already goLandmark'd). */
+    if (currentScene === "overworld" && hitProp && hitProp.kind === "well") {
+      goWell();
+      return;
+    }
     if (hitProp && hitProp.kind === "note") {
       goReadNote();
       return;
@@ -24470,6 +24543,8 @@ if (currentScene === "ocean") goExitOcean();
       if (tryReadNoteAdjacent()) return;
       /* 20260905ft: Space talk statue/fountain + peak altar (tap already worked). */
       if (tryLandmarkAdjacent()) return;
+      /* 20260905hb: Space splash farm well (tap already goWell'd; fountain Space existed). */
+      if (tryWellAdjacent()) return;
       if (tryPeakAltarAdjacent()) return;
       /* 20260905fv: Space beep car (tap already goTapCar'd). */
       if (tryCarAdjacent()) return;
@@ -24981,7 +25056,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ha", BUILD);
+      ok("BUILD", BUILD === "20260905hb", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26863,6 +26938,17 @@ if (currentScene === "ocean") goExitOcean();
       buildSolid();
       placePlayer(6, 11, "up");
       ok("fernSpaceCut", !!tryCutGrassFacing() && !propAt(6, 10), "prop=" + !!(propAt(6, 10)));
+      /* 20260905hb: farm well Space splash (tap goWell; was silent). */
+      applyScene("overworld");
+      buildSolid();
+      var _well = findWell();
+      ok("wellExists", !!_well, "");
+      if (_well) {
+        var _wadj = nearestAdjacent(_well.tx, _well.ty);
+        if (_wadj) placePlayer(_wadj.tx, _wadj.ty, "up");
+        else placePlayer(_well.tx, _well.ty + 1, "up");
+        ok("wellSpaceSplash", !!tryWellAdjacent(), "near=" + nearWell());
+      }
       /* Far open ground: always some progress (partway harden). */
       placePlayer(6, 30, "down");
       var far = findPath(6, 30, 6, 35);
