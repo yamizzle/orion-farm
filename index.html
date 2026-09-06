@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hb";
+  var BUILD = "20260905hc";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -15195,7 +15195,13 @@
   }
 
   function isShopEntrance(tx, ty) {
-    return currentScene === "overworld" && tx === shopIn.tx && ty === shopIn.ty;
+    var p;
+    if (currentScene !== "overworld") return false;
+    if (tx === shopIn.tx && ty === shopIn.ty) return true;
+    /* 20260905hc: outdoor PIP'S SHOP sign enters like WOODS / OCEAN / MINE signs
+       (sign at 45,26 was a silent walk-only tile; door/stoop already entered). */
+    p = propAt(tx, ty);
+    return !!(p && p.kind === "shopSign");
   }
 
   function isShopExit(tx, ty) {
@@ -20530,7 +20536,7 @@
     }
     if (p.kind === "giantBird") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
     if (p.kind === "bird") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 20 };
-    if (p.kind === "woodsSign" || p.kind === "oceanSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 36 };
+    if (p.kind === "woodsSign" || p.kind === "oceanSign" || p.kind === "shopSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 36 };
     if (p.kind === "brokenBridge" || p.kind === "fixedBridge") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 80, h: 48 };
     if (p.kind === "rowboat") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 32 };
     if (p.kind === "peakRocks") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
@@ -21061,6 +21067,8 @@
       }
     } else if (p.kind === "shopSign") {
       if (!drawAtlas2x(g, "shopSign", x, y)) Assets.draw(g, "shopSign", x, y);
+      /* 20260905hc: SHOP float outdoors so kids spot the enterable sign (WELL/SLEEP style). */
+      if (currentScene === "overworld") drawShaftLabel(g, p, "SHOP");
     } else if (p.kind === "counter") {
       if (!drawAtlas2x(g, "counter", x, y)) Assets.draw(g, "counter", x, y);
     } else if (p.kind === "townFlower") {
@@ -23579,6 +23587,11 @@
         goEnterShop();
         return;
       }
+      /* 20260905hc: tap outdoor PIP'S SHOP sign enters (WOODS/OCEAN/MINE signs already did). */
+      if (propAt(tx, ty) && propAt(tx, ty).kind === "shopSign") {
+        goEnterShop();
+        return;
+      }
       if (cottageDoorHit(tx, ty, world) || isCottageEntrance(tx, ty)) {
         goEnterCottage();
         return;
@@ -23809,6 +23822,11 @@
       goEnterShop();
       return;
     }
+    /* 20260905hc: tap outdoor shopSign tile enters Pip's shop. */
+    if (currentScene === "overworld" && propAt(tx, ty) && propAt(tx, ty).kind === "shopSign") {
+      goEnterShop();
+      return;
+    }
     if (currentScene === "overworld" && tx === tallCottageIn.tx && ty === tallCottageIn.ty) {
       goWalk(tx, ty);
       return;
@@ -24008,7 +24026,7 @@
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -24049,6 +24067,11 @@
       else if (currentScene === "lHouse") goExitLHouse();
       else if (currentScene === "islandCave") goExitIslandCave();
       else goExitHouse();
+      return;
+    }
+    /* 20260905hc: overworld shopSign → enter shop (indoor shopSign still opens buy UI). */
+    if (currentScene === "overworld" && hitProp && hitProp.kind === "shopSign") {
+      goEnterShop();
       return;
     }
     if (currentScene === "shop" && hitProp && (hitProp.kind === "counter" || hitProp.kind === "shopSign")) {
@@ -25056,7 +25079,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hb", BUILD);
+      ok("BUILD", BUILD === "20260905hc", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -26952,7 +26975,24 @@ if (currentScene === "ocean") goExitOcean();
       /* Far open ground: always some progress (partway harden). */
       placePlayer(6, 30, "down");
       var far = findPath(6, 30, 6, 35);
-      ok("farOpenPath", far.length > 0, "n=" + far.length);
+            /* 20260905hc: outdoor shopSign enters Pip's shop (WOODS/OCEAN/MINE sign class). */
+      applyScene("overworld");
+      var _ss = null, _ssi;
+      for (_ssi = 0; _ssi < PROPS.length; _ssi++) {
+        if (PROPS[_ssi] && PROPS[_ssi].kind === "shopSign") { _ss = PROPS[_ssi]; break; }
+      }
+      ok("shopSignExists", !!_ss, "");
+      if (_ss) {
+        ok("shopSignIsEntrance", !!isShopEntrance(_ss.tx, _ss.ty), "tx=" + _ss.tx + "," + _ss.ty);
+        var _ssAdj = nearestAdjacent(_ss.tx, _ss.ty);
+        if (_ssAdj) placePlayer(_ssAdj.tx, _ssAdj.ty, "up");
+        else placePlayer(_ss.tx, _ss.ty + 1, "up");
+        /* enterShop fades — assert Space armed the door, not instant scene. */
+        ok("shopSignSpaceEnter", !!trySceneDoors(), "nearSign=" + isShopEntrance(_ss.tx, _ss.ty));
+        applyScene("overworld");
+      }
+
+ok("farOpenPath", far.length > 0, "n=" + far.length);
       /* House door path still works with soft Junie on the stoop below. */
       npc.tx = houseIn.tx; npc.ty = houseIn.ty + 1;
       npc.x = tileCenterX(npc.tx); npc.y = tileFootY(npc.ty);
