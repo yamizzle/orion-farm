@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905bq";
+  var BUILD = "20260905br";
   var ASSET_REV = "445667";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -791,6 +791,8 @@
   var faintFx = null;
   var monsters = [];
   var monsterCache = { 1: null, 2: null, 3: null, 4: null, 5: null, 6: null };
+  /* 20260905br: soft overworld/woods slugs (separate from mine floors). */
+  var outdoorMonsterCache = { overworld: null, forest: null };
   var mineFloor = 1;
   var MINE3_COLS = 22;
   var MINE3_ROWS = 16;
@@ -2546,6 +2548,7 @@
       dockBoatBeforeLeavingOcean();
     }
     if (currentScene === "mine") monsterCache[mineFloor] = monsters;
+    else if (currentScene === "overworld" || currentScene === "forest") outdoorMonsterCache[currentScene] = monsters;
     saveScene();
     if (name !== currentScene) cancelFishing();
     if (name === "mine") mineFloor = floor ? clampMineFloor(floor) : clampMineFloor(mineFloor);
@@ -2713,10 +2716,21 @@
       syncMineMonsterCombat();
       ensureCaveSword(true);
       openMineAisle();
+    } else if (name === "overworld" || name === "forest") {
+      /* Spawn after buildSolid so walkable/solid match this map. */
+      monsters = [];
     } else {
       monsters = [];
     }
     buildSolid();
+    if (name === "overworld" || name === "forest") {
+      /* null = never seeded this day; [] = cleared/killed — don't instantly reswarm on re-entry.
+         Evening/night top-up happens once on clock phase change (ensureOutdoorSlugs). */
+      if (outdoorMonsterCache[name] != null) monsters = outdoorMonsterCache[name];
+      else spawnOutdoorSlugs(name);
+      syncMineMonsterCombat();
+      outdoorMonsterCache[name] = monsters;
+    }
     if (name === "overworld") {
       holidaySyncKey = "";
       syncHolidayProps();
@@ -9730,7 +9744,10 @@
     monsterCache[4] = null;
     monsterCache[5] = null;
     monsterCache[6] = null;
+    outdoorMonsterCache.overworld = null;
+    outdoorMonsterCache.forest = null;
     if (currentScene === "mine") spawnMineMonsters();
+    else if (currentScene === "overworld" || currentScene === "forest") spawnOutdoorSlugs(currentScene);
     else monsters = [];
     spot = sleepWakeSpot();
     placePlayer(spot.tx, spot.ty, "up");
@@ -10274,6 +10291,8 @@
         holidaySyncKey = "";
         syncHolidayProps();
       }
+      /* 20260905br: evening/night can top-up shy daytime farm slugs once per phase flip. */
+      if (outdoorSlugScene()) ensureOutdoorSlugs(currentScene);
       /* Defer save so a sync localStorage hitch cannot nest inside the tick. */
       setTimeout(function () { persistSave(); }, 0);
     }
@@ -12924,6 +12943,8 @@
 
   function makeMon(kind, tx, ty) {
     var spec = {
+      /* 20260905br: outdoor slug — softer than mine slime (2hp / half-heart bump). */
+      slug: { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1, scale: 0.9 },
       slime: { sprite: "slime", maxHp: 4, dmg: BUMP_DMG, gold: 1, scale: 1 },
       bat: { sprite: "bat", maxHp: 6, dmg: BUMP_DMG, gold: 2, scale: 1 },
       grub: { sprite: "rockgrub", maxHp: 6, dmg: BUMP_DMG, gold: 1, scale: 1 },
@@ -12975,7 +12996,154 @@
     }
   }
 
-  function spawnMineMonsters() {
+  function outdoorSlugScene() {
+    return currentScene === "overworld" || currentScene === "forest";
+  }
+
+  function outdoorSlugTarget(scene) {
+    var ph;
+    scene = scene || currentScene;
+    if (scene === "forest") return 2;
+    if (scene !== "overworld") return 0;
+    /* Night-friendly: evenings/nights get a few rim lurkers; day keeps one shy edge slug. */
+    ph = clockPhaseName();
+    if (ph === "EVENING" || ph === "NIGHT") return 3;
+    return 1;
+  }
+
+  function outdoorKeepClear(tx, ty) {
+    if (currentScene === "overworld") {
+      if (Math.abs(tx - houseIn.tx) + Math.abs(ty - houseIn.ty) <= 3) return true;
+      if (Math.abs(tx - forestIn.tx) + Math.abs(ty - forestIn.ty) <= 2) return true;
+      if (Math.abs(tx - 36) + Math.abs(ty - 6) <= 2) return true; /* NE mine */
+      if (tx >= 40) return true; /* town / river */
+      if (tx >= FARM.x0 && tx <= FARM.x1 && ty >= FARM.y0 && ty <= FARM.y1) {
+        /* Keep crop/yard soft — slugs stay on the rim, not the chicken yard center. */
+        if (tx >= FARM.x0 + 2 && tx <= FARM.x1 - 2 && ty >= FARM.y0 + 2 && ty <= FARM.y1 - 2) return true;
+      }
+      return false;
+    }
+    if (currentScene === "forest") {
+      if (ty >= FOREST_ROWS - 3) return true; /* FARM exit */
+      if (tx === treetopDoor.tx && ty === treetopDoor.ty) return true;
+      return false;
+    }
+    return false;
+  }
+
+  function outdoorMonCellOk(tx, ty) {
+    var ch;
+    if (!inBounds(tx, ty) || solid[ty][tx]) return false;
+    if (!walkable(tx, ty)) return false;
+    ch = cell(tx, ty);
+    return ch === "g" || ch === "d" || ch === "p" || ch === "h";
+  }
+
+  function outdoorSlugCandidates(scene) {
+    if (scene === "forest") {
+      return [
+        { tx: 6, ty: 28 }, { tx: 20, ty: 22 }, { tx: 8, ty: 48 },
+        { tx: 18, ty: 40 }, { tx: 12, ty: 18 }, { tx: 22, ty: 52 }
+      ];
+    }
+    /* Farm edges + woods-path spur (away from house / town / mine pad). */
+    return [
+      { tx: 3, ty: 16 }, { tx: 8, ty: 18 }, { tx: 2, ty: 32 },
+      { tx: 12, ty: 37 }, { tx: 22, ty: 34 }, { tx: 28, ty: 12 },
+      { tx: 4, ty: 26 }, { tx: 20, ty: 38 }
+    ];
+  }
+
+  function pickOutdoorSlugTile(scene, used) {
+    var cands = outdoorSlugCandidates(scene);
+    var i, c, spot, key, tries, ox, oy;
+    for (i = 0; i < cands.length; i++) {
+      c = cands[i];
+      spot = nearestWalkable(c.tx, c.ty);
+      if (!spot) continue;
+      if (!outdoorMonCellOk(spot.tx, spot.ty)) continue;
+      /* Temporarily swap scene context helpers rely on currentScene — caller sets it. */
+      if (outdoorKeepClear(spot.tx, spot.ty)) continue;
+      if (playerOccupies(spot.tx, spot.ty)) continue;
+      key = spot.tx + "," + spot.ty;
+      if (used[key]) continue;
+      used[key] = true;
+      return spot;
+    }
+    /* Soft fallback: nudge candidates. */
+    for (tries = 0; tries < 24; tries++) {
+      c = cands[tries % cands.length];
+      ox = c.tx + ((tries % 5) - 2);
+      oy = c.ty + (((tries / 5) | 0) % 5) - 2;
+      if (!outdoorMonCellOk(ox, oy) || outdoorKeepClear(ox, oy) || playerOccupies(ox, oy)) continue;
+      key = ox + "," + oy;
+      if (used[key]) continue;
+      used[key] = true;
+      return { tx: ox, ty: oy };
+    }
+    return null;
+  }
+
+  function spawnOutdoorSlugs(scene) {
+    var want, used, list, i, spot, mon;
+    scene = scene || currentScene;
+    want = outdoorSlugTarget(scene);
+    used = {};
+    list = [];
+    for (i = 0; i < want; i++) {
+      spot = pickOutdoorSlugTile(scene, used);
+      if (!spot) break;
+      mon = makeMon("slug", spot.tx, spot.ty);
+      mon.idle = 900 + Math.random() * 1400;
+      list.push(mon);
+    }
+    monsters = list;
+    outdoorMonsterCache[scene] = monsters;
+  }
+
+  function ensureOutdoorSlugs(scene) {
+    var want, used, i, m, spot, mon, alive, extras, dist;
+    scene = scene || currentScene;
+    if (scene !== "overworld" && scene !== "forest") return;
+    want = outdoorSlugTarget(scene);
+    alive = 0;
+    used = {};
+    for (i = 0; i < monsters.length; i++) {
+      m = monsters[i];
+      if (!m || m.hp <= 0) continue;
+      alive += 1;
+      used[m.tx + "," + m.ty] = true;
+    }
+    /* Day shrink: keep the closest few so mornings don't stay crowded. */
+    if (alive > want) {
+      extras = [];
+      for (i = 0; i < monsters.length; i++) {
+        m = monsters[i];
+        if (!m || m.hp <= 0) continue;
+        dist = Math.abs(m.tx - player.tx) + Math.abs(m.ty - player.ty);
+        extras.push({ m: m, dist: dist });
+      }
+      extras.sort(function (a, b) { return b.dist - a.dist; });
+      for (i = 0; i < extras.length && alive > want; i++) {
+        m = extras[i].m;
+        monsters.splice(monsters.indexOf(m), 1);
+        alive -= 1;
+      }
+      outdoorMonsterCache[scene] = monsters;
+      return;
+    }
+    while (alive < want) {
+      spot = pickOutdoorSlugTile(scene, used);
+      if (!spot) break;
+      mon = makeMon("slug", spot.tx, spot.ty);
+      mon.idle = 1100 + Math.random() * 1600;
+      monsters.push(mon);
+      alive += 1;
+    }
+    outdoorMonsterCache[scene] = monsters;
+  }
+
+    function spawnMineMonsters() {
     /* Keep landings roomy: no mobs within ~3 tiles of UP/DOWN pads. */
     if (mineFloor === 2) {
       monsters = [
@@ -13113,10 +13281,20 @@
   }
 
   function monsterOk(m, tx, ty) {
+    var homeR;
     if (!inBounds(tx, ty) || solid[ty][tx]) return false;
-    if (cell(tx, ty) !== "s") return false;
-    if (mineKeepClear(tx, ty)) return false;
-    if (Math.abs(tx - m.homeTx) + Math.abs(ty - m.homeTy) > 4) return false;
+    if (currentScene === "mine") {
+      if (cell(tx, ty) !== "s") return false;
+      if (mineKeepClear(tx, ty)) return false;
+      homeR = 4;
+    } else if (outdoorSlugScene()) {
+      if (!outdoorMonCellOk(tx, ty)) return false;
+      if (outdoorKeepClear(tx, ty)) return false;
+      homeR = (m && m.kind === "slug") ? 3 : 4;
+    } else {
+      return false;
+    }
+    if (Math.abs(tx - m.homeTx) + Math.abs(ty - m.homeTy) > homeR) return false;
     return true;
   }
 
@@ -13181,8 +13359,9 @@
   }
 
   function updateMonsters(dt) {
-    var i, m, dest;
-    if (currentScene !== "mine" || faintFx) return;
+    var i, m, dest, outdoor;
+    outdoor = outdoorSlugScene();
+    if ((!outdoor && currentScene !== "mine") || faintFx) return;
     for (i = 0; i < monsters.length; i++) {
       m = monsters[i];
       if (m.hp <= 0) continue;
@@ -13208,7 +13387,7 @@
         m.frame = m.frame ? 0 : 1;
       }
       dest = m.path && m.path.length ? m.path[0] : null;
-      if (dest && mineKeepClear(dest.tx, dest.ty)) {
+      if (dest && (currentScene === "mine" ? mineKeepClear(dest.tx, dest.ty) : outdoorKeepClear(dest.tx, dest.ty))) {
         m.path = [];
         m.stepFrom = null;
         m.stepT = 0;
@@ -13221,7 +13400,8 @@
       } else {
         m.idle -= dt;
         if (m.idle <= 0) {
-          m.idle = 700 + Math.random() * 1600;
+          /* Outdoor slugs loaf longer so they never swarm. */
+          m.idle = outdoor ? (1200 + Math.random() * 2200) : (700 + Math.random() * 1600);
           monsterYield(m);
         }
       }
@@ -13231,7 +13411,7 @@
 
   function checkMonsterBumps() {
     var i, m, dx, dy, rad, flying;
-    if (currentScene !== "mine" || faintFx || iFrames > 0) return;
+    if ((currentScene !== "mine" && !outdoorSlugScene()) || faintFx || iFrames > 0) return;
     for (i = 0; i < monsters.length; i++) {
       m = monsters[i];
       if (m.hp <= 0) continue;
@@ -13239,10 +13419,10 @@
       dy = Math.abs(m.y - player.y);
       flying = (m.kind === "bat" || m.kind === "crystalbat");
       /* 20260903b: all foes use tight pixel contact (slime soft-neighbor was multi-drain). */
-      rad = m.scale > 1.2 ? 18 : (flying ? 12 : 14);
+      rad = m.scale > 1.2 ? 18 : (flying ? 12 : (m.kind === "slug" ? 12 : 14));
       if (dx * dx + dy * dy <= rad * rad) {
         hurtPlayer(m.dmg);
-        m.stun = Math.max(m.stun | 0, 700);
+        m.stun = Math.max(m.stun | 0, m.kind === "slug" ? 900 : 700);
         monsterYield(m);
         return;
       }
@@ -13364,6 +13544,8 @@
     monsterCache[4] = null;
     monsterCache[5] = null;
     monsterCache[6] = null;
+    outdoorMonsterCache.overworld = null;
+    outdoorMonsterCache.forest = null;
     monsters = [];
     toll = (gold / 10) | 0;
     if (toll > gold) toll = gold;
@@ -13539,14 +13721,26 @@
     }
   }
 
+  function spawnOutdoorDrop(mon) {
+    var roll = Math.random();
+    if (roll < 0.30) return;
+    if (roll < 0.65) spawnGroundLoot("pebble", mon.tx, mon.ty, 1);
+    else if (roll < 0.88) spawnGroundLoot("mushroom", mon.tx, mon.ty, 1);
+    else spawnGroundLoot("gold", mon.tx, mon.ty, 1);
+  }
+
   function defeatMonster(mon) {
     var i;
     mon.hp = 0;
     spawnSparks(mon.x, mon.y - 2);
-    spawnMineDrop(mon);
+    if (currentScene === "mine") spawnMineDrop(mon);
+    else spawnOutdoorDrop(mon);
     i = monsters.indexOf(mon);
     if (i >= 0) monsters.splice(i, 1);
-    unlockAch("caveFoe");
+    if (currentScene === "overworld" || currentScene === "forest") {
+      outdoorMonsterCache[currentScene] = monsters;
+    }
+    if (currentScene === "mine") unlockAch("caveFoe");
     persistSave();
   }
 
@@ -16157,7 +16351,7 @@
     var list = [];
     var i;
     list.push({ foot: playerDrawFoot(), kind: "player" });
-    if (currentScene === "mine") {
+    if (currentScene === "mine" || currentScene === "overworld" || currentScene === "forest") {
       for (i = 0; i < monsters.length; i++) {
         if (monsters[i].hp > 0) list.push({ foot: monsters[i].y, kind: "mon", m: monsters[i] });
       }
@@ -18288,6 +18482,18 @@
       }
     }
 
+    if (outdoorSlugScene()) {
+      var omi, oMon;
+      for (omi = 0; omi < monsters.length; omi++) {
+        oMon = monsters[omi];
+        if (!oMon || oMon.hp <= 0) continue;
+        if (hitSprite(world, oMon.x, oMon.y, 16, 16, 8, 14)) {
+          goFight(oMon);
+          return;
+        }
+      }
+    }
+
     if (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) {
       if (tx < 0) tx = 0;
       if (ty < 0) ty = 0;
@@ -19441,7 +19647,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905bp", BUILD);
+      ok("BUILD", BUILD === "20260905br", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -19531,6 +19737,25 @@ if (currentScene === "ocean") goExitOcean();
       /* 20260905az: door signs share plaque art + floating shaft labels (not lamp woodPanel). */
       ok("doorSignLabelFn", typeof drawDoorSignLabel === "function", "");
       ok("woodsSignArt", !!(Assets.woodsSign && (Assets.woodsSign.naturalWidth || Assets.woodsSign.width) >= 32), "w=" + (Assets.woodsSign && (Assets.woodsSign.naturalWidth || Assets.woodsSign.width)));
+      /* 20260905br: gentle outdoor slugs on farm edges / woods. */
+      outdoorMonsterCache.overworld = null;
+      outdoorMonsterCache.forest = null;
+      applyScene("overworld");
+      dayMs = PHASE_MS * 3 + 1000; /* NIGHT-ish */
+      spawnOutdoorSlugs("overworld");
+      ok("overSlugsNight", monsters.length >= 2 && monsters.length <= 3, "n=" + monsters.length);
+      ok("overSlugKind", monsters.length && monsters[0].kind === "slug" && monsters[0].maxHp === 2, monsters[0] && monsters[0].kind);
+      applyScene("forest");
+      spawnOutdoorSlugs("forest");
+      ok("forestSlugs", monsters.length === 2, "n=" + monsters.length);
+      /* Sword kill outdoor slug for small loot path. */
+      placePlayer(monsters[0].tx, monsters[0].ty + 1, "up");
+      swordOwned = true;
+      trayCells[0] = { key: "sword", count: 1 };
+      var slug0 = monsters[0];
+      startSwordSwing();
+      ok("slugSwordKill", slug0.hp <= 0, "hp=" + slug0.hp);
+
       /* 20260905ay: at most one weapon in the 10-tray (sword + bow). */
       bowOwned = true;
       trayCells[0] = { key: "sword", count: 1 };
