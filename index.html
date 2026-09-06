@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ak";
+  var BUILD = "20260905al";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4646,7 +4646,11 @@
 
   function drawLog(g, x, y) {
     if (Assets.log) {
+      var smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      /* 20260905al: 64×32 source into 32×16 logical (2× density) */
       g.drawImage(Assets.log, x, y, 32, 16);
+      g.imageSmoothingEnabled = smooth;
       return;
     }
     fill(g, x + 1, y + 8, 30, 6, "#5A3A18");
@@ -15113,7 +15117,7 @@
     } else if (p.kind === "stump") {
       if (!drawAtlas2x(g, "stump", x, y)) Assets.draw(g, "stump", x, y);
     } else if (p.kind === "well") {
-      Assets.draw(g, "well", x, y);
+      if (!drawAtlas2x(g, "well", x, y)) Assets.draw(g, "well", x, y);
     } else if (p.kind === "mailbox") {
       if (hasUnreadMail()) {
         Assets.draw(g, "mailboxUp", x, y);
@@ -15193,7 +15197,7 @@
     } else if (p.kind === "swordPedestal") {
       Assets.draw(g, "swordPedestal", x, y);
     } else if (p.kind === "note") {
-      Assets.draw(g, "note", x, y);
+      if (!drawAtlas2x(g, "note", x, y)) Assets.draw(g, "note", x, y);
     } else if (p.kind === "diamondPickaxe") {
       var dbob = Math.round(Math.sin(tick / 280) * 1);
       if (!drawUiIcon(g, "diamondPickaxe", x, y + dbob)) Assets.draw(g, "diamondPickaxe", x, y + dbob, 0, 0.5);
@@ -18456,7 +18460,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ak", BUILD);
+      ok("BUILD", BUILD === "20260905al", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
