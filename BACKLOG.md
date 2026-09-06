@@ -1,3 +1,5 @@
+Local 9/5 (BUILD 20260905cp): dusk outdoor slugs bigger (1.05 / 1.2) + warm rim glow; fence wood once-toast `TAP BUILD THEN A TILE`; chest floating CHEST label + once-toast `PUT ALL / TAKE ALL AT THE BOTTOM`. Never START OVER.
+
 Local 9/5 (BUILD 20260905co): cozy NPC juice — Junie idle frame flip + breath bob; town/forest folk + Nim soft idle bob; bobbing ! talk cue when Orion is within 2 tiles (hidden while dialogue open). Never START OVER.
 
 Local 9/5 (BUILD 20260905cn): town soccer Jobs `KICK THE BALL IN TOWN.` (`found.kickedTownPlayBall`); nest bird Jobs `GIVE 10 WOOD TO THE NEST BIRD` when bag has ≥10 (else BRING…); plant seed once-toast `TAP DIRT TO PLANT` + Jobs `PLANT SEEDS ON THE GARDEN DIRT.` while a seed is selected and garden empty. Never START OVER.

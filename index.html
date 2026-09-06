@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905co";
+  var BUILD = "20260905cp";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -7948,6 +7948,16 @@
     return fenceBuildOn;
   }
 
+  function maybeFenceBuildTip() {
+    /* 20260905cp: once toast so kids find the BUILD button on wood */
+    if (unlocked.fenceBuildTip) return;
+    if (currentScene !== "overworld" && currentScene !== "forest") return;
+    if (!selectedIs("wood") || !selectedHas("wood", 1)) return;
+    unlocked.fenceBuildTip = true;
+    showLineNote("TAP BUILD THEN A TILE");
+    persistSave();
+  }
+
   function pickHotbarSlot(id) {
     var key = (id >= 0 && id < TRAY_CELLS && trayCells[id]) ? trayCells[id].key : "";
     if (key === "wood" && selectedSlot === id) {
@@ -7960,6 +7970,7 @@
     maybeStoveCookTip();
     maybeFireplaceSmeltTip();
     maybePlantSeedTip();
+    maybeFenceBuildTip();
   }
 
   function tryBuild(tx, ty) {
@@ -9973,6 +9984,14 @@
     return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
   }
 
+  function maybeChestAllTip() {
+    /* 20260905cp: once toast so kids notice PUT ALL / TAKE ALL */
+    if (unlocked.chestAllTip) return;
+    unlocked.chestAllTip = true;
+    showLineNote("PUT ALL / TAKE ALL AT THE BOTTOM");
+    persistSave();
+  }
+
   function openChest() {
     closeCraft();
     chestOpen = true;
@@ -9981,6 +10000,7 @@
     chestMsgT = 0;
     chestScroll = 0;
     chestDrag = null;
+    maybeChestAllTip();
   }
 
   function closeChest() {
@@ -14035,7 +14055,8 @@
   function makeMon(kind, tx, ty) {
     var spec = {
       /* 20260905br: outdoor slug — softer than mine slime (2hp / half-heart bump). */
-      slug: { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1, scale: 0.9 },
+      /* 20260905cp: outdoor slugs a touch larger so dusk wash does not hide them */
+      slug: { sprite: "slime", maxHp: 2, dmg: BUMP_DMG, gold: 1, scale: 1.05 },
       slime: { sprite: "slime", maxHp: 4, dmg: BUMP_DMG, gold: 1, scale: 1 },
       bat: { sprite: "bat", maxHp: 6, dmg: BUMP_DMG, gold: 2, scale: 1 },
       grub: { sprite: "rockgrub", maxHp: 6, dmg: BUMP_DMG, gold: 1, scale: 1 },
@@ -14186,6 +14207,7 @@
       if (!spot) break;
       mon = makeMon("slug", spot.tx, spot.ty);
       mon.idle = 900 + Math.random() * 1400;
+      if (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT") mon.scale = 1.2;
       list.push(mon);
     }
     monsters = list;
@@ -14193,15 +14215,18 @@
   }
 
   function ensureOutdoorSlugs(scene) {
-    var want, used, i, m, spot, mon, alive, extras, dist;
+    var want, used, i, m, spot, mon, alive, extras, dist, dusk;
     scene = scene || currentScene;
     if (scene !== "overworld" && scene !== "forest") return;
     want = outdoorSlugTarget(scene);
+    dusk = (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT");
     alive = 0;
     used = {};
     for (i = 0; i < monsters.length; i++) {
       m = monsters[i];
       if (!m || m.hp <= 0) continue;
+      /* 20260905cp: existing rim slugs pop a bit more at dusk */
+      if (m.kind === "slug") m.scale = dusk ? 1.2 : 1.05;
       alive += 1;
       used[m.tx + "," + m.ty] = true;
     }
@@ -14228,6 +14253,7 @@
       if (!spot) break;
       mon = makeMon("slug", spot.tx, spot.ty);
       mon.idle = 1100 + Math.random() * 1600;
+      if (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT") mon.scale = 1.2;
       monsters.push(mon);
       alive += 1;
     }
@@ -17568,6 +17594,8 @@
     } else if (p.kind === "houseChest") {
       if (currentScene === "forest" || currentScene === "tree") drawForestChest(g, x, y);
       else if (!drawAtlas2x(g, "chest", x, y)) Assets.draw(g, "chest", x, y);
+      /* 20260905cp: CHEST float so the box is obvious (like MAIL / SLEEP) */
+      if (!chestOpen) drawShaftLabel(g, { tx: p.tx, ty: p.ty }, "CHEST");
     } else if (p.kind === "table") {
       Assets.draw(g, "table", x, y);
       if (homeLightOn() || found.mooncrystal || found.gem || found.sapphire) {
@@ -18169,12 +18197,22 @@
   }
 
   function drawMonster(g, m) {
-    var bob, sx, sc, maxHp, pips, filled, i, px, py, gap, totalW;
+    var bob, sx, sc, maxHp, pips, filled, i, px, py, gap, totalW, duskSlug, glow;
     if (!m || m.hp <= 0) return;
     bob = m.frame ? -1 : 0;
     sx = 0;
     if (m.shake > 0) sx = ((tick / 40) | 0) % 2 ? 1 : -1;
     sc = m.scale || 1;
+    duskSlug = m.kind === "slug" && outdoorSlugScene() &&
+      (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT");
+    if (duskSlug) {
+      /* 20260905cp: warm rim so evening wash cannot swallow night slugs */
+      glow = 0.28 + 0.18 * (0.5 + 0.5 * Math.sin(tick / 200 + (m.tx || 0)));
+      g.fillStyle = "rgba(255,220,140," + glow.toFixed(3) + ")";
+      g.fillRect(Math.round(m.x + sx - 10 * sc), Math.round(m.y + bob - 16 * sc), Math.round(20 * sc), Math.round(18 * sc));
+      g.fillStyle = "rgba(255,245,210," + (glow * 0.55).toFixed(3) + ")";
+      g.fillRect(Math.round(m.x + sx - 6 * sc), Math.round(m.y + bob - 12 * sc), Math.round(12 * sc), Math.round(10 * sc));
+    }
     drawShadow(g, m.x + sx, m.y, sc > 1.2 ? 6 : 4);
     if (sc !== 1) {
       g.save();
@@ -21404,7 +21442,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905co", BUILD);
+      ok("BUILD", BUILD === "20260905cp", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
