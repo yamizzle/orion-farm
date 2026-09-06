@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905es";
+  var BUILD = "20260905et";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -3702,7 +3702,13 @@
       playSfx("talk");
     }
     applyScene("islandCave");
-    placePlayer(islandCaveOut.tx, islandCaveOut.ty - 1, "up");
+    /* 20260905et: was ty-1 — only 1 tile north of OUT stairs; one south step
+       auto-exited. 2-tile gap (ty-2) like mine/tree/peak landings. */
+    placePlayer(islandCaveOut.tx, islandCaveOut.ty - 2, "up");
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(islandCaveOut.tx, islandCaveOut.ty - 1, "up");
+    }
+    unstickPlayer();
     persistSave();
   }
 
@@ -3710,12 +3716,14 @@
     applyScene("ocean");
     /* 20260905bo: boat must be visible where you docked on the island (not missing / not only at pier) */
     ensureBoatVisibleAtDock();
-    placePlayer(islandCaveIn.tx, islandCaveIn.ty + 1, "down");
-    if (!walkable(player.tx, player.ty)) {
-      placePlayer(islandCaveIn.tx, islandCaveIn.ty, "down");
-    }
+    /* 20260905et: was ty+1 — only 1 tile south of cave mouth; one north step
+       auto-reentered. 2-tile gap at ty+2 (ocean sand still walkable). */
+    placePlayer(islandCaveIn.tx, islandCaveIn.ty + 2, "down");
     if (!walkable(player.tx, player.ty)) {
       placePlayer(islandCaveIn.tx, islandCaveIn.ty + 1, "down");
+    }
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(islandCaveIn.tx, islandCaveIn.ty, "down");
     }
     unstickPlayer();
     persistSave();
@@ -9941,11 +9949,13 @@
       }
     } else if (currentScene === "islandCave") {
       if (isIslandCaveExit(tx, ty)) {
-        return { tx: islandCaveOut.tx, ty: islandCaveOut.ty - 1, face: "up" };
+        /* 20260905et: match enterIslandCave 2-tile landing */
+        return { tx: islandCaveOut.tx, ty: islandCaveOut.ty - 2, face: "up" };
       }
     } else if (currentScene === "ocean") {
       if (isIslandCaveEntrance(tx, ty)) {
-        return { tx: islandCaveIn.tx, ty: islandCaveIn.ty + 1, face: "down" };
+        /* 20260905et: match exitIslandCave 2-tile landing */
+        return { tx: islandCaveIn.tx, ty: islandCaveIn.ty + 2, face: "down" };
       }
       /* Pier north strip auto-exits to farm — land on oceanLand instead. */
       if (isOceanExit(tx, ty)) {
@@ -10078,7 +10088,7 @@
       else if (scene === "cottage2") { tx = 6; ty = 5; face = "up"; }
       else if (scene === "tallCottage") { tx = 8; ty = 7; face = "up"; }
       else if (scene === "lHouse") { tx = 7; ty = 7; face = "up"; }
-      else if (scene === "islandCave") { tx = islandCaveOut.tx; ty = islandCaveOut.ty - 1; face = "up"; }
+      else if (scene === "islandCave") { tx = islandCaveOut.tx; ty = islandCaveOut.ty - 2; face = "up"; }
       else if (scene === "caveclimb") {
         if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
         else { tx = 5; ty = 7; face = "up"; }
@@ -23304,7 +23314,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905es", BUILD);
+      ok("BUILD", BUILD === "20260905et", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -23669,6 +23679,17 @@ if (currentScene === "ocean") goExitOcean();
       applyScene("mine", 6);
       ok("minePeakStairsAt", isMinePeakStairs(22, 6), "stairs");
       ok("mineFromClimbLandOffStairs", walkable(22, 8) && !isMinePeakStairs(22, 8) && (8 - 6) >= 2, "22,8");
+      /* 20260905et: island cave enter/exit landings are 2 tiles off the gate */
+      applyScene("islandCave");
+      var icLand = { tx: islandCaveOut.tx, ty: islandCaveOut.ty - 2 };
+      ok("islandCaveEnterLandOffOut", walkable(icLand.tx, icLand.ty) && (islandCaveOut.ty - icLand.ty) >= 2 && !isIslandCaveExit(icLand.tx, icLand.ty), icLand.tx + "," + icLand.ty);
+      var icN = nudgeRestoreOffGate(islandCaveOut.tx, islandCaveOut.ty, "up");
+      ok("islandCaveOutNudge", !!(icN && icN.tx === islandCaveOut.tx && icN.ty === islandCaveOut.ty - 2), icN && (icN.tx + "," + icN.ty));
+      applyScene("ocean");
+      var ocLand = { tx: islandCaveIn.tx, ty: islandCaveIn.ty + 2 };
+      ok("islandCaveExitLandOffIn", walkable(ocLand.tx, ocLand.ty) && (ocLand.ty - islandCaveIn.ty) >= 2 && !isIslandCaveEntrance(ocLand.tx, ocLand.ty), ocLand.tx + "," + ocLand.ty);
+      var ocN = nudgeRestoreOffGate(islandCaveIn.tx, islandCaveIn.ty, "down");
+      ok("islandCaveInNudge", !!(ocN && ocN.tx === islandCaveIn.tx && ocN.ty === islandCaveIn.ty + 2), ocN && (ocN.tx + "," + ocN.ty));
       applyScene("peak");
       var pk = nudgeRestoreOffGate(18, 25, "up");
       ok("peakCaveNudge", !!(pk && pk.tx === peakLand.tx && pk.ty === peakLand.ty), pk && (pk.tx + "," + pk.ty));
