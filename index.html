@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ch";
+  var BUILD = "20260905ci";
   var ASSET_REV = "467501";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -442,10 +442,11 @@
   var highlight = null;
   var ripples = [];
   var sparks = [];
+  var killBursts = []; /* 20260905ci: linger death flash after foe removed */
   var pickups = [];
   var groundLoot = [];
   var lootSeq = 1;
-  var LOOT_POP_MS = 280;
+  var LOOT_POP_MS = 420; /* 20260905ci: longer loot hop so kids see the drop */
   var selectedSlot = 0;
   var fenceBuildOn = false;
   var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, cookedMinnow: 0, cookedBluegill: 0, cookedPerch: 0, cookedCatfish: 0, cookedTrout: 0, cookedBass: 0, cookedGoldenCarp: 0, cookedMoonfish: 0, cookedStarfin: 0, cookedGoldenSwordfish: 0, leash: 0 };
@@ -5656,6 +5657,8 @@
     if (currentScene === "overworld" && hasOverRim() && overRimTile(tx, ty)) return false;
     if (carOccupies(tx, ty)) return false;
     if (onBoat && currentScene === "ocean") return boatOk(tx, ty);
+    /* 20260905ci: belt-and-suspenders — deep ocean "y" never walkable on foot */
+    if (currentScene === "ocean" && !onBoat && cell(tx, ty) === "y") return false;
     return true;
   }
 
@@ -5684,6 +5687,14 @@
 
   function unstickPlayer() {
     var spot;
+    /* 20260905ci: foot on deep water without boat → shore + TOO DEEP */
+    if (currentScene === "ocean" && !onBoat && cell(player.tx, player.ty) === "y") {
+      spot = nearestWalkable(player.tx, player.ty);
+      placePlayer(spot.tx, spot.ty, player.face);
+      showLineNote("TOO DEEP.");
+      persistSave();
+      return true;
+    }
     if (walkable(player.tx, player.ty)) return false;
     spot = nearestWalkable(player.tx, player.ty);
     placePlayer(spot.tx, spot.ty, player.face);
@@ -6576,7 +6587,27 @@
     if (kind === "flower") return "A FLOWER";
     if (kind === "pebble") return "A PEBBLE";
     if (kind === "veggie") return "A CARROT";
+    if (kind === "iron") return "IRON";
+    if (kind === "gold") return "A COIN";
+    if (kind === "goldPile") return "GOLD";
+    if (kind === "gem") return "A GEM";
+    if (kind === "sapphire") return "A SAPPHIRE";
+    if (kind === "stone") return "A STONE";
+    if (kind === "silver") return "SILVER";
+    if (kind === "goldore") return "GOLD ORE";
     return "A STONE";
+  }
+
+  /* 20260905ci: kid toast when a foe drops loot */
+  function lootDropNote(kind, amount) {
+    var name = digLootName(kind);
+    amount = amount | 0;
+    if (kind === "gold" || kind === "sapphire" || kind === "gem") {
+      if (amount > 1) return "GOT " + name + " +" + amount + "!";
+      return "GOT " + name + "!";
+    }
+    if (amount > 1) return "GOT " + name + " x" + amount + "!";
+    return "GOT " + name + "!";
   }
 
   function woodsLootName(kind) {
@@ -6656,6 +6687,35 @@
     }
   }
 
+  /* 20260905ci: bigger hit/kill spark ring so swings read for kids */
+  function spawnHitSparks(x, y, big) {
+    var i, ang, n, speed;
+    n = big ? 12 : 8;
+    speed = big ? 0.055 : 0.042;
+    for (i = 0; i < n; i++) {
+      ang = (i / n) * Math.PI * 2 + Math.random() * 0.35;
+      sparks.push({
+        x: x + (Math.random() * 3 - 1.5),
+        y: y + (Math.random() * 3 - 1.5),
+        vx: Math.cos(ang) * speed,
+        vy: Math.sin(ang) * speed * 0.85 - 0.025,
+        age: 0,
+        life: (big ? 380 : 300) + Math.random() * 160,
+        col: i % 3 === 0 ? "#FFF8E8" : (i % 2 ? C.parch : C.flower)
+      });
+    }
+  }
+
+  function spawnKillBurst(x, y) {
+    killBursts.push({
+      x: x,
+      y: y,
+      age: 0,
+      life: 520
+    });
+    spawnHitSparks(x, y - 4, true);
+  }
+
   function spawnPickup(kind, tx, ty, amount) {
     pickups.push({
       kind: kind,
@@ -6720,16 +6780,27 @@
     return null;
   }
 
-  function spawnGroundLoot(kind, fromTx, fromTy, amount) {
-    var pile;
+  function spawnGroundLoot(kind, fromTx, fromTy, amount, opt) {
+    var pile, sx, sy;
     amount = amount | 0;
     if (!lootKindOk(kind) || amount <= 0) return;
     pile = findLootPile(kind, fromTx, fromTy);
     if (pile) {
       pile.amount += amount;
+      if (opt && opt.fromKill) {
+        pile.popAge = 0;
+        pile.flash = 480;
+        pile.popTall = true;
+        if (opt.sx != null) { pile.sx = opt.sx; pile.x = opt.sx; }
+        if (opt.sy != null) { pile.sy = opt.sy; pile.y = opt.sy; }
+      }
       persistSave();
       return;
     }
+    sx = fromTx * TILE + 8;
+    sy = fromTy * TILE + 4;
+    if (opt && opt.sx != null) sx = opt.sx;
+    if (opt && opt.sy != null) sy = opt.sy;
     groundLoot.push({
       id: lootSeq++,
       scene: lootScene(),
@@ -6737,13 +6808,25 @@
       amount: amount,
       tx: fromTx,
       ty: fromTy,
-      x: fromTx * TILE + 8,
-      y: fromTy * TILE + 4,
-      sx: fromTx * TILE + 8,
-      sy: fromTy * TILE + 4,
-      popAge: 0
+      x: sx,
+      y: sy,
+      sx: sx,
+      sy: sy,
+      popAge: 0,
+      popTall: !!(opt && opt.fromKill),
+      flash: (opt && opt.fromKill) ? 480 : 0
     });
     persistSave();
+  }
+
+  function spawnKillLoot(kind, mon, amount) {
+    if (!mon || !lootKindOk(kind) || !(amount | 0)) return;
+    spawnGroundLoot(kind, mon.tx, mon.ty, amount, {
+      fromKill: true,
+      sx: mon.x,
+      sy: mon.y - 10
+    });
+    showLineNote(lootDropNote(kind, amount));
   }
 
   function lootTakeRoom(kind) {
@@ -7738,22 +7821,27 @@
   }
 
   function updateGroundLoot(dt) {
-    var i, L, t, destX, destY;
+    var i, L, t, destX, destY, hop;
     for (i = 0; i < groundLoot.length; i++) {
       L = groundLoot[i];
+      if (L.flash > 0) {
+        L.flash -= dt;
+        if (L.flash < 0) L.flash = 0;
+      }
       if (L.popAge >= LOOT_POP_MS) continue;
       L.popAge += dt;
       if (L.popAge > LOOT_POP_MS) L.popAge = LOOT_POP_MS;
       t = L.popAge / LOOT_POP_MS;
       destX = L.tx * TILE + 8;
       destY = L.ty * TILE + 4;
+      hop = L.popTall ? 18 : 10;
       L.x = L.sx + (destX - L.sx) * t;
-      L.y = L.sy + (destY - L.sy) * t - Math.sin(t * Math.PI) * 10;
+      L.y = L.sy + (destY - L.sy) * t - Math.sin(t * Math.PI) * hop;
     }
   }
 
   function updateFx(dt) {
-    var i, p, sp;
+    var i, p, sp, kb;
     if (slotShake > 0) slotShake -= dt;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
@@ -7769,6 +7857,11 @@
       sp.x += sp.vx * dt;
       sp.y += sp.vy * dt;
       sp.vy += 0.00018 * dt;
+    }
+    for (i = killBursts.length - 1; i >= 0; i--) {
+      kb = killBursts[i];
+      kb.age += dt;
+      if (kb.age >= kb.life) killBursts.splice(i, 1);
     }
   }
 
@@ -8125,6 +8218,7 @@
     highlight = null;
     ripples = [];
     sparks = [];
+    killBursts = [];
     cancelFishing();
     flushPickups();
     cancelHit();
@@ -13592,9 +13686,10 @@
     if (!m || m.hp <= 0) return;
     if (!via) via = "swing";
     m.hp -= strikeDamage(m, via);
-    m.flash = 220;
+    m.flash = 340; /* 20260905ci: longer white hit flash */
     stunMonster(m);
-    spawnSparks(m.x, m.y - 4);
+    m.shake = Math.max(m.shake || 0, 320);
+    spawnHitSparks(m.x, m.y - 4, false);
     playSfx("hit");
     if (m.hp <= 0) defeatMonster(m);
   }
@@ -14518,54 +14613,58 @@
     var roll = Math.random();
     var deep = mineFloor >= 4;
     var shift = Math.min(0.10, (mineFloor - 1) * 0.018);
-    var tNothing = 0.35 - shift;
-    var tJunk = tNothing + 0.40;
-    var tUseful = tJunk + 0.20;
+    var tNothing = 0.22 - shift; /* 20260905ci: fewer empty kills so loot flash shows */
+    if (tNothing < 0.08) tNothing = 0.08;
+    var tJunk = tNothing + 0.45;
+    var tUseful = tJunk + 0.22;
     var j, u, v, goldAmt;
-    if (roll < tNothing) return;
+    if (roll < tNothing) return false;
     if (roll < tJunk) {
       j = Math.random();
-      if (j < 0.34) spawnGroundLoot("pebble", mon.tx, mon.ty, 1);
-      else if (j < 0.67) spawnGroundLoot("stone", mon.tx, mon.ty, 1);
-      else spawnGroundLoot("gold", mon.tx, mon.ty, 1);
-      return;
+      if (j < 0.34) spawnKillLoot("pebble", mon, 1);
+      else if (j < 0.67) spawnKillLoot("stone", mon, 1);
+      else spawnKillLoot("gold", mon, 1);
+      return true;
     }
     if (roll < tUseful) {
       u = Math.random();
-      if (u < (deep ? 0.50 : 0.18)) spawnGroundLoot("iron", mon.tx, mon.ty, 1);
+      if (u < (deep ? 0.50 : 0.18)) spawnKillLoot("iron", mon, 1);
       else if (u < (deep ? 0.80 : 0.62)) {
-        if (pipDone) spawnGroundLoot("stone", mon.tx, mon.ty, 1);
-        else spawnGroundLoot("copper", mon.tx, mon.ty, 1);
+        if (pipDone) spawnKillLoot("stone", mon, 1);
+        else spawnKillLoot("copper", mon, 1);
       }
-      else spawnGroundLoot("mushroom", mon.tx, mon.ty, 1);
-      return;
+      else spawnKillLoot("mushroom", mon, 1);
+      return true;
     }
     v = Math.random();
     goldAmt = 5 + ((Math.random() * 4) | 0);
     if (deep) {
-      if (v < 0.40) spawnGroundLoot("sapphire", mon.tx, mon.ty, 20);
-      else spawnGroundLoot("gold", mon.tx, mon.ty, goldAmt);
+      if (v < 0.40) spawnKillLoot("sapphire", mon, 20);
+      else spawnKillLoot("gold", mon, goldAmt);
     } else if (v < 0.35) {
-      spawnGroundLoot("gem", mon.tx, mon.ty, 8);
+      spawnKillLoot("gem", mon, 8);
     } else {
-      spawnGroundLoot("gold", mon.tx, mon.ty, goldAmt);
+      spawnKillLoot("gold", mon, goldAmt);
     }
+    return true;
   }
 
   function spawnOutdoorDrop(mon) {
     var roll = Math.random();
-    if (roll < 0.30) return;
-    if (roll < 0.65) spawnGroundLoot("pebble", mon.tx, mon.ty, 1);
-    else if (roll < 0.88) spawnGroundLoot("mushroom", mon.tx, mon.ty, 1);
-    else spawnGroundLoot("gold", mon.tx, mon.ty, 1);
+    if (roll < 0.18) return false; /* 20260905ci: fewer empty outdoor kills */
+    if (roll < 0.58) spawnKillLoot("pebble", mon, 1);
+    else if (roll < 0.84) spawnKillLoot("mushroom", mon, 1);
+    else spawnKillLoot("gold", mon, 1);
+    return true;
   }
 
   function defeatMonster(mon) {
-    var i;
+    var i, dropped;
     mon.hp = 0;
-    spawnSparks(mon.x, mon.y - 2);
-    if (currentScene === "mine") spawnMineDrop(mon);
-    else spawnOutdoorDrop(mon);
+    spawnKillBurst(mon.x, mon.y - 2);
+    if (currentScene === "mine") dropped = spawnMineDrop(mon);
+    else dropped = spawnOutdoorDrop(mon);
+    if (!dropped) showLineNote("POOF!");
     i = monsters.indexOf(mon);
     if (i >= 0) monsters.splice(i, 1);
     if (currentScene === "overworld" || currentScene === "forest") {
@@ -17856,7 +17955,7 @@
   }
 
   function drawMonster(g, m) {
-    var bob, sx, sc;
+    var bob, sx, sc, maxHp, pips, filled, i, px, py, gap, totalW;
     if (!m || m.hp <= 0) return;
     bob = m.frame ? -1 : 0;
     sx = 0;
@@ -17874,22 +17973,57 @@
       Assets.draw(g, m.sprite, m.x + sx, m.y + bob, m.frame);
     }
     if (m.flash > 0) {
+      /* 20260905ci: brighter longer hit flash */
       g.save();
-      g.globalAlpha = 0.35 + 0.45 * (m.flash / 220);
-      g.fillStyle = "#F4F0E0";
-      g.fillRect(Math.round(m.x + sx - 8 * sc), Math.round(m.y + bob - 16 * sc), Math.round(16 * sc), Math.round(16 * sc));
+      g.globalAlpha = Math.min(0.92, 0.4 + 0.55 * (m.flash / 340));
+      g.fillStyle = "#FFFDF4";
+      g.fillRect(Math.round(m.x + sx - 9 * sc), Math.round(m.y + bob - 17 * sc), Math.round(18 * sc), Math.round(18 * sc));
+      g.globalAlpha = Math.min(0.7, 0.25 + 0.4 * (m.flash / 340));
+      g.fillStyle = "#FFFFFF";
+      g.fillRect(Math.round(m.x + sx - 6 * sc), Math.round(m.y + bob - 14 * sc), Math.round(12 * sc), Math.round(12 * sc));
       g.restore();
+    }
+    /* 20260905ci: kid HP pips above foes */
+    maxHp = m.maxHp | 0;
+    if (maxHp < 1) maxHp = m.hp | 0;
+    if (maxHp < 1) maxHp = 1;
+    pips = maxHp > 6 ? 6 : maxHp;
+    filled = Math.ceil((m.hp / maxHp) * pips);
+    if (filled < 0) filled = 0;
+    if (filled > pips) filled = pips;
+    gap = 3;
+    totalW = pips * gap;
+    px = Math.round(m.x + sx - totalW / 2);
+    py = Math.round(m.y + bob - 20 * sc - 3);
+    for (i = 0; i < pips; i++) {
+      g.fillStyle = i < filled ? "#E84848" : "#3A2A2A";
+      g.fillRect(px + i * gap, py, 2, 2);
+      g.fillStyle = i < filled ? "#FFD0D0" : "#1A1212";
+      g.fillRect(px + i * gap, py, 1, 1);
     }
   }
 
   function drawPickups(g) {
-    var i, pk, L, bob, scene;
+    var i, pk, L, bob, scene, flashA, ix, iy;
     scene = lootScene();
     for (i = 0; i < groundLoot.length; i++) {
       L = groundLoot[i];
       if (L.scene !== scene) continue;
       bob = L.popAge >= LOOT_POP_MS ? Math.round(Math.sin(tick / 280) * 1) : 0;
-      drawItemIcon(g, pickupSprite(L.kind), Math.round(L.x - 8), Math.round(L.y - 8 + bob));
+      ix = Math.round(L.x - 8);
+      iy = Math.round(L.y - 8 + bob);
+      if (L.flash > 0 || L.popAge < LOOT_POP_MS) {
+        /* 20260905ci: bright ring under fresh kill loot */
+        flashA = L.flash > 0 ? Math.min(0.85, L.flash / 480) : (1 - L.popAge / LOOT_POP_MS) * 0.55;
+        g.save();
+        g.globalAlpha = flashA;
+        g.fillStyle = "#FFF8D0";
+        g.fillRect(ix - 2, iy - 2, 20, 20);
+        g.fillStyle = "#FFE08A";
+        g.fillRect(ix + 1, iy + 1, 14, 14);
+        g.restore();
+      }
+      drawItemIcon(g, pickupSprite(L.kind), ix, iy);
     }
     for (i = 0; i < pickups.length; i++) {
       pk = pickups[i];
@@ -17898,7 +18032,7 @@
   }
 
   function drawSparks(g) {
-    var i, sp, life;
+    var i, sp, life, kb, t, r, a;
     for (i = 0; i < sparks.length; i++) {
       sp = sparks[i];
       life = 1 - sp.age / sp.life;
@@ -17906,6 +18040,28 @@
       g.fillStyle = sp.col;
       g.fillRect(Math.round(sp.x), Math.round(sp.y), 1, 1);
       if (life > 0.45) g.fillRect(Math.round(sp.x) + 1, Math.round(sp.y) - 1, 1, 1);
+    }
+    /* 20260905ci: lingering kill burst after foe vanishes */
+    for (i = 0; i < killBursts.length; i++) {
+      kb = killBursts[i];
+      t = kb.age / kb.life;
+      if (t >= 1) continue;
+      a = t < 0.2 ? t / 0.2 : (1 - t);
+      r = 4 + t * 14;
+      g.save();
+      g.globalAlpha = Math.min(0.9, a);
+      g.strokeStyle = "#FFF8E0";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.arc(Math.round(kb.x), Math.round(kb.y), r, 0, Math.PI * 2);
+      g.stroke();
+      g.globalAlpha = Math.min(0.75, a * 0.85);
+      g.fillStyle = "#FFFDF4";
+      g.fillRect(Math.round(kb.x - 6), Math.round(kb.y - 10), 12, 12);
+      g.globalAlpha = Math.min(0.55, a * 0.7);
+      g.fillStyle = "#FFE9A0";
+      g.fillRect(Math.round(kb.x - 3), Math.round(kb.y - 7), 6, 6);
+      g.restore();
     }
   }
 
@@ -21030,7 +21186,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ch", BUILD);
+      ok("BUILD", BUILD === "20260905ci", BUILD);
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;
@@ -21054,6 +21210,8 @@ if (currentScene === "ocean") goExitOcean();
         ok("reachAdjacent", swingReachHits(slime), "");
         startSwordSwing();
         ok("padKillsSlime", !monsters.some(function (x) { return x === slime && x.hp > 0; }) && slime.hp <= 0, "hp=" + slime.hp);
+        ok("killBurstOn", killBursts.length > 0, "bursts=" + killBursts.length);
+        ok("killFeedbackFns", typeof spawnKillBurst === "function" && typeof spawnKillLoot === "function" && typeof lootDropNote === "function", "");
         /* 20260905bz: diagonal left foe dies on pad regardless of facing */
         player.arc = 0;
         player.arcHit = false;
@@ -21091,6 +21249,13 @@ if (currentScene === "ocean") goExitOcean();
       ok("bumpOnce", hp === MAX_HP - BUMP_DMG, "hp=" + hp);
       ok("iframesOn", iFrames > 0, "iFrames=" + iFrames);
       ok("iframeFlashOn", iframeFlash > 0, "iframeFlash=" + iframeFlash);
+      /* 20260905ci: hit flash lasts long enough to see */
+      player.arc = 0; player.arcHit = false;
+      m = makeMon("bat", player.tx, player.ty - 1);
+      m.hp = 99; m.maxHp = 99;
+      monsters = [m];
+      startSwordSwing();
+      ok("hitFlashLong", m.flash >= 300, "flash=" + m.flash);
       ok("moonCarryFns", typeof carryingMoonShard === "function" && typeof pinMoonCarryTray === "function" && typeof drawMoonCarryChip === "function", "");
       found.moonshard = true; quest.homeDone = false;
       ok("moonCarryOn", carryingMoonShard(), "");
