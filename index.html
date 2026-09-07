@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hw";
-  var ASSET_REV = "464560";
+  var BUILD = "20260905hx";
+  var ASSET_REV = "464561";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -4279,9 +4279,17 @@
   }
 
   function buildHighPeakProps() {
+    /* 20260905hx: Imagine pine props (not code triangles baked into the map) */
     var list = [
       { kind: "caveMouth", tx: highPeakCaveAt.tx, ty: highPeakCaveAt.ty, highPeakGate: true },
-      { kind: "peakSign", tx: 22, ty: 34 }
+      { kind: "peakSign", tx: 22, ty: 34 },
+      { kind: "pine", tx: 18, ty: 30 }, { kind: "pine", tx: 29, ty: 30 },
+      { kind: "pine", tx: 17, ty: 26 }, { kind: "pine", tx: 30, ty: 25 },
+      { kind: "pine", tx: 16, ty: 21 }, { kind: "pine", tx: 31, ty: 20 },
+      { kind: "pine", tx: 15, ty: 14 }, { kind: "pine", tx: 32, ty: 13 },
+      { kind: "pine", tx: 19, ty: 10 }, { kind: "pine", tx: 28, ty: 9 },
+      { kind: "pine", tx: 14, ty: 34 }, { kind: "pine", tx: 33, ty: 33 },
+      { kind: "pine", tx: 18, ty: 7 }, { kind: "pine", tx: 31, ty: 6 }
     ];
     if (found.pathClear || found.bearFed) {
       list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx + 3, ty: highPeakBearAt.ty, aside: true });
@@ -21940,6 +21948,7 @@
   function drawSleepingBear(g, p, x, y) {
     var bob, zx, zy, i, sc;
     bob = Math.round(Math.sin(tick / 420) * 1);
+    /* 20260905hx: denser 160×112 Imagine bear drawn at 80×56 (BUFFER 2×) */
     if (!drawStandSprite(g, Assets.sleepingBear, x, y + bob, 80, 56)) {
       /* code-paint fallback */
       g.fillStyle = "#785028";
@@ -23578,11 +23587,37 @@
   }
 
   function drawSlotCount(g, label, sx, sy, slot) {
-    var pitch = label.length >= 4 ? 5 : 6;
+    /* 20260905hx: smaller on-slot digits, denser 4× then blit (readable BUFFER) */
+    var pitch = label.length >= 4 ? 4 : 5;
+    var glyphH = 7;
     var w = label.length * pitch - 1;
-    var x = sx + slot - w - 2;
-    drawTextPitch(g, label, x, sy + slot - 9, C.woodOut, pitch);
-    drawTextPitch(g, label, x - 1, sy + slot - 10, C.parch, pitch);
+    var dw = Math.max(1, Math.round(w * 0.85));
+    var dh = Math.max(1, Math.round(glyphH * 0.85));
+    var scale = 4;
+    var cw = (w + 2) * scale;
+    var ch = (glyphH + 2) * scale;
+    if (!drawSlotCount._c || drawSlotCount._c.width !== cw || drawSlotCount._c.height !== ch) {
+      drawSlotCount._c = (typeof OffscreenCanvas !== "undefined")
+        ? new OffscreenCanvas(cw, ch)
+        : document.createElement("canvas");
+      drawSlotCount._c.width = cw;
+      drawSlotCount._c.height = ch;
+    }
+    var c = drawSlotCount._c;
+    var cg = c.getContext("2d");
+    cg.imageSmoothingEnabled = false;
+    cg.clearRect(0, 0, cw, ch);
+    cg.save();
+    cg.scale(scale, scale);
+    drawTextPitch(cg, label, 1, 1, C.woodOut, pitch);
+    drawTextPitch(cg, label, 0, 0, C.parch, pitch);
+    cg.restore();
+    var x = sx + slot - dw - 2;
+    var y = sy + slot - dh - 2;
+    var smooth = g.imageSmoothingEnabled;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(c, 0, 0, cw, ch, x, y, dw, dh);
+    g.imageSmoothingEnabled = smooth;
   }
 
   function woodPanel(g, x, y, w, h) {
