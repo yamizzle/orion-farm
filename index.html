@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ii";
+  var BUILD = "20260905ij";
   var ASSET_REV = "464565";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -23617,26 +23617,19 @@
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
 
-  /* 20260905ii: HITL blur — 05ih 4×→~70% fractional NN looked soft/anti-aliased.
-     Root cause: non-integer source→device ratio under BUFFER=2 (0.7 never divides
-     cleanly) + any smoothed blit. Fix: nearest-neighbor only; snap positions to
-     integers; ONLY integer scale factors (2 or 4 → 1, or exact half). ~70% snaps
-     UP to crisp 1:1 (reads; 0.5 would crush). Cream + dark outline kept. Shared
-     path for stack counts, HUD, dialogue, BAG, floats. */
-  var TEXT_DENSE_UPSCALE = 4;
+  /* 20260905ij: PixelFont — lasting fix after 05id–05ii churn.
+     Every glyph is a binary pixel grid (FONT). Bake once into a 4× atlas.
+     Live path is ONLY atlas blit: imageSmoothingEnabled=false, Math.floor
+     positions, integer scale 1 or 2. Never fillText; never soft/fractional
+     shrink. One API for tray counts, DAY/gold, BAG, dialogue (JUNIE), floats
+     (OCEAN/WELL/MINE). Cream fill + dark outline on wood HUD. */
   var TEXT_HUD_SCALE = 1;
-  /* 05ih wanted ~0.7; fractional scale blurs — snap to crisp 1 (nearest that reads). */
   var TEXT_COUNT_SCALE = 1;
-  var TEXT_COUNT_FILL = "#FFF8E8"; /* bright cream — not dark-on-wood */
-  /* Aliases so older call sites / notes keep working */
+  var TEXT_COUNT_FILL = "#FFF8E8"; /* bright cream — HUD / counts on wood */
+  var TEXT_DENSE_UPSCALE = 4; /* atlas bake factor */
   var TEXT_CRISP_SCALE = TEXT_HUD_SCALE;
   var TEXT_CRISP_UPSCALE = TEXT_DENSE_UPSCALE;
-  /* ≥1 logical px outline after downscale (=2 device @ BUFFER=2) */
   var TEXT_MIN_OUTLINE_LOGICAL = 1;
-
-  function textGlyphPitch(pitch) {
-    return pitch || 6;
-  }
 
   function disableImageSmoothing(g) {
     if (!g) return;
@@ -23649,14 +23642,149 @@
     }
   }
 
-  /* Under BUFFER=2, only scales where BUFFER*s/up is 1/k stay crunchy NN.
-     Allowed practical sizes: 1 and 0.5. ~0.7 → 1 (reads). */
+  /* Only integer 1 or 2 — fractional scales are what made 05ih soft. */
   function snapCrispTextScale(wanted) {
     var s = wanted == null ? 1 : +wanted;
     if (!(s > 0)) s = 1;
-    /* ≥~65% (incl. 05ih ~70%) → crisp 1 that reads; only true half uses 0.5. */
-    if (s >= 0.65) return 1;
-    return 0.5;
+    if (s >= 1.5) return 2;
+    return 1;
+  }
+
+  function textGlyphPitch(pitch) {
+    return pitch || 6;
+  }
+
+  function textOutlinePad(scale) {
+    var s = snapCrispTextScale(scale == null ? 1 : scale);
+    return s >= 1 ? 1 : 1;
+  }
+
+  /* Compat stub — PixelFont never fractional-upscales at draw time. */
+  function textDenseUpForScale(scale) {
+    return TEXT_DENSE_UPSCALE;
+  }
+
+  var PixelFont = {
+    GW: 5,
+    GH: 7,
+    PITCH: 6,
+    BAKE: 4,
+    atlas: null,
+    cells: null,
+    tintCache: null,
+    lastSmoothOff: false,
+    ready: false
+  };
+
+  function pixelFontEnsure() {
+    var ch, bits, r, c, i, keys, cols, rows, aw, ah, cx, cy, bx, by, ag, n;
+    if (PixelFont.ready) return;
+    keys = [];
+    for (ch in FONT) {
+      if (Object.prototype.hasOwnProperty.call(FONT, ch)) keys.push(ch);
+    }
+    if (keys.indexOf(" ") < 0) keys.unshift(" ");
+    n = keys.length;
+    cols = 16;
+    rows = Math.ceil(n / cols) || 1;
+    aw = cols * PixelFont.GW * PixelFont.BAKE;
+    ah = rows * PixelFont.GH * PixelFont.BAKE;
+    PixelFont.atlas = document.createElement("canvas");
+    PixelFont.atlas.width = aw;
+    PixelFont.atlas.height = ah;
+    ag = PixelFont.atlas.getContext("2d");
+    disableImageSmoothing(ag);
+    ag.clearRect(0, 0, aw, ah);
+    ag.fillStyle = "#FFFFFF";
+    PixelFont.cells = {};
+    for (i = 0; i < n; i++) {
+      ch = keys[i];
+      bits = FONT[ch] || FONT[" "];
+      cx = (i % cols) * PixelFont.GW * PixelFont.BAKE;
+      cy = ((i / cols) | 0) * PixelFont.GH * PixelFont.BAKE;
+      PixelFont.cells[ch] = { sx: cx, sy: cy };
+      for (r = 0; r < PixelFont.GH; r++) {
+        for (c = 0; c < PixelFont.GW; c++) {
+          if (bits[r] & (0x10 >> c)) {
+            bx = cx + c * PixelFont.BAKE;
+            by = cy + r * PixelFont.BAKE;
+            ag.fillRect(bx, by, PixelFont.BAKE, PixelFont.BAKE);
+          }
+        }
+      }
+    }
+    PixelFont.tintCache = {};
+    PixelFont.ready = true;
+  }
+
+  function pixelFontTint(color) {
+    var c, cg, key;
+    pixelFontEnsure();
+    key = color || "#FFFFFF";
+    if (PixelFont.tintCache[key]) return PixelFont.tintCache[key];
+    c = document.createElement("canvas");
+    c.width = PixelFont.atlas.width;
+    c.height = PixelFont.atlas.height;
+    cg = c.getContext("2d");
+    disableImageSmoothing(cg);
+    cg.clearRect(0, 0, c.width, c.height);
+    cg.fillStyle = key;
+    cg.fillRect(0, 0, c.width, c.height);
+    cg.globalCompositeOperation = "destination-in";
+    cg.drawImage(PixelFont.atlas, 0, 0);
+    cg.globalCompositeOperation = "source-over";
+    PixelFont.tintCache[key] = c;
+    return c;
+  }
+
+  function pixelFontDrawGlyph(g, ch, x, y, color, scale) {
+    var cell, src, sw, sh, dx, dy, dw, dh, s, smooth, prevQual;
+    pixelFontEnsure();
+    s = snapCrispTextScale(scale);
+    cell = PixelFont.cells[ch] || PixelFont.cells[" "] || { sx: 0, sy: 0 };
+    src = pixelFontTint(color);
+    sw = PixelFont.GW * PixelFont.BAKE;
+    sh = PixelFont.GH * PixelFont.BAKE;
+    dx = Math.floor(x);
+    dy = Math.floor(y);
+    dw = PixelFont.GW * s;
+    dh = PixelFont.GH * s;
+    smooth = g.imageSmoothingEnabled;
+    prevQual = g.imageSmoothingQuality;
+    disableImageSmoothing(g);
+    PixelFont.lastSmoothOff = (g.imageSmoothingEnabled === false);
+    g.drawImage(src, cell.sx, cell.sy, sw, sh, dx, dy, dw, dh);
+    g.imageSmoothingEnabled = smooth;
+    if (prevQual != null && "imageSmoothingQuality" in g) {
+      try { g.imageSmoothingQuality = prevQual; } catch (err) {}
+    }
+  }
+
+  /* One API: tray counts, DAY/gold, BAG, dialogue, floats. */
+  function pixelFontDrawString(g, str, x, y, color, opts) {
+    var pitch, scale, outline, oc, i, ch, px, py, ox, oy, s, baseX, baseY;
+    if (!str || !str.length) return;
+    opts = opts || {};
+    pitch = textGlyphPitch(opts.pitch);
+    scale = snapCrispTextScale(opts.scale == null ? TEXT_HUD_SCALE : opts.scale);
+    outline = opts.outline !== false;
+    oc = opts.outlineColor || C.woodOut;
+    baseX = Math.floor(x);
+    baseY = Math.floor(y);
+    for (i = 0; i < str.length; i++) {
+      ch = str.charAt(i);
+      px = baseX + i * pitch * scale;
+      py = baseY;
+      if (outline) {
+        for (oy = -1; oy <= 1; oy++) {
+          for (ox = -1; ox <= 1; ox++) {
+            if (ox === 0 && oy === 0) continue;
+            pixelFontDrawGlyph(g, ch, px + ox * scale, py + oy * scale, oc, scale);
+          }
+        }
+      }
+      pixelFontDrawGlyph(g, ch, px, py, color, scale);
+    }
   }
 
   function textWidth(str, pitch, scale) {
@@ -23666,20 +23794,21 @@
     s = snapCrispTextScale(scale == null ? TEXT_HUD_SCALE : scale);
     n = str.length * p - 1;
     if (n < 1) n = 1;
-    return Math.max(1, Math.round(n * s));
+    return Math.max(1, (n * s) | 0);
   }
 
   function textGlyphH(scale) {
     var s = snapCrispTextScale(scale == null ? TEXT_HUD_SCALE : scale);
-    return Math.max(1, Math.round(7 * s));
+    return Math.max(1, (PixelFont.GH * s) | 0);
   }
 
+  /* Debug / legacy: paint binary grids with fillRect (not the live HUD path). */
   function paintFontGlyphs(g, str, x, y, color, pitch) {
     var i, r, c, bits, ch, p;
     p = textGlyphPitch(pitch);
     g.fillStyle = color;
-    x = x | 0;
-    y = y | 0;
+    x = Math.floor(x) | 0;
+    y = Math.floor(y) | 0;
     for (i = 0; i < str.length; i++) {
       ch = str.charAt(i);
       bits = FONT[ch] || FONT[" "];
@@ -23704,106 +23833,20 @@
     return denseText._c;
   }
 
-  /* Outline pad so after integer NN downscale stroke stays ≥ TEXT_MIN_OUTLINE_LOGICAL. */
-  function textOutlinePad(scale) {
-    var s = snapCrispTextScale(scale == null ? 1 : scale);
-    if (s >= 0.98) return 1;
-    if (s < 0.05) s = 0.05;
-    return Math.max(1, Math.ceil(TEXT_MIN_OUTLINE_LOGICAL / s - 1e-9));
-  }
-
-  /* Pick 2× or 4× upscale so (up / scale) is an integer (exact NN shrink). */
-  function textDenseUpForScale(scale) {
-    var s = snapCrispTextScale(scale);
-    var up, k;
-    if (s >= 0.98) return 1;
-    /* Prefer 4→… then 2→… when ratio is integer */
-    up = TEXT_DENSE_UPSCALE;
-    k = Math.round(up / s);
-    if (k >= 1 && Math.abs(up / s - k) < 1e-6) return up;
-    up = 2;
-    k = Math.round(up / s);
-    if (k >= 1 && Math.abs(up / s - k) < 1e-6) return up;
-    return 2;
-  }
-
-  /* Paint outline+fill on one upscaled scratch, crop pad, integer NN blit to dest.
-     Never offset outline in DEST space (that was the 05if dark-mush bug).
-     Never fractional dw/dh — that was the 05ih soft-blur bug. */
+  /* Compat → PixelFont atlas blit (no soft shrink path remains). */
   function blitDenseText(g, str, x, y, fillColor, pitch, scale, outline, outlineColor) {
-    var glyphH = 7;
-    var p = textGlyphPitch(pitch);
-    var s = snapCrispTextScale(scale == null ? TEXT_HUD_SCALE : scale);
-    var w, dw, dh, up, margin, origin, cw, ch, c, cg, smooth, shrink;
-    var srcX, srcY, srcW, srcH, ox, oy, oc, bx, by, prevQual;
-    if (!str || !str.length) return;
-    w = str.length * p - 1;
-    if (w < 1) w = 1;
-    bx = Math.round(x) | 0;
-    by = Math.round(y) | 0;
-    /* Fail closed: full-size stays direct 05ig paint (no useless upscale crush). */
-    if (s >= 0.98) {
-      oc = outlineColor || C.woodOut;
-      if (outline) paintFontGlyphs(g, str, bx + 1, by + 1, oc, p);
-      paintFontGlyphs(g, str, bx, by, fillColor, p);
-      return;
-    }
-    margin = outline ? textOutlinePad(s) : 0;
-    up = textDenseUpForScale(s);
-    if (up < 2) up = 2;
-    if (up > 4) up = 4;
-    shrink = Math.round(up / s);
-    if (shrink < 1) shrink = 1;
-    /* Exact integer dest from source (crunchy NN). */
-    origin = 1;
-    cw = (w + 2 + margin) * up;
-    ch = (glyphH + 2 + margin) * up;
-    c = ensureDenseTextCanvas(cw, ch);
-    cg = c.getContext("2d");
-    disableImageSmoothing(cg);
-    cg.clearRect(0, 0, cw, ch);
-    cg.save();
-    cg.scale(up, up);
-    oc = outlineColor || C.woodOut;
-    if (outline && margin > 0) {
-      for (oy = 0; oy <= margin; oy++) {
-        for (ox = 0; ox <= margin; ox++) {
-          if (ox === 0 && oy === 0) continue;
-          paintFontGlyphs(cg, str, origin + ox, origin + oy, oc, p);
-        }
-      }
-    }
-    paintFontGlyphs(cg, str, origin, origin, fillColor, p);
-    cg.restore();
-    srcX = origin * up;
-    srcY = origin * up;
-    srcW = (w + margin) * up;
-    srcH = (glyphH + margin) * up;
-    dw = Math.max(1, Math.round(srcW / shrink));
-    dh = Math.max(1, Math.round(srcH / shrink));
-    /* Identity-device blit: avoids transform+drawImage smoothing quirks. */
-    smooth = g.imageSmoothingEnabled;
-    prevQual = g.imageSmoothingQuality;
-    g.save();
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    disableImageSmoothing(g);
-    g.drawImage(
-      c, srcX, srcY, srcW, srcH,
-      bx * BUFFER, by * BUFFER, dw * BUFFER, dh * BUFFER
-    );
-    g.restore();
-    g.imageSmoothingEnabled = smooth;
-    if (prevQual != null && "imageSmoothingQuality" in g) {
-      try { g.imageSmoothingQuality = prevQual; } catch (err2) {}
-    }
+    pixelFontDrawString(g, str, x, y, fillColor, {
+      pitch: pitch,
+      scale: scale,
+      outline: !!outline,
+      outlineColor: outlineColor
+    });
   }
 
-  /* Compat: body-only dense blit (no auto-outline). */
   function blitDenseGlyphs(g, str, x, y, color, pitch, scale) {
     blitDenseText(g, str, x, y, color, pitch, scale, false, null);
   }
 
-  /* Shared path: HUD/dialogue/BAG/floats 1:1 cream+outline; counts crisp integer scale. */
   function denseText(g, str, x, y, color, opts) {
     var pitch, scale, outline, oc;
     if (!str || !str.length) return;
@@ -23812,11 +23855,15 @@
     scale = opts.scale != null ? opts.scale : TEXT_HUD_SCALE;
     outline = opts.outline !== false;
     oc = opts.outlineColor || C.woodOut;
-    blitDenseText(g, str, x, y, color, pitch, scale, outline, oc);
+    pixelFontDrawString(g, str, x, y, color, {
+      pitch: pitch,
+      scale: scale,
+      outline: outline,
+      outlineColor: oc
+    });
   }
 
   function drawTextCrisp(g, str, x, y, color, pitch, scale) {
-    /* Compat alias → dense blit path (no auto-outline; callers add their own). */
     blitDenseGlyphs(g, str, x, y, color, pitch, scale);
   }
 
@@ -23829,7 +23876,7 @@
   }
 
   function drawSlotCount(g, label, sx, sy, slot) {
-    /* 20260905ii: crisp 1:1 cream+outline (05ih ~70% fractional blit rejected — blur). */
+    /* 20260905ij: PixelFont cream+outline, integer scale only. */
     var pitch = label.length >= 4 ? 5 : 6;
     var w = label.length * pitch - 1;
     if (w < 1) w = 1;
@@ -24751,7 +24798,7 @@
     }
     drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + ((T.bagH - textGlyphH()) / 2) | 0, TEXT_COUNT_FILL);
 
-    /* 20260905ii: energy E via shared denseText (HUD crisp 1:1 NN) */
+    /* 20260905ij: energy E via PixelFont atlas blit */
     drawText(g, "E", 47, 11, TEXT_COUNT_FILL);
     var ew = 54;
     var filled = Math.round(ew * energy / MAX_ENERGY);
@@ -27175,10 +27222,13 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ii", BUILD);
+      ok("BUILD", BUILD === "20260905ij", BUILD);
       (function () {
-        /* 20260905ii: crisp NN text — integer scales only; ~70% snaps to 1 */
-        var _ws, _os, _ms, _anc, _i, _savedScene, _pad, _snap;
+        /* 20260905ij: PixelFont atlas — NN blit, scale 1|2 only, smoothing off */
+        var _ws, _os, _ms, _anc, _i, _savedScene, _pad, _snap, _probe;
+        ok("PixelFontObj", typeof PixelFont === "object" && !!PixelFont, "");
+        ok("pixelFontDrawStringFn", typeof pixelFontDrawString === "function", "");
+        ok("pixelFontDrawGlyphFn", typeof pixelFontDrawGlyph === "function", "");
         ok("denseTextFn", typeof denseText === "function", "");
         ok("blitDenseGlyphsFn", typeof blitDenseGlyphs === "function", "");
         ok("blitDenseTextFn", typeof blitDenseText === "function", "");
@@ -27188,17 +27238,26 @@ if (currentScene === "ocean") goExitOcean();
         ok("snapCrispTextScaleFn", typeof snapCrispTextScale === "function", "");
         ok("disableImageSmoothingFn", typeof disableImageSmoothing === "function", "");
         ok("TEXT_HUD_SCALE", TEXT_HUD_SCALE === 1, String(TEXT_HUD_SCALE));
-        ok("TEXT_COUNT_crisp", TEXT_COUNT_SCALE === 1 || TEXT_COUNT_SCALE === 0.5, String(TEXT_COUNT_SCALE));
+        ok("TEXT_COUNT_crisp", TEXT_COUNT_SCALE === 1 || TEXT_COUNT_SCALE === 2, String(TEXT_COUNT_SCALE));
         ok("TEXT_COUNT_reads", TEXT_COUNT_SCALE === 1, String(TEXT_COUNT_SCALE));
         _snap = snapCrispTextScale(0.7);
         ok("snap70to1", _snap === 1, String(_snap));
-        ok("snapHalf", snapCrispTextScale(0.5) === 0.5, String(snapCrispTextScale(0.5)));
+        ok("snapHalfTo1", snapCrispTextScale(0.5) === 1, String(snapCrispTextScale(0.5)));
+        ok("snapTwo", snapCrispTextScale(2) === 2, String(snapCrispTextScale(2)));
         ok("TEXT_DENSE_up", TEXT_DENSE_UPSCALE === 4 || TEXT_DENSE_UPSCALE === 2, String(TEXT_DENSE_UPSCALE));
+        ok("PixelFontBake4", PixelFont.BAKE === 4, String(PixelFont.BAKE));
         ok("TEXT_COUNT_FILL_bright", typeof TEXT_COUNT_FILL === "string" && TEXT_COUNT_FILL.charAt(0) === "#", TEXT_COUNT_FILL);
         _pad = textOutlinePad(TEXT_COUNT_SCALE);
         ok("outlineFailClosed", _pad * TEXT_COUNT_SCALE >= TEXT_MIN_OUTLINE_LOGICAL - 1e-6, "pad=" + _pad + " s=" + TEXT_COUNT_SCALE);
         ok("textWidthFull", textWidth("WOODS") === ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
         ok("textGlyphHFull", textGlyphH() === 7, "h=" + textGlyphH());
+        /* Probe: blit must leave smoothing off during drawImage */
+        PixelFont.lastSmoothOff = false;
+        _probe = document.createElement("canvas").getContext("2d");
+        _probe.imageSmoothingEnabled = true;
+        drawText(_probe, "A", 0, 0, TEXT_COUNT_FILL);
+        ok("textBlitSmoothOff", PixelFont.lastSmoothOff === true, "last=" + PixelFont.lastSmoothOff);
+        ok("PixelFontAtlasReady", !!(PixelFont.ready && PixelFont.atlas && PixelFont.atlas.width > 0), "w=" + (PixelFont.atlas && PixelFont.atlas.width));
         _savedScene = currentScene;
         applyScene("overworld");
         buildSolid();

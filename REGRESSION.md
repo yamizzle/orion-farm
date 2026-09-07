@@ -64,7 +64,7 @@ Status column: **KEEP** = still required in new builds.
 | Dedicated **weapon dock** (sword/bow only); tray is tools/seeds/food; second weapon swaps into dock and old goes to bag; BAG open shows big dock + **WEAPON** ghost when empty | 20260905hm | KEEP |
 | **Bow selectable from weapon dock** — soft sword-ensure must not kick a parked bow; bag→dock swap / dock tap arms bow; hard pin only on cave claim / iron craft / giveTool sword; sword pad select still works | 20260905ho | KEEP |
 | **BAG select tip** — with bag open, tapping a cell shows NAME + 1 kid-plain blurb strip; updates on select/held; clears on close/empty; drag swap + X close still work | 20260905ic | KEEP |
-| **Crisp stack counts + HUD text** — bright cream/white + dark outline; NN only (no smooth blit); integer scales only (2/4→1 or exact half); ~70% snaps to crisp 1:1 that reads; shared path for counts/HUD/dialogue/BAG/floats; day panel ~21 | 20260905ii (was 05ih/ig/if/hx) | KEEP |
+| **Bitmap PixelFont HUD text** — glyphs are binary pixel grids baked to a 4× atlas; live path is atlas blit only (never fillText / never soft shrink); NN + Math.floor coords; integer scale 1 or 2 only; cream fill + dark outline for counts/HUD-on-wood; one API for counts/DAY/gold/BAG/dialogue/floats; day panel ~21; walk-through entrance labels kept | 20260905ij (was 05ii/ih/ig/if/hx) | KEEP |
 
 ---
 
