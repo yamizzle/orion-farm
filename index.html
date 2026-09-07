@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hv";
+  var BUILD = "20260905hw";
   var ASSET_REV = "464560";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -411,6 +411,8 @@
           loadImage("assets/tiles/peakMap.png").then(function (im) { Assets.peakMap = im; }).catch(function () {}),
           loadImage("assets/tiles/oceanMap.png").then(function (im) { Assets.oceanMap = im; }).catch(function () {}),
           loadImage("assets/props/peakRocks.png").then(function (im) { Assets.peakRocks = im; }).catch(function () {}),
+          loadImage("assets/props/sleepingBear.png").then(function (im) { Assets.sleepingBear = im; }).catch(function () {}),
+          loadImage("assets/tiles/highPeakMap.png").then(function (im) { Assets.highPeakMap = im; }).catch(function () {}),
           loadImage("assets/props/caveMouth.png").then(function (im) { Assets.caveMouth = im; }).catch(function () {}),
           loadImage("assets/props/caveStairs.png").then(function (im) { Assets.caveStairs = im; }).catch(function () {}),
           loadImage("assets/props/canopySpan.png").then(function (im) { Assets.canopySpan = im; }).catch(function () {}),
@@ -565,7 +567,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, islandCave: null, mountainMine: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, islandCave: null, mountainMine: null, highPeak: null };
   var tick = 0;
   var lastTs = 0;
   /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
@@ -665,6 +667,13 @@
   var MOUNTAIN_MINE_COLS = 18;
   var MOUNTAIN_MINE_ROWS = 14;
   var mountainMineOut = { tx: 9, ty: 12 };
+  /* 20260905hw: north cave in summit mine → even larger peak beyond */
+  var mountainMineHighAt = { tx: 9, ty: 2 };
+  var HIGH_PEAK_COLS = 48;
+  var HIGH_PEAK_ROWS = 36;
+  var highPeakLand = { tx: 24, ty: 32 };
+  var highPeakCaveAt = { tx: 24, ty: 33 };
+  var highPeakBearAt = { tx: 24, ty: 16 };
   var peakCaveAt = { tx: 18, ty: 25 };
   var OCEAN_COLS = 64;
   var OCEAN_ROWS = 56;
@@ -718,7 +727,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false, bearFed: false, pathClear: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -814,7 +823,7 @@
     { key: "cookedGoldenCarp", name: "COOKED GOLDEN CARP", icon: "cookedGoldenCarp" },
     { key: "cookedMoonfish", name: "COOKED MOONFISH", icon: "cookedMoonfish" },
     { key: "cookedStarfin", name: "COOKED STARFIN", icon: "cookedStarfin" },
-    { key: "cookedGoldenSwordfish", name: "COOKED GOLDEN SWORDFISH", icon: "cookedGoldenSwordfish" }
+    { key: "cookedGoldenSwordfish", name: "GRILLED GOLDEN SWORDFISH", icon: "cookedGoldenSwordfish" }
   ];
   var shieldSkip = false;
   var arrows = [];
@@ -2783,14 +2792,28 @@
     }
     /* 20260905hu: rebuild summit mine if pre-polish cache (no cartId kick carts) */
     if (name === "mountainMine" && cached && cached.props) {
-      var _hasCartId = false, _mci;
+      var _hasCartId = false, _mci, _hasHigh = false;
       for (_mci = 0; _mci < cached.props.length; _mci++) {
         if (cached.props[_mci] && cached.props[_mci].mineCart && (cached.props[_mci].cartId | 0) > 0) {
           _hasCartId = true;
-          break;
+        }
+        if (cached.props[_mci] && cached.props[_mci].kind === "caveMouth" && cached.props[_mci].highPeak) {
+          _hasHigh = true;
         }
       }
-      if (!_hasCartId) cached = null;
+      if (!_hasCartId || !_hasHigh) cached = null;
+    }
+    /* 20260905hw: rebuild high peak if bear/pathClear state drift */
+    if (name === "highPeak" && cached && cached.props) {
+      var _hb, _hasBear = false, _bearAside = false;
+      for (_hb = 0; _hb < cached.props.length; _hb++) {
+        if (cached.props[_hb] && cached.props[_hb].kind === "sleepingBear") {
+          _hasBear = true;
+          if (cached.props[_hb].aside) _bearAside = true;
+        }
+      }
+      if (found.pathClear && (!_hasBear || !_bearAside)) cached = null;
+      if (!found.pathClear && (!_hasBear || _bearAside)) cached = null;
     }
     fresh = !cached;
     if (cached) {
@@ -2895,6 +2918,11 @@
       ROWS = MOUNTAIN_MINE_ROWS;
       GROUND = buildMountainMineGround();
       PROPS = buildMountainMineProps();
+    } else if (name === "highPeak") {
+      COLS = HIGH_PEAK_COLS;
+      ROWS = HIGH_PEAK_ROWS;
+      GROUND = buildHighPeakGround();
+      PROPS = buildHighPeakProps();
     } else if (name === "caveclimb") {
       COLS = CLIMB_COLS;
       ROWS = CLIMB_ROWS;
@@ -3945,6 +3973,8 @@
     carveMine(g, 2, 2, 15, 11);
     carveMine(g, 4, 8, 13, 12);
     carveMine(g, 11, 3, 15, 7);
+    /* 20260905hw: north aisle to the bigger-peak cave */
+    carveMine(g, 7, 1, 11, 4);
     /* a few rock pillars — no lone 1x1 walls */
     g[5][6] = "#";
     g[6][6] = "#";
@@ -3955,9 +3985,12 @@
 
   function buildMountainMineProps() {
     /* 20260905hu: denser treasure-room — crystals/ore, kickable carts, 3 chests; OUT path clear */
+    /* 20260905hw: north caveMouth → larger high peak */
     var list = [
       { kind: "caveStairs", tx: mountainMineOut.tx, ty: mountainMineOut.ty, dir: "out" },
       { kind: "caveMouth", tx: mountainMineOut.tx, ty: mountainMineOut.ty, peakMine: true },
+      { kind: "caveStairs", tx: mountainMineHighAt.tx, ty: mountainMineHighAt.ty, dir: "up" },
+      { kind: "caveMouth", tx: mountainMineHighAt.tx, ty: mountainMineHighAt.ty, highPeak: true },
       { kind: "lantern", tx: 4, ty: 4, walk: true },
       { kind: "lantern", tx: 13, ty: 4, walk: true },
       { kind: "lantern", tx: 9, ty: 9, walk: true },
@@ -4115,6 +4148,7 @@
     if (!inBounds(tx, ty)) return false;
     if (!GROUND[ty] || GROUND[ty][tx] === "#") return false;
     if (tx === mountainMineOut.tx && ty === mountainMineOut.ty) return false;
+    if (tx === mountainMineHighAt.tx && ty === mountainMineHighAt.ty) return false;
     if (player.tx === tx && player.ty === ty) return false;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
@@ -4161,6 +4195,269 @@
     faceToward(player, cart.tx, cart.ty);
     kickMineCart(cart);
     return true;
+  }
+
+  /* 20260905hw: larger peak beyond the summit mine — winding path + sleepy bear gate */
+  function buildHighPeakGround() {
+    var cols = HIGH_PEAK_COLS, rows = HIGH_PEAK_ROWS;
+    var walk = [
+      "................................................",
+      "................................................",
+      ".....................fffffff....................",
+      ".....................fffffff....................",
+      ".....................fffffff....................",
+      ".....................fffffff....................",
+      ".......................fff......................",
+      ".......................fff......................",
+      ".......................fff......................",
+      ".......................fff......................",
+      ".......................fff......................",
+      "........................fff.....................",
+      ".......................fff......................",
+      "......................fff.......................",
+      ".....................fff........................",
+      "......................fff.......................",
+      "......................fffff.....................",
+      "......................fffff.....................",
+      ".........................fff....................",
+      "..........................fff...................",
+      ".........................fff....................",
+      "........................fff.....................",
+      ".......................fff......................",
+      "......................fff.......................",
+      ".....................fff........................",
+      "....................fff.........................",
+      "...................fff..........................",
+      "...................fff..........................",
+      "....................fff.........................",
+      ".....................fff........................",
+      "......................fff.......................",
+      ".....................fffffff....................",
+      ".....................fffffff....................",
+      ".....................fffffff....................",
+      ".....................fffffff....................",
+      "................................................"
+    ];
+    var g = [], y, x, row, ch;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) {
+        ch = (walk[y] && walk[y].charAt(x)) || ".";
+        row[x] = (ch === "f") ? "f" : "y";
+      }
+      g[y] = row;
+    }
+    if (found.pathClear) applyHighPeakPathOpen(g);
+    return g;
+  }
+
+  function applyHighPeakPathOpen(g) {
+    var cells, i, tx, ty, row;
+    if (!g) return;
+    /* open the bear choke so kids can walk past after grilled swordfish */
+    cells = [
+      [22, 15], [23, 15], [24, 15], [25, 15], [26, 15],
+      [22, 16], [23, 16], [24, 16], [25, 16], [26, 16],
+      [22, 17], [23, 17], [24, 17], [25, 17], [26, 17]
+    ];
+    for (i = 0; i < cells.length; i++) {
+      tx = cells[i][0];
+      ty = cells[i][1];
+      if (ty < 0 || ty >= g.length) continue;
+      row = g[ty];
+      if (!row || tx < 0 || tx >= row.length) continue;
+      row[tx] = "f";
+    }
+  }
+
+  function openHighPeakPathLive() {
+    applyHighPeakPathOpen(GROUND);
+    if (sceneCache && sceneCache.highPeak && sceneCache.highPeak.ground) {
+      applyHighPeakPathOpen(sceneCache.highPeak.ground);
+    }
+    buildSolid();
+  }
+
+  function buildHighPeakProps() {
+    var list = [
+      { kind: "caveMouth", tx: highPeakCaveAt.tx, ty: highPeakCaveAt.ty, highPeakGate: true },
+      { kind: "peakSign", tx: 22, ty: 34 }
+    ];
+    if (found.pathClear || found.bearFed) {
+      list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx + 3, ty: highPeakBearAt.ty, aside: true });
+    } else {
+      list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx, ty: highPeakBearAt.ty });
+    }
+    return list;
+  }
+
+  function isHighPeakCave(tx, ty) {
+    if (currentScene !== "highPeak") return false;
+    if (tx === highPeakCaveAt.tx && ty === highPeakCaveAt.ty) return true;
+    var p = propAt(tx, ty);
+    return !!(p && p.kind === "caveMouth" && p.highPeakGate);
+  }
+
+  function isMountainMineHighExit(tx, ty) {
+    return currentScene === "mountainMine" && tx === mountainMineHighAt.tx && ty === mountainMineHighAt.ty;
+  }
+
+  function isSleepingBear(tx, ty) {
+    var p;
+    if (currentScene !== "highPeak") return false;
+    if (found.pathClear) return false;
+    p = findSleepingBear();
+    if (!p) return false;
+    return Math.abs(tx - p.tx) <= 1 && Math.abs(ty - p.ty) <= 1;
+  }
+
+  function findSleepingBear() {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p && p.kind === "sleepingBear") return p;
+    }
+    return null;
+  }
+
+  function maybeHighPeakTip() {
+    if (unlocked.highPeakTip) return;
+    unlocked.highPeakTip = true;
+    showLineNote("A BIGGER PEAK OPENS.");
+    persistSave();
+  }
+
+  function enterHighPeak() {
+    applyScene("highPeak");
+    unlocked.highPeakEntered = true;
+    maybeHighPeakTip();
+    placePlayer(highPeakLand.tx, highPeakLand.ty, "up");
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(highPeakLand.tx, highPeakLand.ty - 1, "up");
+    }
+    unstickPlayer();
+    persistSave();
+  }
+
+  function exitHighPeak() {
+    applyScene("mountainMine");
+    placePlayer(mountainMineHighAt.tx, mountainMineHighAt.ty + 2, "down");
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(mountainMineHighAt.tx, mountainMineHighAt.ty + 1, "down");
+    }
+    if (!walkable(player.tx, player.ty)) {
+      placePlayer(mountainMineHighAt.tx, mountainMineHighAt.ty + 3, "down");
+    }
+    unstickPlayer();
+    persistSave();
+  }
+
+  function goEnterHighPeak() {
+    highlight = { tx: mountainMineHighAt.tx, ty: mountainMineHighAt.ty };
+    if (isMountainMineHighExit(player.tx, player.ty) || (player.tx === mountainMineHighAt.tx && player.ty === mountainMineHighAt.ty)) {
+      enterHighPeak();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, mountainMineHighAt.tx, mountainMineHighAt.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, mountainMineHighAt.tx, mountainMineHighAt.ty)) {
+        enterHighPeak();
+      }
+      return;
+    }
+    pending = { type: "enterHighPeak" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitHighPeak() {
+    highlight = { tx: highPeakCaveAt.tx, ty: highPeakCaveAt.ty };
+    if (isHighPeakCave(player.tx, player.ty) || (player.tx === highPeakCaveAt.tx && player.ty === highPeakCaveAt.ty)) {
+      exitHighPeak();
+      return;
+    }
+    var path = findPath(player.tx, player.ty, highPeakCaveAt.tx, highPeakCaveAt.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, highPeakCaveAt.tx, highPeakCaveAt.ty)) exitHighPeak();
+      return;
+    }
+    pending = { type: "exitHighPeak" };
+    startWalk(player, path, 3.5);
+  }
+
+  function hasGrilledGoldenSwordfish() {
+    return bagCount("cookedGoldenSwordfish") > 0 || selectedIs("cookedGoldenSwordfish");
+  }
+
+  function spendGrilledGoldenSwordfish() {
+    if (selectedIs("cookedGoldenSwordfish") && spendSelected("cookedGoldenSwordfish", 1) >= 1) return true;
+    if (takeFromBag("cookedGoldenSwordfish", 1) >= 1) return true;
+    return false;
+  }
+
+  function talkSleepingBear() {
+    var bear, lines;
+    bear = findSleepingBear();
+    if (!bear) return;
+    faceToward(player, bear.tx, bear.ty);
+    if (found.pathClear || found.bearFed || bear.aside) {
+      openDialogue("BEAR", ["ZZZ... FULL AND HAPPY.", "THE PATH IS OPEN."]);
+      return;
+    }
+    if (hasGrilledGoldenSwordfish()) {
+      if (!spendGrilledGoldenSwordfish()) {
+        openDialogue("BEAR", ["ZZZ... SMELLS FISHY...", "BUT NO FISH?"]);
+        return;
+      }
+      found.bearFed = true;
+      found.pathClear = true;
+      bear.aside = true;
+      bear.tx = highPeakBearAt.tx + 3;
+      bear.ty = highPeakBearAt.ty;
+      openHighPeakPathLive();
+      showLineNote("THANK YOU!");
+      playSfx("toast");
+      if (player) spawnSparks(bear.tx * TILE + 8, bear.ty * TILE - 8);
+      openDialogue("BEAR", ["YUM! GRILLED GOLDEN", "SWORDFISH! THANK YOU.", "PATH CLEAR — GO ON UP."]);
+      unlocked.bearFedTip = true;
+      persistSave();
+      return;
+    }
+    lines = [
+      "ZZZ... SO SLEEPY...",
+      "BRING A GRILLED",
+      "GOLDEN SWORDFISH."
+    ];
+    openDialogue("SLEEPY BEAR", lines);
+    showLineNote("THE BEAR IS SLEEPY.");
+    if (!unlocked.bearSleepyTip) {
+      unlocked.bearSleepyTip = true;
+      persistSave();
+    }
+  }
+
+  function goTalkSleepingBear() {
+    var bear, dest, path;
+    bear = findSleepingBear();
+    if (!bear) return;
+    highlight = { tx: bear.tx, ty: bear.ty };
+    if (isNear(player.tx, player.ty, bear.tx, bear.ty) || isSleepingBear(player.tx, player.ty) ||
+        (player.tx === bear.tx && player.ty === bear.ty)) {
+      pending = null;
+      talkSleepingBear();
+      return;
+    }
+    dest = nearestAdjacent(bear.tx, bear.ty);
+    if (!dest) {
+      talkSleepingBear();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkSleepingBear();
+      return;
+    }
+    pending = { type: "talkSleepingBear" };
+    startWalk(player, path, 3.5);
   }
 
   function enterIslandCave() {
@@ -6315,6 +6612,14 @@
         }
       } else if (p.kind === "fixedBridge") {
         for (x = 0; x < 5; x++) block(p.tx + x, p.ty);
+      } else if (p.kind === "sleepingBear" && !p.aside && !found.pathClear) {
+        /* 20260905hw: chubby bear blocks the winding path until fed */
+        block(p.tx - 1, p.ty);
+        block(p.tx, p.ty);
+        block(p.tx + 1, p.ty);
+        block(p.tx - 1, p.ty + 1);
+        block(p.tx, p.ty + 1);
+        block(p.tx + 1, p.ty + 1);
       }
     }
     /* 20260905cf: Junie is a soft blocker (path around / scoot) — not a hard wall. */
@@ -6579,7 +6884,7 @@
         maxY = Math.max(0, worldH - VIEW_H);
       }
     }
-    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "ocean") {
+    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
       } else {
@@ -6605,16 +6910,16 @@
     }
     camX = Math.round(Math.max(minX, Math.min(maxX, targetX)));
     camY = Math.round(Math.max(minY, Math.min(maxY, targetY)));
-    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") {
+    if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "ocean") {
+        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean") {
           if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
         } else if (camY < minY) {
           camY = minY;
         }
       }
-      if ((currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
+      if ((currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") && player.y - camY > VIEW_H - CAM_PAD_BOTTOM) {
         camY = Math.round(player.y - (VIEW_H - CAM_PAD_BOTTOM));
         if (camY > maxY) camY = maxY;
       }
@@ -9980,7 +10285,7 @@
     if (isOceanEntrance(tx, ty) || isOceanExit(tx, ty)) return true;
     if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world)) return true;
     if (isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty)) return true;
-    if (isPeakCave(tx, ty) || isPeakMineMouth(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) || isMountainMineExit(tx, ty)) return true;
+    if (isPeakCave(tx, ty) || isPeakMineMouth(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) || isMountainMineExit(tx, ty) || isMountainMineHighExit(tx, ty) || isHighPeakCave(tx, ty) || isSleepingBear(tx, ty)) return true;
     return false;
   }
 
@@ -10056,7 +10361,7 @@
       isMineEntrance(tx, ty) || isMineExit(tx, ty) ||
       isMineDown(tx, ty) || isMineUp(tx, ty) || isMinePeakStairs(tx, ty) ||
       isPeakCave(tx, ty) || isPeakMineMouth(tx, ty) || isPeakFarmExit(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) ||
-      isMountainMineExit(tx, ty) || isIslandCaveExit(tx, ty) || isIslandCaveEntrance(tx, ty) ||
+      isMountainMineExit(tx, ty) || isMountainMineHighExit(tx, ty) || isHighPeakCave(tx, ty) || isIslandCaveExit(tx, ty) || isIslandCaveEntrance(tx, ty) ||
       isOceanEntrance(tx, ty) || isOceanExit(tx, ty) ||
       isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) ||
       isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty);
@@ -10239,6 +10544,8 @@
         found.mtChest = !!data.found.mtChest;
         found.mtChest2 = !!data.found.mtChest2;
         found.mtChest3 = !!data.found.mtChest3;
+        found.bearFed = !!data.found.bearFed;
+        found.pathClear = !!data.found.pathClear || !!data.found.bearFed;
       }
       if (data.ball && typeof data.ball === "object") {
         ball.tx = data.ball.tx | 0;
@@ -10504,10 +10811,10 @@
         }
       }
       syncLilaFlowers();
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down",
@@ -10907,6 +11214,9 @@
       if (isMountainMineExit(tx, ty)) {
         return { tx: mountainMineOut.tx, ty: mountainMineOut.ty - 2, face: "up" };
       }
+      if (isMountainMineHighExit(tx, ty)) {
+        return { tx: mountainMineHighAt.tx, ty: mountainMineHighAt.ty + 2, face: "down" };
+      }
     } else if (currentScene === "caveclimb") {
       if (isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty)) {
         if (climbFloor === 2) return { tx: 9, ty: 4, face: "down" };
@@ -11065,6 +11375,7 @@
       else if (scene === "lHouse") { tx = 7; ty = 6; face = "up"; }
       else if (scene === "islandCave") { tx = islandCaveOut.tx; ty = islandCaveOut.ty - 2; face = "up"; }
       else if (scene === "mountainMine") { tx = mountainMineOut.tx; ty = mountainMineOut.ty - 2; face = "up"; }
+      else if (scene === "highPeak") { tx = highPeakLand.tx; ty = highPeakLand.ty; face = "up"; }
       else if (scene === "caveclimb") {
         if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
         else { tx = 5; ty = 7; face = "up"; }
@@ -11410,6 +11721,8 @@
   function cookToast(fk) {
     /* 20260905cm: verb + name so toast reads as an action */
     if (!fk) return "COOKED A FISH!";
+    /* 20260905hw: golden swordfish cooks as GRILLED for the bear quest */
+    if (fk.id === "goldenSwordfish") return "GRILLED A GOLDEN SWORDFISH!";
     return "COOKED A " + fk.name + "!";
   }
 
@@ -13249,6 +13562,7 @@
     if (currentScene === "ocean") return "OCEAN";
     if (currentScene === "islandCave") return "ISLAND CAVE";
     if (currentScene === "mountainMine") return "MOUNTAIN MINE";
+    if (currentScene === "highPeak") return "HIGH PEAK";
     if (currentScene === "cottage") return "COTTAGE";
     if (currentScene === "cottage2") return "COTTAGE 2";
     if (currentScene === "tallCottage") return "TALL COTTAGE";
@@ -13995,6 +14309,19 @@
     /* 20260905hl: after summit rocks clear — Jobs points kids into the mountain mine */
     if (found.peakRocksCleared && !unlocked.mountainMineEntered) {
       return "ENTER THE MOUNTAIN MINE.";
+    }
+    /* 20260905hw: bigger peak + sleepy bear + grilled swordfish gate */
+    if (unlocked.mountainMineEntered && !unlocked.highPeakEntered) {
+      return "A BIGGER PEAK OPENS.";
+    }
+    if (currentScene === "highPeak" && !found.pathClear) {
+      if (hasGrilledGoldenSwordfish()) return "FEED THE SLEEPY BEAR.";
+      return "THE BEAR IS SLEEPY.";
+    }
+    if (unlocked.highPeakEntered && !found.pathClear) {
+      if (bagCount("goldenSwordfish") > 0 && bagCount("cookedGoldenSwordfish") < 1) return "GRILL A GOLDEN SWORDFISH.";
+      if (hasGrilledGoldenSwordfish()) return "FEED THE SLEEPY BEAR.";
+      return "GRILL A GOLDEN SWORDFISH.";
     }
     /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
     if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
@@ -15872,9 +16199,17 @@
         exitMountainMine();
         return true;
       }
+      if (isMountainMineHighExit(player.tx, player.ty)) {
+        enterHighPeak();
+        return true;
+      }
       f = facingTile();
       if (isMountainMineExit(f.tx, f.ty)) {
         exitMountainMine();
+        return true;
+      }
+      if (isMountainMineHighExit(f.tx, f.ty)) {
+        enterHighPeak();
         return true;
       }
       spots = orthoSpots();
@@ -15882,6 +16217,38 @@
         t = spots[i];
         if (isMountainMineExit(t.tx, t.ty)) {
           exitMountainMine();
+          return true;
+        }
+        if (isMountainMineHighExit(t.tx, t.ty)) {
+          enterHighPeak();
+          return true;
+        }
+      }
+      return false;
+    }
+    if (currentScene === "highPeak") {
+      if (isHighPeakCave(player.tx, player.ty)) {
+        exitHighPeak();
+        return true;
+      }
+      f = facingTile();
+      if (isHighPeakCave(f.tx, f.ty)) {
+        exitHighPeak();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isHighPeakCave(t.tx, t.ty)) {
+          exitHighPeak();
+          return true;
+        }
+      }
+      /* Space talk adjacent sleepy bear */
+      if (findSleepingBear && findSleepingBear()) {
+        var _sb = findSleepingBear();
+        if (_sb && (isNear(player.tx, player.ty, _sb.tx, _sb.ty) || isSleepingBear(f.tx, f.ty))) {
+          talkSleepingBear();
           return true;
         }
       }
@@ -19574,6 +19941,21 @@
       exitMountainMine();
       return;
     }
+    if (isMountainMineHighExit(player.tx, player.ty)) {
+      pending = null;
+      enterHighPeak();
+      return;
+    }
+    if (isHighPeakCave(player.tx, player.ty)) {
+      pending = null;
+      exitHighPeak();
+      return;
+    }
+    if (isSleepingBear(player.tx, player.ty)) {
+      pending = null;
+      talkSleepingBear();
+      return;
+    }
     if (isPeakCave(player.tx, player.ty)) {
       pending = null;
       enterClimbFloor(2, "mouth");
@@ -19812,6 +20194,12 @@
       enterMountainMine();
     } else if (act.type === "exitMountainMine") {
       exitMountainMine();
+    } else if (act.type === "enterHighPeak") {
+      enterHighPeak();
+    } else if (act.type === "exitHighPeak") {
+      exitHighPeak();
+    } else if (act.type === "talkSleepingBear") {
+      talkSleepingBear();
     } else if (act.type === "talkBoat") {
       talkBoat();
     } else if (act.type === "peakRocks") {
@@ -21365,6 +21753,7 @@
     if (p.kind === "brokenBridge" || p.kind === "fixedBridge") return p.ty * TILE + 40;
     if (p.kind === "rowboat") return p.ty * TILE + 24;
     if (p.kind === "peakRocks") return p.ty * TILE + 14;
+    if (p.kind === "sleepingBear") return p.ty * TILE + 14;
     if (p.kind === "caveMouth") return p.ty * TILE + 16;
     if (p.kind === "caveStairs") return p.ty * TILE + 20;
     if (p.kind === "peakSign") return p.ty * TILE + 8;
@@ -21423,6 +21812,7 @@
     if (p.kind === "brokenBridge" || p.kind === "fixedBridge") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 80, h: 48 };
     if (p.kind === "rowboat") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 32 };
     if (p.kind === "peakRocks") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
+    if (p.kind === "sleepingBear") return { x: p.tx * TILE - 36, y: p.ty * TILE - 40, w: 80, h: 56 };
     if (p.kind === "caveMouth") return { x: p.tx * TILE - 16, y: p.ty * TILE - 32, w: 48, h: 48 };
     if (p.kind === "caveStairs") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 32 };
     if (p.kind === "peakSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 36 };
@@ -21545,6 +21935,31 @@
     if (taken <= 6) return 3;
     if (taken <= 8) return 4;
     return 5;
+  }
+
+  function drawSleepingBear(g, p, x, y) {
+    var bob, zx, zy, i, sc;
+    bob = Math.round(Math.sin(tick / 420) * 1);
+    if (!drawStandSprite(g, Assets.sleepingBear, x, y + bob, 80, 56)) {
+      /* code-paint fallback */
+      g.fillStyle = "#785028";
+      g.fillRect(x - 28, y - 18 + bob, 56, 28);
+      g.fillStyle = "#D2B48C";
+      g.fillRect(x - 22, y - 8 + bob, 20, 12);
+      g.fillStyle = "#28180E";
+      g.fillRect(x - 18, y - 2 + bob, 6, 4);
+      g.fillStyle = "#28180E";
+      g.fillRect(x - 6, y - 14 + bob, 14, 2);
+    }
+    /* sleepy Z juice */
+    if (!p.aside && !found.pathClear) {
+      for (i = 0; i < 3; i++) {
+        sc = 0.7 + i * 0.25;
+        zx = x + 18 + i * 10 + Math.sin((tick / 300) + i) * 2;
+        zy = y - 28 - i * 10 - ((tick / 40 + i * 18) % 36);
+        drawTiredZGlyph(g, Math.round(zx), Math.round(zy), sc, "#F3D2A3", "#3D1A0C");
+      }
+    }
   }
 
   function drawPeakRockCracks(g, p, x, y) {
@@ -21839,13 +22254,17 @@
       if (currentScene !== "peak" || p.peakMine) {
         if (!drawStandSprite(g, Assets.caveMouth, x, y)) drawCaveMouth(g, x, y);
       }
-      if (currentScene === "islandCave" || currentScene === "mountainMine") drawShaftLabel(g, p, "OUT");
+      if (currentScene === "islandCave") drawShaftLabel(g, p, "OUT");
+      if (currentScene === "mountainMine") drawShaftLabel(g, p, p.highPeak ? "PEAK" : "OUT");
       if (currentScene === "peak" && p.peakMine) drawShaftLabel(g, p, "MINE");
+      if (currentScene === "highPeak" && p.highPeakGate) drawShaftLabel(g, p, "MINE");
+    } else if (p.kind === "sleepingBear") {
+      drawSleepingBear(g, p, x, y);
     } else if (p.kind === "caveStairs") {
       drawStandSprite(g, Assets.caveStairs, x, y);
       if (p.dir === "out" || ((currentScene === "islandCave" || currentScene === "mountainMine") && p.dir !== "up" && p.dir !== "down")) {
-        drawShaftLabel(g, p, "OUT");
-      } else if (p.dir === "up") drawShaftLabel(g, p, "UP");
+        drawShaftLabel(g, p, (currentScene === "mountainMine" && p.tx === mountainMineHighAt.tx && p.ty === mountainMineHighAt.ty) ? "PEAK" : "OUT");
+      } else if (p.dir === "up") drawShaftLabel(g, p, (currentScene === "mountainMine") ? "PEAK" : "UP");
       else if (p.dir === "down") drawShaftLabel(g, p, (currentScene === "caveclimb" && climbFloor === 1) ? "MINE" : "DOWN");
       else drawShaftLabel(g, p, "STAIRS");
     } else if (p.kind === "peakSign") {
@@ -22571,7 +22990,7 @@
     sortActors(list);
     for (i = 0; i < list.length; i++) {
       item = list[i];
-      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") {
+      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") {
         if (item.kind === "prop") drawGradedProp(g, item);
         else drawWashedActor(g, item);
       } else {
@@ -24127,7 +24546,7 @@
     frameDayT = null;
     beginFrameGrade();
     updateCamera();
-    g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "ocean") ? (currentScene === "peak" ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -24136,6 +24555,9 @@
     }
     if (currentScene === "peak" && Assets.peakMap) {
       g.drawImage(Assets.peakMap, 0, 0, PEAK_COLS * TILE, PEAK_ROWS * TILE);
+    }
+    if (currentScene === "highPeak" && Assets.highPeakMap) {
+      g.drawImage(Assets.highPeakMap, 0, 0, HIGH_PEAK_COLS * TILE, HIGH_PEAK_ROWS * TILE);
     }
     if (currentScene === "ocean" && Assets.oceanMap) {
       g.drawImage(Assets.oceanMap, 0, 0, OCEAN_COLS * TILE, OCEAN_ROWS * TILE);
@@ -24146,7 +24568,7 @@
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -24157,8 +24579,8 @@
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
-          if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") drawSkyTile(g, tx, ty, dx, dy);
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+          if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") drawSkyTile(g, tx, ty, dx, dy);
           else if (currentScene === "ocean") { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
           else if (isCozyInterior()) Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
           else if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") {
@@ -24172,6 +24594,9 @@
           continue;
         }
         if (currentScene === "peak" && Assets.peakMap && (ch === "y" || ch === "f")) {
+          continue;
+        }
+        if (currentScene === "highPeak" && Assets.highPeakMap && (ch === "y" || ch === "f")) {
           continue;
         }
         if (currentScene === "ocean" && Assets.oceanMap && (ch === "y" || ch === "f")) {
@@ -24301,7 +24726,7 @@
     /* Rim after ground so north overhang sits on the top grass row; actors
        (incl. Orion) still draw later — keeps him visible on northern tiles. */
     drawOverRim(g);
-    if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak") {
+    if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") {
       g.restore();
       drawDayTint(g);
       g.save();
@@ -25178,6 +25603,18 @@
       goExitMountainMine();
       return;
     }
+    if (isMountainMineHighExit(tx, ty)) {
+      goEnterHighPeak();
+      return;
+    }
+    if (isHighPeakCave(tx, ty)) {
+      goExitHighPeak();
+      return;
+    }
+    if (currentScene === "highPeak" && (isSleepingBear(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "sleepingBear"))) {
+      goTalkSleepingBear();
+      return;
+    }
     if (isForestExit(tx, ty)) {
       goExitForest();
       return;
@@ -25249,7 +25686,7 @@
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "sleepingBear" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -25402,16 +25839,23 @@ if (currentScene === "ocean") goExitOcean();
       goPeakRocks();
       return;
     }
+    if (hitProp && hitProp.kind === "sleepingBear") {
+      goTalkSleepingBear();
+      return;
+    }
     if (hitProp && hitProp.kind === "caveMouth") {
       if (currentScene === "peak" && hitProp.peakMine) goEnterMountainMine();
       else if (currentScene === "peak") goPeakCave();
       else if (currentScene === "ocean") goEnterIslandCave();
       else if (currentScene === "islandCave") goExitIslandCave();
+      else if (currentScene === "mountainMine" && hitProp.highPeak) goEnterHighPeak();
       else if (currentScene === "mountainMine") goExitMountainMine();
+      else if (currentScene === "highPeak") goExitHighPeak();
       else goClimbShaft(true);
       return;
     }
     if (hitProp && hitProp.kind === "caveStairs") {
+      if (currentScene === "mountainMine" && hitProp.dir === "up") { goEnterHighPeak(); return; }
       if (currentScene === "mountainMine" || (hitProp.dir === "out" && currentScene === "mountainMine")) { goExitMountainMine(); return; }
       if (currentScene === "islandCave" || hitProp.dir === "out") { goExitIslandCave(); return; }
       if (currentScene === "mine") goMinePeakStairs();
@@ -26161,6 +26605,8 @@ if (currentScene === "ocean") goExitOcean();
       TREETOP_COLS: TREETOP_COLS,
       TREETOP_ROWS: TREETOP_ROWS,
       PEAK_COLS: PEAK_COLS,
+      HIGH_PEAK_COLS: HIGH_PEAK_COLS,
+      HIGH_PEAK_ROWS: HIGH_PEAK_ROWS,
       PEAK_ROWS: PEAK_ROWS,
       CLIMB_COLS: CLIMB_COLS,
       CLIMB_ROWS: CLIMB_ROWS,
@@ -26346,7 +26792,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hv", BUILD);
+      ok("BUILD", BUILD === "20260905hw", BUILD);
       /* Local 9/6 clock audit: race harden still in place; DAY_MS frozen.
          Expected ~2 real min/phase, ~8 real min/day — not "no day change". */
       ok("DAY_MS_frozen", DAY_MS === 480000, "DAY_MS=" + DAY_MS);
@@ -28616,6 +29062,33 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       }
       exitMountainMine();
       ok("mountainMineExitPeak", currentScene === "peak" && player.ty >= peakMineMouthAt.ty + 2, player.tx + "," + player.ty);
+      /* 20260905hw: high peak mouth + bear swordfish gate */
+      enterMountainMine();
+      var _hiHas = false;
+      for (_mmi = 0; _mmi < PROPS.length; _mmi++) {
+        if (PROPS[_mmi] && PROPS[_mmi].kind === "caveMouth" && PROPS[_mmi].highPeak) { _hiHas = true; break; }
+      }
+      ok("mountainMineHighMouth", _hiHas && isMountainMineHighExit(mountainMineHighAt.tx, mountainMineHighAt.ty), "high");
+      var hpLand = { tx: mountainMineHighAt.tx, ty: mountainMineHighAt.ty + 2 };
+      ok("mountainMineHighLandWalk", walkable(hpLand.tx, hpLand.ty) && (hpLand.ty - mountainMineHighAt.ty) >= 2, hpLand.tx + "," + hpLand.ty);
+      enterHighPeak();
+      ok("highPeakEnter", currentScene === "highPeak" && walkable(highPeakLand.tx, highPeakLand.ty), player.tx + "," + player.ty);
+      var _bear = findSleepingBear();
+      ok("highPeakBearProp", !!_bear && !_bear.aside && !found.pathClear, _bear && (_bear.tx + "," + _bear.ty));
+      ok("highPeakBearBlocks", !!_bear && !walkable(_bear.tx, _bear.ty), "block");
+      inventory.cookedGoldenSwordfish = (inventory.cookedGoldenSwordfish | 0) + 1;
+      placeToolInTrayFirst("cookedGoldenSwordfish");
+      selectTool("cookedGoldenSwordfish");
+      placePlayer(_bear.tx, _bear.ty + 2, "up");
+      talkSleepingBear();
+      ok("highPeakBearFed", !!(found.bearFed && found.pathClear), "fed");
+      _bear = findSleepingBear();
+      ok("highPeakPathOpen", !!_bear && !!_bear.aside && walkable(highPeakBearAt.tx, highPeakBearAt.ty), "open");
+      exitHighPeak();
+      ok("highPeakExitMine", currentScene === "mountainMine" && player.ty >= mountainMineHighAt.ty + 2, player.tx + "," + player.ty);
+      found.bearFed = false;
+      found.pathClear = false;
+      inventory.cookedGoldenSwordfish = 0;
       applyScene("peak");
       var pk = nudgeRestoreOffGate(18, 25, "up");
       ok("peakCaveNudge", !!(pk && pk.tx === peakLand.tx && pk.ty === peakLand.ty), pk && (pk.tx + "," + pk.ty));

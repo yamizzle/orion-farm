@@ -42,6 +42,7 @@ Status column: **KEEP** = still required in new builds.
 | Peak rock hits show **progressive crack stages** (5 stages / 10 hits — not darken-only) | 20260905bu | KEEP |
 | After rocks clear: **secret mountain mine** mouth on cleared path; walk/tap/Space enter; OUT back to peak; save-safe loot flags | 20260905hl | KEEP |
 | Summit mountain mine polish: denser crystals (glow+sparkle+toast), kickable carts (CART/CLANK), 3 chests with gems/ore/gold/bars; OUT still labeled; enter/OUT peak keep | 20260905hu | KEEP |
+| Mountain-mine north exit → **HIGH PEAK**; sleepy bear blocks path; only grilled golden swordfish feeds / clears path; bearFed+pathClear save; Jobs tips A BIGGER PEAK OPENS / THE BEAR IS SLEEPY / GRILL A GOLDEN SWORDFISH; OUT still returns to old peak | 20260905hw | KEEP |
 | Mine OUT/UP findable (bobbing gold labels + Jobs tip); pad must not cover OUT | 20260905bx + 31t | KEEP |
 | Door / ladder / cave landings leave a **2-tile gap** so one step cannot auto-reenter or auto-exit | 20260905er–05ew | KEEP |
 
@@ -125,4 +126,4 @@ Do not re-open that wave item-by-item unless a specific interaction goes silent 
 
 ---
 
-*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05ht) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*
+*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05hw) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*
