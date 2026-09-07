@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hx";
+  var BUILD = "20260905hy";
   var ASSET_REV = "464561";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -21948,7 +21948,7 @@
   function drawSleepingBear(g, p, x, y) {
     var bob, zx, zy, i, sc;
     bob = Math.round(Math.sin(tick / 420) * 1);
-    /* 20260905hx: denser 160×112 Imagine bear drawn at 80×56 (BUFFER 2×) */
+    /* 20260905hy: true sleeping-pose Imagine bear 160×112 drawn at 80×56 (BUFFER 2×) */
     if (!drawStandSprite(g, Assets.sleepingBear, x, y + bob, 80, 56)) {
       /* code-paint fallback */
       g.fillStyle = "#785028";

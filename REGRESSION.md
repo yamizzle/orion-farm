@@ -43,7 +43,7 @@ Status column: **KEEP** = still required in new builds.
 | After rocks clear: **secret mountain mine** mouth on cleared path; walk/tap/Space enter; OUT back to peak; save-safe loot flags | 20260905hl | KEEP |
 | Summit mountain mine polish: denser crystals (glow+sparkle+toast), kickable carts (CART/CLANK), 3 chests with gems/ore/gold/bars; OUT still labeled; enter/OUT peak keep | 20260905hu | KEEP |
 | Mountain-mine north exit → **HIGH PEAK**; sleepy bear blocks path; only grilled golden swordfish feeds / clears path; bearFed+pathClear save; Jobs tips A BIGGER PEAK OPENS / THE BEAR IS SLEEPY / GRILL A GOLDEN SWORDFISH; OUT still returns to old peak | 20260905hw | KEEP |
-| HIGH PEAK ground + bear are **Imagine stamps** (16px tile grid map; dense 2× sleepingBear; Imagine pines — no code checker / oval / triangle paint) | 20260905hx | KEEP |
+| HIGH PEAK ground + bear are **Imagine stamps** (16px tile grid map; dense 2× true sleeping-pose sleepingBear; Imagine pines — no code checker / oval / triangle paint) | 20260905hx + 20260905hy | KEEP |
 | Mine OUT/UP findable (bobbing gold labels + Jobs tip); pad must not cover OUT | 20260905bx + 31t | KEEP |
 | Door / ladder / cave landings leave a **2-tile gap** so one step cannot auto-reenter or auto-exit | 20260905er–05ew | KEEP |
 
