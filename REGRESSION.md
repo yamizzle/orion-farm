@@ -72,7 +72,7 @@ Status column: **KEEP** = still required in new builds.
 | Internal **BUFFER=2** canvas (640×384) for dense tray/world blit | 20260905g | KEEP |
 | Props keep denser Imagine frames (2× / 3× src) — car uses dense frames but **draws vehicle-sized** (~0.75 of 3× ≈ a bit taller than Orion), not house-tall | 20260905hi (was 05hh/05cc) | KEEP |
 | South camera keeps Orion **above the hotbar** (CAM_PAD_BOTTOM) on overworld too | 20260905c + 05cg | KEEP |
-| Orion visible on northernmost walk tiles (foot boost; no global +64 canopy hack) | 20260905ba + 05bw | KEEP |
+| Orion visible on northernmost walk tiles (foot boost; no global +64 canopy hack) | 20260905ba + 05bw + 05hv | KEEP |
 
 ---
 
@@ -92,7 +92,7 @@ Status column: **KEEP** = still required in new builds.
 | Invariant | BUILD | Status |
 | --- | --- | --- |
 | Bow selected → strike pad + Space/tap actually **shootArrow** | 20260905ez | KEEP |
-| Fat-finger sword pad hits all 8 neighbors; pad remash; pad-over-OUT kept clear | 20260905bz | KEEP |
+| Fat-finger sword pad hits all 8 neighbors; pad remash; pad-over-OUT kept clear | 20260905bz (+05hv dock facing-away autotest) | KEEP |
 | Every foe kill drops loot (no empty POOF); hit/kill juice readable | 20260905ci–05cj | KEEP |
 
 ---

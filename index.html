@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hu";
+  var BUILD = "20260905hv";
   var ASSET_REV = "464560";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -22166,10 +22166,10 @@
     return foot;
   }
 
-  /* 20260905bw: dense Imagine canopy can fully erase Orion (hair-only) while he
-     is correctly Y-sorted north of the trunk. Keep foot sort cozy (south=front,
-     north=behind leaves) — never a global +64 — and peek only the head/shoulders
-     band above canopies that actually painted after him. Mid-map hide stays. */
+  /* 20260905bw + 20260905hv: dense Imagine canopy can fully erase Orion (hair-only)
+     while he is correctly Y-sorted north of / beside the trunk. Keep foot sort cozy
+     (south=front, north=behind leaves) — never a global +64 — and peek head/shoulders
+     above canopies that paint with him or after him. Mid-map hide stays. */
   function isCanopyTreeKind(kind) {
     return kind === "tree" || kind === "pine" || kind === "oak" || kind === "birch" ||
       kind === "palm" || kind === "giantTree";
@@ -22182,18 +22182,21 @@
     if (birdRideFx) return false;
     if (faintFx && faintFx.stage === "out") return false;
     drawFoot = playerDrawFoot();
-    hx0 = player.x - 7;
-    hx1 = player.x + 7;
+    /* Full head + shoulders band — pine 1N leaf cover is ~opaque here. */
+    hx0 = player.x - 8;
+    hx1 = player.x + 8;
     hy0 = player.y - 32;
-    hy1 = player.y - 18;
+    hy1 = player.y - 12;
     for (i = 0; i < PROPS.length; i++) {
       p = PROPS[i];
       if (!p || p.hidden || !isCanopyTreeKind(p.kind)) continue;
       tf = propFoot(p);
-      if (tf <= drawFoot) continue; /* tree behind or equal — already under Orion */
+      /* 20260905hv: equal-foot side canopies can still paint after Orion (unstable
+         Y-sort) and hide him — only skip trees strictly behind. */
+      if (tf < drawFoot) continue;
       b = propBounds(p);
-      if (hx1 <= b.x + 2 || hx0 >= b.x + b.w - 2) continue;
-      if (hy1 <= b.y + 2 || hy0 >= b.y + b.h - 10) continue;
+      if (hx1 <= b.x + 1 || hx0 >= b.x + b.w - 1) continue;
+      if (hy1 <= b.y + 1 || hy0 >= b.y + b.h - 8) continue;
       return true;
     }
     return false;
@@ -22217,7 +22220,7 @@
       bob -= 1;
     }
     top = Math.round(player.y - 32 + bob + sy);
-    peekH = 14; /* head + shoulders only */
+    peekH = 18; /* 20260905hv: clearer head + shoulders under dense pine/oak */
     g.save();
     g.beginPath();
     g.rect(Math.round(player.x - 10 + sx), top, 20, peekH);
@@ -22575,7 +22578,7 @@
         paintActor(g, item);
       }
     }
-    /* 20260905bw: after Y-sort paint, peek head/shoulders if dense canopy fully hid him */
+    /* 20260905bw/05hv: after Y-sort paint, peek head/shoulders if dense canopy hid him */
     drawPlayerCanopyPeek(g);
   }
 
@@ -26343,7 +26346,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hu", BUILD);
+      ok("BUILD", BUILD === "20260905hv", BUILD);
       /* Local 9/6 clock audit: race harden still in place; DAY_MS frozen.
          Expected ~2 real min/phase, ~8 real min/day — not "no day change". */
       ok("DAY_MS_frozen", DAY_MS === 480000, "DAY_MS=" + DAY_MS);
@@ -26373,6 +26376,27 @@ if (currentScene === "ocean") goExitOcean();
         dayMs = origMs;
         dayNumber = origDay;
         resetClockMark();
+      })();
+      /* 20260905hv: canopy peek — north + same-row side; south stays cozy (no peek).
+         Stub scene/PROPS only — do not applyScene("forest") (would cache a 1-pine map). */
+      (function () {
+        var savedScene = currentScene, savedProps = PROPS, savedBird = birdRideFx, savedFaint = faintFx;
+        var pine = { kind: "pine", tx: 12, ty: 12 };
+        currentScene = "forest";
+        PROPS = [pine];
+        birdRideFx = null;
+        faintFx = null;
+        placePlayer(12, 11, "down"); /* one tile north of trunk */
+        ok("canopyPeekNorth", !!canopyHidesPlayerHead(), "footP=" + playerDrawFoot() + " footT=" + propFoot(pine));
+        placePlayer(11, 12, "right"); /* same-row west — equal foot Y-sort hide */
+        ok("canopyPeekSide", !!canopyHidesPlayerHead(), "footP=" + playerDrawFoot() + " footT=" + propFoot(pine));
+        placePlayer(12, 13, "up"); /* south of trunk — Orion in front */
+        ok("canopyNoPeekSouth", !canopyHidesPlayerHead(), "footP=" + playerDrawFoot() + " footT=" + propFoot(pine));
+        ok("canopyPeekFn", typeof drawPlayerCanopyPeek === "function", "");
+        PROPS = savedProps;
+        birdRideFx = savedBird;
+        faintFx = savedFaint;
+        currentScene = savedScene;
       })();
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
@@ -26409,6 +26433,17 @@ if (currentScene === "ocean") goExitOcean();
         ok("reachDiagonal", swingReachHits(slime), "");
         startSwordSwing();
         ok("padKillsDiagonal", slime.hp <= 0, "hp=" + slime.hp);
+        /* 20260905hv: weapon-dock sword selected + facing away still omni-kills */
+        player.arc = 0;
+        player.arcHit = false;
+        swordOwned = true;
+        weaponDock = { key: "sword", count: 1 };
+        selectedSlot = SLOT_WEAPON_DOCK;
+        placePlayer(8, 9, "left"); /* face away from SE foe */
+        slime = makeMon("slime", 9, 10);
+        monsters = [slime];
+        ok("dockSwordEquipped", !!swordEquipped(), "sel=" + selectedKey());
+        ok("dockPadOmniFacingAway", !!startSwordSwing() && slime.hp <= 0, "hp=" + slime.hp + " face=" + player.face);
         /* Bat hop still dies on 2nd press (reach survives knockback) */
         player.arc = 0;
         player.arcHit = false;

@@ -28,8 +28,8 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 
 ### Critical
 
-- **Critical** | Partial | Tree canopy hides Orion / standing on the tree | BUILD 20260905bw: head/shoulders peek under dense canopy; **Needs live verify.**
-- **Critical** | Local 9/5 05bz | Sword: Space+hotbar kills; on-screen button and facing still miss | BUILD 20260905bz: pad omni + press damage + crescent; Space+hotbar already PASS 04e; pad/facing **Needs live verify.**
+- **Critical** | Partial | Tree canopy hides Orion / standing on the tree | BUILD 20260905hv: peek harden (equal-foot side + peekH 18) on 05bw; **Needs live verify.**
+- **Critical** | Local 9/5 05bz | Sword: Space+hotbar kills; on-screen button and facing still miss | BUILD 20260905bz (+05hv dock autotest): pad omni + press damage + crescent; Space+hotbar PASS 04e; dock-era code solid; pad/facing **Needs live verify.**
 - **Critical** | Local 9/5 05bq | Day clock races | BUILD 20260905bq harden still in code (clockMark / 50ms cap / single rAF / DAY_MS 480000). Local 9/6 audit: no residual race mutator found; 9/6 hn Day6→Day7 in ~15 min matches ~8 min/day (mis-score). Autotest invariants added. **Needs live stopwatch (~2 min/phase) — do not mark Done.**
 
 ### High
@@ -84,5 +84,5 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 
 ## Local ship vs live
 
-Almost every remaining Local/Partial row already has a local BUILD noted; treat as **Needs live verify** before Done. Do **not** fake Done on Criticals (day clock, canopy Partial, sword pad). Notable live-already-PASS pieces that do **not** close their whole row: pier boat (05a/05hn) inside Ocean Partial; slime/bat pad kills + i-frames (03b/04e) inside sword/slug rows; town cart kick (31o) inside kick-ball row.
+Almost every remaining Local/Partial row already has a local BUILD noted; treat as **Needs live verify** before Done. Do **not** fake Done on Criticals (canopy Partial, sword pad). Day clock audited clean 9/6. Notable live-already-PASS pieces that do **not** close their whole row: pier boat (05a/05hn) inside Ocean Partial; slime/bat pad kills + i-frames (03b/04e) inside sword/slug rows; town cart kick (31o) inside kick-ball row.
 
