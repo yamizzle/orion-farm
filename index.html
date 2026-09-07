@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ig";
+  var BUILD = "20260905ih";
   var ASSET_REV = "464565";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -23614,18 +23614,20 @@
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
 
-  /* 20260905ig: HITL 05if reject — stack counts illegible (dark mush).
-     Revert counts to pre-05hx 1:1 recipe (bright cream + 1px dark outline),
-     then unify HUD/BAG/floats onto that SAME paint path. No NN downscale crush
-     that ate cream strokes and left brown blur. Shorter day panel kept only
-     as tall as two full glyph rows need (~21). */
-  var TEXT_DENSE_UPSCALE = 1;
+  /* 20260905ih: keep 05ig cream+dark outline; densify counts 4× then NN
+     downscale to ~70% on-screen. Outline+fill share ONE scratch (05if's
+     separate dest +1 outline made dark mush). Fail closed: outline stays
+     ≥2 device px at BUFFER=2 (pad grows if scale would thin it). HUD DAY/etc
+     stay 1:1 like 05ig unless a caller passes a compact scale. */
+  var TEXT_DENSE_UPSCALE = 4;
   var TEXT_HUD_SCALE = 1;
-  var TEXT_COUNT_SCALE = 1;
+  var TEXT_COUNT_SCALE = 0.7;
   var TEXT_COUNT_FILL = "#FFF8E8"; /* bright cream — not dark-on-wood */
   /* Aliases so older call sites / notes keep working */
   var TEXT_CRISP_SCALE = TEXT_HUD_SCALE;
   var TEXT_CRISP_UPSCALE = TEXT_DENSE_UPSCALE;
+  /* ≥1 logical px outline after downscale (=2 device @ BUFFER=2) */
+  var TEXT_MIN_OUTLINE_LOGICAL = 1;
 
   function textGlyphPitch(pitch) {
     return pitch || 6;
@@ -23643,7 +23645,7 @@
 
   function textGlyphH(scale) {
     var s = scale == null ? TEXT_HUD_SCALE : scale;
-    return Math.max(7, Math.round(7 * s));
+    return Math.max(1, Math.round(7 * s));
   }
 
   function paintFontGlyphs(g, str, x, y, color, pitch) {
@@ -23674,29 +23676,98 @@
     return denseText._c;
   }
 
-  /* Compat: 1:1 paint (no crush). Kept so older tests / call sites resolve. */
-  function blitDenseGlyphs(g, str, x, y, color, pitch, scale) {
-    paintFontGlyphs(g, str, x | 0, y | 0, color, pitch);
+  /* Outline pad so after NN downscale stroke stays ≥ TEXT_MIN_OUTLINE_LOGICAL.
+     Fail closed: if scale would mush even pad=1 at 1:1, callers keep scale=1. */
+  function textOutlinePad(scale) {
+    var s = scale == null ? 1 : scale;
+    if (s >= 0.98) return 1;
+    if (s < 0.05) s = 0.05;
+    return Math.max(1, Math.ceil(TEXT_MIN_OUTLINE_LOGICAL / s - 1e-9));
   }
 
-  /* Shared by HUD + stack counts + floats: 1:1 light glyphs + 1px dark outline. */
+  /* Paint outline+fill on one upscaled scratch, crop pad, NN blit to dest.
+     Never offset outline in DEST space (that was the 05if dark-mush bug). */
+  function blitDenseText(g, str, x, y, fillColor, pitch, scale, outline, outlineColor) {
+    var glyphH = 7;
+    var p = textGlyphPitch(pitch);
+    var s = scale == null ? TEXT_HUD_SCALE : scale;
+    var w, dw, dh, up, margin, origin, cw, ch, c, cg, smooth;
+    var srcX, srcY, srcW, srcH, ox, oy, oc, bx, by;
+    if (!str || !str.length) return;
+    w = str.length * p - 1;
+    if (w < 1) w = 1;
+    /* Fail closed: near-1:1 stays direct 05ig paint (no useless upscale crush). */
+    if (s >= 0.98) {
+      bx = x | 0;
+      by = y | 0;
+      oc = outlineColor || C.woodOut;
+      if (outline) paintFontGlyphs(g, str, bx + 1, by + 1, oc, p);
+      paintFontGlyphs(g, str, bx, by, fillColor, p);
+      return;
+    }
+    margin = outline ? textOutlinePad(s) : 0;
+    /* Pick 2×/3×/4× so compact dest still densifies */
+    if (s >= 0.85) up = 2;
+    else if (s >= 0.78) up = 3;
+    else up = TEXT_DENSE_UPSCALE;
+    if (up < 2) up = 2;
+    if (up > 4) up = 4;
+    /* 1px outer gutter; outline margin only grows right/down (05ig shadow) */
+    origin = 1;
+    cw = (w + 2 + margin) * up;
+    ch = (glyphH + 2 + margin) * up;
+    c = ensureDenseTextCanvas(cw, ch);
+    cg = c.getContext("2d");
+    cg.imageSmoothingEnabled = false;
+    cg.clearRect(0, 0, cw, ch);
+    cg.save();
+    cg.scale(up, up);
+    oc = outlineColor || C.woodOut;
+    if (outline && margin > 0) {
+      /* Down-right shadow thickened to margin (05ig family) — weight survives
+         NN shrink ≥2 device px @ BUFFER=2 without a full ring eating cream. */
+      for (oy = 0; oy <= margin; oy++) {
+        for (ox = 0; ox <= margin; ox++) {
+          if (ox === 0 && oy === 0) continue;
+          paintFontGlyphs(cg, str, origin + ox, origin + oy, oc, p);
+        }
+      }
+    }
+    paintFontGlyphs(cg, str, origin, origin, fillColor, p);
+    cg.restore();
+    /* Outline only grows right/down — crop includes that halo, not a full ring. */
+    srcX = origin * up;
+    srcY = origin * up;
+    srcW = (w + margin) * up;
+    srcH = (glyphH + margin) * up;
+    dw = Math.max(1, Math.round((w + margin) * s));
+    dh = Math.max(1, Math.round((glyphH + margin) * s));
+    smooth = g.imageSmoothingEnabled;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(c, srcX, srcY, srcW, srcH, x | 0, y | 0, dw, dh);
+    g.imageSmoothingEnabled = smooth;
+  }
+
+  /* Compat: body-only dense blit (no auto-outline). */
+  function blitDenseGlyphs(g, str, x, y, color, pitch, scale) {
+    blitDenseText(g, str, x, y, color, pitch, scale, false, null);
+  }
+
+  /* Shared path: HUD 1:1 cream+outline; counts use dense 2×–4×→NN at compact scale. */
   function denseText(g, str, x, y, color, opts) {
-    var pitch, outline, oc, bx, by;
+    var pitch, scale, outline, oc;
     if (!str || !str.length) return;
     opts = opts || {};
     pitch = opts.pitch != null ? opts.pitch : 6;
+    scale = opts.scale != null ? opts.scale : TEXT_HUD_SCALE;
     outline = opts.outline !== false;
     oc = opts.outlineColor || C.woodOut;
-    bx = x | 0;
-    by = y | 0;
-    /* Outline first (down-right), then bright body — pre-05hx count recipe. */
-    if (outline) paintFontGlyphs(g, str, bx + 1, by + 1, oc, pitch);
-    paintFontGlyphs(g, str, bx, by, color, pitch);
+    blitDenseText(g, str, x | 0, y | 0, color, pitch, scale, outline, oc);
   }
 
   function drawTextCrisp(g, str, x, y, color, pitch, scale) {
-    /* Compat alias → 1:1 paint (no auto-outline; callers add their own). */
-    paintFontGlyphs(g, str, x | 0, y | 0, color, pitch);
+    /* Compat alias → dense blit path (no auto-outline; callers add their own). */
+    blitDenseGlyphs(g, str, x, y, color, pitch, scale);
   }
 
   function drawText(g, str, x, y, color) {
@@ -23708,12 +23779,16 @@
   }
 
   function drawSlotCount(g, label, sx, sy, slot) {
-    /* 20260905ig: revert to pre-05hx readable counts — full 1:1 bright + outline.
-       Pitch 5/6 (not crushed 0.85). Corner of tray/bag slot. */
+    /* 20260905ih: ~70% on-screen via 4× dense paint + careful NN; cream+outline. */
     var pitch = label.length >= 4 ? 5 : 6;
-    var w = label.length * pitch - 1;
-    var x = sx + slot - w - 2;
-    var y = sy + slot - 9;
+    var margin = textOutlinePad(TEXT_COUNT_SCALE);
+    var bodyW = textWidth(label, pitch, TEXT_COUNT_SCALE);
+    var bodyH = textGlyphH(TEXT_COUNT_SCALE);
+    var halo = Math.round(margin * TEXT_COUNT_SCALE);
+    var dw = bodyW + halo;
+    var dh = bodyH + halo;
+    var x = sx + slot - dw - 1;
+    var y = sy + slot - dh - 1;
     denseText(g, label, x, y, TEXT_COUNT_FILL, { pitch: pitch, scale: TEXT_COUNT_SCALE });
   }
 
@@ -24630,7 +24705,7 @@
     }
     drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + ((T.bagH - textGlyphH()) / 2) | 0, TEXT_COUNT_FILL);
 
-    /* 20260905ig: energy E via shared 1:1 denseText */
+    /* 20260905ih: energy E via shared denseText (HUD stays 1:1) */
     drawText(g, "E", 47, 11, TEXT_COUNT_FILL);
     var ew = 54;
     var filled = Math.round(ew * energy / MAX_ENERGY);
@@ -27054,18 +27129,22 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ig", BUILD);
+      ok("BUILD", BUILD === "20260905ih", BUILD);
       (function () {
-        /* 20260905ig: 1:1 cream+outline counts/HUD + walk-through entrance labels */
-        var _ws, _os, _ms, _anc, _i, _savedScene;
+        /* 20260905ih: dense 4×→NN counts @~70%; HUD stays 1:1 cream+outline */
+        var _ws, _os, _ms, _anc, _i, _savedScene, _pad;
         ok("denseTextFn", typeof denseText === "function", "");
         ok("blitDenseGlyphsFn", typeof blitDenseGlyphs === "function", "");
+        ok("blitDenseTextFn", typeof blitDenseText === "function", "");
         ok("drawTextCrispFn", typeof drawTextCrisp === "function", "");
         ok("paintFontGlyphsFn", typeof paintFontGlyphs === "function", "");
         ok("signLabelAnchorFn", typeof signLabelAnchor === "function", "");
         ok("TEXT_HUD_SCALE", TEXT_HUD_SCALE === 1, String(TEXT_HUD_SCALE));
-        ok("TEXT_COUNT_full", TEXT_COUNT_SCALE === 1, String(TEXT_COUNT_SCALE));
+        ok("TEXT_COUNT_compact", TEXT_COUNT_SCALE >= 0.65 && TEXT_COUNT_SCALE <= 0.75, String(TEXT_COUNT_SCALE));
+        ok("TEXT_DENSE_up", TEXT_DENSE_UPSCALE === 4 || TEXT_DENSE_UPSCALE === 2, String(TEXT_DENSE_UPSCALE));
         ok("TEXT_COUNT_FILL_bright", typeof TEXT_COUNT_FILL === "string" && TEXT_COUNT_FILL.charAt(0) === "#", TEXT_COUNT_FILL);
+        _pad = textOutlinePad(TEXT_COUNT_SCALE);
+        ok("outlineFailClosed", _pad * TEXT_COUNT_SCALE >= TEXT_MIN_OUTLINE_LOGICAL - 1e-6, "pad=" + _pad + " s=" + TEXT_COUNT_SCALE);
         ok("textWidthFull", textWidth("WOODS") === ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
         ok("textGlyphHFull", textGlyphH() === 7, "h=" + textGlyphH());
         _savedScene = currentScene;
