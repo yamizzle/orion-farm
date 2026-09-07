@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ia";
-  var ASSET_REV = "464563";
+  var BUILD = "20260905ib";
+  var ASSET_REV = "464564";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -2547,7 +2547,7 @@
     if (currentScene === "house") rec.houseTier = houseTier | 0;
     if (currentScene === "ocean") rec.boatDock = { tx: dockTx, ty: dockTy };
     if (currentScene === "highPeak") rec.artRev = "05hz";
-    if (currentScene === "peak") rec.artRev = "05ia";
+    if (currentScene === "peak") rec.artRev = "05ib";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
 
@@ -2821,8 +2821,8 @@
     if (name === "highPeak" && cached && (cached.artRev || "") !== "05hz") {
       cached = null;
     }
-    /* 20260905ia: bust pre-flat-tile peak cache (scrubbed-rock / blue-ice era) */
-    if (name === "peak" && cached && (cached.artRev || "") !== "05ia") {
+    /* 20260905ib: bust pre-dirt-ribbon peak cache (noisy tan/stripe/white era) */
+    if (name === "peak" && cached && (cached.artRev || "") !== "05ib") {
       cached = null;
     }
     fresh = !cached;
@@ -3348,8 +3348,8 @@
   function buildPeakGround() {
     var cols = PEAK_COLS, rows = PEAK_ROWS;
     var g = [], y, x, row, ch;
-    /* 20260905ia: peakMap is flat dirt/snow/rock stamps only (no baked rocks).
-       Walk the dirt balcony + winding path; summit dirt is painted under rock props
+    /* 20260905ib: peakMap = warm brown dirt on walk mask + calm snow-rock off-path.
+       Walk the dirt balcony + winding path; summit dirt painted under rock props
        but stays solid until peakRocksCleared opens it. */
     var walk = [
       "........................................",
