@@ -64,8 +64,19 @@ Status column: **KEEP** = still required in new builds.
 | Dedicated **weapon dock** (sword/bow only); tray is tools/seeds/food; second weapon swaps into dock and old goes to bag; BAG open shows big dock + **WEAPON** ghost when empty | 20260905hm | KEEP |
 | **Bow selectable from weapon dock** — soft sword-ensure must not kick a parked bow; bag→dock swap / dock tap arms bow; hard pin only on cave claim / iron craft / giveTool sword; sword pad select still works | 20260905ho | KEEP |
 | **BAG select tip** — with bag open, tapping a cell shows NAME + 1 kid-plain blurb strip; updates on select/held; clears on close/empty; drag swap + X close still work | 20260905ic | KEEP |
+| **Crisp smaller HUD/sign text** — shared 4×→blit font (count-digit path); HUD/inventory/world signs slightly denser/smaller, still readable under BUFFER | 20260905id | KEEP |
 
 ---
+
+
+---
+
+## Doors / entrance labels
+
+| Invariant | BUILD | Status |
+| --- | --- | --- |
+| **Walk-through entrance labels** — MINE/DOWN/OUT/UP/PEAK/WOODS/OCEAN/SHOP words do not solid-block; kids walk the door tile under the float | 20260905id | KEEP |
+| Labels **centered above the entrance** (ladder/cave/door top-middle), not parked beside so kids path around; pinned (no bob/camera drift) | 20260905id | KEEP |
 
 ## Graphics / density
 
@@ -130,4 +141,4 @@ Do not re-open that wave item-by-item unless a specific interaction goes silent 
 
 ---
 
-*Last sweep: 2026-09-06 from BACKLOG Local ship notes (05a–05hw) + Darren HITL keep-list. Prefer this file over re-reading every ship note before a build.*
+*Last sweep: 2026-09-07 — 05id crisp fonts + walk-through entrance labels; prior 05a–05ic keep-list still applies.*

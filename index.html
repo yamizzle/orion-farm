@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ic";
+  var BUILD = "20260905id";
   var ASSET_REV = "464564";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -6034,8 +6034,8 @@
     else if (p.kind === "wildflower") drawWildflower(g, x, y);
     else if (p.kind === "toadstool") drawToadstool(g, x, y);
     else if (p.kind === "berryBush") drawBerryBush(g, x, y, !!p.picked);
-    else if (p.kind === "woodsSign") drawWoodsSign(g, x, y, p.label);
-    else if (p.kind === "oceanSign") drawWoodsSign(g, x, y, p.label || "OCEAN");
+    else if (p.kind === "woodsSign") drawWoodsSign(g, x, y, p.label, p);
+    else if (p.kind === "oceanSign") drawWoodsSign(g, x, y, p.label || "OCEAN", p);
     else if (p.kind === "giantTree") drawGiantTree(g, x, y);
     else if (p.kind === "woodsDown") drawWoodsDown(g, x, y);
     else if (p.kind === "nest") drawNest(g, x, y, p);
@@ -6288,23 +6288,62 @@
     drawText(g, word, sx, y - 5, C.parch);
   }
 
+  function signLabelAnchor(p) {
+    /* 20260905id: float wayfinding words on the entrance tile (top-middle), not beside */
+    var i, q;
+    if (!p) return null;
+    if (p.kind === "woodsSign") {
+      if (currentScene === "overworld") return { tx: forestIn.tx, ty: forestIn.ty };
+      if (currentScene === "forest") return { tx: forestOut.tx, ty: Math.min(forestOut.ty, FOREST_ROWS - 1) };
+      if (currentScene === "treetop") return { tx: 19, ty: 28 };
+      return { tx: p.tx, ty: p.ty };
+    }
+    if (p.kind === "oceanSign") {
+      if (currentScene === "overworld") return { tx: 14, ty: 37 };
+      if (currentScene === "ocean") {
+        if (p.label === "ISLAND") return { tx: p.tx, ty: p.ty };
+        return { tx: oceanLand.tx, ty: 0 };
+      }
+      return { tx: p.tx, ty: p.ty };
+    }
+    if (p.kind === "mineSign") return { tx: portalIn.tx, ty: portalIn.ty };
+    if (p.kind === "shopSign") {
+      if (currentScene === "overworld") return { tx: shopIn.tx, ty: shopIn.ty };
+      return { tx: p.tx, ty: p.ty };
+    }
+    if (p.kind === "peakSign") {
+      if (currentScene === "peak") return { tx: peakCaveAt.tx, ty: peakCaveAt.ty };
+      if (currentScene === "highPeak") return { tx: highPeakCaveAt.tx, ty: highPeakCaveAt.ty };
+      if (currentScene === "mine") {
+        for (i = 0; i < PROPS.length; i++) {
+          q = PROPS[i];
+          if (q && q.kind === "caveStairs" && q.dir === "up") return { tx: q.tx, ty: q.ty };
+        }
+      }
+      return { tx: p.tx, ty: p.ty };
+    }
+    return { tx: p.tx, ty: p.ty };
+  }
+
   function drawDoorSignLabel(g, x, y, word) {
-    /* 20260905az: floating shaft label (like OUT) — not a woodPanel blob that reads as a lamp */
-    var tw, lx, ly;
+    /* 20260905az/id: floating shaft label — pinned above entrance, crisp smaller type */
+    var tw, lx, ly, bh;
     if (!word) return;
     tw = textWidth(word);
+    bh = textGlyphH() + 2;
     lx = x + ((TILE - tw) / 2) | 0;
-    ly = y - 14;
-    fill(g, lx - 2, ly - 1, tw + 4, 9, "rgba(42,26,16,0.78)");
+    ly = y - (bh + 5);
+    fill(g, lx - 2, ly - 1, tw + 4, bh + 2, "rgba(42,26,16,0.78)");
     drawText(g, word, lx, ly, C.parch || "#F3D2A3");
   }
 
-  function drawWoodsSign(g, x, y, word) {
+  function drawWoodsSign(g, x, y, word, p) {
+    var anc, ax, ay;
     word = word || (currentScene === "forest" ? "FARM" : "WOODS");
     if (Assets.woodsSign) {
       var smooth = g.imageSmoothingEnabled;
       g.imageSmoothingEnabled = false;
-      /* 20260905ar/az: 32×32 Imagine plaque → 16×16 logical; label floats above */
+      /* 20260905ar/az: 32×32 Imagine plaque → 16×16 logical; label floats on entrance */
       g.drawImage(Assets.woodsSign, x, y - 8, 16, 16);
       g.imageSmoothingEnabled = smooth;
     } else {
@@ -6315,12 +6354,14 @@
       fill(g, x + 1, y + 2, 14, 1, C.woodHi);
       fill(g, x + 1, y + 7, 14, 1, C.woodOut);
     }
-    drawDoorSignLabel(g, x, y, word);
+    anc = signLabelAnchor(p);
+    ax = anc ? anc.tx * TILE : x;
+    ay = anc ? anc.ty * TILE : y;
+    drawDoorSignLabel(g, ax, ay, word);
   }
 
   function drawGiantTree(g, x, y) {
     var img = Assets.giantTree;
-    var word, tw, sx;
     if (img) {
       g.drawImage(img, x - 56, y - 88, 128, 104);
     } else {
@@ -6335,25 +6376,18 @@
       fill(g, x - 28, y - 42, 16, 6, "#5FBF22");
       fill(g, x + 16, y - 60, 14, 5, "#5FBF22");
     }
-    word = "UP";
-    tw = textWidth(word);
-    sx = x + ((TILE - tw) / 2 | 0);
-    woodPanel(g, sx - 3, y - 12, tw + 6, 11);
-    drawText(g, word, sx, y - 9, C.parch);
+    /* 20260905id: UP floats centered above tree door (walk-through label) */
+    drawDoorSignLabel(g, x, y, "UP");
   }
 
   function drawWoodsDown(g, x, y) {
-    var word, tw, sx;
     fill(g, x + 2, y + 4, 12, 10, "#3D1A0C");
     fill(g, x + 3, y + 5, 10, 8, "#1A1008");
     fill(g, x + 5, y + 7, 6, 5, "#070605");
     fill(g, x + 7, y - 2, 2, 10, "#8B5A28");
     fill(g, x + 6, y + 6, 4, 2, "#C47A38");
-    word = "DOWN";
-    tw = textWidth(word);
-    sx = x + ((TILE - tw) / 2 | 0);
-    woodPanel(g, sx - 3, y - 10, tw + 6, 11);
-    drawText(g, word, sx, y - 7, C.parch);
+    /* 20260905id: DOWN floats centered above hatch */
+    drawDoorSignLabel(g, x, y, "DOWN");
   }
 
   function drawEmptyNest(g, x, y) {
@@ -6625,9 +6659,9 @@
         p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "palm" ||
         p.kind === "stump" || p.kind === "berryBush" || p.kind === "well" || p.kind === "rock" ||
         (p.kind === "lantern" && !p.walk) || p.kind === "crate" || p.kind === "fenceH" || p.kind === "fenceL" ||
-        p.kind === "fenceR" || p.kind === "swordPedestal" || p.kind === "moonAltar" ||
-        p.kind === "oceanSign"
+        p.kind === "fenceR" || p.kind === "swordPedestal" || p.kind === "moonAltar"
       ) {
+        /* 20260905id: entrance wayfinding signs (woods/ocean/mine/peak/shop) stay walk-through */
         block(p.tx, p.ty);
       } else if (p.kind === "rowboat") {
         if (p.hidden || p.aboard) continue;
@@ -13607,7 +13641,7 @@
     tw = textWidth(word);
     y = 38;
     x = VIEW_W - tw - 8;
-    woodPanel(g, x, y, tw + 6, 11);
+    woodPanel(g, x, y, tw + 6, textGlyphH() + 4);
     drawText(g, word, x + 3, y + 2, C.parch);
   }
 
@@ -13623,7 +13657,7 @@
     r = buildStampRect();
     if (y === r.y && x < r.x + r.w && x + w > r.x) y = 50;
     if (x < 46) x = 46;
-    woodPanel(g, x, y, w, 11);
+    woodPanel(g, x, y, w, textGlyphH() + 4);
     drawText(g, label, x + 4, y + 2, C.parch);
   }
 
@@ -21828,7 +21862,7 @@
     if (p.kind === "palm") return { x: p.tx * TILE - 12, y: p.ty * TILE - 48, w: 40, h: 64 };
     if (p.kind === "log") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 16 };
     if (p.kind === "giantTree") return { x: p.tx * TILE - 56, y: p.ty * TILE - 96, w: 128, h: 120 };
-    if (p.kind === "woodsDown") return { x: p.tx * TILE - 4, y: p.ty * TILE - 10, w: 24, h: 28 };
+    if (p.kind === "woodsDown") return { x: p.tx * TILE - 10, y: p.ty * TILE - 28, w: 36, h: 44 };
     if (p.kind === "nest") {
       if (currentScene === "treetop") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 56 };
       if (p.eggs) return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 32 };
@@ -21836,32 +21870,41 @@
     }
     if (p.kind === "giantBird") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
     if (p.kind === "bird") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 20 };
-    if (p.kind === "woodsSign" || p.kind === "oceanSign" || p.kind === "shopSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 36 };
+    if (p.kind === "woodsSign" || p.kind === "oceanSign" || p.kind === "shopSign" || p.kind === "mineSign" || p.kind === "peakSign") {
+      /* 20260905id: bounds cover plaque + floating entrance label (may sit on neighbor door tile) */
+      var anc = signLabelAnchor(p) || { tx: p.tx, ty: p.ty };
+      var ax = anc.tx * TILE, ay = anc.ty * TILE;
+      var minx = Math.min(p.tx * TILE - 8, ax - 28);
+      var miny = Math.min(p.ty * TILE - 24, ay - 28);
+      var maxx = Math.max(p.tx * TILE + 24, ax + 44);
+      var maxy = Math.max(p.ty * TILE + 20, ay + 20);
+      return { x: minx, y: miny, w: maxx - minx, h: maxy - miny };
+    }
     if (p.kind === "brokenBridge" || p.kind === "fixedBridge") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 80, h: 48 };
     if (p.kind === "rowboat") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 32 };
     if (p.kind === "peakRocks") return { x: p.tx * TILE - 24, y: p.ty * TILE - 32, w: 64, h: 48 };
     if (p.kind === "sleepingBear") return { x: p.tx * TILE - 36, y: p.ty * TILE - 40, w: 80, h: 56 };
-    if (p.kind === "caveMouth") return { x: p.tx * TILE - 16, y: p.ty * TILE - 32, w: 48, h: 48 };
-    if (p.kind === "caveStairs") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 32 };
-    if (p.kind === "peakSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 36 };
+    if (p.kind === "caveMouth") return { x: p.tx * TILE - 20, y: p.ty * TILE - 36, w: 56, h: 52 };
+    if (p.kind === "caveStairs") return { x: p.tx * TILE - 14, y: p.ty * TILE - 28, w: 44, h: 44 };
     if (p.kind === "cave") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
-    if (p.kind === "mineSign") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 36 };
     if (p.kind === "pond") return { x: p.tx * TILE - 2, y: p.ty * TILE, w: 36, h: 32 };
     if (p.kind === "well") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "moonAltar") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "fern") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "tallGrass") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "ladder") {
-      /* 20260905bs: fat-finger climb for a 7yo — taller tap target, bigger on TREE */
+      /* 20260905bs/id: fat-finger climb + room for pinned OUT/UP float */
       if (currentScene === "tree") return { x: p.tx * TILE - 12, y: p.ty * TILE - 40, w: 40, h: 56 };
-      return { x: p.tx * TILE - 8, y: p.ty * TILE - 20, w: 32, h: 40 };
+      return { x: p.tx * TILE - 12, y: p.ty * TILE - 28, w: 40, h: 48 };
     }
     if (p.kind === "mailbox" || p.kind === "lantern" || p.kind === "lampPost" || p.kind === "hole" || p.kind === "swordPedestal") {
       if (p.kind === "lantern" && currentScene === "house") {
         return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
       }
+      if (p.kind === "hole") return { x: p.tx * TILE - 10, y: p.ty * TILE - 28, w: 36, h: 44 };
       return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     }
+    if (p.kind === "doormat") return { x: p.tx * TILE - 10, y: p.ty * TILE - 28, w: 36, h: 44 };
     if (isFenceKind(p.kind)) return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     return { x: p.tx * TILE, y: p.ty * TILE, w: 16, h: 16 };
   }
@@ -22027,9 +22070,9 @@
     }
   }
 
-  function drawPeakSign(g, x, y) {
-    /* 20260905az: same Imagine plaque + shaft label as WOODS (not lamp silhouette) */
-    drawWoodsSign(g, x, y, "PEAK");
+  function drawPeakSign(g, x, y, p) {
+    /* 20260905az/id: Imagine plaque; PEAK word centered on cave/stairs entrance */
+    drawWoodsSign(g, x, y, "PEAK", p);
   }
 
   function drawCaveMouth(g, x, y) {
@@ -22049,30 +22092,32 @@
     fill(g, x + 4, y - 5, 8, 1, C.woodHi);
   }
 
-  function drawMineSign(g, x, y) {
-    /* 20260905az: same Imagine plaque + shaft label as WOODS (not lamp silhouette) */
-    drawWoodsSign(g, x, y, "MINE");
+  function drawMineSign(g, x, y, p) {
+    /* 20260905az/id: Imagine plaque; MINE word centered on mine door */
+    drawWoodsSign(g, x, y, "MINE", p);
   }
 
   function drawShaftLabel(g, p, word) {
-    /* 20260905bx: bigger bobbing OUT/UP like door-sign floats so kids find exit */
-    var tw, lx, ly, bob, glow, exitish;
-    if (!word) return;
-    exitish = word === "OUT" || word === "UP";
-    bob = Math.round(Math.sin(tick / 260) * (exitish ? 1.5 : 1));
+    /* 20260905bx/id: OUT/UP/DOWN/MINE/PEAK pinned above entrance (no bob / camera drift) */
+    var tw, lx, ly, glow, exitish, x, y, bh;
+    if (!word || !p) return;
+    exitish = word === "OUT" || word === "UP" || word === "DOWN" || word === "MINE" || word === "PEAK";
+    x = p.tx * TILE;
+    y = p.ty * TILE;
     tw = textWidth(word);
-    lx = p.tx * TILE + ((TILE - tw) / 2) | 0;
-    ly = p.ty * TILE - (exitish ? 16 : 10) + bob;
-    if (exitish) {
+    bh = textGlyphH() + 2;
+    lx = x + ((TILE - tw) / 2) | 0;
+    ly = y - (exitish ? (bh + 7) : (bh + 3));
+    if (exitish && (word === "OUT" || word === "UP")) {
       glow = 0.16 + 0.14 * (0.5 + 0.5 * Math.sin(tick / 190));
       g.fillStyle = "rgba(255,214,120," + glow.toFixed(3) + ")";
-      g.fillRect(lx - 6, ly - 4, tw + 12, 15);
-      fill(g, lx - 4, ly - 2, tw + 8, 12, "rgba(18,10,6,0.90)");
-      fill(g, lx - 4, ly - 2, tw + 8, 1, "rgba(255,214,120,0.70)");
-      fill(g, lx - 4, ly + 9, tw + 8, 1, "rgba(232,200,74,0.45)");
+      g.fillRect(lx - 5, ly - 3, tw + 10, bh + 6);
+      fill(g, lx - 3, ly - 1, tw + 6, bh + 2, "rgba(18,10,6,0.90)");
+      fill(g, lx - 3, ly - 1, tw + 6, 1, "rgba(255,214,120,0.70)");
+      fill(g, lx - 3, ly + bh, tw + 6, 1, "rgba(232,200,74,0.45)");
       drawText(g, word, lx, ly, word === "OUT" ? "#FFE28A" : "#F3D2A3");
     } else {
-      fill(g, lx - 2, ly - 1, tw + 4, 9, "rgba(42,26,16,0.78)");
+      fill(g, lx - 2, ly - 1, tw + 4, bh + 2, "rgba(42,26,16,0.78)");
       drawText(g, word, lx, ly, C.parch || "#F3D2A3");
     }
   }
@@ -22237,7 +22282,7 @@
     } else if (p.kind === "cave") {
       drawCaveMouth(g, x, y);
     } else if (p.kind === "mineSign") {
-      drawMineSign(g, x, y);
+      drawMineSign(g, x, y, p);
     } else if (p.kind === "lantern" || p.kind === "lampPost") {
       var lit = lanternIsLit() || !!(p.holiday && townHoliday() === "lantern");
       var flicker;
@@ -22297,7 +22342,7 @@
       else if (p.dir === "down") drawShaftLabel(g, p, (currentScene === "caveclimb" && climbFloor === 1) ? "MINE" : "DOWN");
       else drawShaftLabel(g, p, "STAIRS");
     } else if (p.kind === "peakSign") {
-      drawPeakSign(g, x, y);
+      drawPeakSign(g, x, y, p);
     } else if (p.kind === "hole") {
       if (currentScene === "mine") {
         g.fillStyle = "rgba(232,200,74," + (0.16 + 0.12 * (0.5 + 0.5 * Math.sin(tick / 180))).toFixed(3) + ")";
@@ -22387,7 +22432,7 @@
         drawShaftLabel(g, { tx: p.tx + 1, ty: p.ty }, "GET IN");
       }
     } else if (p.kind === "oceanSign") {
-      drawWoodsSign(g, x, y, p.label || "OCEAN");
+      drawWoodsSign(g, x, y, p.label || "OCEAN", p);
     } else if (p.kind === "townHouseB") {
       Assets.draw(g, "townHouseB", x, y);
     } else if (p.kind === "fountain") {
@@ -23569,75 +23614,102 @@
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
 
-  function drawText(g, str, x, y, color) {
+  /* 20260905id: shared crisp text — 4× paint then NN blit (BUFFER-readable), slightly smaller than old 1:1 FONT */
+  var TEXT_CRISP_SCALE = 0.78;
+  var TEXT_CRISP_UPSCALE = 4;
+  var TEXT_COUNT_SCALE = 0.85;
+
+  function textGlyphPitch(pitch) {
+    return pitch || 6;
+  }
+
+  function textWidth(str, pitch, scale) {
+    var n, p, s;
+    if (!str || !str.length) return 0;
+    p = textGlyphPitch(pitch);
+    s = scale == null ? TEXT_CRISP_SCALE : scale;
+    n = str.length * p - 1;
+    if (n < 1) n = 1;
+    return Math.max(1, Math.round(n * s));
+  }
+
+  function textGlyphH(scale) {
+    var s = scale == null ? TEXT_CRISP_SCALE : scale;
+    return Math.max(1, Math.round(7 * s));
+  }
+
+  function paintFontGlyphs(g, str, x, y, color, pitch) {
+    var i, r, c, bits, ch, p;
+    p = textGlyphPitch(pitch);
     g.fillStyle = color;
-    var i, r, c, bits, ch;
     for (i = 0; i < str.length; i++) {
       ch = str.charAt(i);
       bits = FONT[ch] || FONT[" "];
       for (r = 0; r < 7; r++) {
         for (c = 0; c < 5; c++) {
           if (bits[r] & (0x10 >> c)) {
-            g.fillRect(x + i * 6 + c, y + r, 1, 1);
+            g.fillRect(x + i * p + c, y + r, 1, 1);
           }
         }
       }
     }
   }
 
-  function textWidth(str) {
-    return str.length * 6 - 1;
-  }
-
-  function drawTextPitch(g, str, x, y, color, pitch) {
-    g.fillStyle = color;
-    var i, r, c, bits, ch;
-    pitch = pitch || 6;
-    for (i = 0; i < str.length; i++) {
-      ch = str.charAt(i);
-      bits = FONT[ch] || FONT[" "];
-      for (r = 0; r < 7; r++) {
-        for (c = 0; c < 5; c++) {
-          if (bits[r] & (0x10 >> c)) {
-            g.fillRect(x + i * pitch + c, y + r, 1, 1);
-          }
-        }
-      }
-    }
-  }
-
-  function drawSlotCount(g, label, sx, sy, slot) {
-    /* 20260905hx: smaller on-slot digits, denser 4× then blit (readable BUFFER) */
-    var pitch = label.length >= 4 ? 4 : 5;
-    var glyphH = 7;
-    var w = label.length * pitch - 1;
-    var dw = Math.max(1, Math.round(w * 0.85));
-    var dh = Math.max(1, Math.round(glyphH * 0.85));
-    var scale = 4;
-    var cw = (w + 2) * scale;
-    var ch = (glyphH + 2) * scale;
-    if (!drawSlotCount._c || drawSlotCount._c.width !== cw || drawSlotCount._c.height !== ch) {
-      drawSlotCount._c = (typeof OffscreenCanvas !== "undefined")
+  function ensureTextCrispCanvas(cw, ch) {
+    if (!drawTextCrisp._c || drawTextCrisp._c.width !== cw || drawTextCrisp._c.height !== ch) {
+      drawTextCrisp._c = (typeof OffscreenCanvas !== "undefined")
         ? new OffscreenCanvas(cw, ch)
         : document.createElement("canvas");
-      drawSlotCount._c.width = cw;
-      drawSlotCount._c.height = ch;
+      drawTextCrisp._c.width = cw;
+      drawTextCrisp._c.height = ch;
     }
-    var c = drawSlotCount._c;
-    var cg = c.getContext("2d");
+    return drawTextCrisp._c;
+  }
+
+  function drawTextCrisp(g, str, x, y, color, pitch, scale) {
+    var glyphH = 7;
+    var p = textGlyphPitch(pitch);
+    var s = scale == null ? TEXT_CRISP_SCALE : scale;
+    var w, dw, dh, up, cw, ch, c, cg, smooth;
+    if (!str || !str.length) return;
+    w = str.length * p - 1;
+    if (w < 1) w = 1;
+    dw = Math.max(1, Math.round(w * s));
+    dh = Math.max(1, Math.round(glyphH * s));
+    up = TEXT_CRISP_UPSCALE;
+    cw = (w + 2) * up;
+    ch = (glyphH + 2) * up;
+    c = ensureTextCrispCanvas(cw, ch);
+    cg = c.getContext("2d");
     cg.imageSmoothingEnabled = false;
     cg.clearRect(0, 0, cw, ch);
     cg.save();
-    cg.scale(scale, scale);
-    drawTextPitch(cg, label, 1, 1, C.woodOut, pitch);
-    drawTextPitch(cg, label, 0, 0, C.parch, pitch);
+    cg.scale(up, up);
+    paintFontGlyphs(cg, str, 1, 1, color, p);
     cg.restore();
-    var x = sx + slot - dw - 2;
-    var y = sy + slot - dh - 2;
-    var smooth = g.imageSmoothingEnabled;
+    smooth = g.imageSmoothingEnabled;
     g.imageSmoothingEnabled = false;
     g.drawImage(c, 0, 0, cw, ch, x, y, dw, dh);
     g.imageSmoothingEnabled = smooth;
+  }
+
+  function drawText(g, str, x, y, color) {
+    drawTextCrisp(g, str, x, y, color, 6, TEXT_CRISP_SCALE);
+  }
+
+  function drawTextPitch(g, str, x, y, color, pitch) {
+    drawTextCrisp(g, str, x, y, color, pitch || 6, TEXT_CRISP_SCALE);
+  }
+
+  function drawSlotCount(g, label, sx, sy, slot) {
+    /* 20260905hx/id: denser count digits via shared 4× crisp blit */
+    var pitch = label.length >= 4 ? 4 : 5;
+    var dw = textWidth(label, pitch, TEXT_COUNT_SCALE);
+    var dh = textGlyphH(TEXT_COUNT_SCALE);
+    var x = sx + slot - dw - 2;
+    var y = sy + slot - dh - 2;
+    drawTextCrisp(g, label, x + 1, y + 1, C.woodOut, pitch, TEXT_COUNT_SCALE);
+    drawTextCrisp(g, label, x, y, C.parch, pitch, TEXT_COUNT_SCALE);
   }
 
   function woodPanel(g, x, y, w, h) {
@@ -26978,7 +27050,40 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ic", BUILD);
+      ok("BUILD", BUILD === "20260905id", BUILD);
+      (function () {
+        /* 20260905id: crisp shared text + walk-through entrance labels */
+        var _ws, _os, _ms, _anc, _i, _savedScene;
+        ok("drawTextCrispFn", typeof drawTextCrisp === "function", "");
+        ok("signLabelAnchorFn", typeof signLabelAnchor === "function", "");
+        ok("TEXT_CRISP_SCALE", TEXT_CRISP_SCALE > 0.6 && TEXT_CRISP_SCALE < 1, String(TEXT_CRISP_SCALE));
+        ok("textWidthShrinks", textWidth("WOODS") < ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
+        _savedScene = currentScene;
+        applyScene("overworld");
+        buildSolid();
+        _ws = _os = _ms = null;
+        for (_i = 0; _i < PROPS.length; _i++) {
+          if (PROPS[_i].kind === "woodsSign") _ws = PROPS[_i];
+          if (PROPS[_i].kind === "oceanSign") _os = PROPS[_i];
+          if (PROPS[_i].kind === "mineSign") _ms = PROPS[_i];
+        }
+        ok("woodsSignWalk", !!(_ws && solid[_ws.ty] && solid[_ws.ty][_ws.tx] === false), _ws ? (_ws.tx + "," + _ws.ty) : "missing");
+        ok("oceanSignWalk", !!(_os && solid[_os.ty] && solid[_os.ty][_os.tx] === false), _os ? (_os.tx + "," + _os.ty) : "missing");
+        ok("mineSignWalk", !!(_ms && solid[_ms.ty] && solid[_ms.ty][_ms.tx] === false), _ms ? (_ms.tx + "," + _ms.ty) : "missing");
+        if (_ws) {
+          _anc = signLabelAnchor(_ws);
+          ok("woodsLabelOnDoor", !!(_anc && _anc.tx === forestIn.tx && _anc.ty === forestIn.ty), _anc ? (_anc.tx + "," + _anc.ty) : "");
+        }
+        if (_ms) {
+          _anc = signLabelAnchor(_ms);
+          ok("mineLabelOnDoor", !!(_anc && _anc.tx === portalIn.tx && _anc.ty === portalIn.ty), _anc ? (_anc.tx + "," + _anc.ty) : "");
+        }
+        if (_os) {
+          _anc = signLabelAnchor(_os);
+          ok("oceanLabelOnGate", !!(_anc && _anc.tx === 14 && _anc.ty === 37), _anc ? (_anc.tx + "," + _anc.ty) : "");
+        }
+        if (_savedScene && _savedScene !== "overworld") applyScene(_savedScene);
+      })();
       (function () {
         var a = bagItemInfo("diamondPick");
         var b = bagItemInfo("cookedGoldenSwordfish");
@@ -27189,6 +27294,8 @@ if (currentScene === "ocean") goExitOcean();
       ok("mineOutTipFn", typeof maybeMineOutTip === "function", "");
       ok("tryClimbShaftFn", typeof tryClimbShaft === "function", "");
       ok("drawShaftLabelFn", typeof drawShaftLabel === "function", "");
+      ok("paintFontGlyphsFn", typeof paintFontGlyphs === "function", "");
+      ok("signLabelAnchorFn2", typeof signLabelAnchor === "function", "");
       ok("woodsSignArt", !!(Assets.woodsSign && (Assets.woodsSign.naturalWidth || Assets.woodsSign.width) >= 32), "w=" + (Assets.woodsSign && (Assets.woodsSign.naturalWidth || Assets.woodsSign.width)));
       /* 20260905br: gentle outdoor slugs on farm edges / woods. */
       outdoorMonsterCache.overworld = null;
