@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ib";
+  var BUILD = "20260905ic";
   var ASSET_REV = "464564";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -470,6 +470,9 @@
   var bagHeld = null;
   var bagHeldFrom = null;
   var bagPointer = { x: 160, y: 96 };
+  /* 20260905ic: bag select tip — NAME + kid-plain blurb while BAG is open */
+  var bagTipKey = null;
+  var bagTipAt = null;
   var slotShake = 0;
   /* 20260905dx: brief hotbar select pop (number keys + tray tap) */
   var hotbarPop = 0;
@@ -23877,19 +23880,22 @@
     var pad = 8;
     var head = 12;
     var dockH = 24;
+    var tipH = 24; /* 20260905ic: NAME + blurb strip under grid */
     var toolsH = 0; /* tray below is the tools strip */
     var w = gridW + pad * 2;
-    var h = head + dockH + 4 + gridH + pad;
+    var h = head + dockH + 4 + gridH + tipH + pad;
     var x = ((VIEW_W - w) / 2) | 0;
-    var y = 12;
+    var y = 4; /* sit a bit higher so tip clears the tray */
     var dockW = 48;
     var dockX = x + ((w - dockW) / 2) | 0;
     var dockY = y + head;
+    var gridY = dockY + dockH + 6;
     return {
       x: x, y: y, w: w, h: h,
-      gridX: x + pad, gridY: dockY + dockH + 6,
+      gridX: x + pad, gridY: gridY,
       cell: cell, gap: gap, cols: cols, rows: rows,
       gridW: gridW, gridH: gridH,
+      tipX: x + pad, tipY: gridY + gridH + 3, tipW: gridW, tipH: tipH - 4,
       closeX: x + w - 16, closeY: y + 2, closeW: 13, closeH: 12,
       dockX: dockX, dockY: dockY, dockW: dockW, dockH: dockH,
       toolsH: toolsH
@@ -23901,6 +23907,97 @@
     fill(g, x + 3, y + 3, 10, 10, mid || "#C47A38");
     fill(g, x + 4, y + 4, 8, 8, lite || "#E8B060");
     fill(g, x + 6, y + 6, 4, 4, "#FFF8E0");
+  }
+
+
+  /* 20260905ic: kid-plain bag tip — name + one short what-it-does line */
+  function titleCaseBagKey(key) {
+    var s, out, i, ch, prev;
+    if (!key) return "THING";
+    s = String(key);
+    out = "";
+    prev = "";
+    for (i = 0; i < s.length; i++) {
+      ch = s.charAt(i);
+      if (ch >= "A" && ch <= "Z" && prev && prev >= "a" && prev <= "z") out += " ";
+      if (ch === "_" || ch === "-") { out += " "; prev = " "; continue; }
+      out += ch;
+      prev = ch;
+    }
+    return out.toUpperCase();
+  }
+
+  function bagItemInfo(key) {
+    var fk, ck, map, hit;
+    if (!key) return null;
+    fk = fishKindById(key);
+    if (fk) return { name: fk.name, blurb: "RAW FISH. COOK IT ON THE STOVE." };
+    ck = cookedFishKindById(key);
+    if (ck) {
+      if (key === "cookedGoldenSwordfish") {
+        return { name: "GRILLED GOLDEN SWORDFISH", blurb: "YUMMY. FEEDS THE SLEEPY BEAR." };
+      }
+      return { name: cookedFishName(ck), blurb: "COOKED FISH. TAP TO EAT." };
+    }
+    map = {
+      seed: { name: "SEED", blurb: "TAP DIRT TO PLANT A CROP." },
+      potatoSeed: { name: "POTATO SEED", blurb: "TAP DIRT TO PLANT POTATOES." },
+      berrySeed: { name: "BERRY SEED", blurb: "TAP DIRT TO PLANT BERRIES." },
+      wood: { name: "WOOD", blurb: "BUILD FENCES. FIX THE BRIDGE." },
+      stone: { name: "STONE", blurb: "TAP GROUND TO LAY A PATH." },
+      iron: { name: "IRON", blurb: "MINE METAL. USE AT THE BENCH." },
+      copper: { name: "COPPER", blurb: "SMELT AT THE FIREPLACE." },
+      silver: { name: "SILVER", blurb: "SMELT AT THE FIREPLACE." },
+      goldore: { name: "GOLD ORE", blurb: "SMELT AT THE FIREPLACE." },
+      copperBar: { name: "COPPER BAR", blurb: "SHINY BAR FROM THE FIRE." },
+      silverBar: { name: "SILVER BAR", blurb: "SHINY BAR FROM THE FIRE." },
+      goldBar: { name: "GOLD BAR", blurb: "SHINY BAR FROM THE FIRE." },
+      mushroom: { name: "MUSHROOM", blurb: "TAP TO EAT. YUM SNACK." },
+      moonshard: { name: "MOON SHARD", blurb: "BRING IT HOME TO LIGHT UP." },
+      veggie: { name: "CARROT", blurb: "TAP TO EAT. HELPS HEARTS." },
+      potato: { name: "POTATO", blurb: "TAP TO EAT. GROWN ON THE FARM." },
+      berry: { name: "BERRY", blurb: "TAP TO EAT. SWEET AND JUICY." },
+      acorn: { name: "ACORN", blurb: "TAP TO EAT. FROM OAK TREES." },
+      pinecone: { name: "PINECONE", blurb: "TAP TO EAT. FROM PINE TREES." },
+      coconut: { name: "COCONUT", blurb: "TAP TO EAT. FROM PALM TREES." },
+      apple: { name: "APPLE", blurb: "TAP TO EAT. CRUNCHY SNACK." },
+      bread: { name: "BREAD", blurb: "TAP TO EAT. FILLS YOU UP." },
+      pie: { name: "BERRY PIE", blurb: "TAP TO EAT. BIG YUM TREAT." },
+      flower: { name: "FLOWER", blurb: "TAP GRASS TO PLANT PRETTY." },
+      snack: { name: "HONEY BUN", blurb: "TAP TO EAT. GIVES ENERGY." },
+      hat: { name: "STRAW HAT", blurb: "TAP TO PUT ON OR TAKE OFF." },
+      sword: { name: "SWORD", blurb: "SWING TO FIGHT MEAN FOES." },
+      shovel: { name: "SHOVEL", blurb: "DIG MOUNDS. TILL FARM GRASS." },
+      axe: { name: "AXE", blurb: "CHOP TREES FOR WOOD." },
+      pick: { name: "PICKAXE", blurb: "BREAK ROCKS IN THE MINE." },
+      diamondPick: { name: "DIAMOND PICK", blurb: "STRONG PICK. CLEARS PEAK ROCKS." },
+      bow: { name: "BOW", blurb: "SHOOT ARROWS AT FAR FOES." },
+      pole: { name: "FISHING POLE", blurb: "CAST IN WATER TO CATCH FISH." },
+      leash: { name: "DOG LEASH", blurb: "KEEP IN TRAY SO DOG FOLLOWS." },
+      lampKit: { name: "LAMP KIT", blurb: "TAP A TILE TO PLACE A LAMP." },
+      crateKit: { name: "CRATE KIT", blurb: "TAP A TILE TO PLACE A CRATE." }
+    };
+    hit = map[key];
+    if (hit) return hit;
+    return { name: titleCaseBagKey(key), blurb: "A HANDY THING IN YOUR BAG." };
+  }
+
+  function clearBagTip() {
+    bagTipKey = null;
+    bagTipAt = null;
+  }
+
+  function setBagTip(key, place, idx) {
+    if (!key) { clearBagTip(); return; }
+    bagTipKey = key;
+    if (place != null && idx != null && idx >= 0) bagTipAt = { place: place, i: idx | 0 };
+    else bagTipAt = null;
+  }
+
+  function activeBagTipKey() {
+    if (!bagOpen) return null;
+    if (bagHeld && bagHeld.key) return bagHeld.key;
+    return bagTipKey;
   }
 
   function drawBagKey(g, key, x, y) {
@@ -24034,6 +24131,7 @@
     forceSwordIntoTray();
     ensureOnePole();
     showOwnedGoodsInBag();
+    clearBagTip();
     bagOpen = true;
     pending = null;
     kbDrive = false;
@@ -24045,6 +24143,7 @@
 
   function closeBag() {
     stashBagHeld();
+    clearBagTip();
     bagOpen = false;
   }
 
@@ -24087,10 +24186,27 @@
     if (idx < 0 || idx >= max) return;
     rec = pocketAt(place, idx);
     preferWeapon = null;
+    /* 20260905ic: bag tip follows tap / held item (drag swap unchanged). */
+    function tipAfterEmptyTap() {
+      if (!bagOpen) return;
+      clearBagTip();
+    }
+    function tipAfterPickup(k) {
+      if (!bagOpen) return;
+      if (k) setBagTip(k, place, idx);
+      else clearBagTip();
+    }
+    function tipAfterDropLand(k, atPlace, atIdx) {
+      if (!bagOpen) return;
+      if (bagHeld && bagHeld.key) setBagTip(bagHeld.key, null, -1);
+      else if (k) setBagTip(k, atPlace, atIdx);
+      else clearBagTip();
+    }
     if (bagHeld && isWeaponKey(bagHeld.key) && (place === "tray" || place === "dock")) {
       preferWeapon = bagHeld.key;
     }
     function finishPocketDrop() {
+      var land;
       /* One weapon in the dock: newly dropped weapon wins; extras → bag. */
       enforceWeaponDock(preferWeapon);
       ensureOnePole();
@@ -24099,6 +24215,8 @@
       if (weaponDock && weaponDock.key && isWeaponKey(weaponDock.key)) {
         selectWeaponDock();
       }
+      land = pocketAt(place, idx);
+      tipAfterDropLand(land && land.key ? land.key : null, place, idx);
       playSfx("ui");
     }
     if (bagHeld) {
@@ -24178,6 +24296,7 @@
       return;
     }
     if (!rec) {
+      tipAfterEmptyTap();
       playSfx("ui");
       return;
     }
@@ -24204,6 +24323,7 @@
       setPocket(place, idx, null);
     }
     bagHeldFrom = { place: originPlace, i: originIdx };
+    tipAfterPickup(bagHeld ? bagHeld.key : null);
     syncBagCounts();
     playSfx("ui");
   }
@@ -24292,7 +24412,7 @@
   }
 
   function drawBag(g) {
-    var L, T, i, col, row, sx, sy, rec, spr, prev;
+    var L, T, i, col, row, sx, sy, rec, spr, prev, tipKey, info, name, blurb, sel;
     if (!bagOpen) return;
     T = trayLayout();
     g.fillStyle = "rgba(20,12,8,0.45)";
@@ -24321,7 +24441,21 @@
       sx = L.gridX + col * (L.cell + L.gap);
       sy = L.gridY + row * (L.cell + L.gap);
       rec = bagCells[i];
-      drawOneBagCell(g, rec, sx, sy, L.cell, false, false, pocketHeldHere("bag", i, rec));
+      sel = !!(bagTipAt && bagTipAt.place === "bag" && (bagTipAt.i | 0) === i && !bagHeld);
+      drawOneBagCell(g, rec, sx, sy, L.cell, sel, false, pocketHeldHere("bag", i, rec));
+    }
+    /* 20260905ic: tip strip — NAME + one kid-plain line; skips empty / closed */
+    tipKey = activeBagTipKey();
+    if (tipKey) {
+      info = bagItemInfo(tipKey);
+      name = info && info.name ? info.name : titleCaseBagKey(tipKey);
+      blurb = info && info.blurb ? info.blurb : "A HANDY THING IN YOUR BAG.";
+      while (name.length > 40) name = name.slice(0, 39);
+      while (blurb.length > 1 && textWidth(blurb) > L.tipW - 4) blurb = blurb.slice(0, blurb.length - 1);
+      woodPanel(g, L.tipX - 2, L.tipY - 1, L.tipW + 4, L.tipH + 2);
+      fill(g, L.tipX - 1, L.tipY, L.tipW + 2, L.tipH, C.parch);
+      drawText(g, name, L.tipX + 2, L.tipY + 2, C.uiText);
+      drawText(g, blurb, L.tipX + 2, L.tipY + 11, C.woodSh);
     }
     if (bagHeld) {
       drawBagKey(g, bagHeld.key, bagPointer.x - 8, bagPointer.y - 8);
@@ -26844,7 +26978,18 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905hw", BUILD);
+      ok("BUILD", BUILD === "20260905ic", BUILD);
+      (function () {
+        var a = bagItemInfo("diamondPick");
+        var b = bagItemInfo("cookedGoldenSwordfish");
+        var c = bagItemInfo("weirdNewThing");
+        var d = bagItemInfo("minnow");
+        ok("bagTipDiamond", !!(a && a.name === "DIAMOND PICK" && a.blurb), a ? a.name : "");
+        ok("bagTipGrilledSwordfish", !!(b && /SWORDFISH/.test(b.name) && /BEAR/.test(b.blurb)), b ? b.name : "");
+        ok("bagTipFallback", !!(c && c.name === "WEIRD NEW THING"), c ? c.name : "");
+        ok("bagTipFish", !!(d && d.name === "MINNOW"), d ? d.name : "");
+        ok("bagTipFns", typeof activeBagTipKey === "function" && typeof setBagTip === "function" && typeof clearBagTip === "function", "");
+      })();
       /* Local 9/6 clock audit: race harden still in place; DAY_MS frozen.
          Expected ~2 real min/phase, ~8 real min/day — not "no day change". */
       ok("DAY_MS_frozen", DAY_MS === 480000, "DAY_MS=" + DAY_MS);

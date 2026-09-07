@@ -63,6 +63,7 @@ Status column: **KEEP** = still required in new builds.
 | **Selected tool stays selected** across dig/chop/mine loot walk-ons + fish catch + collectible pick + **placeable pick** (fence/kit/path/player flower) — still **pin** into tray; do not steal shovel/axe/pick/pole/seeds/weapon; empty hand still auto-selects. Shop/craft/chest TAKE/cook/smelt still pin+select | 20260905hp + 20260905hq | KEEP |
 | Dedicated **weapon dock** (sword/bow only); tray is tools/seeds/food; second weapon swaps into dock and old goes to bag; BAG open shows big dock + **WEAPON** ghost when empty | 20260905hm | KEEP |
 | **Bow selectable from weapon dock** — soft sword-ensure must not kick a parked bow; bag→dock swap / dock tap arms bow; hard pin only on cave claim / iron craft / giveTool sword; sword pad select still works | 20260905ho | KEEP |
+| **BAG select tip** — with bag open, tapping a cell shows NAME + 1 kid-plain blurb strip; updates on select/held; clears on close/empty; drag swap + X close still work | 20260905ic | KEEP |
 
 ---
 
