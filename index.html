@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905hy";
-  var ASSET_REV = "464561";
+  var BUILD = "20260905hz";
+  var ASSET_REV = "464562";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -2546,6 +2546,7 @@
     rec = { cols: COLS, rows: ROWS, ground: GROUND, props: props };
     if (currentScene === "house") rec.houseTier = houseTier | 0;
     if (currentScene === "ocean") rec.boatDock = { tx: dockTx, ty: dockTy };
+    if (currentScene === "highPeak") rec.artRev = "05hz";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
 
@@ -2814,6 +2815,10 @@
       }
       if (found.pathClear && (!_hasBear || !_bearAside)) cached = null;
       if (!found.pathClear && (!_hasBear || _bearAside)) cached = null;
+    }
+    /* 20260905hz: bust pre-flat-tile highPeak cache (postage-stamp peakMap era) */
+    if (name === "highPeak" && cached && (cached.artRev || "") !== "05hz") {
+      cached = null;
     }
     fresh = !cached;
     if (cached) {
@@ -4279,7 +4284,7 @@
   }
 
   function buildHighPeakProps() {
-    /* 20260905hx: Imagine pine props (not code triangles baked into the map) */
+    /* 20260905hx/hz: Imagine pine props (not code triangles); map is flat rock+dirt stamps */
     var list = [
       { kind: "caveMouth", tx: highPeakCaveAt.tx, ty: highPeakCaveAt.ty, highPeakGate: true },
       { kind: "peakSign", tx: 22, ty: 34 },

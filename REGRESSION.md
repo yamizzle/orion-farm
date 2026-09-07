@@ -43,7 +43,7 @@ Status column: **KEEP** = still required in new builds.
 | After rocks clear: **secret mountain mine** mouth on cleared path; walk/tap/Space enter; OUT back to peak; save-safe loot flags | 20260905hl | KEEP |
 | Summit mountain mine polish: denser crystals (glow+sparkle+toast), kickable carts (CART/CLANK), 3 chests with gems/ore/gold/bars; OUT still labeled; enter/OUT peak keep | 20260905hu | KEEP |
 | Mountain-mine north exit → **HIGH PEAK**; sleepy bear blocks path; only grilled golden swordfish feeds / clears path; bearFed+pathClear save; Jobs tips A BIGGER PEAK OPENS / THE BEAR IS SLEEPY / GRILL A GOLDEN SWORDFISH; OUT still returns to old peak | 20260905hw | KEEP |
-| HIGH PEAK ground + bear are **Imagine stamps** (16px tile grid map; dense 2× true sleeping-pose sleepingBear; Imagine pines — no code checker / oval / triangle paint) | 20260905hx + 20260905hy | KEEP |
+| HIGH PEAK ground + bear are **Imagine stamps** (flat 16px rock/dirt path tiles — not postage-stamp peakMap crops; dense 2× true sleeping-pose sleepingBear; Imagine pines — no code checker / oval / triangle paint) | 20260905hz + 20260905hy | KEEP |
 | Mine OUT/UP findable (bobbing gold labels + Jobs tip); pad must not cover OUT | 20260905bx + 31t | KEEP |
 | Door / ladder / cave landings leave a **2-tile gap** so one step cannot auto-reenter or auto-exit | 20260905er–05ew | KEEP |
 
@@ -70,7 +70,7 @@ Status column: **KEEP** = still required in new builds.
 | Invariant | BUILD | Status |
 | --- | --- | --- |
 | **Chicken body opaque** — white feathers solid (no checkerboard / grass bleed-through); atlas stamp must keep height ≥1200 + rock0.w ≥32 (no full 1× repack) | 20260905ht | KEEP |
-| Imagine art **pink-chroma gate**: no magenta plates; world props 2× of logical draw; tiles stay 16px grid; BOX/AREA downsample (no NN-upscale fake density) | 20260905hx | KEEP |
+| Imagine art **pink-chroma gate**: no magenta plates; world props 2× of logical draw; tiles stay 16px grid; BOX/AREA downsample (no NN-upscale fake density) | 20260905hx + 20260905hz | KEEP |
 | World evening/morning **BUFFER× grade scratch** so outdoor props stay as crisp as tray (no soft half-res upscale) | 20260905hg | KEEP |
 | Internal **BUFFER=2** canvas (640×384) for dense tray/world blit | 20260905g | KEEP |
 | Props keep denser Imagine frames (2× / 3× src) — car uses dense frames but **draws vehicle-sized** (~0.75 of 3× ≈ a bit taller than Orion), not house-tall | 20260905hi (was 05hh/05cc) | KEEP |
