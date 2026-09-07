@@ -13,6 +13,7 @@ Format: `Priority | Status | Title | note`
 - **Medium** Only one weapon equipped → **Done 9/6 live 05hm/05hn** (weapon dock PASS; 05ay tray rule superseded).
 - **Medium** Island cave Diamond Pickaxe → peak rocks → **Done 9/6 local 05bt+05hl** (+05hu polish; local+feature).
 - **Low** Closing a panel by tapping the world also walks → **Done 9/5 7:10pm live** (05bc/05be PASS; table was stale “live still needed”).
+- **Critical** Day clock races → **Done 9/7 live** (stopwatch ~8 min/day = DAY_MS 480000; not a residual race).
 
 ## Queued 9/4 evening — still remaining
 
@@ -30,7 +31,6 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 
 - **Critical** | Partial | Tree canopy hides Orion / standing on the tree | BUILD 20260905hv: peek harden (equal-foot side + peekH 18) on 05bw; **Needs live verify.**
 - **Critical** | Local 9/5 05bz | Sword: Space+hotbar kills; on-screen button and facing still miss | BUILD 20260905bz (+05hv dock autotest): pad omni + press damage + crescent; Space+hotbar PASS 04e; dock-era code solid; pad/facing **Needs live verify.**
-- **Critical** | Local 9/5 05bq | Day clock races | BUILD 20260905bq harden still in code (clockMark / 50ms cap / single rAF / DAY_MS 480000). Local 9/6 audit: no residual race mutator found; 9/6 hn Day6→Day7 in ~15 min matches ~8 min/day (mis-score). Autotest invariants added. **Needs live stopwatch (~2 min/phase) — do not mark Done.**
 
 ### High
 
@@ -78,9 +78,9 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 ## Counts
 
 - Queued 9/4 remaining: **3**
-- Playtest active (Critical+High+Medium+Low): **37** (C3 / H8 / M20 / L6)
+- Playtest active (Critical+High+Medium+Low): **36** (C2 / H8 / M20 / L6)
 - Closed this wave: **4** (car, weapon dock, diamond-pick peak, panel dismiss)
-- **Grand total still open (Queued + playtest): 40**
+- **Grand total still open (Queued + playtest): 39**
 
 ## Local ship vs live
 
