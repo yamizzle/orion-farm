@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905id";
+  var BUILD = "20260905ie";
   var ASSET_REV = "464564";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -23614,8 +23614,10 @@
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
 
-  /* 20260905id: shared crisp text — 4× paint then NN blit (BUFFER-readable), slightly smaller than old 1:1 FONT */
-  var TEXT_CRISP_SCALE = 0.78;
+  /* 20260905ie: shared crisp text — 4× paint, crop pad, NN blit.
+     Min ~1 logical px stroke (=2 device @ BUFFER=2). HUD body weight + shadow;
+     stack counts stay smaller via TEXT_COUNT_SCALE. */
+  var TEXT_CRISP_SCALE = 0.93;
   var TEXT_CRISP_UPSCALE = 4;
   var TEXT_COUNT_SCALE = 0.85;
 
@@ -23670,12 +23672,15 @@
     var glyphH = 7;
     var p = textGlyphPitch(pitch);
     var s = scale == null ? TEXT_CRISP_SCALE : scale;
-    var w, dw, dh, up, cw, ch, c, cg, smooth;
+    var w, dw, dh, up, cw, ch, c, cg, smooth, srcX, srcY, srcW, srcH;
     if (!str || !str.length) return;
     w = str.length * p - 1;
     if (w < 1) w = 1;
+    /* Dest sized to glyph only; blit crops the 1px paint pad so strokes keep weight */
     dw = Math.max(1, Math.round(w * s));
+    /* Keep dest height ≥ glyph rows when scale≈1 so 1 font px → ≥1 logical (≥2 device @ BUFFER=2) */
     dh = Math.max(1, Math.round(glyphH * s));
+    if (s >= 0.9 && dh < glyphH) dh = glyphH;
     up = TEXT_CRISP_UPSCALE;
     cw = (w + 2) * up;
     ch = (glyphH + 2) * up;
@@ -23687,22 +23692,29 @@
     cg.scale(up, up);
     paintFontGlyphs(cg, str, 1, 1, color, p);
     cg.restore();
+    srcX = up;
+    srcY = up;
+    srcW = w * up;
+    srcH = glyphH * up;
     smooth = g.imageSmoothingEnabled;
     g.imageSmoothingEnabled = false;
-    g.drawImage(c, 0, 0, cw, ch, x, y, dw, dh);
+    g.drawImage(c, srcX, srcY, srcW, srcH, x, y, dw, dh);
     g.imageSmoothingEnabled = smooth;
   }
 
   function drawText(g, str, x, y, color) {
+    /* Same dense family as stack counts: dark shadow + light/body fill (not hairline) */
+    drawTextCrisp(g, str, x + 1, y + 1, C.woodOut, 6, TEXT_CRISP_SCALE);
     drawTextCrisp(g, str, x, y, color, 6, TEXT_CRISP_SCALE);
   }
 
   function drawTextPitch(g, str, x, y, color, pitch) {
+    drawTextCrisp(g, str, x + 1, y + 1, C.woodOut, pitch || 6, TEXT_CRISP_SCALE);
     drawTextCrisp(g, str, x, y, color, pitch || 6, TEXT_CRISP_SCALE);
   }
 
   function drawSlotCount(g, label, sx, sy, slot) {
-    /* 20260905hx/id: denser count digits via shared 4× crisp blit */
+    /* 20260905hx/ie: smaller count digits; shared 4× crisp blit (no extra HUD shadow) */
     var pitch = label.length >= 4 ? 4 : 5;
     var dw = textWidth(label, pitch, TEXT_COUNT_SCALE);
     var dh = textGlyphH(TEXT_COUNT_SCALE);
@@ -24591,16 +24603,16 @@
       }
     }
 
-    woodPanel(g, 206, 4, 114, 21);
+    woodPanel(g, 206, 4, 114, 23);
     fill(g, 210, 8, 7, 7, C.flower);
     fill(g, 212, 10, 3, 3, C.parch);
     px(g, 209, 11, C.flower);
     px(g, 217, 11, C.flower);
     px(g, 213, 7, C.flower);
-    drawText(g, "DAY " + dayNumber, 220, 8, C.uiText);
+    drawText(g, "DAY " + dayNumber, 220, 8, C.parch);
     var gLabel = (gold | 0) + "G";
     drawText(g, gLabel, 310 - textWidth(gLabel), 8, C.flower);
-    drawText(g, clockHudLine(), 210, 16, C.parch);
+    drawText(g, clockHudLine(), 210, 17, C.parch);
     drawPlaceStamp(g);
     drawHolidayChip(g);
 
@@ -24623,11 +24635,8 @@
     }
     drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + 8, C.parch);
 
-    fill(g, 48, 13, 3, 1, C.parch);
-    fill(g, 48, 14, 1, 1, C.parch);
-    fill(g, 48, 15, 3, 1, C.parch);
-    fill(g, 48, 16, 1, 1, C.parch);
-    fill(g, 48, 17, 3, 1, C.parch);
+    /* 20260905ie: energy E via dense blit (not 1px hairline hand strokes) */
+    drawText(g, "E", 47, 11, C.parch);
     var ew = 54;
     var filled = Math.round(ew * energy / MAX_ENERGY);
     if (energy > 0 && filled < 1) filled = 1;
@@ -27050,14 +27059,16 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905id", BUILD);
+      ok("BUILD", BUILD === "20260905ie", BUILD);
       (function () {
         /* 20260905id: crisp shared text + walk-through entrance labels */
         var _ws, _os, _ms, _anc, _i, _savedScene;
         ok("drawTextCrispFn", typeof drawTextCrisp === "function", "");
         ok("signLabelAnchorFn", typeof signLabelAnchor === "function", "");
-        ok("TEXT_CRISP_SCALE", TEXT_CRISP_SCALE > 0.6 && TEXT_CRISP_SCALE < 1, String(TEXT_CRISP_SCALE));
-        ok("textWidthShrinks", textWidth("WOODS") < ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
+        ok("TEXT_CRISP_SCALE", TEXT_CRISP_SCALE >= 0.9 && TEXT_CRISP_SCALE <= 1, String(TEXT_CRISP_SCALE));
+        ok("textWidthCompact", textWidth("WOODS") <= ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
+        ok("textGlyphHBody", textGlyphH() >= 6, "h=" + textGlyphH());
+        ok("TEXT_COUNT_smaller", TEXT_COUNT_SCALE < TEXT_CRISP_SCALE, String(TEXT_COUNT_SCALE));
         _savedScene = currentScene;
         applyScene("overworld");
         buildSolid();
