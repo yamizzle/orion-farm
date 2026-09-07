@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905if";
-  var ASSET_REV = "464564";
+  var BUILD = "20260905ig";
+  var ASSET_REV = "464565";
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -13639,7 +13639,7 @@
     var tw, x, y;
     if (!word) return;
     tw = textWidth(word);
-    y = 28; /* 20260905if: sit under shorter dense HUD */
+    y = 26; /* 20260905ig: under ~21px day panel */
     x = VIEW_W - tw - 8;
     woodPanel(g, x, y, tw + 6, textGlyphH() + 4);
     drawText(g, word, x + 3, y + 2, C.parch);
@@ -13652,10 +13652,10 @@
     if (!label) return;
     tw = textWidth(label);
     w = tw + 8;
-    y = 28;
+    y = 26;
     x = VIEW_W - w - 2;
     r = buildStampRect();
-    if (y === r.y && x < r.x + r.w && x + w > r.x) y = 40;
+    if (y === r.y && x < r.x + r.w && x + w > r.x) y = 38;
     if (x < 46) x = 46;
     woodPanel(g, x, y, w, textGlyphH() + 4);
     drawText(g, label, x + 4, y + 2, C.parch);
@@ -23614,12 +23614,15 @@
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
 
-  /* 20260905if: shared denseText — paint at 2×–4× then NN-downscale
-     (same path as tray stack counts). Light body + 1px dark outline on wood.
-     Do NOT fatten near-1:1 bitmap (05ie chunky reject). Counts keep TEXT_COUNT_SCALE. */
-  var TEXT_DENSE_UPSCALE = 4;
-  var TEXT_HUD_SCALE = 0.75;
-  var TEXT_COUNT_SCALE = 0.85;
+  /* 20260905ig: HITL 05if reject — stack counts illegible (dark mush).
+     Revert counts to pre-05hx 1:1 recipe (bright cream + 1px dark outline),
+     then unify HUD/BAG/floats onto that SAME paint path. No NN downscale crush
+     that ate cream strokes and left brown blur. Shorter day panel kept only
+     as tall as two full glyph rows need (~21). */
+  var TEXT_DENSE_UPSCALE = 1;
+  var TEXT_HUD_SCALE = 1;
+  var TEXT_COUNT_SCALE = 1;
+  var TEXT_COUNT_FILL = "#FFF8E8"; /* bright cream — not dark-on-wood */
   /* Aliases so older call sites / notes keep working */
   var TEXT_CRISP_SCALE = TEXT_HUD_SCALE;
   var TEXT_CRISP_UPSCALE = TEXT_DENSE_UPSCALE;
@@ -23640,7 +23643,7 @@
 
   function textGlyphH(scale) {
     var s = scale == null ? TEXT_HUD_SCALE : scale;
-    return Math.max(1, Math.round(7 * s));
+    return Math.max(7, Math.round(7 * s));
   }
 
   function paintFontGlyphs(g, str, x, y, color, pitch) {
@@ -23671,59 +23674,29 @@
     return denseText._c;
   }
 
-  /* Low-level: paint glyphs at upscale (2–4), crop paint pad, NN blit to dest. */
+  /* Compat: 1:1 paint (no crush). Kept so older tests / call sites resolve. */
   function blitDenseGlyphs(g, str, x, y, color, pitch, scale) {
-    var glyphH = 7;
-    var p = textGlyphPitch(pitch);
-    var s = scale == null ? TEXT_HUD_SCALE : scale;
-    var w, dw, dh, up, cw, ch, c, cg, smooth, srcX, srcY, srcW, srcH;
-    if (!str || !str.length) return;
-    w = str.length * p - 1;
-    if (w < 1) w = 1;
-    dw = Math.max(1, Math.round(w * s));
-    dh = Math.max(1, Math.round(glyphH * s));
-    /* Pick 2×/3×/4× so tiny dest still densifies without near-1:1 chunky fatten */
-    if (s >= 0.92) up = 2;
-    else if (s >= 0.82) up = 3;
-    else up = TEXT_DENSE_UPSCALE;
-    if (up < 2) up = 2;
-    if (up > 4) up = 4;
-    cw = (w + 2) * up;
-    ch = (glyphH + 2) * up;
-    c = ensureDenseTextCanvas(cw, ch);
-    cg = c.getContext("2d");
-    cg.imageSmoothingEnabled = false;
-    cg.clearRect(0, 0, cw, ch);
-    cg.save();
-    cg.scale(up, up);
-    paintFontGlyphs(cg, str, 1, 1, color, p);
-    cg.restore();
-    srcX = up;
-    srcY = up;
-    srcW = w * up;
-    srcH = glyphH * up;
-    smooth = g.imageSmoothingEnabled;
-    g.imageSmoothingEnabled = false;
-    g.drawImage(c, srcX, srcY, srcW, srcH, x | 0, y | 0, dw, dh);
-    g.imageSmoothingEnabled = smooth;
+    paintFontGlyphs(g, str, x | 0, y | 0, color, pitch);
   }
 
-  /* Shared by HUD + stack counts: light dense glyphs + optional 1px dark outline. */
+  /* Shared by HUD + stack counts + floats: 1:1 light glyphs + 1px dark outline. */
   function denseText(g, str, x, y, color, opts) {
-    var pitch, scale, outline, oc;
+    var pitch, outline, oc, bx, by;
     if (!str || !str.length) return;
     opts = opts || {};
     pitch = opts.pitch != null ? opts.pitch : 6;
-    scale = opts.scale != null ? opts.scale : TEXT_HUD_SCALE;
     outline = opts.outline !== false;
     oc = opts.outlineColor || C.woodOut;
-    if (outline) blitDenseGlyphs(g, str, (x | 0) + 1, (y | 0) + 1, oc, pitch, scale);
-    blitDenseGlyphs(g, str, x | 0, y | 0, color, pitch, scale);
+    bx = x | 0;
+    by = y | 0;
+    /* Outline first (down-right), then bright body — pre-05hx count recipe. */
+    if (outline) paintFontGlyphs(g, str, bx + 1, by + 1, oc, pitch);
+    paintFontGlyphs(g, str, bx, by, color, pitch);
   }
 
   function drawTextCrisp(g, str, x, y, color, pitch, scale) {
-    /* Compat alias → dense blit path (no auto-outline; callers add their own). */
-    blitDenseGlyphs(g, str, x, y, color, pitch, scale);
+    /* Compat alias → 1:1 paint (no auto-outline; callers add their own). */
+    paintFontGlyphs(g, str, x | 0, y | 0, color, pitch);
   }
 
   function drawText(g, str, x, y, color) {
@@ -23735,13 +23708,13 @@
   }
 
   function drawSlotCount(g, label, sx, sy, slot) {
-    /* Stack counts stay dense digit-style (unchanged scale/pitch). */
-    var pitch = label.length >= 4 ? 4 : 5;
-    var dw = textWidth(label, pitch, TEXT_COUNT_SCALE);
-    var dh = textGlyphH(TEXT_COUNT_SCALE);
-    var x = sx + slot - dw - 2;
-    var y = sy + slot - dh - 2;
-    denseText(g, label, x, y, C.parch, { pitch: pitch, scale: TEXT_COUNT_SCALE });
+    /* 20260905ig: revert to pre-05hx readable counts — full 1:1 bright + outline.
+       Pitch 5/6 (not crushed 0.85). Corner of tray/bag slot. */
+    var pitch = label.length >= 4 ? 5 : 6;
+    var w = label.length * pitch - 1;
+    var x = sx + slot - w - 2;
+    var y = sy + slot - 9;
+    denseText(g, label, x, y, TEXT_COUNT_FILL, { pitch: pitch, scale: TEXT_COUNT_SCALE });
   }
 
   function woodPanel(g, x, y, w, h) {
@@ -23984,7 +23957,7 @@
     var pad = 8;
     var head = 12;
     var dockH = 24;
-    var tipH = 20; /* 20260905ic/if: NAME + blurb strip; denser text = shorter */
+    var tipH = 24; /* 20260905ic/ig: NAME + blurb strip; 1:1 glyphs need room */
     var toolsH = 0; /* tray below is the tools strip */
     var w = gridW + pad * 2;
     var h = head + dockH + 4 + gridH + tipH + pad;
@@ -24559,7 +24532,7 @@
       woodPanel(g, L.tipX - 2, L.tipY - 1, L.tipW + 4, L.tipH + 2);
       fill(g, L.tipX - 1, L.tipY, L.tipW + 2, L.tipH, C.parch);
       drawText(g, name, L.tipX + 2, L.tipY + 2, C.uiText);
-      drawText(g, blurb, L.tipX + 2, L.tipY + 9, C.woodSh);
+      drawText(g, blurb, L.tipX + 2, L.tipY + 11, C.woodSh);
     }
     if (bagHeld) {
       drawBagKey(g, bagHeld.key, bagPointer.x - 8, bagPointer.y - 8);
@@ -24574,8 +24547,8 @@
        panel and left of the FX/MU/FS cluster — not under hearts/energy. */
     var tw = textWidth(BUILD);
     var pad = 3;
-    /* 20260905if: under shorter day panel */
-    return { x: VIEW_W - tw - pad * 2 - 2, y: 20, w: tw + pad * 2, h: textGlyphH() + 4, pad: pad, tw: tw };
+    /* 20260905ig: under ~21px day panel */
+    return { x: VIEW_W - tw - pad * 2 - 2, y: 26, w: tw + pad * 2, h: textGlyphH() + 4, pad: pad, tw: tw };
   }
 
   function drawBuildStamp(g) {
@@ -24595,46 +24568,46 @@
   }
 
   function drawHUD(g) {
-    /* 20260905if: shorter wood HUD — denseText fits tighter, more playfield */
-    woodPanel(g, 4, 3, 16, 16);
+    /* 20260905ig: day panel ~21 — fits two 1:1 glyph rows (shorter than 05ie 23) */
+    woodPanel(g, 4, 3, 18, 18);
     /* 05bd: small starBadge in wood panel — not full 32px trophy over hearts */
     var starSpr = Assets.spr.starBadge;
     if (starSpr && Assets.img) {
       g.imageSmoothingEnabled = false;
-      g.drawImage(Assets.img, starSpr.x, starSpr.y, starSpr.fw || starSpr.w, starSpr.h, 5, 4, 14, 14);
+      g.drawImage(Assets.img, starSpr.x, starSpr.y, starSpr.fw || starSpr.w, starSpr.h, 5, 4, 16, 16);
     } else {
       Assets.draw(g, "starBadge", 5, 4);
     }
-    woodPanel(g, 22, 3, 16, 16);
-    drawBook(g, 23, 3);
+    woodPanel(g, 24, 3, 18, 18);
+    drawBook(g, 25, 4);
     if (jobOpen()) {
-      fill(g, 34, 4, 3, 3, C.flower);
-      px(g, 35, 3, C.flower);
+      fill(g, 37, 5, 3, 3, C.flower);
+      px(g, 38, 4, C.flower);
     }
 
-    woodPanel(g, 41, 3, 66, 16);
+    woodPanel(g, 46, 3, 68, 18);
     var hi, hs, hid;
     for (hi = 0; hi < HEARTS; hi++) {
       hid = (hp > hi * HP_PER_HEART) ? "heart" : "heartEmpty";
       hs = Assets.spr[hid];
       if (hs && Assets.img) {
         g.imageSmoothingEnabled = false;
-        g.drawImage(Assets.img, hs.x, hs.y, hs.fw || hs.w, hs.h, 44 + hi * 10, 4, 8, 7);
+        g.drawImage(Assets.img, hs.x, hs.y, hs.fw || hs.w, hs.h, 49 + hi * 10, 5, 8, 7);
       } else {
-        Assets.draw(g, hid, 44 + hi * 10, 4);
+        Assets.draw(g, hid, 49 + hi * 10, 5);
       }
     }
 
-    woodPanel(g, 206, 3, 114, 15);
-    fill(g, 210, 5, 6, 6, C.flower);
-    fill(g, 212, 7, 2, 2, C.parch);
-    px(g, 209, 8, C.flower);
-    px(g, 216, 8, C.flower);
-    px(g, 212, 4, C.flower);
-    drawText(g, "DAY " + dayNumber, 220, 5, C.parch);
+    woodPanel(g, 206, 3, 114, 21);
+    fill(g, 210, 6, 7, 7, C.flower);
+    fill(g, 212, 8, 3, 3, C.parch);
+    px(g, 209, 9, C.flower);
+    px(g, 217, 9, C.flower);
+    px(g, 213, 5, C.flower);
+    drawText(g, "DAY " + dayNumber, 220, 6, TEXT_COUNT_FILL);
     var gLabel = (gold | 0) + "G";
-    drawText(g, gLabel, 310 - textWidth(gLabel), 5, C.flower);
-    drawText(g, clockHudLine(), 210, 11, C.parch);
+    drawText(g, gLabel, 310 - textWidth(gLabel), 6, C.flower);
+    drawText(g, clockHudLine(), 210, 14, TEXT_COUNT_FILL);
     drawPlaceStamp(g);
     drawHolidayChip(g);
 
@@ -24655,17 +24628,17 @@
       fill(g, T.bagX, T.bagY, T.bagW, 1, C.flower);
       fill(g, T.bagX, T.bagY + T.bagH - 1, T.bagW, 1, C.flower);
     }
-    drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + ((T.bagH - textGlyphH()) / 2) | 0, C.parch);
+    drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + ((T.bagH - textGlyphH()) / 2) | 0, TEXT_COUNT_FILL);
 
-    /* 20260905if: energy E via shared denseText */
-    drawText(g, "E", 43, 9, C.parch);
-    var ew = 52;
+    /* 20260905ig: energy E via shared 1:1 denseText */
+    drawText(g, "E", 47, 11, TEXT_COUNT_FILL);
+    var ew = 54;
     var filled = Math.round(ew * energy / MAX_ENERGY);
     if (energy > 0 && filled < 1) filled = 1;
     if (energy <= 0) filled = 0;
-    fill(g, 49, 13, ew, 2, C.energyEmpty);
+    fill(g, 53, 15, ew, 2, C.energyEmpty);
     if (filled > 0) {
-      fill(g, 49, 13, filled, 2, energy <= 15 ? "#C8B03C" : C.energy);
+      fill(g, 53, 15, filled, 2, energy <= 15 ? "#C8B03C" : C.energy);
     }
     drawSwordBtn(g);
     drawFenceBuildBtn(g);
@@ -27081,19 +27054,20 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905if", BUILD);
+      ok("BUILD", BUILD === "20260905ig", BUILD);
       (function () {
-        /* 20260905if: denseText shared path + walk-through entrance labels */
+        /* 20260905ig: 1:1 cream+outline counts/HUD + walk-through entrance labels */
         var _ws, _os, _ms, _anc, _i, _savedScene;
         ok("denseTextFn", typeof denseText === "function", "");
         ok("blitDenseGlyphsFn", typeof blitDenseGlyphs === "function", "");
         ok("drawTextCrispFn", typeof drawTextCrisp === "function", "");
+        ok("paintFontGlyphsFn", typeof paintFontGlyphs === "function", "");
         ok("signLabelAnchorFn", typeof signLabelAnchor === "function", "");
-        ok("TEXT_HUD_SCALE", TEXT_HUD_SCALE >= 0.65 && TEXT_HUD_SCALE <= 0.82, String(TEXT_HUD_SCALE));
-        ok("textWidthShrinks", textWidth("WOODS") < ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
-        ok("textGlyphHDense", textGlyphH() >= 4 && textGlyphH() <= 6, "h=" + textGlyphH());
-        ok("TEXT_COUNT_stays", TEXT_COUNT_SCALE === 0.85, String(TEXT_COUNT_SCALE));
-        ok("denseSmallerThan1", textWidth("DAY 17") < ("DAY 17".length * 6 - 1), "w=" + textWidth("DAY 17"));
+        ok("TEXT_HUD_SCALE", TEXT_HUD_SCALE === 1, String(TEXT_HUD_SCALE));
+        ok("TEXT_COUNT_full", TEXT_COUNT_SCALE === 1, String(TEXT_COUNT_SCALE));
+        ok("TEXT_COUNT_FILL_bright", typeof TEXT_COUNT_FILL === "string" && TEXT_COUNT_FILL.charAt(0) === "#", TEXT_COUNT_FILL);
+        ok("textWidthFull", textWidth("WOODS") === ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
+        ok("textGlyphHFull", textGlyphH() === 7, "h=" + textGlyphH());
         _savedScene = currentScene;
         applyScene("overworld");
         buildSolid();
