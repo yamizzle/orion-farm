@@ -26127,6 +26127,12 @@ if (currentScene === "ocean") goExitOcean();
       houseWindowPane: houseWindowPane,
       PHASES: PHASES,
       PHASE_MS: PHASE_MS,
+      DAY_MS: DAY_MS,
+      clockMark: function () { return clockMark; },
+      rafScheduled: function () { return rafScheduled; },
+      resetClockMark: resetClockMark,
+      updateClock: updateClock,
+      timePaused: timePaused,
       setDayMs: function (n) {
         n = +n;
         if (!(n >= 0) || n !== n) return;
@@ -26338,6 +26344,36 @@ if (currentScene === "ocean") goExitOcean();
     }
     try {
       ok("BUILD", BUILD === "20260905hu", BUILD);
+      /* Local 9/6 clock audit: race harden still in place; DAY_MS frozen.
+         Expected ~2 real min/phase, ~8 real min/day — not "no day change". */
+      ok("DAY_MS_frozen", DAY_MS === 480000, "DAY_MS=" + DAY_MS);
+      ok("PHASE_MS_2min", PHASE_MS === 120000, "PHASE_MS=" + PHASE_MS);
+      ok("PHASES_four", PHASES.length === 4 && PHASES[0] === "MORNING" && PHASES[3] === "NIGHT", PHASES.join(","));
+      (function () {
+        var origDay = dayNumber, origMs = dayMs, advanced, hitchMs, baseMs;
+        resetClockMark();
+        /* First tick only arms the mark — no advance. */
+        updateClock();
+        ok("clockArmNoAdvance", dayMs === origMs && dayNumber === origDay, "dayMs=" + dayMs);
+        /* Force a known step: set mark in the past by 200ms; cap must keep +50. */
+        baseMs = dayMs;
+        clockMark = ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()) - 200;
+        updateClock();
+        advanced = dayMs - baseMs;
+        if (advanced < 0) advanced += DAY_MS; /* crossed midnight */
+        ok("clockStepCap50", advanced > 0 && advanced <= 50, "advanced=" + advanced);
+        /* Multi-day dump refused: huge hitch still ≤50ms game time this tick. */
+        baseMs = dayMs;
+        clockMark = ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()) - 5000;
+        updateClock();
+        hitchMs = dayMs - baseMs;
+        if (hitchMs < 0) hitchMs += DAY_MS;
+        ok("clockHitchNoSpiral", hitchMs <= 50 && dayNumber <= origDay + 1, "hitch=" + hitchMs + " day=" + dayNumber);
+        /* Restore household clock — tests must not burn the live day. */
+        dayMs = origMs;
+        dayNumber = origDay;
+        resetClockMark();
+      })();
       ok("deathCopy", true); /* drawFaint msg patched; visual */
       /* Enter mine floor 1 with a fresh slime beside the player. */
       monsterCache[1] = null;

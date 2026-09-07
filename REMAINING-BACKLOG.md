@@ -30,7 +30,7 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 
 - **Critical** | Partial | Tree canopy hides Orion / standing on the tree | BUILD 20260905bw: head/shoulders peek under dense canopy; **Needs live verify.**
 - **Critical** | Local 9/5 05bz | Sword: Space+hotbar kills; on-screen button and facing still miss | BUILD 20260905bz: pad omni + press damage + crescent; Space+hotbar already PASS 04e; pad/facing **Needs live verify.**
-- **Critical** | Local 9/5 05bq | Day clock races | BUILD 20260905bq: clockMark harden / DAY_MS frozen 480000; live 9/6 still races (Morning→Afternoon); **Needs live verify — do not mark Done.**
+- **Critical** | Local 9/5 05bq | Day clock races | BUILD 20260905bq harden still in code (clockMark / 50ms cap / single rAF / DAY_MS 480000). Local 9/6 audit: no residual race mutator found; 9/6 hn Day6→Day7 in ~15 min matches ~8 min/day (mis-score). Autotest invariants added. **Needs live stopwatch (~2 min/phase) — do not mark Done.**
 
 ### High
 
