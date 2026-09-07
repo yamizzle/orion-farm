@@ -64,7 +64,7 @@ Status column: **KEEP** = still required in new builds.
 | Dedicated **weapon dock** (sword/bow only); tray is tools/seeds/food; second weapon swaps into dock and old goes to bag; BAG open shows big dock + **WEAPON** ghost when empty | 20260905hm | KEEP |
 | **Bow selectable from weapon dock** — soft sword-ensure must not kick a parked bow; bag→dock swap / dock tap arms bow; hard pin only on cave claim / iron craft / giveTool sword; sword pad select still works | 20260905ho | KEEP |
 | **BAG select tip** — with bag open, tapping a cell shows NAME + 1 kid-plain blurb strip; updates on select/held; clears on close/empty; drag swap + X close still work | 20260905ic | KEEP |
-| **Crisp readable HUD/sign text** — shared 4×→blit (crop pad, ≥~2 device px stroke @ BUFFER=2); HUD/BAG/world floats use shadow+body weight; stack counts stay smaller; compact not hairline | 20260905ie (was 05id) | KEEP |
+| **Dense digit-style HUD/sign text** — shared `denseText()` (2×–4× paint → NN downscale, light body + 1px dark outline); NOT chunky near-1:1 fatten (05ie reject); stack counts stay TEXT_COUNT_SCALE; shorter top wood HUD | 20260905if (was 05ie/id) | KEEP |
 
 ---
 

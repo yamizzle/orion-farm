@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ie";
+  var BUILD = "20260905if";
   var ASSET_REV = "464564";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -13639,7 +13639,7 @@
     var tw, x, y;
     if (!word) return;
     tw = textWidth(word);
-    y = 38;
+    y = 28; /* 20260905if: sit under shorter dense HUD */
     x = VIEW_W - tw - 8;
     woodPanel(g, x, y, tw + 6, textGlyphH() + 4);
     drawText(g, word, x + 3, y + 2, C.parch);
@@ -13652,10 +13652,10 @@
     if (!label) return;
     tw = textWidth(label);
     w = tw + 8;
-    y = 38;
+    y = 28;
     x = VIEW_W - w - 2;
     r = buildStampRect();
-    if (y === r.y && x < r.x + r.w && x + w > r.x) y = 50;
+    if (y === r.y && x < r.x + r.w && x + w > r.x) y = 40;
     if (x < 46) x = 46;
     woodPanel(g, x, y, w, textGlyphH() + 4);
     drawText(g, label, x + 4, y + 2, C.parch);
@@ -23614,12 +23614,15 @@
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
 
-  /* 20260905ie: shared crisp text — 4× paint, crop pad, NN blit.
-     Min ~1 logical px stroke (=2 device @ BUFFER=2). HUD body weight + shadow;
-     stack counts stay smaller via TEXT_COUNT_SCALE. */
-  var TEXT_CRISP_SCALE = 0.93;
-  var TEXT_CRISP_UPSCALE = 4;
+  /* 20260905if: shared denseText — paint at 2×–4× then NN-downscale
+     (same path as tray stack counts). Light body + 1px dark outline on wood.
+     Do NOT fatten near-1:1 bitmap (05ie chunky reject). Counts keep TEXT_COUNT_SCALE. */
+  var TEXT_DENSE_UPSCALE = 4;
+  var TEXT_HUD_SCALE = 0.75;
   var TEXT_COUNT_SCALE = 0.85;
+  /* Aliases so older call sites / notes keep working */
+  var TEXT_CRISP_SCALE = TEXT_HUD_SCALE;
+  var TEXT_CRISP_UPSCALE = TEXT_DENSE_UPSCALE;
 
   function textGlyphPitch(pitch) {
     return pitch || 6;
@@ -23629,14 +23632,14 @@
     var n, p, s;
     if (!str || !str.length) return 0;
     p = textGlyphPitch(pitch);
-    s = scale == null ? TEXT_CRISP_SCALE : scale;
+    s = scale == null ? TEXT_HUD_SCALE : scale;
     n = str.length * p - 1;
     if (n < 1) n = 1;
     return Math.max(1, Math.round(n * s));
   }
 
   function textGlyphH(scale) {
-    var s = scale == null ? TEXT_CRISP_SCALE : scale;
+    var s = scale == null ? TEXT_HUD_SCALE : scale;
     return Math.max(1, Math.round(7 * s));
   }
 
@@ -23657,34 +23660,37 @@
     }
   }
 
-  function ensureTextCrispCanvas(cw, ch) {
-    if (!drawTextCrisp._c || drawTextCrisp._c.width !== cw || drawTextCrisp._c.height !== ch) {
-      drawTextCrisp._c = (typeof OffscreenCanvas !== "undefined")
+  function ensureDenseTextCanvas(cw, ch) {
+    if (!denseText._c || denseText._c.width !== cw || denseText._c.height !== ch) {
+      denseText._c = (typeof OffscreenCanvas !== "undefined")
         ? new OffscreenCanvas(cw, ch)
         : document.createElement("canvas");
-      drawTextCrisp._c.width = cw;
-      drawTextCrisp._c.height = ch;
+      denseText._c.width = cw;
+      denseText._c.height = ch;
     }
-    return drawTextCrisp._c;
+    return denseText._c;
   }
 
-  function drawTextCrisp(g, str, x, y, color, pitch, scale) {
+  /* Low-level: paint glyphs at upscale (2–4), crop paint pad, NN blit to dest. */
+  function blitDenseGlyphs(g, str, x, y, color, pitch, scale) {
     var glyphH = 7;
     var p = textGlyphPitch(pitch);
-    var s = scale == null ? TEXT_CRISP_SCALE : scale;
+    var s = scale == null ? TEXT_HUD_SCALE : scale;
     var w, dw, dh, up, cw, ch, c, cg, smooth, srcX, srcY, srcW, srcH;
     if (!str || !str.length) return;
     w = str.length * p - 1;
     if (w < 1) w = 1;
-    /* Dest sized to glyph only; blit crops the 1px paint pad so strokes keep weight */
     dw = Math.max(1, Math.round(w * s));
-    /* Keep dest height ≥ glyph rows when scale≈1 so 1 font px → ≥1 logical (≥2 device @ BUFFER=2) */
     dh = Math.max(1, Math.round(glyphH * s));
-    if (s >= 0.9 && dh < glyphH) dh = glyphH;
-    up = TEXT_CRISP_UPSCALE;
+    /* Pick 2×/3×/4× so tiny dest still densifies without near-1:1 chunky fatten */
+    if (s >= 0.92) up = 2;
+    else if (s >= 0.82) up = 3;
+    else up = TEXT_DENSE_UPSCALE;
+    if (up < 2) up = 2;
+    if (up > 4) up = 4;
     cw = (w + 2) * up;
     ch = (glyphH + 2) * up;
-    c = ensureTextCrispCanvas(cw, ch);
+    c = ensureDenseTextCanvas(cw, ch);
     cg = c.getContext("2d");
     cg.imageSmoothingEnabled = false;
     cg.clearRect(0, 0, cw, ch);
@@ -23698,30 +23704,44 @@
     srcH = glyphH * up;
     smooth = g.imageSmoothingEnabled;
     g.imageSmoothingEnabled = false;
-    g.drawImage(c, srcX, srcY, srcW, srcH, x, y, dw, dh);
+    g.drawImage(c, srcX, srcY, srcW, srcH, x | 0, y | 0, dw, dh);
     g.imageSmoothingEnabled = smooth;
   }
 
+  /* Shared by HUD + stack counts: light dense glyphs + optional 1px dark outline. */
+  function denseText(g, str, x, y, color, opts) {
+    var pitch, scale, outline, oc;
+    if (!str || !str.length) return;
+    opts = opts || {};
+    pitch = opts.pitch != null ? opts.pitch : 6;
+    scale = opts.scale != null ? opts.scale : TEXT_HUD_SCALE;
+    outline = opts.outline !== false;
+    oc = opts.outlineColor || C.woodOut;
+    if (outline) blitDenseGlyphs(g, str, (x | 0) + 1, (y | 0) + 1, oc, pitch, scale);
+    blitDenseGlyphs(g, str, x | 0, y | 0, color, pitch, scale);
+  }
+
+  function drawTextCrisp(g, str, x, y, color, pitch, scale) {
+    /* Compat alias → dense blit path (no auto-outline; callers add their own). */
+    blitDenseGlyphs(g, str, x, y, color, pitch, scale);
+  }
+
   function drawText(g, str, x, y, color) {
-    /* Same dense family as stack counts: dark shadow + light/body fill (not hairline) */
-    drawTextCrisp(g, str, x + 1, y + 1, C.woodOut, 6, TEXT_CRISP_SCALE);
-    drawTextCrisp(g, str, x, y, color, 6, TEXT_CRISP_SCALE);
+    denseText(g, str, x, y, color, { pitch: 6, scale: TEXT_HUD_SCALE });
   }
 
   function drawTextPitch(g, str, x, y, color, pitch) {
-    drawTextCrisp(g, str, x + 1, y + 1, C.woodOut, pitch || 6, TEXT_CRISP_SCALE);
-    drawTextCrisp(g, str, x, y, color, pitch || 6, TEXT_CRISP_SCALE);
+    denseText(g, str, x, y, color, { pitch: pitch || 6, scale: TEXT_HUD_SCALE });
   }
 
   function drawSlotCount(g, label, sx, sy, slot) {
-    /* 20260905hx/ie: smaller count digits; shared 4× crisp blit (no extra HUD shadow) */
+    /* Stack counts stay dense digit-style (unchanged scale/pitch). */
     var pitch = label.length >= 4 ? 4 : 5;
     var dw = textWidth(label, pitch, TEXT_COUNT_SCALE);
     var dh = textGlyphH(TEXT_COUNT_SCALE);
     var x = sx + slot - dw - 2;
     var y = sy + slot - dh - 2;
-    drawTextCrisp(g, label, x + 1, y + 1, C.woodOut, pitch, TEXT_COUNT_SCALE);
-    drawTextCrisp(g, label, x, y, C.parch, pitch, TEXT_COUNT_SCALE);
+    denseText(g, label, x, y, C.parch, { pitch: pitch, scale: TEXT_COUNT_SCALE });
   }
 
   function woodPanel(g, x, y, w, h) {
@@ -23964,7 +23984,7 @@
     var pad = 8;
     var head = 12;
     var dockH = 24;
-    var tipH = 24; /* 20260905ic: NAME + blurb strip under grid */
+    var tipH = 20; /* 20260905ic/if: NAME + blurb strip; denser text = shorter */
     var toolsH = 0; /* tray below is the tools strip */
     var w = gridW + pad * 2;
     var h = head + dockH + 4 + gridH + tipH + pad;
@@ -24539,7 +24559,7 @@
       woodPanel(g, L.tipX - 2, L.tipY - 1, L.tipW + 4, L.tipH + 2);
       fill(g, L.tipX - 1, L.tipY, L.tipW + 2, L.tipH, C.parch);
       drawText(g, name, L.tipX + 2, L.tipY + 2, C.uiText);
-      drawText(g, blurb, L.tipX + 2, L.tipY + 11, C.woodSh);
+      drawText(g, blurb, L.tipX + 2, L.tipY + 9, C.woodSh);
     }
     if (bagHeld) {
       drawBagKey(g, bagHeld.key, bagPointer.x - 8, bagPointer.y - 8);
@@ -24554,7 +24574,8 @@
        panel and left of the FX/MU/FS cluster — not under hearts/energy. */
     var tw = textWidth(BUILD);
     var pad = 3;
-    return { x: VIEW_W - tw - pad * 2 - 2, y: 26, w: tw + pad * 2, h: 11, pad: pad, tw: tw };
+    /* 20260905if: under shorter day panel */
+    return { x: VIEW_W - tw - pad * 2 - 2, y: 20, w: tw + pad * 2, h: textGlyphH() + 4, pad: pad, tw: tw };
   }
 
   function drawBuildStamp(g) {
@@ -24574,45 +24595,46 @@
   }
 
   function drawHUD(g) {
-    woodPanel(g, 4, 3, 18, 18);
+    /* 20260905if: shorter wood HUD — denseText fits tighter, more playfield */
+    woodPanel(g, 4, 3, 16, 16);
     /* 05bd: small starBadge in wood panel — not full 32px trophy over hearts */
     var starSpr = Assets.spr.starBadge;
     if (starSpr && Assets.img) {
       g.imageSmoothingEnabled = false;
-      g.drawImage(Assets.img, starSpr.x, starSpr.y, starSpr.fw || starSpr.w, starSpr.h, 5, 4, 16, 16);
+      g.drawImage(Assets.img, starSpr.x, starSpr.y, starSpr.fw || starSpr.w, starSpr.h, 5, 4, 14, 14);
     } else {
       Assets.draw(g, "starBadge", 5, 4);
     }
-    woodPanel(g, 24, 3, 18, 18);
-    drawBook(g, 25, 4);
+    woodPanel(g, 22, 3, 16, 16);
+    drawBook(g, 23, 3);
     if (jobOpen()) {
-      fill(g, 37, 5, 3, 3, C.flower);
-      px(g, 38, 4, C.flower);
+      fill(g, 34, 4, 3, 3, C.flower);
+      px(g, 35, 3, C.flower);
     }
 
-    woodPanel(g, 46, 3, 68, 18);
+    woodPanel(g, 41, 3, 66, 16);
     var hi, hs, hid;
     for (hi = 0; hi < HEARTS; hi++) {
       hid = (hp > hi * HP_PER_HEART) ? "heart" : "heartEmpty";
       hs = Assets.spr[hid];
       if (hs && Assets.img) {
         g.imageSmoothingEnabled = false;
-        g.drawImage(Assets.img, hs.x, hs.y, hs.fw || hs.w, hs.h, 49 + hi * 10, 5, 8, 7);
+        g.drawImage(Assets.img, hs.x, hs.y, hs.fw || hs.w, hs.h, 44 + hi * 10, 4, 8, 7);
       } else {
-        Assets.draw(g, hid, 49 + hi * 10, 5);
+        Assets.draw(g, hid, 44 + hi * 10, 4);
       }
     }
 
-    woodPanel(g, 206, 4, 114, 23);
-    fill(g, 210, 8, 7, 7, C.flower);
-    fill(g, 212, 10, 3, 3, C.parch);
-    px(g, 209, 11, C.flower);
-    px(g, 217, 11, C.flower);
-    px(g, 213, 7, C.flower);
-    drawText(g, "DAY " + dayNumber, 220, 8, C.parch);
+    woodPanel(g, 206, 3, 114, 15);
+    fill(g, 210, 5, 6, 6, C.flower);
+    fill(g, 212, 7, 2, 2, C.parch);
+    px(g, 209, 8, C.flower);
+    px(g, 216, 8, C.flower);
+    px(g, 212, 4, C.flower);
+    drawText(g, "DAY " + dayNumber, 220, 5, C.parch);
     var gLabel = (gold | 0) + "G";
-    drawText(g, gLabel, 310 - textWidth(gLabel), 8, C.flower);
-    drawText(g, clockHudLine(), 210, 17, C.parch);
+    drawText(g, gLabel, 310 - textWidth(gLabel), 5, C.flower);
+    drawText(g, clockHudLine(), 210, 11, C.parch);
     drawPlaceStamp(g);
     drawHolidayChip(g);
 
@@ -24633,17 +24655,17 @@
       fill(g, T.bagX, T.bagY, T.bagW, 1, C.flower);
       fill(g, T.bagX, T.bagY + T.bagH - 1, T.bagW, 1, C.flower);
     }
-    drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + 8, C.parch);
+    drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + ((T.bagH - textGlyphH()) / 2) | 0, C.parch);
 
-    /* 20260905ie: energy E via dense blit (not 1px hairline hand strokes) */
-    drawText(g, "E", 47, 11, C.parch);
-    var ew = 54;
+    /* 20260905if: energy E via shared denseText */
+    drawText(g, "E", 43, 9, C.parch);
+    var ew = 52;
     var filled = Math.round(ew * energy / MAX_ENERGY);
     if (energy > 0 && filled < 1) filled = 1;
     if (energy <= 0) filled = 0;
-    fill(g, 53, 15, ew, 2, C.energyEmpty);
+    fill(g, 49, 13, ew, 2, C.energyEmpty);
     if (filled > 0) {
-      fill(g, 53, 15, filled, 2, energy <= 15 ? "#C8B03C" : C.energy);
+      fill(g, 49, 13, filled, 2, energy <= 15 ? "#C8B03C" : C.energy);
     }
     drawSwordBtn(g);
     drawFenceBuildBtn(g);
@@ -25319,7 +25341,7 @@
       return true;
     }
     /* 20260905cg: hearts/energy + DAY panels are display-only — do not swallow world taps. */
-    if (inHud(p, 4, 3, 18, 18, 3)) {
+    if (inHud(p, 4, 3, 16, 16, 3)) {
       playSfx("ui");
       if (bagOpen) closeBag();
       achieveOpen = !achieveOpen;
@@ -25330,7 +25352,7 @@
       achieveDrag = null;
       return true;
     }
-    if (inHud(p, 24, 3, 18, 18, 3)) {
+    if (inHud(p, 22, 3, 16, 16, 3)) {
       playSfx("ui");
       if (bagOpen) closeBag();
       questOpen = !questOpen;
@@ -27059,16 +27081,19 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ie", BUILD);
+      ok("BUILD", BUILD === "20260905if", BUILD);
       (function () {
-        /* 20260905id: crisp shared text + walk-through entrance labels */
+        /* 20260905if: denseText shared path + walk-through entrance labels */
         var _ws, _os, _ms, _anc, _i, _savedScene;
+        ok("denseTextFn", typeof denseText === "function", "");
+        ok("blitDenseGlyphsFn", typeof blitDenseGlyphs === "function", "");
         ok("drawTextCrispFn", typeof drawTextCrisp === "function", "");
         ok("signLabelAnchorFn", typeof signLabelAnchor === "function", "");
-        ok("TEXT_CRISP_SCALE", TEXT_CRISP_SCALE >= 0.9 && TEXT_CRISP_SCALE <= 1, String(TEXT_CRISP_SCALE));
-        ok("textWidthCompact", textWidth("WOODS") <= ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
-        ok("textGlyphHBody", textGlyphH() >= 6, "h=" + textGlyphH());
-        ok("TEXT_COUNT_smaller", TEXT_COUNT_SCALE < TEXT_CRISP_SCALE, String(TEXT_COUNT_SCALE));
+        ok("TEXT_HUD_SCALE", TEXT_HUD_SCALE >= 0.65 && TEXT_HUD_SCALE <= 0.82, String(TEXT_HUD_SCALE));
+        ok("textWidthShrinks", textWidth("WOODS") < ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
+        ok("textGlyphHDense", textGlyphH() >= 4 && textGlyphH() <= 6, "h=" + textGlyphH());
+        ok("TEXT_COUNT_stays", TEXT_COUNT_SCALE === 0.85, String(TEXT_COUNT_SCALE));
+        ok("denseSmallerThan1", textWidth("DAY 17") < ("DAY 17".length * 6 - 1), "w=" + textWidth("DAY 17"));
         _savedScene = currentScene;
         applyScene("overworld");
         buildSolid();
