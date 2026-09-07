@@ -84,5 +84,5 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 
 ## Local ship vs live
 
-Almost every remaining Local/Partial row already has a local BUILD noted; treat as **Needs live verify** before Done. Do **not** fake Done on Criticals (canopy Partial, sword pad). Day clock audited clean 9/6. Notable live-already-PASS pieces that do **not** close their whole row: pier boat (05a/05hn) inside Ocean Partial; slime/bat pad kills + i-frames (03b/04e) inside sword/slug rows; town cart kick (31o) inside kick-ball row.
+Almost every remaining Local/Partial row already has a local BUILD noted; treat as **Needs live verify** before Done. Do **not** fake Done on Criticals (canopy Partial, sword pad). Day clock **Done 9/7 live**. Notable live-already-PASS pieces that do **not** close their whole row: pier boat (05a/05hn) inside Ocean Partial; slime/bat pad kills + i-frames (03b/04e) inside sword/slug rows; town cart kick (31o) inside kick-ball row.
 
