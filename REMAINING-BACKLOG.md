@@ -1,25 +1,30 @@
 # Remaining backlog (not Done)
 
-Pulled from `BACKLOG.md` after `git pull --ff-only origin main` (already up to date).
-Generated 2026-09-06 ~10:21pm PT. Sources: Queued 9/4 evening table + big playtest table.
+Pulled from `BACKLOG.md` after YOLO stale-row close (2026-09-06 ~10:30pm PT).
+Sources: Queued 9/4 evening table + big playtest table.
 Include Status values that are **not** Done (Local / Needs live / Partial / Open / Verify / queued count as remaining).
 **Never START OVER** on the household save.
 
 Format: `Priority | Status | Title | note`
 
+## Closed this YOLO wave (were Stale / superseded)
+
+- **Medium** Car is tiny → **Done 9/6 05cc→05hh→05hi** (size tune shipped; stale “tiny/bigger needs live” closed).
+- **Medium** Only one weapon equipped → **Done 9/6 live 05hm/05hn** (weapon dock PASS; 05ay tray rule superseded).
+- **Medium** Island cave Diamond Pickaxe → peak rocks → **Done 9/6 local 05bt+05hl** (+05hu polish; local+feature).
+- **Low** Closing a panel by tapping the world also walks → **Done 9/5 7:10pm live** (05bc/05be PASS; table was stale “live still needed”).
+
 ## Queued 9/4 evening — still remaining
 
-Done rows skipped: Chickens move (Done 9/5 7:28am live); Boat at pier (Done 9/5 1:30am live); Bigger beach / ocean (Done 9/5 05ac–05ad); Pip shop glow-up (Done 9/5 05y).
+Done rows skipped: Chickens move; Boat at pier; Bigger beach / ocean; Pip shop glow-up; **Island diamond pick → peak rocks (Done 9/6 local)**.
 
-- **High** | Local 9/5 05bg | Only 1 fishing pole | BUILD 20260905bg: cap/dedupe forever + Pip OWNED; **Local ship exists — Needs live verify.**
+- **High** | Local 9/5 05bg | Only 1 fishing pole | BUILD 20260905bg: cap/dedupe forever + Pip OWNED; **Needs live verify.**
 - **Medium** | Local 9/5 05bh | Dog runs around inside the house | BUILD 20260905bh: shorter idle + faster house wander; leash outdoor rules from 04k; **Needs live verify.**
-- **Medium** | Local 9/5 05bt (live TBD) | Island cave Diamond Pickaxe → peak rocks | BUILD 20260905bt (+ later 05hl/05hu summit mine polish): smashable summit prop / diamond-pick clear; **Needs live verify.**
 - **Medium** | Local 9/5 | More Imagine trees everywhere | BUILD 20260905bi: farm/town/ocean/forest fillers; **Needs live verify.**
 
 ## Playtest table — still remaining
 
 Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes say so.
-Stale Medium rows (Car is tiny; Only one weapon) are **not** repeated here — see Stale section.
 
 ### Critical
 
@@ -47,11 +52,11 @@ Stale Medium rows (Car is tiny; Only one weapon) are **not** repeated here — s
 - **Medium** | Local 9/5 05cj | Enemies never die / hit+loot feedback | BUILD 20260905cj (+05ci): always-drop loot + HP pips + kill burst; pad kills FIXED live 03b; feedback **Needs live verify.**
 - **Medium** | Local 9/5 05bj | Pickaxe must NOT destroy placed paths | BUILD 20260905bj: pick no longer lifts player paths; **Needs live verify.**
 - **Medium** | Local 9/5 05bk | Fences cannot be moved | BUILD 20260905bk: axe/shovel/empty-hand pickup + 1 wood refund; **Needs live verify.**
-- **Medium** | Local 9/5 | Lamp posts and WOODS sign look alike | BUILD 20260905az: Imagine woodsSign + floating shaft labels; **Needs live verify.**
+- **Medium** | Local 9/5 | Lamp posts and WOODS sign look alike | BUILD 20260905az: Imagine woodsSign + floating shaft labels; ocean label live PASS 05be; woods lookalike **Needs live verify.**
 - **Medium** | Local 8/30 | Ability to upgrade the house | BUILD 20260830p: Pip HOUSE KIT tiers; **Needs live verify.**
 - **Medium** | Local 8/30 | Potato and berry seeds at Pip | BUILD 20260830p: POTATO/BERRY SEED 8G; **Needs live verify.**
 - **Medium** | Local 8/30 | More things to BUILD (lamps, crates) | BUILD 20260830q: LAMP/CRATE kits placeables; **Needs live verify.**
-- **Medium** | Partial 9/5 05ck | Ocean and boats south of the house | BUILD 20260905ck/05ci/05a+: pier boat rideable — live boat PASS 05a/05hn; remaining ocean/deep/island pieces **Needs live verify.**
+- **Medium** | Partial 9/5 05ck | Ocean and boats south of the house | Pier boat rideable live PASS 05a/05hn; remaining ocean/deep/island pieces **Needs live verify** (keep Partial).
 - **Medium** | Local 9/5 05ca / cart Done 9/1 live | Kick ball on farm yard (+ town plaza) | BUILD 20260905ca: farm+plaza kickballs; town cart kick Done 9/1 live; balls **Needs live verify.**
 - **Medium** | Local 9/4 04j–04k | House dog follows on a leash | BUILD 20260904j–04k: tray-leash follow / home when off tray; **Needs live verify.**
 - **Medium** | Local 9/5 05ck (live TBD) | River east of town; broken bridge | BUILD 20260905ck (+30m): floating 8 WOOD / FIX!; **Needs live verify.**
@@ -65,27 +70,19 @@ Stale Medium rows (Car is tiny; Only one weapon) are **not** repeated here — s
 
 - **Low** | Local 9/5 05ce | BAG 90-grid empty; goods only in tray | BUILD 20260905ce: remirror non-tool tray stacks into bag; autotest local PASS; **Needs live verify.**
 - **Low** | Local 9/5 05cg | HUD overlap; hotbar covers lower play field | BUILD 20260905cg: CAM_PAD_BOTTOM 52 + forest overscroll; **Needs live verify.**
-- **Low** | Local 9/5 | Closing a panel by tapping the world also walks | BUILD 20260905bc: ignoreWalkTap on dismiss; live PASS noted 05be pass — confirm still closed or re-verify.
 - **Low** | Local 9/5 05ch | Moon shard / Mountain Heart missing from hotbar | BUILD 20260905ch: tray pin + SHARD/HEART→HOME chips; **Needs live verify.**
 - **Low** | Local 9/5 05cl (Done sleep; clarify live TBD) | Bed advances the day with no prompt | BUILD 20260905cl: floating SLEEP + Jobs tip; sleep copy Done-ish; prompt clarity **Needs live verify.**
 - **Low** | Local 9/5 05cf | Tap-to-move silently fails for far targets | BUILD 20260905cf: soft-blocker path-around/scoot + stepToward harden; **Needs live verify.**
 - **Low** | Local 8/31 | Swing arc too short to read | BUILD 20260831j/31r: longer/brighter crescent; overlaps Critical sword; **Needs live verify.**
 
-## Stale (still listed — contradict later ships; close when you agree)
-
-These rows are **still in BACKLOG as Local/Partial**, but later builds contradict the ask. Listed so you can mark Done/close.
-
-- **STALE — Medium | Local 9/5 05cc | Car is tiny** | Original “tiny car” → 05cc made it denser/bigger (scale 2, house-tall), then **05hh** drew at scale 1, then **05hi** shrunk to ~0.75 of dense frames (~taller than Orion). Row still claims Local 05cc “bigger car / needs live” and no longer matches post-05hi size intent.
-- **STALE — Medium | Local 9/5 | Only one weapon equipped** | BUILD 20260905ay one-weapon-in-tray rule superseded by **05hm weapon dock** (sword/bow in dock left of tray; tray = tools/seeds/food). Live 9/6 ~9:16am PT BUILD 20260905hn: weapon dock **PASS**. Close this tray-pin row in favor of dock.
-
 ## Counts
 
-- Queued 9/4 remaining: **4**
-- Playtest active (Critical+High+Medium+Low, Stale excluded): **38** (C3 / H8 / M20 / L7)
-- Stale flagged: **2** (Car is tiny; Only one weapon equipped)
-- **Grand total to act on (Queued + playtest active): 42**; plus 2 Stale to close.
+- Queued 9/4 remaining: **3**
+- Playtest active (Critical+High+Medium+Low): **37** (C3 / H8 / M20 / L6)
+- Closed this wave: **4** (car, weapon dock, diamond-pick peak, panel dismiss)
+- **Grand total still open (Queued + playtest): 40**
 
 ## Local ship vs live
 
-Almost every remaining Local/Partial row already has a local BUILD noted; treat as **Needs live verify** before Done. Notable live-already-PASS pieces that do **not** close the whole row: pier boat (05a/05hn), slime/bat pad kills + i-frames (03b/04e), weapon dock (05hm/05hn PASS — closes Stale one-weapon tray row), town cart kick (31o), panel world-tap dismiss (05bc/05be).
+Almost every remaining Local/Partial row already has a local BUILD noted; treat as **Needs live verify** before Done. Do **not** fake Done on Criticals (day clock, canopy Partial, sword pad). Notable live-already-PASS pieces that do **not** close their whole row: pier boat (05a/05hn) inside Ocean Partial; slime/bat pad kills + i-frames (03b/04e) inside sword/slug rows; town cart kick (31o) inside kick-ball row.
 
