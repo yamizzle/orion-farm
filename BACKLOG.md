@@ -415,6 +415,14 @@ Local 9/4 (BUILD 20260904h): dog runs around more inside the house (faster/short
 Local 9/4 (BUILD 20260904g): only one fishing pole (dedupe tray/bag on load/grant); walk into / tap chicken scoots it off the tile. Darren 9/4 asks still Open (dog indoors livelier, boat, bigger ocean, island Diamond Pickaxe, more trees, Pip shop art). Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904f): ocean pier/beach fishing has a 1-in-50 Golden Swordfish (ocean-only; farm ponds unchanged). Sword swing still 300ms. Pip shop art still queued. Household save intact. Never START OVER.
 
+## Queued 9/7 (Darren asks)
+
+Past the sleeping bear on High Peak. Household save; never START OVER. Frozen: Orion base art (wizard robes are a held-wand overlay only), farm grass0–3, evening color, walk energy, DAY_MS. Imagine art for house / wizard / wand / robes.
+
+| Priority | Status | Item | Notes |
+| --- | --- | --- | --- |
+| High | Open | Wizard house past the High Peak bear | After feeding the bear and walking past: enterable **wizard house** with a wizard inside. Talk → he gives a **magic wand**. Wand parks in the **weapon dock** (same one-weapon slot as sword/bow). While the wand is held/selected, Orion wears **wizard robes** (clothes update). Kid-plain: past the bear, visit the wizard, get a wand, look like a wizard when you hold it. |
+
 ## Queued 9/4 evening (Darren asks)
 
 Pick from the top. Expand the world creatively (bigger beach/ocean, fun Imagine art) — not a thin strip. Household save; never START OVER. Frozen: Orion art, farm grass0–3, evening color, walk energy, DAY_MS. Peak summit rocks unlocked via diamond pick (05bt+05hl Done local).
