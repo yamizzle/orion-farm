@@ -115,13 +115,13 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905in";
+  var BUILD = "20260905io";
   var ASSET_REV = "464565";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
   var PIXEL_FONT_READY = false;
   var PIXEL_HUD_SIZE = 8;
-  var PIXEL_COUNT_SIZE = 8;
+  var PIXEL_COUNT_SIZE = 6;
   var PIXEL_COUNT_FILL = "#FFF8E8";
   var PIXEL_OUTLINE = "#1A1008";
   var PIXEL_HUD_FILL = "#FFFFFF";
@@ -23641,12 +23641,12 @@
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
 
-  /* 20260905in: Press Start 2P for tray counts (8px cream), world labels + HUD (8px).
+  /* 20260905io: Press Start 2P for tray counts (6px cream); world labels + HUD stay 8px.
      Dialogue / BUILD stamp / chips stay on legacy FONT drawText path this ship.
      drawPixelText: integer fillText, smoothing off, optional AA→hard threshold, cardinal outline. */
   var TEXT_DENSE_UPSCALE = 1;
   var TEXT_HUD_SCALE = 1;
-  var TEXT_COUNT_SCALE = 8; /* Press Start count size (px) — same as HUD/labels */
+  var TEXT_COUNT_SCALE = 6; /* Press Start count size (px) — tray/bag only; HUD/labels stay 8 */
   var TEXT_COUNT_FILL = PIXEL_COUNT_FILL;
   var TEXT_CRISP_SCALE = TEXT_HUD_SCALE;
   var TEXT_CRISP_UPSCALE = TEXT_DENSE_UPSCALE;
@@ -23841,8 +23841,8 @@
   }
 
   function drawSlotCount(g, label, sx, sy, slot) {
-    /* 20260905in: Press Start 2P 8px cream + dark thin outline + tiny shadow.
-       Same size as HUD/labels; cream kept on wood slots. NOT 16px. */
+    /* 20260905io: Press Start 2P 6px cream + dark thin outline + tiny shadow.
+       Smaller than HUD/labels (8px); cream kept on wood slots. NOT 8/16px. */
     var tw, th, x, y;
     if (!label) return;
     tw = pixelTextWidth(label, PIXEL_COUNT_SIZE);
@@ -27193,9 +27193,9 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905in", BUILD);
+      ok("BUILD", BUILD === "20260905io", BUILD);
       (function () {
-        /* 20260905in: Press Start 2P — tray/bag 8px cream; labels/HUD 8px; no 0.85 path */
+        /* 20260905io: Press Start 2P — tray/bag 6px cream; labels/HUD 8px; no 0.85 path */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft;
         ok("drawSlotCountFn", typeof drawSlotCount === "function", "");
         _src = Function.prototype.toString.call(drawSlotCount);
@@ -27214,13 +27214,15 @@ if (currentScene === "ocean") goExitOcean();
         ok("drawTextCrispFn", typeof drawTextCrisp === "function", "");
         ok("signLabelAnchorFn", typeof signLabelAnchor === "function", "");
         ok("TEXT_HUD_SCALE", TEXT_HUD_SCALE === 1, String(TEXT_HUD_SCALE));
-        ok("TEXT_COUNT_8", TEXT_COUNT_SCALE === 8, String(TEXT_COUNT_SCALE));
+        ok("TEXT_COUNT_6", TEXT_COUNT_SCALE === 6, String(TEXT_COUNT_SCALE));
+        ok("PIXEL_COUNT_6", PIXEL_COUNT_SIZE === 6, String(PIXEL_COUNT_SIZE));
+        ok("PIXEL_HUD_8", PIXEL_HUD_SIZE === 8, String(PIXEL_HUD_SIZE));
         ok("TEXT_COUNT_FILL_cream", TEXT_COUNT_FILL === "#FFF8E8", TEXT_COUNT_FILL);
         ok("textWidthLegacy", textWidth("WOODS") === ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
         ok("textWidthIgnoreExtra", textWidth("AB", 99, 3) === 11, "w=" + textWidth("AB", 99, 3));
         ok("textGlyphHFull", textGlyphH() === 7, "h=" + textGlyphH());
         ok("pixelTextWidthHud", pixelTextWidth("BAG", 8) > 0, "w=" + pixelTextWidth("BAG", 8));
-        ok("pixelTextWidthCount", pixelTextWidth("9", 8) > 0, "w=" + pixelTextWidth("9", 8));
+        ok("pixelTextWidthCount", pixelTextWidth("9", 6) > 0, "w=" + pixelTextWidth("9", 6));
         _clk = Function.prototype.toString.call(clockHudLine);
         ok("clockHudShort", _clk.indexOf("SPR ·") >= 0 && _clk.indexOf('AM') >= 0 && _clk.indexOf("SPRING ·") < 0, _clk.slice(0, 160));
         ok("clockHudLineSample", /^SPR · (AM|PM|EVE|NIGHT)$/.test(clockHudLine()), clockHudLine());
