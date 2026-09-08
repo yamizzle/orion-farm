@@ -64,7 +64,7 @@ Status column: **KEEP** = still required in new builds.
 | Dedicated **weapon dock** (sword/bow only); tray is tools/seeds/food; second weapon swaps into dock and old goes to bag; BAG open shows big dock + **WEAPON** ghost when empty | 20260905hm | KEEP |
 | **Bow selectable from weapon dock** — soft sword-ensure must not kick a parked bow; bag→dock swap / dock tap arms bow; hard pin only on cave claim / iron craft / giveTool sword; sword pad select still works | 20260905ho | KEEP |
 | **BAG select tip** — with bag open, tapping a cell shows NAME + 1 kid-plain blurb strip; updates on select/held; clears on close/empty; drag swap + X close still work | 20260905ic | KEEP |
-| **05ig cream + single-pixel shadow counts** — `paintFontGlyphs` 1:1 FONT fillRect; `denseText` dark at +1,+1 then cream body (NOT 8-dir glow, NOT PixelFont atlas chunk); TEXT_COUNT/HUD_SCALE=1; TEXT_COUNT_FILL #FFF8E8; one API for counts/DAY/gold/BAG/dialogue/floats; day panel ~21; walk-through entrance labels kept | 20260905ik (restore 05ig; was 05ij glow/atlas) | KEEP |
+| **05hx denser ~85% 4× tray counts + plain 1:1 HUD text** — `drawSlotCount` pitch 4/5, scale=4 offscreen, woodOut+parch, NN blit ·0.85; `drawText`/`drawTextPitch` plain FONT fillRect (NO outline glow, NO PixelFont); denseText/paintFontGlyphs stubbed; day panel ~21; walk-through entrance labels kept | 20260905il (restore 05hx `dce65cc`; was 05ik cream) | KEEP |
 
 ---
 
@@ -141,4 +141,4 @@ Do not re-open that wave item-by-item unless a specific interaction goes silent 
 
 ---
 
-*Last sweep: 2026-09-07 — 05ik restore 05ig cream+single-shadow counts (not 05ij glow/PixelFont); 05id walk-through entrance labels kept; prior 05a–05ic keep-list still applies.*
+*Last sweep: 2026-09-07 — 05il restore exact 05hx denser ~85% 4× tray counts + plain 1:1 HUD (not 05ik cream / not PixelFont); 05id walk-through entrance labels kept; prior 05a–05ic keep-list still applies.*

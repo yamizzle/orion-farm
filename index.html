@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ik";
+  var BUILD = "20260905il";
   var ASSET_REV = "464565";
   var VIEW_W = 320;
   var VIEW_H = 192;
@@ -23617,59 +23617,40 @@
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
 
-  /* 20260905ik: restore 05ig live text path (HITL reject 05ij glow/atlas chunk).
-     paintFontGlyphs: 1:1 fillRect 5×7 FONT bits. denseText: single +1,+1 dark
-     shadow then cream/body — NOT 8-direction glow, NOT PixelFont atlas downscale.
-     Tray counts / HUD DAY/BAG/gold / floats / dialogue share this path.
-     TEXT_COUNT_SCALE / TEXT_HUD_SCALE = 1; TEXT_COUNT_FILL = #FFF8E8. */
+  /* 20260905il: restore exact 05hx text (HITL: 05ig cream restore didn't work).
+     drawText / drawTextPitch = plain 1:1 FONT fillRect (NO outline glow, NO PixelFont).
+     drawSlotCount = 05hx denser ~85% 4× offscreen (pitch 4/5, shadow+parch, NN blit).
+     HUD DAY/BAG/gold/dialogue use plain drawText. denseText/paintFontGlyphs stubbed. */
   var TEXT_DENSE_UPSCALE = 1;
   var TEXT_HUD_SCALE = 1;
-  var TEXT_COUNT_SCALE = 1;
-  var TEXT_COUNT_FILL = "#FFF8E8"; /* bright cream — not dark-on-wood */
-  /* Aliases so older call sites / notes keep working */
+  var TEXT_COUNT_SCALE = 0.85; /* 05hx blit factor (informational; drawSlotCount hardcodes) */
+  var TEXT_COUNT_FILL = "#F3D2A3"; /* parch — 05hx tray body color */
   var TEXT_CRISP_SCALE = TEXT_HUD_SCALE;
   var TEXT_CRISP_UPSCALE = TEXT_DENSE_UPSCALE;
-  var TEXT_MIN_OUTLINE_LOGICAL = 1; /* single-pixel shadow weight (05ig) */
+  var TEXT_MIN_OUTLINE_LOGICAL = 0; /* 05hx plain HUD has no outline glow */
 
   function textGlyphPitch(pitch) {
     return pitch || 6;
   }
 
-  /* Fail-closed: 05ig outline is one device px at scale 1 (no soft shrink). */
   function textOutlinePad(scale) {
-    return 1;
+    return 0;
   }
 
-  function textWidth(str, pitch, scale) {
-    var n, p, s;
-    if (!str || !str.length) return 0;
-    p = textGlyphPitch(pitch);
-    s = scale == null ? TEXT_HUD_SCALE : scale;
-    n = str.length * p - 1;
-    if (n < 1) n = 1;
-    return Math.max(1, Math.round(n * s));
+  function textWidth(str) {
+    /* Extra pitch/scale args from older call sites are ignored safely. */
+    if (!str) return 0;
+    return str.length * 6 - 1;
   }
 
   function textGlyphH(scale) {
-    var s = scale == null ? TEXT_HUD_SCALE : scale;
-    return Math.max(7, Math.round(7 * s));
+    return 7;
   }
 
+  /* Stub: plain 1:1 glyphs — never reintroduce glow/atlas. */
   function paintFontGlyphs(g, str, x, y, color, pitch) {
-    var i, r, c, bits, ch, p;
-    p = textGlyphPitch(pitch);
-    g.fillStyle = color;
-    for (i = 0; i < str.length; i++) {
-      ch = str.charAt(i);
-      bits = FONT[ch] || FONT[" "];
-      for (r = 0; r < 7; r++) {
-        for (c = 0; c < 5; c++) {
-          if (bits[r] & (0x10 >> c)) {
-            g.fillRect(x + i * p + c, y + r, 1, 1);
-          }
-        }
-      }
-    }
+    if (pitch && pitch !== 6) drawTextPitch(g, str, x | 0, y | 0, color, pitch);
+    else drawText(g, str, x | 0, y | 0, color);
   }
 
   function ensureDenseTextCanvas(cw, ch) {
@@ -23683,46 +23664,87 @@
     return denseText._c;
   }
 
-  /* Compat: 1:1 paint (no crush). Kept so older tests / call sites resolve. */
   function blitDenseGlyphs(g, str, x, y, color, pitch, scale) {
     paintFontGlyphs(g, str, x | 0, y | 0, color, pitch);
   }
 
-  /* Shared by HUD + stack counts + floats: 1:1 light glyphs + 1px dark shadow. */
+  /* Stub: plain body only (NO +1,+1 shadow / NO 8-dir glow). */
   function denseText(g, str, x, y, color, opts) {
-    var pitch, outline, oc, bx, by;
+    var pitch;
     if (!str || !str.length) return;
     opts = opts || {};
     pitch = opts.pitch != null ? opts.pitch : 6;
-    outline = opts.outline !== false;
-    oc = opts.outlineColor || C.woodOut;
-    bx = x | 0;
-    by = y | 0;
-    /* Outline first (down-right ONLY), then bright body — 05ig / pre-05hx. */
-    if (outline) paintFontGlyphs(g, str, bx + 1, by + 1, oc, pitch);
-    paintFontGlyphs(g, str, bx, by, color, pitch);
+    if (pitch !== 6) drawTextPitch(g, str, x | 0, y | 0, color, pitch);
+    else drawText(g, str, x | 0, y | 0, color);
   }
 
   function drawTextCrisp(g, str, x, y, color, pitch, scale) {
-    /* Compat alias → 1:1 paint (no auto-outline; callers add their own). */
     paintFontGlyphs(g, str, x | 0, y | 0, color, pitch);
   }
 
   function drawText(g, str, x, y, color) {
-    denseText(g, str, x, y, color, { pitch: 6, scale: TEXT_HUD_SCALE });
+    g.fillStyle = color;
+    var i, r, c, bits, ch;
+    for (i = 0; i < str.length; i++) {
+      ch = str.charAt(i);
+      bits = FONT[ch] || FONT[" "];
+      for (r = 0; r < 7; r++) {
+        for (c = 0; c < 5; c++) {
+          if (bits[r] & (0x10 >> c)) g.fillRect(x + i * 6 + c, y + r, 1, 1);
+        }
+      }
+    }
   }
 
   function drawTextPitch(g, str, x, y, color, pitch) {
-    denseText(g, str, x, y, color, { pitch: pitch || 6, scale: TEXT_HUD_SCALE });
+    g.fillStyle = color;
+    var i, r, c, bits, ch;
+    pitch = pitch || 6;
+    for (i = 0; i < str.length; i++) {
+      ch = str.charAt(i);
+      bits = FONT[ch] || FONT[" "];
+      for (r = 0; r < 7; r++) {
+        for (c = 0; c < 5; c++) {
+          if (bits[r] & (0x10 >> c)) {
+            g.fillRect(x + i * pitch + c, y + r, 1, 1);
+          }
+        }
+      }
+    }
   }
 
   function drawSlotCount(g, label, sx, sy, slot) {
-    /* 20260905ik: 05ig recipe — 1:1 cream + single +1,+1 shadow (not glow). */
-    var pitch = label.length >= 4 ? 5 : 6;
+    /* 20260905hx: smaller on-slot digits, denser 4× then blit (readable BUFFER) */
+    var pitch = label.length >= 4 ? 4 : 5;
+    var glyphH = 7;
     var w = label.length * pitch - 1;
-    var x = sx + slot - w - 2;
-    var y = sy + slot - 9;
-    denseText(g, label, x, y, TEXT_COUNT_FILL, { pitch: pitch, scale: TEXT_COUNT_SCALE });
+    var dw = Math.max(1, Math.round(w * 0.85));
+    var dh = Math.max(1, Math.round(glyphH * 0.85));
+    var scale = 4;
+    var cw = (w + 2) * scale;
+    var ch = (glyphH + 2) * scale;
+    if (!drawSlotCount._c || drawSlotCount._c.width !== cw || drawSlotCount._c.height !== ch) {
+      drawSlotCount._c = (typeof OffscreenCanvas !== "undefined")
+        ? new OffscreenCanvas(cw, ch)
+        : document.createElement("canvas");
+      drawSlotCount._c.width = cw;
+      drawSlotCount._c.height = ch;
+    }
+    var c = drawSlotCount._c;
+    var cg = c.getContext("2d");
+    cg.imageSmoothingEnabled = false;
+    cg.clearRect(0, 0, cw, ch);
+    cg.save();
+    cg.scale(scale, scale);
+    drawTextPitch(cg, label, 1, 1, C.woodOut, pitch);
+    drawTextPitch(cg, label, 0, 0, C.parch, pitch);
+    cg.restore();
+    var x = sx + slot - dw - 2;
+    var y = sy + slot - dh - 2;
+    var smooth = g.imageSmoothingEnabled;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(c, 0, 0, cw, ch, x, y, dw, dh);
+    g.imageSmoothingEnabled = smooth;
   }
 
   function woodPanel(g, x, y, w, h) {
@@ -24612,10 +24634,10 @@
     px(g, 209, 9, C.flower);
     px(g, 217, 9, C.flower);
     px(g, 213, 5, C.flower);
-    drawText(g, "DAY " + dayNumber, 220, 6, TEXT_COUNT_FILL);
+    drawText(g, "DAY " + dayNumber, 220, 6, C.uiText);
     var gLabel = (gold | 0) + "G";
     drawText(g, gLabel, 310 - textWidth(gLabel), 6, C.flower);
-    drawText(g, clockHudLine(), 210, 14, TEXT_COUNT_FILL);
+    drawText(g, clockHudLine(), 210, 14, C.parch);
     drawPlaceStamp(g);
     drawHolidayChip(g);
 
@@ -24636,10 +24658,10 @@
       fill(g, T.bagX, T.bagY, T.bagW, 1, C.flower);
       fill(g, T.bagX, T.bagY + T.bagH - 1, T.bagW, 1, C.flower);
     }
-    drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + ((T.bagH - textGlyphH()) / 2) | 0, TEXT_COUNT_FILL);
+    drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + ((T.bagH - textGlyphH()) / 2) | 0, C.parch);
 
-    /* 20260905ik: energy E via denseText → paintFontGlyphs */
-    drawText(g, "E", 47, 11, TEXT_COUNT_FILL);
+    /* 20260905il: energy E via plain drawText (05hx path; no glow) */
+    drawText(g, "E", 47, 11, C.parch);
     var ew = 54;
     var filled = Math.round(ew * energy / MAX_ENERGY);
     if (energy > 0 && filled < 1) filled = 1;
@@ -27062,24 +27084,26 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ik", BUILD);
+      ok("BUILD", BUILD === "20260905il", BUILD);
       (function () {
-        /* 20260905ik: restore 05ig 1:1 cream + single +1,+1 shadow (not PixelFont glow) */
-        var _ws, _os, _ms, _anc, _i, _savedScene, _pad;
-        ok("denseTextFn", typeof denseText === "function", "");
+        /* 20260905il: restore exact 05hx text — denser 85% 4× tray counts + plain 1:1 HUD */
+        var _ws, _os, _ms, _anc, _i, _savedScene, _src;
+        ok("drawSlotCountFn", typeof drawSlotCount === "function", "");
+        _src = Function.prototype.toString.call(drawSlotCount);
+        ok("drawSlotCount085", _src.indexOf("0.85") >= 0, "missing 0.85");
+        ok("drawSlotCountScale4", /scale\s*=\s*4/.test(_src), "missing scale=4");
+        ok("drawSlotCountPitch45", _src.indexOf("label.length >= 4") >= 0, "missing pitch 4/5");
+        ok("drawTextPlain", typeof drawText === "function" && Function.prototype.toString.call(drawText).indexOf("fillRect") >= 0, "");
+        ok("noPixelFontLive", typeof PixelFont === "undefined", typeof PixelFont);
+        ok("denseTextStub", typeof denseText === "function", "");
+        ok("paintFontGlyphsStub", typeof paintFontGlyphs === "function", "");
         ok("blitDenseGlyphsFn", typeof blitDenseGlyphs === "function", "");
         ok("drawTextCrispFn", typeof drawTextCrisp === "function", "");
-        ok("paintFontGlyphsFn", typeof paintFontGlyphs === "function", "");
         ok("signLabelAnchorFn", typeof signLabelAnchor === "function", "");
         ok("TEXT_HUD_SCALE", TEXT_HUD_SCALE === 1, String(TEXT_HUD_SCALE));
-        ok("TEXT_COUNT_full", TEXT_COUNT_SCALE === 1, String(TEXT_COUNT_SCALE));
-        ok("TEXT_COUNT_FILL_bright", typeof TEXT_COUNT_FILL === "string" && TEXT_COUNT_FILL.charAt(0) === "#", TEXT_COUNT_FILL);
-        ok("TEXT_COUNT_FILL_cream", TEXT_COUNT_FILL === "#FFF8E8", TEXT_COUNT_FILL);
-        _pad = textOutlinePad(TEXT_COUNT_SCALE);
-        ok("outlineFailClosed", _pad * TEXT_COUNT_SCALE >= TEXT_MIN_OUTLINE_LOGICAL - 1e-6, "pad=" + _pad + " s=" + TEXT_COUNT_SCALE);
-        ok("outlineSinglePx", _pad === 1, "pad=" + _pad);
-        ok("TEXT_DENSE_1to1", TEXT_DENSE_UPSCALE === 1, String(TEXT_DENSE_UPSCALE));
+        ok("TEXT_COUNT_085", TEXT_COUNT_SCALE === 0.85, String(TEXT_COUNT_SCALE));
         ok("textWidthFull", textWidth("WOODS") === ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
+        ok("textWidthIgnoreExtra", textWidth("AB", 99, 3) === 11, "w=" + textWidth("AB", 99, 3));
         ok("textGlyphHFull", textGlyphH() === 7, "h=" + textGlyphH());
         _savedScene = currentScene;
         applyScene("overworld");
