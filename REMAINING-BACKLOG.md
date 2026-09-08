@@ -18,7 +18,7 @@ Format: `Priority | Status | Title | note`
 ## Queued 9/7 — Darren asks
 
 - **High** | Open | Wizard house past the High Peak bear | After the bear: enterable wizard house; talk → magic wand in weapon dock (sword/bow slot); holding wand shows wizard robes on Orion. Imagine art. Never START OVER.
-- **Medium** | Open | Kick balls / kickables → 2× graphics | Dense 2× Imagine restamp for ball + other kickables; gameplay unchanged.
+- **Medium** | Local 9/8 05iq | Kick balls / kickables → 2× graphics | BUILD 20260905iq dense 2× playBall+kickCart; **Needs live verify.**
 
 ## Queued 9/4 evening — still remaining
 

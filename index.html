@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ip";
-  var ASSET_REV = "464565";
+  var BUILD = "20260905iq";
+  var ASSET_REV = "464565-iq";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
   var PIXEL_FONT_READY = false;
@@ -453,7 +453,10 @@
           loadImage("assets/tiles/overRimWest.png").then(function (im) { Assets.overRimWest = im; }).catch(function () {}),
           loadImage("assets/tiles/overRimEast.png").then(function (im) { Assets.overRimEast = im; }).catch(function () {}),
           loadImage("assets/props/overClumpA.png").then(function (im) { Assets.overClumpA = im; }).catch(function () {}),
-          loadImage("assets/props/overClumpB.png").then(function (im) { Assets.overClumpB = im; }).catch(function () {})
+          loadImage("assets/props/overClumpB.png").then(function (im) { Assets.overClumpB = im; }).catch(function () {}),
+          /* 20260905iq: dense 2× kickballs / kick cart */
+          loadImage("assets/props/playBall.png").then(function (im) { Assets.playBall = im; }).catch(function () {}),
+          loadImage("assets/props/kickCart.png").then(function (im) { Assets.kickCart = im; }).catch(function () {})
         ]);
       });
     },
@@ -21243,12 +21246,21 @@
   }
 
   function drawBallSpr(g) {
-    var bob, x, y;
+    var bob, x, y, smooth, img;
     if (!ballLive()) return;
     bob = Math.round(Math.sin(tick / 280) * 1);
     x = Math.round(ball.x) - 8;
     y = Math.round(ball.y) - 14 + bob;
     drawShadow(g, ball.x, ball.y, 4);
+    /* 20260905iq: dense 2× kick cart (32→16 logical under BUFFER=2) */
+    img = Assets.kickCart;
+    if (img) {
+      smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(img, 0, 0, img.naturalWidth || img.width || 32, img.naturalHeight || img.height || 32, x, y, 16, 16);
+      g.imageSmoothingEnabled = smooth;
+      return;
+    }
     fill(g, x + 4, y + 3, 8, 10, "#C45A38");
     fill(g, x + 3, y + 4, 10, 8, "#C45A38");
     fill(g, x + 5, y + 2, 6, 12, "#E07850");
@@ -21422,12 +21434,21 @@
   }
 
   function drawPlayBallSpr(g, pb) {
-    var bob, x, y;
+    var bob, x, y, smooth, img;
     if (!playBallLive() || !pb) return;
     bob = Math.round(Math.sin((tick + (pb.id === "town" ? 110 : 0)) / 240) * 1);
-    x = Math.round(pb.x) - 6;
-    y = Math.round(pb.y) - 12 + bob;
+    x = Math.round(pb.x) - 8;
+    y = Math.round(pb.y) - 14 + bob;
     drawShadow(g, pb.x, pb.y, 4);
+    /* 20260905iq: dense 2× soccer kickball (32→16 logical under BUFFER=2) */
+    img = Assets.playBall;
+    if (img) {
+      smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(img, 0, 0, img.naturalWidth || img.width || 32, img.naturalHeight || img.height || 32, x, y, 16, 16);
+      g.imageSmoothingEnabled = smooth;
+      return;
+    }
     fill(g, x + 2, y + 1, 8, 10, "#3A2616");
     fill(g, x + 1, y + 2, 10, 8, "#3A2616");
     fill(g, x + 3, y + 2, 6, 8, "#F3E2C4");
