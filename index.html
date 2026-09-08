@@ -115,8 +115,18 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905il";
+  var BUILD = "20260905im";
   var ASSET_REV = "464565";
+  var PIXEL_FONT_NAME = "Press Start 2P";
+  var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
+  var PIXEL_FONT_READY = false;
+  var PIXEL_HUD_SIZE = 8;
+  var PIXEL_COUNT_SIZE = 16;
+  var PIXEL_COUNT_FILL = "#FFF8E8";
+  var PIXEL_OUTLINE = "#1A1008";
+  var PIXEL_HUD_FILL = "#FFFFFF";
+  var PIXEL_MONEY_FILL = "#E8C84A";
+  var _pixelMeasureCtx = null;
   var VIEW_W = 320;
   var VIEW_H = 192;
   var BUFFER = 2;
@@ -343,6 +353,23 @@
       img.onload = function () { resolve(img); };
       img.onerror = function () { reject(new Error("image " + src)); };
       img.src = bustUrl(src);
+    });
+  }
+
+  function loadPixelFont() {
+    /* 20260905im: Press Start 2P (SIL OFL) via FontFace before HUD draws */
+    if (PIXEL_FONT_READY) return Promise.resolve();
+    if (typeof FontFace === "undefined" || typeof document === "undefined" || !document.fonts) {
+      PIXEL_FONT_READY = true;
+      return Promise.resolve();
+    }
+    var face = new FontFace(PIXEL_FONT_NAME, "url(" + bustUrl(PIXEL_FONT_URL) + ")");
+    return face.load().then(function (loaded) {
+      document.fonts.add(loaded);
+      PIXEL_FONT_READY = true;
+    }).catch(function () {
+      /* Fail soft — fall back to canvas metrics; glyphs may use system mono */
+      PIXEL_FONT_READY = true;
     });
   }
 
@@ -6329,15 +6356,15 @@
   }
 
   function drawDoorSignLabel(g, x, y, word) {
-    /* 20260905az/id: floating shaft label — pinned above entrance, crisp smaller type */
+    /* 20260905im: Press Start 8px white + thin cardinal outline; walk-through + centered */
     var tw, lx, ly, bh;
     if (!word) return;
-    tw = textWidth(word);
-    bh = textGlyphH() + 2;
+    tw = pixelTextWidth(word, PIXEL_HUD_SIZE);
+    bh = pixelTextGlyphH(PIXEL_HUD_SIZE) + 2;
     lx = x + ((TILE - tw) / 2) | 0;
     ly = y - (bh + 5);
     fill(g, lx - 2, ly - 1, tw + 4, bh + 2, "rgba(42,26,16,0.78)");
-    drawText(g, word, lx, ly, C.parch || "#F3D2A3");
+    drawPixelText(g, word, lx, ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
   }
 
   function drawWoodsSign(g, x, y, word, p) {
@@ -13489,7 +13516,13 @@
   }
 
   function clockHudLine() {
-    return "SPRING · " + clockPhaseName();
+    /* 20260905im: short HUD clock — SPR · AM|PM|EVE|NIGHT */
+    var phase = clockPhaseName();
+    var short = "NIGHT";
+    if (phase === "MORNING") short = "AM";
+    else if (phase === "AFTERNOON") short = "PM";
+    else if (phase === "EVENING") short = "EVE";
+    return "SPR · " + short;
   }
 
   function townHoliday() {
@@ -13639,13 +13672,14 @@
 
   function drawPlaceStamp(g) {
     var word = placeHudLabel();
-    var tw, x, y;
+    var tw, x, y, gh;
     if (!word) return;
-    tw = textWidth(word);
-    y = 26; /* 20260905ig: under ~21px day panel */
+    tw = pixelTextWidth(word, PIXEL_HUD_SIZE);
+    gh = pixelTextGlyphH(PIXEL_HUD_SIZE);
+    y = 26; /* under day panel */
     x = VIEW_W - tw - 8;
-    woodPanel(g, x, y, tw + 6, textGlyphH() + 4);
-    drawText(g, word, x + 3, y + 2, C.parch);
+    woodPanel(g, x, y, tw + 6, gh + 4);
+    drawPixelText(g, word, x + 3, y + 2, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
   }
 
   function drawHolidayChip(g) {
@@ -22101,28 +22135,18 @@
   }
 
   function drawShaftLabel(g, p, word) {
-    /* 20260905bx/id: OUT/UP/DOWN/MINE/PEAK pinned above entrance (no bob / camera drift) */
-    var tw, lx, ly, glow, exitish, x, y, bh;
+    /* 20260905im: Press Start 8px white + thin cardinal outline; OUT same (no gold) */
+    var tw, lx, ly, exitish, x, y, bh;
     if (!word || !p) return;
     exitish = word === "OUT" || word === "UP" || word === "DOWN" || word === "MINE" || word === "PEAK";
     x = p.tx * TILE;
     y = p.ty * TILE;
-    tw = textWidth(word);
-    bh = textGlyphH() + 2;
+    tw = pixelTextWidth(word, PIXEL_HUD_SIZE);
+    bh = pixelTextGlyphH(PIXEL_HUD_SIZE) + 2;
     lx = x + ((TILE - tw) / 2) | 0;
     ly = y - (exitish ? (bh + 7) : (bh + 3));
-    if (exitish && (word === "OUT" || word === "UP")) {
-      glow = 0.16 + 0.14 * (0.5 + 0.5 * Math.sin(tick / 190));
-      g.fillStyle = "rgba(255,214,120," + glow.toFixed(3) + ")";
-      g.fillRect(lx - 5, ly - 3, tw + 10, bh + 6);
-      fill(g, lx - 3, ly - 1, tw + 6, bh + 2, "rgba(18,10,6,0.90)");
-      fill(g, lx - 3, ly - 1, tw + 6, 1, "rgba(255,214,120,0.70)");
-      fill(g, lx - 3, ly + bh, tw + 6, 1, "rgba(232,200,74,0.45)");
-      drawText(g, word, lx, ly, word === "OUT" ? "#FFE28A" : "#F3D2A3");
-    } else {
-      fill(g, lx - 2, ly - 1, tw + 4, bh + 2, "rgba(42,26,16,0.78)");
-      drawText(g, word, lx, ly, C.parch || "#F3D2A3");
-    }
+    fill(g, lx - 2, ly - 1, tw + 4, bh + 2, "rgba(42,26,16,0.78)");
+    drawPixelText(g, word, lx, ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
   }
 
   function drawFence(g, kind, x, y) {
@@ -23617,17 +23641,122 @@
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
 
-  /* 20260905il: restore exact 05hx text (HITL: 05ig cream restore didn't work).
-     drawText / drawTextPitch = plain 1:1 FONT fillRect (NO outline glow, NO PixelFont).
-     drawSlotCount = 05hx denser ~85% 4× offscreen (pitch 4/5, shadow+parch, NN blit).
-     HUD DAY/BAG/gold/dialogue use plain drawText. denseText/paintFontGlyphs stubbed. */
+  /* 20260905im: Press Start 2P for tray counts (16px cream), world labels + HUD (8px).
+     Dialogue / BUILD stamp / chips stay on legacy FONT drawText path this ship.
+     drawPixelText: integer fillText, smoothing off, optional AA→hard threshold, cardinal outline. */
   var TEXT_DENSE_UPSCALE = 1;
   var TEXT_HUD_SCALE = 1;
-  var TEXT_COUNT_SCALE = 0.85; /* 05hx blit factor (informational; drawSlotCount hardcodes) */
-  var TEXT_COUNT_FILL = "#F3D2A3"; /* parch — 05hx tray body color */
+  var TEXT_COUNT_SCALE = 16; /* Press Start count size (px) — not 0.85 blit */
+  var TEXT_COUNT_FILL = PIXEL_COUNT_FILL;
   var TEXT_CRISP_SCALE = TEXT_HUD_SCALE;
   var TEXT_CRISP_UPSCALE = TEXT_DENSE_UPSCALE;
-  var TEXT_MIN_OUTLINE_LOGICAL = 0; /* 05hx plain HUD has no outline glow */
+  var TEXT_MIN_OUTLINE_LOGICAL = 1;
+
+  function pixelFontCss(size) {
+    return (size | 0) + "px \"" + PIXEL_FONT_NAME + "\", monospace";
+  }
+
+  function pixelMeasureContext() {
+    if (_pixelMeasureCtx) return _pixelMeasureCtx;
+    var c = document.createElement("canvas");
+    c.width = 8;
+    c.height = 8;
+    _pixelMeasureCtx = c.getContext("2d");
+    return _pixelMeasureCtx;
+  }
+
+  function pixelTextWidth(str, size) {
+    var ctx, w;
+    if (!str) return 0;
+    size = size || PIXEL_HUD_SIZE;
+    ctx = pixelMeasureContext();
+    ctx.font = pixelFontCss(size);
+    w = ctx.measureText(str).width;
+    if (!(w > 0)) return str.length * size;
+    return Math.max(1, Math.round(w));
+  }
+
+  function pixelTextGlyphH(size) {
+    return size || PIXEL_HUD_SIZE;
+  }
+
+  function hardPixelize(ctx, w, h, thresh) {
+    var img, data, i, a;
+    try {
+      img = ctx.getImageData(0, 0, w, h);
+    } catch (err) {
+      return;
+    }
+    data = img.data;
+    thresh = thresh == null ? 96 : thresh;
+    for (i = 0; i < data.length; i += 4) {
+      a = data[i + 3];
+      if (a >= thresh) data[i + 3] = 255;
+      else data[i + 3] = 0;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function ensurePixelTextCanvas(cw, ch) {
+    if (!drawPixelText._c || drawPixelText._c.width < cw || drawPixelText._c.height < ch) {
+      drawPixelText._c = (typeof OffscreenCanvas !== "undefined")
+        ? new OffscreenCanvas(Math.max(cw, 4), Math.max(ch, 4))
+        : document.createElement("canvas");
+      drawPixelText._c.width = Math.max(cw, 4);
+      drawPixelText._c.height = Math.max(ch, 4);
+    } else {
+      drawPixelText._c.width = Math.max(cw, 4);
+      drawPixelText._c.height = Math.max(ch, 4);
+    }
+    return drawPixelText._c;
+  }
+
+  /* opts: size, fill, outline (true=cardinal thin / false=none), shadow (tiny +1,+1) */
+  function drawPixelText(g, str, x, y, opts) {
+    var size, fillCol, doOutline, doShadow, ox, oy, pad, tw, th, cw, ch, c, cg;
+    var smooth, dirs, d, i;
+    if (!str || !str.length) return;
+    opts = opts || {};
+    size = (opts.size != null ? opts.size : PIXEL_HUD_SIZE) | 0;
+    if (size < 1) size = PIXEL_HUD_SIZE;
+    fillCol = opts.fill || PIXEL_HUD_FILL;
+    doOutline = opts.outline !== false && opts.outline !== "none";
+    doShadow = !!opts.shadow;
+    ox = Math.round(x);
+    oy = Math.round(y);
+    pad = (doOutline ? 1 : 0) + (doShadow ? 1 : 0) + 1;
+    tw = pixelTextWidth(str, size);
+    th = size;
+    cw = tw + pad * 2 + 2;
+    ch = th + pad * 2 + 2;
+    c = ensurePixelTextCanvas(cw, ch);
+    cg = c.getContext("2d");
+    cg.imageSmoothingEnabled = false;
+    cg.clearRect(0, 0, cw, ch);
+    cg.font = pixelFontCss(size);
+    cg.textBaseline = "top";
+    cg.textAlign = "left";
+    if (doShadow) {
+      cg.fillStyle = "rgba(26,16,8,0.55)";
+      cg.fillText(str, pad + 1, pad + 1);
+    }
+    if (doOutline) {
+      /* Thin cardinal outline only — not 8-dir bold */
+      dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      cg.fillStyle = typeof opts.outline === "string" ? opts.outline : PIXEL_OUTLINE;
+      for (i = 0; i < dirs.length; i++) {
+        d = dirs[i];
+        cg.fillText(str, pad + d[0], pad + d[1]);
+      }
+    }
+    cg.fillStyle = fillCol;
+    cg.fillText(str, pad, pad);
+    hardPixelize(cg, cw, ch, 96);
+    smooth = g.imageSmoothingEnabled;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(c, 0, 0, cw, ch, ox - pad, oy - pad, cw, ch);
+    g.imageSmoothingEnabled = smooth;
+  }
 
   function textGlyphPitch(pitch) {
     return pitch || 6;
@@ -23638,7 +23767,7 @@
   }
 
   function textWidth(str) {
-    /* Extra pitch/scale args from older call sites are ignored safely. */
+    /* Legacy 5×7 FONT metrics — dialogue / chips / BUILD stamp. */
     if (!str) return 0;
     return str.length * 6 - 1;
   }
@@ -23647,7 +23776,6 @@
     return 7;
   }
 
-  /* Stub: plain 1:1 glyphs — never reintroduce glow/atlas. */
   function paintFontGlyphs(g, str, x, y, color, pitch) {
     if (pitch && pitch !== 6) drawTextPitch(g, str, x | 0, y | 0, color, pitch);
     else drawText(g, str, x | 0, y | 0, color);
@@ -23668,7 +23796,6 @@
     paintFontGlyphs(g, str, x | 0, y | 0, color, pitch);
   }
 
-  /* Stub: plain body only (NO +1,+1 shadow / NO 8-dir glow). */
   function denseText(g, str, x, y, color, opts) {
     var pitch;
     if (!str || !str.length) return;
@@ -23714,37 +23841,20 @@
   }
 
   function drawSlotCount(g, label, sx, sy, slot) {
-    /* 20260905hx: smaller on-slot digits, denser 4× then blit (readable BUFFER) */
-    var pitch = label.length >= 4 ? 4 : 5;
-    var glyphH = 7;
-    var w = label.length * pitch - 1;
-    var dw = Math.max(1, Math.round(w * 0.85));
-    var dh = Math.max(1, Math.round(glyphH * 0.85));
-    var scale = 4;
-    var cw = (w + 2) * scale;
-    var ch = (glyphH + 2) * scale;
-    if (!drawSlotCount._c || drawSlotCount._c.width !== cw || drawSlotCount._c.height !== ch) {
-      drawSlotCount._c = (typeof OffscreenCanvas !== "undefined")
-        ? new OffscreenCanvas(cw, ch)
-        : document.createElement("canvas");
-      drawSlotCount._c.width = cw;
-      drawSlotCount._c.height = ch;
-    }
-    var c = drawSlotCount._c;
-    var cg = c.getContext("2d");
-    cg.imageSmoothingEnabled = false;
-    cg.clearRect(0, 0, cw, ch);
-    cg.save();
-    cg.scale(scale, scale);
-    drawTextPitch(cg, label, 1, 1, C.woodOut, pitch);
-    drawTextPitch(cg, label, 0, 0, C.parch, pitch);
-    cg.restore();
-    var x = sx + slot - dw - 2;
-    var y = sy + slot - dh - 2;
-    var smooth = g.imageSmoothingEnabled;
-    g.imageSmoothingEnabled = false;
-    g.drawImage(c, 0, 0, cw, ch, x, y, dw, dh);
-    g.imageSmoothingEnabled = smooth;
+    /* 20260905im: Press Start 2P 16px cream + dark thin outline + tiny shadow.
+       Replaces 05hx denser 4×/0.85 path. NOT Imagine, NOT 24px. */
+    var tw, th, x, y;
+    if (!label) return;
+    tw = pixelTextWidth(label, PIXEL_COUNT_SIZE);
+    th = pixelTextGlyphH(PIXEL_COUNT_SIZE);
+    x = sx + slot - tw - 1;
+    y = sy + slot - th - 1;
+    drawPixelText(g, label, x, y, {
+      size: PIXEL_COUNT_SIZE,
+      fill: PIXEL_COUNT_FILL,
+      outline: true,
+      shadow: true
+    });
   }
 
   function woodPanel(g, x, y, w, h) {
@@ -24634,10 +24744,10 @@
     px(g, 209, 9, C.flower);
     px(g, 217, 9, C.flower);
     px(g, 213, 5, C.flower);
-    drawText(g, "DAY " + dayNumber, 220, 6, C.uiText);
+    drawPixelText(g, "DAY " + dayNumber, 220, 6, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true });
     var gLabel = (gold | 0) + "G";
-    drawText(g, gLabel, 310 - textWidth(gLabel), 6, C.flower);
-    drawText(g, clockHudLine(), 210, 14, C.parch);
+    drawPixelText(g, gLabel, 310 - pixelTextWidth(gLabel, PIXEL_HUD_SIZE), 6, { size: PIXEL_HUD_SIZE, fill: PIXEL_MONEY_FILL, outline: true });
+    drawPixelText(g, clockHudLine(), 210, 14, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true });
     drawPlaceStamp(g);
     drawHolidayChip(g);
 
@@ -24658,10 +24768,9 @@
       fill(g, T.bagX, T.bagY, T.bagW, 1, C.flower);
       fill(g, T.bagX, T.bagY + T.bagH - 1, T.bagW, 1, C.flower);
     }
-    drawText(g, "BAG", T.bagX + ((T.bagW - textWidth("BAG")) / 2) | 0, T.bagY + ((T.bagH - textGlyphH()) / 2) | 0, C.parch);
+    drawPixelText(g, "BAG", T.bagX + ((T.bagW - pixelTextWidth("BAG", PIXEL_HUD_SIZE)) / 2) | 0, T.bagY + ((T.bagH - pixelTextGlyphH(PIXEL_HUD_SIZE)) / 2) | 0, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true });
 
-    /* 20260905il: energy E via plain drawText (05hx path; no glow) */
-    drawText(g, "E", 47, 11, C.parch);
+    /* 20260905im: energy bar only — no "E" drawText */
     var ew = 54;
     var filled = Math.round(ew * energy / MAX_ENERGY);
     if (energy > 0 && filled < 1) filled = 1;
@@ -27084,15 +27193,19 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905il", BUILD);
+      ok("BUILD", BUILD === "20260905im", BUILD);
       (function () {
-        /* 20260905il: restore exact 05hx text — denser 85% 4× tray counts + plain 1:1 HUD */
-        var _ws, _os, _ms, _anc, _i, _savedScene, _src;
+        /* 20260905im: Press Start 2P — tray 16px cream; labels/HUD 8px; no 0.85 path */
+        var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft;
         ok("drawSlotCountFn", typeof drawSlotCount === "function", "");
         _src = Function.prototype.toString.call(drawSlotCount);
-        ok("drawSlotCount085", _src.indexOf("0.85") >= 0, "missing 0.85");
-        ok("drawSlotCountScale4", /scale\s*=\s*4/.test(_src), "missing scale=4");
-        ok("drawSlotCountPitch45", _src.indexOf("label.length >= 4") >= 0, "missing pitch 4/5");
+        ok("drawSlotCountNo085", _src.indexOf("0.85") < 0, "still has 0.85");
+        ok("drawSlotCountPressStart", _src.indexOf("PIXEL_COUNT_SIZE") >= 0 || _src.indexOf("16") >= 0, "missing 16px path");
+        ok("drawSlotCountCream", _src.indexOf("PIXEL_COUNT_FILL") >= 0 || _src.indexOf("FFF8E8") >= 0, "missing cream");
+        ok("drawPixelTextFn", typeof drawPixelText === "function", "");
+        ok("pixelTextWidthFn", typeof pixelTextWidth === "function", "");
+        ok("loadPixelFontFn", typeof loadPixelFont === "function", "");
+        ok("pixelFontReady", PIXEL_FONT_READY === true, String(PIXEL_FONT_READY));
         ok("drawTextPlain", typeof drawText === "function" && Function.prototype.toString.call(drawText).indexOf("fillRect") >= 0, "");
         ok("noPixelFontLive", typeof PixelFont === "undefined", typeof PixelFont);
         ok("denseTextStub", typeof denseText === "function", "");
@@ -27101,10 +27214,21 @@ if (currentScene === "ocean") goExitOcean();
         ok("drawTextCrispFn", typeof drawTextCrisp === "function", "");
         ok("signLabelAnchorFn", typeof signLabelAnchor === "function", "");
         ok("TEXT_HUD_SCALE", TEXT_HUD_SCALE === 1, String(TEXT_HUD_SCALE));
-        ok("TEXT_COUNT_085", TEXT_COUNT_SCALE === 0.85, String(TEXT_COUNT_SCALE));
-        ok("textWidthFull", textWidth("WOODS") === ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
+        ok("TEXT_COUNT_16", TEXT_COUNT_SCALE === 16, String(TEXT_COUNT_SCALE));
+        ok("TEXT_COUNT_FILL_cream", TEXT_COUNT_FILL === "#FFF8E8", TEXT_COUNT_FILL);
+        ok("textWidthLegacy", textWidth("WOODS") === ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
         ok("textWidthIgnoreExtra", textWidth("AB", 99, 3) === 11, "w=" + textWidth("AB", 99, 3));
         ok("textGlyphHFull", textGlyphH() === 7, "h=" + textGlyphH());
+        ok("pixelTextWidthHud", pixelTextWidth("BAG", 8) > 0, "w=" + pixelTextWidth("BAG", 8));
+        ok("pixelTextWidthCount", pixelTextWidth("9", 16) > 0, "w=" + pixelTextWidth("9", 16));
+        _clk = Function.prototype.toString.call(clockHudLine);
+        ok("clockHudShort", _clk.indexOf("SPR ·") >= 0 && _clk.indexOf('AM') >= 0 && _clk.indexOf("SPRING ·") < 0, _clk.slice(0, 160));
+        ok("clockHudLineSample", /^SPR · (AM|PM|EVE|NIGHT)$/.test(clockHudLine()), clockHudLine());
+        _hud = Function.prototype.toString.call(drawHUD);
+        ok("hudNoEnergyE", !/drawText\(g,\s*"E"/.test(_hud) && _hud.indexOf("energy bar only") >= 0, "E still drawn");
+        ok("hudUsesPixelText", _hud.indexOf("drawPixelText") >= 0, "missing drawPixelText");
+        _shaft = Function.prototype.toString.call(drawShaftLabel);
+        ok("shaftNoGoldOut", _shaft.indexOf("FFE28A") < 0 && _shaft.indexOf("drawPixelText") >= 0, "gold OUT remains");
         _savedScene = currentScene;
         applyScene("overworld");
         buildSolid();
@@ -29714,7 +29838,8 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
     checkFreshBuild();
     if (Assets.ready && !artDensityOk()) reloadForArt();
   });
-  Assets.load().then(function () {
+  Promise.all([Assets.load(), loadPixelFont()]).then(function () {
+    /* 20260905im: atlas + Press Start 2P ready before HUD draws */
     /* 20260905hn + 20260905hs: never leave LOADING FARM forever. Density miss may
        soft-reload once; if still thin / sessionStorage blocked, fail soft and boot. */
     if (!artDensityOk()) {

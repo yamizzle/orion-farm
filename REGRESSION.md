@@ -64,7 +64,7 @@ Status column: **KEEP** = still required in new builds.
 | Dedicated **weapon dock** (sword/bow only); tray is tools/seeds/food; second weapon swaps into dock and old goes to bag; BAG open shows big dock + **WEAPON** ghost when empty | 20260905hm | KEEP |
 | **Bow selectable from weapon dock** — soft sword-ensure must not kick a parked bow; bag→dock swap / dock tap arms bow; hard pin only on cave claim / iron craft / giveTool sword; sword pad select still works | 20260905ho | KEEP |
 | **BAG select tip** — with bag open, tapping a cell shows NAME + 1 kid-plain blurb strip; updates on select/held; clears on close/empty; drag swap + X close still work | 20260905ic | KEEP |
-| **05hx denser ~85% 4× tray counts + plain 1:1 HUD text** — `drawSlotCount` pitch 4/5, scale=4 offscreen, woodOut+parch, NN blit ·0.85; `drawText`/`drawTextPitch` plain FONT fillRect (NO outline glow, NO PixelFont); denseText/paintFontGlyphs stubbed; day panel ~21; walk-through entrance labels kept | 20260905il (restore 05hx `dce65cc`; was 05ik cream) | KEEP |
+| **Press Start 2P locked fonts** — tray/bag counts 16px cream `#FFF8E8` + thin dark outline + tiny shadow (`drawSlotCount`; no 05hx 0.85/4×); world labels 8px white + thin cardinal outline (OUT no gold); HUD DAY/clock/BAG/place 8px white+outline, money gold, no energy "E"; `clockHudLine` `SPR · AM|PM|EVE|NIGHT`; FontFace load gated with boot; dialogue may stay legacy FONT | 20260905im | KEEP |
 
 ---
 
