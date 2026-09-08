@@ -1,3 +1,5 @@
+LIVE 9/8 ~3:20–4:00pm PT (BUILD 20260905iq, box Chrome): first live of 05iq — farm kickball **FIXED**/PASS (dense 2× soccer sprite; kick/slide works). Junie talk **PASS**; well splash **PASS** (COOL WATER. SPLASH!). Weapon dock / bag dock / tray dense / trees sharp 2× / no pink **STILL PASS**. Clock Day 35 Eve→Day 37 Night across ~21 min wall ≈ OK (not WORSE vs ~8 min/day). Town kickCart / planting / mine / chicken / boat UNTESTED. START OVER not pressed. Screenshots `/workspace/playtest-0908pm/`. Never START OVER.
+
 Local 9/8 (BUILD 20260905iq): Kick balls / kickables → dense 2× graphics. `assets/props/playBall.png` + `kickCart.png` (32×32 BOX/AREA from Imagine, pink-chroma keyed); `drawPlayBallSpr` / `drawBallSpr` NN blit 32→16 logical under BUFFER=2 (code-paint fill fallback kept). Gameplay kick/path/Jobs unchanged. Pink-chroma gate PASS. Frozen DAY_MS / walk energy / Orion / grass0–3 / evening. Never START OVER.
 
 Local 9/7 (BUILD 20260905ip): HITL — tray/bag counts back to **8px** Press Start 2P with **tighter digit gaps** (not 6px — blurry off-grid). `drawSlotCount` / `PIXEL_COUNT_SIZE` / `TEXT_COUNT_SCALE` = 8; cream `#FFF8E8` + thin dark cardinal outline; **no shadow**; per-glyph advance = measureText(ch) rounded − 1 so multi-digit stacks sit tighter; `pixelTextWidth(..., true)` matches. HUD/world labels unchanged at 8px (DAY/clock/BAG/place white+outline; money gold; no energy E). Kid-plain: bag numbers are 8px again, packed tighter so they look neat. Frozen DAY_MS / walk energy / Orion / grass0–3 / evening. Never START OVER.
@@ -432,7 +434,7 @@ Past the sleeping bear on High Peak. Household save; never START OVER. Frozen: O
 | Priority | Status | Item | Notes |
 | --- | --- | --- | --- |
 | High | Open | Wizard house past the High Peak bear | After feeding the bear and walking past: enterable **wizard house** with a wizard inside. Talk → he gives a **magic wand**. Wand parks in the **weapon dock** (same one-weapon slot as sword/bow). While the wand is held/selected, Orion wears **wizard robes** (clothes update). Kid-plain: past the bear, visit the wizard, get a wand, look like a wizard when you hold it. |
-| Medium | Local 9/8 05iq | Kick balls / kickables → 2× graphics | Local 9/8 BUILD 20260905iq: dense 2× playBall + kickCart props (32→16); code-paint fills replaced. **Needs live verify.** Kid-plain: balls look sharp like other 2× props. |
+| Medium | Done 9/8 ~4pm live farm | Kick balls / kickables → 2× graphics | **FIXED**/PASS LIVE 9/8 pm BUILD 20260905iq: farm playBall dense 2× + kick/slide (`06-ball-before.png` / `07-ball-after.png`). Town kickCart UNTESTED this pass. Local 9/8: dense 2× playBall + kickCart props (32→16); code-paint fills replaced. Kid-plain: balls look sharp like other 2× props. |
 
 ## Queued 9/4 evening (Darren asks)
 
