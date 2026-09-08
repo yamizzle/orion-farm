@@ -18,6 +18,7 @@ Format: `Priority | Status | Title | note`
 ## Queued 9/7 — Darren asks
 
 - **High** | Open | Wizard house past the High Peak bear | After the bear: enterable wizard house; talk → magic wand in weapon dock (sword/bow slot); holding wand shows wizard robes on Orion. Imagine art. Never START OVER.
+- **Medium** | Open | Kick balls / kickables → 2× graphics | Dense 2× Imagine restamp for ball + other kickables; gameplay unchanged.
 
 ## Queued 9/4 evening — still remaining
 
@@ -81,7 +82,7 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 
 ## Counts
 
-- Queued 9/7 remaining: **1**
+- Queued 9/7 remaining: **2**
 - Queued 9/4 remaining: **3**
 - Playtest active (Critical+High+Medium+Low): **36** (C2 / H8 / M20 / L6)
 - Closed this wave: **4** (car, weapon dock, diamond-pick peak, panel dismiss)

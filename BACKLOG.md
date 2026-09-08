@@ -422,6 +422,7 @@ Past the sleeping bear on High Peak. Household save; never START OVER. Frozen: O
 | Priority | Status | Item | Notes |
 | --- | --- | --- | --- |
 | High | Open | Wizard house past the High Peak bear | After feeding the bear and walking past: enterable **wizard house** with a wizard inside. Talk → he gives a **magic wand**. Wand parks in the **weapon dock** (same one-weapon slot as sword/bow). While the wand is held/selected, Orion wears **wizard robes** (clothes update). Kid-plain: past the bear, visit the wizard, get a wand, look like a wizard when you hold it. |
+| Medium | Open | Kick balls / kickables → 2× graphics | Restamp ball (and any other kickable props) to dense 2× Imagine art (BUFFER density), same gameplay size/feel. Kid-plain: the balls you kick look sharp like other 2× props. |
 
 ## Queued 9/4 evening (Darren asks)
 
