@@ -64,7 +64,7 @@ Status column: **KEEP** = still required in new builds.
 | Dedicated **weapon dock** (sword/bow only); tray is tools/seeds/food; second weapon swaps into dock and old goes to bag; BAG open shows big dock + **WEAPON** ghost when empty | 20260905hm | KEEP |
 | **Bow selectable from weapon dock** — soft sword-ensure must not kick a parked bow; bag→dock swap / dock tap arms bow; hard pin only on cave claim / iron craft / giveTool sword; sword pad select still works | 20260905ho | KEEP |
 | **BAG select tip** — with bag open, tapping a cell shows NAME + 1 kid-plain blurb strip; updates on select/held; clears on close/empty; drag swap + X close still work | 20260905ic | KEEP |
-| **Press Start 2P locked fonts** — tray/bag counts **6px** cream `#FFF8E8` + thin dark outline + tiny shadow (`drawSlotCount` / `PIXEL_COUNT_SIZE` / `TEXT_COUNT_SCALE`; smaller than HUD/labels; no 05hx 0.85/4×; not 8/16px); world labels 8px white + thin cardinal outline (OUT no gold); HUD DAY/clock/BAG/place 8px white+outline, money gold, no energy "E"; `clockHudLine` `SPR · AM|PM|EVE|NIGHT`; FontFace load gated with boot; dialogue may stay legacy FONT | 20260905io | KEEP |
+| **Press Start 2P locked fonts** — tray/bag counts **8px** cream `#FFF8E8` + thin dark outline, **tight digit tracking** / no shadow (`drawSlotCount` / `PIXEL_COUNT_SIZE` / `TEXT_COUNT_SCALE`; same size as HUD/labels but packed tighter; no 05hx 0.85/4×; not 6/16px); world labels 8px white + thin cardinal outline (OUT no gold); HUD DAY/clock/BAG/place 8px white+outline, money gold, no energy "E"; `clockHudLine` `SPR · AM|PM|EVE|NIGHT`; FontFace load gated with boot; dialogue may stay legacy FONT | 20260905ip | KEEP |
 
 ---
 
