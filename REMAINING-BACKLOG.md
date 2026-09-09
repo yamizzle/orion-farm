@@ -13,12 +13,12 @@ Format: `Priority | Status | Title | note`
 - **Medium** Only one weapon equipped → **Done 9/6 live 05hm/05hn** (weapon dock PASS; 05ay tray rule superseded).
 - **Medium** Island cave Diamond Pickaxe → peak rocks → **Done 9/6 local 05bt+05hl** (+05hu polish; local+feature).
 - **Low** Closing a panel by tapping the world also walks → **Done 9/5 7:10pm live** (05bc/05be PASS; table was stale “live still needed”).
-- **Critical** Day clock races → **Done 9/7 live** (stopwatch ~8 min/day = DAY_MS 480000; not a residual race).
+- **Critical** Day clock races → **Partial / Local 9/9 05ir** (REOPEN race — not day-length; DAY_MS 480000 / ~8 min/day still Done; gap-discard + realtime budget harden; Needs live).
 
 ## Queued 9/7 — Darren asks
 
 - **High** | Open | Wizard house past the High Peak bear | After the bear: enterable wizard house; talk → magic wand in weapon dock (sword/bow slot); holding wand shows wizard robes on Orion. Imagine art. Never START OVER.
-- **Medium** | Local 9/8 05iq | Kick balls / kickables → 2× graphics | BUILD 20260905iq dense 2× playBall+kickCart; **Needs live verify.**
+- **Medium** | Done 9/8 farm live 05iq | Kick balls / kickables → 2× graphics | BUILD 20260905iq dense 2× playBall+kickCart; farm kickball LIVE PASS 9/8 pm (+ STILL PASS 9/9 am). Town kickCart still lightly unverified.
 
 ## Queued 9/4 evening — still remaining
 
@@ -34,6 +34,7 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 
 ### Critical
 
+- **Critical** | Partial / Local 9/9 05ir | Day clock races (not day-length) | BUILD 20260905ir: gap discard + realtime budget + freeze/resume on 05bq; DAY_MS 480000 frozen; **Needs live verify.**
 - **Critical** | Partial | Tree canopy hides Orion / standing on the tree | BUILD 20260905hv: peek harden (equal-foot side + peekH 18) on 05bw; **Needs live verify.**
 - **Critical** | Local 9/5 05bz | Sword: Space+hotbar kills; on-screen button and facing still miss | BUILD 20260905bz (+05hv dock autotest): pad omni + press damage + crescent; Space+hotbar PASS 04e; dock-era code solid; pad/facing **Needs live verify.**
 
@@ -62,7 +63,7 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 - **Medium** | Local 8/30 | Potato and berry seeds at Pip | BUILD 20260830p: POTATO/BERRY SEED 8G; **Needs live verify.**
 - **Medium** | Local 8/30 | More things to BUILD (lamps, crates) | BUILD 20260830q: LAMP/CRATE kits placeables; **Needs live verify.**
 - **Medium** | Partial 9/5 05ck | Ocean and boats south of the house | Pier boat rideable live PASS 05a/05hn; remaining ocean/deep/island pieces **Needs live verify** (keep Partial).
-- **Medium** | Local 9/5 05ca / cart Done 9/1 live | Kick ball on farm yard (+ town plaza) | BUILD 20260905ca: farm+plaza kickballs; town cart kick Done 9/1 live; balls **Needs live verify.**
+- **Medium** | Done 9/8 farm live (05iq) / cart Done 9/1 | Kick ball on farm yard (+ town plaza) | BUILD 20260905ca + 05iq dense 2×; farm kickball LIVE PASS 9/8–9/9; town cart kick Done 9/1 live.
 - **Medium** | Local 9/4 04j–04k | House dog follows on a leash | BUILD 20260904j–04k: tray-leash follow / home when off tray; **Needs live verify.**
 - **Medium** | Local 9/5 05ck (live TBD) | River east of town; broken bridge | BUILD 20260905ck (+30m): floating 8 WOOD / FIX!; **Needs live verify.**
 - **Medium** | Local 8/30 30n | More village houses; some enterable | BUILD 20260830n: blue + red-roof enterable; **Needs live verify.**

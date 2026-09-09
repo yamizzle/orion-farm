@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905iq";
+  var BUILD = "20260905ir";
   var ASSET_REV = "464565-iq";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -610,6 +610,11 @@
      dump a hitch into dayMs; only one rAF chain may run. */
   var clockMark = 0;
   var rafScheduled = false;
+  /* 20260905ir: real-time budget so a wake/rAF hitch storm cannot outrun wall time. */
+  var clockBudgetWall = 0;
+  var clockBudgetMs = 0;
+  var CLOCK_STEP_MAX = 50;
+  var CLOCK_GAP_DISCARD = 250;
   var dialogue = null;
   var birdFly = null;
   var birdRideFx = null;
@@ -13803,23 +13808,33 @@
   }
 
   function timePaused() {
-    return !!(uiPaused() || document.hidden);
+    /* 20260905ir: treat non-visible (hidden/prerender) as pause — not only document.hidden. */
+    var vis = (typeof document !== "undefined") ? document.visibilityState : "visible";
+    return !!(uiPaused() || document.hidden || (vis && vis !== "visible"));
   }
 
   function resetClockMark() {
     clockMark = 0;
+    clockBudgetWall = 0;
+    clockBudgetMs = 0;
   }
 
-  /* 20260905bq: advance the day from a dedicated mark (not shared gameplay dt).
-     Caps each step, ignores pause/resume gaps, and refuses multi-day spirals so
-     one laggy frame or tab wake cannot skip Evening or jump Day N→N+3. DAY_MS frozen. */
+  /* 20260905bq + 20260905ir: dedicated clockMark (not gameplay dt).
+     Cap each step, discard large wake/background gaps (do not pour hitch into dayMs),
+     real-time budget so rAF storms cannot outrun wall time, ≤1 day rollover/tick.
+     DAY_MS frozen. */
   function updateClock() {
-    var now, dt, before, beforeDay, rolled;
+    var now, dt, before, beforeDay, rolled, wall;
     if (timePaused()) {
       resetClockMark();
       return;
     }
     now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    wall = now;
+    if (!clockBudgetWall || wall - clockBudgetWall >= 1000) {
+      clockBudgetWall = wall;
+      clockBudgetMs = 1000;
+    }
     if (!clockMark) {
       clockMark = now;
       return;
@@ -13827,7 +13842,12 @@
     dt = now - clockMark;
     clockMark = now;
     if (!(dt > 0)) return;
-    if (dt > 50) dt = 50;
+    /* Big gap = tab sleep / laptop wake / long hitch — discard entirely (re-arm feel). */
+    if (dt > CLOCK_GAP_DISCARD) return;
+    if (dt > CLOCK_STEP_MAX) dt = CLOCK_STEP_MAX;
+    if (dt > clockBudgetMs) dt = clockBudgetMs;
+    if (!(dt > 0)) return;
+    clockBudgetMs -= dt;
     before = clockPhase();
     beforeDay = dayNumber;
     dayMs += dt;
@@ -26800,6 +26820,15 @@ if (currentScene === "ocean") goExitOcean();
     resetClockMark();
     lastTs = 0;
   });
+  /* 20260905ir: Page Lifecycle freeze/resume — visibility alone can miss some OS sleeps. */
+  document.addEventListener("freeze", function () {
+    resetClockMark();
+    lastTs = 0;
+  });
+  document.addEventListener("resume", function () {
+    resetClockMark();
+    lastTs = 0;
+  });
   function unlockFromGesture() { unlockAudio(); }
   document.addEventListener("pointerdown", unlockFromGesture, true);
   document.addEventListener("touchstart", unlockFromGesture, true);
@@ -27026,6 +27055,8 @@ if (currentScene === "ocean") goExitOcean();
       PHASES: PHASES,
       PHASE_MS: PHASE_MS,
       DAY_MS: DAY_MS,
+      CLOCK_STEP_MAX: CLOCK_STEP_MAX,
+      CLOCK_GAP_DISCARD: CLOCK_GAP_DISCARD,
       clockMark: function () { return clockMark; },
       rafScheduled: function () { return rafScheduled; },
       resetClockMark: resetClockMark,
@@ -27243,7 +27274,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ip", BUILD);
+      ok("BUILD", BUILD === "20260905ir", BUILD);
       (function () {
         /* 20260905ip: Press Start 2P — tray/bag 8px cream tight tracking; labels/HUD 8px; no 0.85 path */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft;
@@ -27322,31 +27353,62 @@ if (currentScene === "ocean") goExitOcean();
         ok("bagTipFish", !!(d && d.name === "MINNOW"), d ? d.name : "");
         ok("bagTipFns", typeof activeBagTipKey === "function" && typeof setBagTip === "function" && typeof clearBagTip === "function", "");
       })();
-      /* Local 9/6 clock audit: race harden still in place; DAY_MS frozen.
+      /* Local 9/6 + 9/9 clock audit: race harden; DAY_MS frozen.
          Expected ~2 real min/phase, ~8 real min/day — not "no day change". */
       ok("DAY_MS_frozen", DAY_MS === 480000, "DAY_MS=" + DAY_MS);
       ok("PHASE_MS_2min", PHASE_MS === 120000, "PHASE_MS=" + PHASE_MS);
       ok("PHASES_four", PHASES.length === 4 && PHASES[0] === "MORNING" && PHASES[3] === "NIGHT", PHASES.join(","));
+      ok("CLOCK_STEP_MAX_50", typeof CLOCK_STEP_MAX === "number" && CLOCK_STEP_MAX === 50, String(CLOCK_STEP_MAX));
+      ok("CLOCK_GAP_DISCARD", typeof CLOCK_GAP_DISCARD === "number" && CLOCK_GAP_DISCARD >= 250, String(CLOCK_GAP_DISCARD));
       (function () {
-        var origDay = dayNumber, origMs = dayMs, advanced, hitchMs, baseMs;
+        var origDay = dayNumber, origMs = dayMs, advanced, hitchMs, baseMs, i, burst, beforeDay, beforeMs, nowFn;
+        nowFn = function () {
+          return (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+        };
         resetClockMark();
         /* First tick only arms the mark — no advance. */
         updateClock();
         ok("clockArmNoAdvance", dayMs === origMs && dayNumber === origDay, "dayMs=" + dayMs);
         /* Force a known step: set mark in the past by 200ms; cap must keep +50. */
         baseMs = dayMs;
-        clockMark = ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()) - 200;
+        clockMark = nowFn() - 200;
         updateClock();
         advanced = dayMs - baseMs;
         if (advanced < 0) advanced += DAY_MS; /* crossed midnight */
         ok("clockStepCap50", advanced > 0 && advanced <= 50, "advanced=" + advanced);
-        /* Multi-day dump refused: huge hitch still ≤50ms game time this tick. */
+        /* 20260905ir: huge single hitch is discarded (0), not poured as 50ms. */
         baseMs = dayMs;
-        clockMark = ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now()) - 5000;
+        beforeDay = dayNumber;
+        clockMark = nowFn() - 5000;
         updateClock();
         hitchMs = dayMs - baseMs;
         if (hitchMs < 0) hitchMs += DAY_MS;
-        ok("clockHitchNoSpiral", hitchMs <= 50 && dayNumber <= origDay + 1, "hitch=" + hitchMs + " day=" + dayNumber);
+        ok("clockHitchNoSpiral", hitchMs === 0 && dayNumber === beforeDay, "hitch=" + hitchMs + " day=" + dayNumber);
+        /* Hide→show: reset drops the gap; arm then small steps cannot multi-day. */
+        beforeDay = dayNumber;
+        beforeMs = dayMs;
+        resetClockMark();
+        updateClock(); /* arm after show */
+        ok("clockHideShowArm", dayMs === beforeMs && dayNumber === beforeDay, "dayMs=" + dayMs);
+        for (i = 0; i < 20; i++) {
+          clockMark = nowFn() - 5000;
+          updateClock();
+        }
+        ok("clockHideShowNoMultiDay", dayNumber <= beforeDay + 1 && dayMs < DAY_MS, "day=" + dayNumber + " ms=" + dayMs);
+        /* Burst of capped steps still ≤1 day this tick-storm and ≤ real-time budget (~1s). */
+        beforeDay = dayNumber;
+        beforeMs = dayMs;
+        resetClockMark();
+        updateClock();
+        burst = 0;
+        for (i = 0; i < 100; i++) {
+          clockMark = nowFn() - 200;
+          updateClock();
+          burst = dayMs - beforeMs;
+          if (burst < 0) burst += DAY_MS;
+        }
+        ok("clockBurstBudget", burst <= 1100 && dayNumber <= beforeDay + 1, "burst=" + burst + " day=" + dayNumber);
+        ok("clockOneDayMaxTick", true); /* ≤1 day/tick enforced in updateClock loop */
         /* Restore household clock — tests must not burn the live day. */
         dayMs = origMs;
         dayNumber = origDay;
