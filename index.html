@@ -115,13 +115,15 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ir";
-  var ASSET_REV = "464565-iq";
+  var BUILD = "20260905is";
+  var ASSET_REV = "464565-is";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
   var PIXEL_FONT_READY = false;
   var PIXEL_HUD_SIZE = 8;
-  var PIXEL_COUNT_SIZE = 8;
+  /* Tray/bag counts: bake Press Start at 24px (3× native 8), hard-pixelize, NN blit to show 6 (exact 4:1). Not soft 6px fillText. */
+  var PIXEL_COUNT_BAKE = 24;
+  var PIXEL_COUNT_SIZE = 6; /* on-screen show height (document: bake 24 / show 6) */
   var PIXEL_COUNT_FILL = "#FFF8E8";
   var PIXEL_OUTLINE = "#1A1008";
   var PIXEL_HUD_FILL = "#FFFFFF";
@@ -23386,29 +23388,59 @@
   function drawDialogue(g) {
     if (!dialogue) return;
     var L = dialogueLayout();
-    var tw, i, r;
+    var tw, i, r, okTw, xTw;
+    /* 20260905is: talk boxes use same Press Start 8px path as HUD (not legacy FONT fillRect). */
     woodPanel(g, L.x, L.y, L.w, L.h);
     fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
-    tw = textWidth(L.title) + 12;
+    tw = pixelTextWidth(L.title, PIXEL_HUD_SIZE) + 12;
     if (tw < 62) tw = 62;
     woodPanel(g, L.x + 8, L.y - 6, tw, 11);
-    drawText(g, L.title, L.x + 12, L.y - 3, C.parch);
+    /* Title tab on wood: cream + thin dark outline (readable like HUD on wood). */
+    drawPixelText(g, L.title, L.x + 12, L.y - 3, {
+      size: PIXEL_HUD_SIZE,
+      fill: PIXEL_COUNT_FILL,
+      outline: true,
+      shadow: false
+    });
+    /* Body on parchment: dark text + thin cream outline for Press Start readability. */
     for (i = 0; i < L.lines.length; i++) {
-      drawText(g, L.lines[i], L.x + 10, L.y + 12 + i * 10, C.uiText);
+      drawPixelText(g, L.lines[i], L.x + 10, L.y + 12 + i * 10, {
+        size: PIXEL_HUD_SIZE,
+        fill: C.uiText,
+        outline: PIXEL_COUNT_FILL,
+        shadow: false
+      });
     }
     if (!(L.choiceRects && L.choiceRects.length)) {
       woodPanel(g, L.okX, L.okY, L.okW, L.okH);
-      drawText(g, "OK", L.okX + 8, L.okY + 3, C.parch);
+      okTw = pixelTextWidth("OK", PIXEL_HUD_SIZE);
+      drawPixelText(g, "OK", L.okX + ((L.okW - okTw) / 2 | 0), L.okY + 2, {
+        size: PIXEL_HUD_SIZE,
+        fill: PIXEL_COUNT_FILL,
+        outline: true,
+        shadow: false
+      });
     }
     /* 20260905dy: talk X matches other panels */
     woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
-    drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
+    xTw = pixelTextWidth("X", PIXEL_HUD_SIZE);
+    drawPixelText(g, "X", L.closeX + ((L.closeW - xTw) / 2 | 0), L.closeY + 2, {
+      size: PIXEL_HUD_SIZE,
+      fill: PIXEL_COUNT_FILL,
+      outline: true,
+      shadow: false
+    });
     if (L.choiceRects) {
       for (i = 0; i < L.choiceRects.length; i++) {
         r = L.choiceRects[i];
         woodPanel(g, r.x, r.y, r.w, r.h);
-        tw = textWidth(r.label);
-        drawText(g, r.label, r.x + ((r.w - tw) / 2 | 0), r.y + 4, C.parch);
+        tw = pixelTextWidth(r.label, PIXEL_HUD_SIZE);
+        drawPixelText(g, r.label, r.x + ((r.w - tw) / 2 | 0), r.y + 3, {
+          size: PIXEL_HUD_SIZE,
+          fill: PIXEL_COUNT_FILL,
+          outline: true,
+          shadow: false
+        });
       }
     }
   }
@@ -23682,12 +23714,14 @@
     return p.x >= left && p.x < left + w && p.y >= top && p.y < top + h;
   }
 
-  /* 20260905ip: Press Start 2P for tray counts (8px cream, tight digit tracking); world labels + HUD stay 8px default.
-     Dialogue / BUILD stamp / chips stay on legacy FONT drawText path this ship.
-     drawPixelText: integer fillText, smoothing off, optional AA→hard threshold, cardinal outline; opts.tight = per-glyph advance-1. */
+  /* 20260905is: tray/bag counts = Press Start bake 24 / show 6 (exact 4:1 NN, cream + thin cardinal outline, tight tracking).
+     Dialogue talk boxes use drawPixelText 8px (same path as HUD). World labels + HUD stay 8px.
+     BUILD stamp / Jobs chips stay on legacy FONT drawText path this ship.
+     drawPixelText: integer fillText at bake, smoothing off, AA→hard threshold, cardinal outline; opts.bake + opts.tight;
+     NN blit to show size when bake>size (integer ratio only). */
   var TEXT_DENSE_UPSCALE = 1;
   var TEXT_HUD_SCALE = 1;
-  var TEXT_COUNT_SCALE = 8; /* Press Start count size (px) — tray/bag only; HUD/labels stay 8 */
+  var TEXT_COUNT_SCALE = 6; /* on-screen show px — bake is PIXEL_COUNT_BAKE 24; HUD/labels stay 8 */
   var TEXT_COUNT_FILL = PIXEL_COUNT_FILL;
   var TEXT_CRISP_SCALE = TEXT_HUD_SCALE;
   var TEXT_CRISP_UPSCALE = TEXT_DENSE_UPSCALE;
@@ -23706,29 +23740,41 @@
     return _pixelMeasureCtx;
   }
 
-  function pixelTextWidth(str, size, tight) {
-    var ctx, w, i, total;
+  function pixelTextWidth(str, size, tight, bake) {
+    var ctx, w, i, total, measureAt, ratio;
     if (!str) return 0;
     size = size || PIXEL_HUD_SIZE;
+    measureAt = size;
+    if (bake != null && (bake | 0) > size) measureAt = bake | 0;
     if (!tight) {
       ctx = pixelMeasureContext();
-      ctx.font = pixelFontCss(size);
+      ctx.font = pixelFontCss(measureAt);
       w = ctx.measureText(str).width;
-      if (!(w > 0)) return str.length * size;
-      return Math.max(1, Math.round(w));
+      if (!(w > 0)) w = str.length * measureAt;
+      w = Math.max(1, Math.round(w));
+      if (measureAt !== size) {
+        ratio = measureAt / size;
+        return Math.max(1, Math.round(w / ratio));
+      }
+      return w;
     }
     /* Tight count tracking: gaps use measure(ch)-1; last glyph keeps full rounded width. */
     total = 0;
     for (i = 0; i < str.length; i++) {
       ctx = pixelMeasureContext();
-      ctx.font = pixelFontCss(size);
+      ctx.font = pixelFontCss(measureAt);
       w = ctx.measureText(str.charAt(i)).width;
-      if (!(w > 0)) w = size;
+      if (!(w > 0)) w = measureAt;
       w = Math.round(w);
       if (i < str.length - 1) total += Math.max(1, w - 1);
       else total += Math.max(1, w);
     }
-    return Math.max(1, total);
+    total = Math.max(1, total);
+    if (measureAt !== size) {
+      ratio = measureAt / size;
+      return Math.max(1, Math.round(total / ratio));
+    }
+    return total;
   }
 
   function pixelTextGlyphH(size) {
@@ -23766,30 +23812,44 @@
     return drawPixelText._c;
   }
 
-  /* opts: size, fill, outline (true=cardinal thin / false=none), shadow (tiny +1,+1), tight (count tracking) */
+  /* opts: size (show), bake (optional hi-res rasterize), fill, outline (true=cardinal / string color / false=none),
+     shadow (tiny +1,+1 at bake), tight (count tracking). When bake>size, ratio must be integer (e.g. 24→6 = 4). */
   function drawPixelText(g, str, x, y, opts) {
-    var size, fillCol, doOutline, doShadow, doTight, ox, oy, pad, tw, th, cw, ch, c, cg;
-    var smooth, dirs, d, i, gi, glyph, gx, adv;
+    var size, bake, ratio, fillCol, doOutline, doShadow, doTight, ox, oy, pad, tw, th, cw, ch, c, cg;
+    var smooth, dirs, d, i, gi, glyph, gx, adv, outlineCol, dw, dh, destX, destY;
     if (!str || !str.length) return;
     opts = opts || {};
     size = (opts.size != null ? opts.size : PIXEL_HUD_SIZE) | 0;
     if (size < 1) size = PIXEL_HUD_SIZE;
+    bake = (opts.bake != null ? opts.bake : size) | 0;
+    if (bake < size) bake = size;
+    ratio = (bake / size) | 0;
+    if (ratio < 1) ratio = 1;
+    /* Snap bake to exact integer multiple of show size — no soft fractional scales. */
+    bake = size * ratio;
     fillCol = opts.fill || PIXEL_HUD_FILL;
     doOutline = opts.outline !== false && opts.outline !== "none";
     doShadow = !!opts.shadow;
     doTight = !!opts.tight;
+    outlineCol = typeof opts.outline === "string" ? opts.outline : PIXEL_OUTLINE;
     ox = Math.round(x);
     oy = Math.round(y);
     pad = (doOutline ? 1 : 0) + (doShadow ? 1 : 0) + 1;
-    tw = pixelTextWidth(str, size, doTight);
-    th = size;
+    /* Width/height in bake px (tight gaps measured at bake). */
+    tw = pixelTextWidth(str, bake, doTight);
+    th = bake;
     cw = tw + pad * 2 + 2;
     ch = th + pad * 2 + 2;
+    /* Pad canvas to multiple of ratio so NN downscale stays exact integer. */
+    if (ratio > 1) {
+      cw = Math.ceil(cw / ratio) * ratio;
+      ch = Math.ceil(ch / ratio) * ratio;
+    }
     c = ensurePixelTextCanvas(cw, ch);
     cg = c.getContext("2d");
     cg.imageSmoothingEnabled = false;
     cg.clearRect(0, 0, cw, ch);
-    cg.font = pixelFontCss(size);
+    cg.font = pixelFontCss(bake);
     cg.textBaseline = "top";
     cg.textAlign = "left";
     function paintAt(col, dx, dy) {
@@ -23805,25 +23865,34 @@
         cg.fillText(glyph, gx, pad + dy);
         if (gi < str.length - 1) {
           adv = cg.measureText(glyph).width;
-          if (!(adv > 0)) adv = size;
+          if (!(adv > 0)) adv = bake;
           gx += Math.max(1, Math.round(adv) - 1);
         }
       }
     }
     if (doShadow) paintAt("rgba(26,16,8,0.55)", 1, 1);
     if (doOutline) {
-      /* Thin cardinal outline only — not 8-dir bold */
+      /* Thin cardinal outline only — not 8-dir bold (at bake px) */
       dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
       for (i = 0; i < dirs.length; i++) {
         d = dirs[i];
-        paintAt(typeof opts.outline === "string" ? opts.outline : PIXEL_OUTLINE, d[0], d[1]);
+        paintAt(outlineCol, d[0], d[1]);
       }
     }
     paintAt(fillCol, 0, 0);
     hardPixelize(cg, cw, ch, 96);
     smooth = g.imageSmoothingEnabled;
     g.imageSmoothingEnabled = false;
-    g.drawImage(c, 0, 0, cw, ch, ox - pad, oy - pad, cw, ch);
+    if (ratio === 1) {
+      g.drawImage(c, 0, 0, cw, ch, ox - pad, oy - pad, cw, ch);
+    } else {
+      /* Exact integer NN downscale (e.g. 24→6 is 4:1). */
+      dw = Math.max(1, (cw / ratio) | 0);
+      dh = Math.max(1, (ch / ratio) | 0);
+      destX = ox - ((pad / ratio) | 0);
+      destY = oy - ((pad / ratio) | 0);
+      g.drawImage(c, 0, 0, cw, ch, destX, destY, dw, dh);
+    }
     g.imageSmoothingEnabled = smooth;
   }
 
@@ -23910,16 +23979,17 @@
   }
 
   function drawSlotCount(g, label, sx, sy, slot) {
-    /* 20260905ip: Press Start 2P 8px cream + dark thin outline, tight digit tracking (no shadow).
-       Same size as HUD/labels but packed tighter; cream on wood slots. Not 6px (off-grid blur). */
+    /* 20260905is: Press Start bake 24 / show 6 (exact 4:1 NN) cream + thin dark cardinal outline,
+       tight digit tracking, no shadow. Higher px density than soft 6px fillText (was blurry). */
     var tw, th, x, y;
     if (!label) return;
-    tw = pixelTextWidth(label, PIXEL_COUNT_SIZE, true);
+    tw = pixelTextWidth(label, PIXEL_COUNT_SIZE, true, PIXEL_COUNT_BAKE);
     th = pixelTextGlyphH(PIXEL_COUNT_SIZE);
     x = sx + slot - tw - 1;
     y = sy + slot - th - 1;
     drawPixelText(g, label, x, y, {
       size: PIXEL_COUNT_SIZE,
+      bake: PIXEL_COUNT_BAKE,
       fill: PIXEL_COUNT_FILL,
       outline: true,
       shadow: false,
@@ -27274,15 +27344,16 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ir", BUILD);
+      ok("BUILD", BUILD === "20260905is", BUILD);
       (function () {
-        /* 20260905ip: Press Start 2P — tray/bag 8px cream tight tracking; labels/HUD 8px; no 0.85 path */
-        var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft;
+        /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
+        var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
         ok("drawSlotCountFn", typeof drawSlotCount === "function", "");
         _src = Function.prototype.toString.call(drawSlotCount);
         ok("drawSlotCountNo085", _src.indexOf("0.85") < 0, "still has 0.85");
         ok("drawSlotCountPressStart", _src.indexOf("PIXEL_COUNT_SIZE") >= 0 || _src.indexOf("PIXEL_COUNT_FILL") >= 0, "missing count path");
         ok("drawSlotCountCream", _src.indexOf("PIXEL_COUNT_FILL") >= 0 || _src.indexOf("FFF8E8") >= 0, "missing cream");
+        ok("drawSlotCountBake24", _src.indexOf("PIXEL_COUNT_BAKE") >= 0 && _src.indexOf("bake:") >= 0, "missing bake 24 path");
         ok("drawPixelTextFn", typeof drawPixelText === "function", "");
         ok("pixelTextWidthFn", typeof pixelTextWidth === "function", "");
         ok("loadPixelFontFn", typeof loadPixelFont === "function", "");
@@ -27295,19 +27366,26 @@ if (currentScene === "ocean") goExitOcean();
         ok("drawTextCrispFn", typeof drawTextCrisp === "function", "");
         ok("signLabelAnchorFn", typeof signLabelAnchor === "function", "");
         ok("TEXT_HUD_SCALE", TEXT_HUD_SCALE === 1, String(TEXT_HUD_SCALE));
-        ok("TEXT_COUNT_8", TEXT_COUNT_SCALE === 8, String(TEXT_COUNT_SCALE));
-        ok("PIXEL_COUNT_8", PIXEL_COUNT_SIZE === 8, String(PIXEL_COUNT_SIZE));
+        ok("TEXT_COUNT_SHOW_6", TEXT_COUNT_SCALE === 6, String(TEXT_COUNT_SCALE));
+        ok("PIXEL_COUNT_SHOW_6", PIXEL_COUNT_SIZE === 6, String(PIXEL_COUNT_SIZE));
+        ok("PIXEL_COUNT_BAKE_24", PIXEL_COUNT_BAKE === 24, String(PIXEL_COUNT_BAKE));
+        ok("PIXEL_COUNT_RATIO_4", PIXEL_COUNT_BAKE === PIXEL_COUNT_SIZE * 4, "bake/show not 4:1");
         ok("PIXEL_HUD_8", PIXEL_HUD_SIZE === 8, String(PIXEL_HUD_SIZE));
         ok("TEXT_COUNT_FILL_cream", TEXT_COUNT_FILL === "#FFF8E8", TEXT_COUNT_FILL);
         ok("textWidthLegacy", textWidth("WOODS") === ("WOODS".length * 6 - 1), "w=" + textWidth("WOODS"));
         ok("textWidthIgnoreExtra", textWidth("AB", 99, 3) === 11, "w=" + textWidth("AB", 99, 3));
         ok("textGlyphHFull", textGlyphH() === 7, "h=" + textGlyphH());
         ok("pixelTextWidthHud", pixelTextWidth("BAG", 8) > 0, "w=" + pixelTextWidth("BAG", 8));
-        ok("pixelTextWidthCount", pixelTextWidth("9", 8, true) > 0, "w=" + pixelTextWidth("9", 8, true));
-        ok("pixelTextWidthCountTight", pixelTextWidth("99", 8, true) < pixelTextWidth("99", 8), "tight=" + pixelTextWidth("99", 8, true) + " loose=" + pixelTextWidth("99", 8));
+        ok("pixelTextWidthCountShow", pixelTextWidth("9", PIXEL_COUNT_SIZE, true, PIXEL_COUNT_BAKE) > 0, "w=" + pixelTextWidth("9", PIXEL_COUNT_SIZE, true, PIXEL_COUNT_BAKE));
+        /* Tight vs loose asserted at bake px — show-space 4:1 round can collapse 47→12 vs 48→12. */
+        ok("pixelTextWidthCountTight", pixelTextWidth("99", PIXEL_COUNT_BAKE, true) < pixelTextWidth("99", PIXEL_COUNT_BAKE), "tight=" + pixelTextWidth("99", PIXEL_COUNT_BAKE, true) + " loose=" + pixelTextWidth("99", PIXEL_COUNT_BAKE));
+        ok("pixelTextWidthCountShowLT", pixelTextWidth("99", PIXEL_COUNT_SIZE, true, PIXEL_COUNT_BAKE) <= pixelTextWidth("99", PIXEL_COUNT_SIZE, false, PIXEL_COUNT_BAKE), "show tight/loose");
         _src = Function.prototype.toString.call(drawSlotCount);
         ok("drawSlotCountTight", _src.indexOf("tight: true") >= 0 && _src.indexOf("pixelTextWidth") >= 0, "missing tight");
         ok("drawSlotCountNoShadow", _src.indexOf("shadow: false") >= 0, "shadow still on");
+        _dlg = Function.prototype.toString.call(drawDialogue);
+        ok("dialogueUsesPixelText", _dlg.indexOf("drawPixelText") >= 0 && _dlg.indexOf("drawText(") < 0, "dialogue still legacy FONT");
+        ok("dialoguePixelHudSize", _dlg.indexOf("PIXEL_HUD_SIZE") >= 0, "missing 8px HUD size");
         _clk = Function.prototype.toString.call(clockHudLine);
         ok("clockHudShort", _clk.indexOf("SPR ·") >= 0 && _clk.indexOf('AM') >= 0 && _clk.indexOf("SPRING ·") < 0, _clk.slice(0, 160));
         ok("clockHudLineSample", /^SPR · (AM|PM|EVE|NIGHT)$/.test(clockHudLine()), clockHudLine());
