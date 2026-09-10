@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905is";
-  var ASSET_REV = "464565-is";
+  var BUILD = "20260905it";
+  var ASSET_REV = "464565-it";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
   var PIXEL_FONT_READY = false;
@@ -458,7 +458,12 @@
           loadImage("assets/props/overClumpB.png").then(function (im) { Assets.overClumpB = im; }).catch(function () {}),
           /* 20260905iq: dense 2× kickballs / kick cart */
           loadImage("assets/props/playBall.png").then(function (im) { Assets.playBall = im; }).catch(function () {}),
-          loadImage("assets/props/kickCart.png").then(function (im) { Assets.kickCart = im; }).catch(function () {})
+          loadImage("assets/props/kickCart.png").then(function (im) { Assets.kickCart = im; }).catch(function () {}),
+          /* 20260905it: wizard house / NPC / wand / robes (standalone dense 2×; no atlas repack) */
+          loadImage("assets/props/wizardHouse.png").then(function (im) { Assets.wizardHouse = im; }).catch(function () {}),
+          loadImage("assets/actors/wizardNpc.png").then(function (im) { Assets.wizardNpc = im; }).catch(function () {}),
+          loadImage("assets/ui/wand.png").then(function (im) { Assets.wand = im; }).catch(function () {}),
+          loadImage("assets/props/wizardRobes.png").then(function (im) { Assets.wizardRobes = im; }).catch(function () {})
         ]);
       });
     },
@@ -605,7 +610,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, islandCave: null, mountainMine: null, highPeak: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null };
   var tick = 0;
   var lastTs = 0;
   /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
@@ -668,7 +673,7 @@
   var lHouseLand = { tx: 61, ty: 34 }; /* 20260905ew: 2-tile south of door (61,32) */
 
   function isCozyInterior() {
-    return currentScene === "house" || currentScene === "shop" || currentScene === "cottage" || currentScene === "cottage2" || currentScene === "tallCottage" || currentScene === "lHouse";
+    return currentScene === "house" || currentScene === "shop" || currentScene === "cottage" || currentScene === "cottage2" || currentScene === "tallCottage" || currentScene === "lHouse" || currentScene === "wizardHouse";
   }
   var FOREST_COLS = 28;
   var FOREST_ROWS = 66;
@@ -717,6 +722,14 @@
   var highPeakLand = { tx: 24, ty: 32 };
   var highPeakCaveAt = { tx: 24, ty: 33 };
   var highPeakBearAt = { tx: 24, ty: 16 };
+  /* 20260905it: wizard house past the sleepy bear (summit clearing) */
+  var WIZARD_HOUSE_COLS = 16;
+  var WIZARD_HOUSE_ROWS = 10;
+  var wizardHouseAt = { tx: 21, ty: 1 };
+  var wizardHouseIn = { tx: 23, ty: 6 };
+  var wizardHouseOut = { tx: 8, ty: 8 };
+  var wizardHouseLand = { tx: 23, ty: 7 };
+  var wizardNpcAt = { tx: 8, ty: 4 };
   var peakCaveAt = { tx: 18, ty: 25 };
   var OCEAN_COLS = 64;
   var OCEAN_ROWS = 56;
@@ -770,7 +783,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false, bearFed: false, pathClear: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false, bearFed: false, pathClear: false, wizardMet: false, wand: false };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -811,6 +824,7 @@
   var shieldOwned = false;
   var ironSwordOwned = false;
   var bowOwned = false;
+  var wandOwned = false;
   var craftOpen = false;
   var craftMsg = "";
   var craftMsgT = 0;
@@ -2527,6 +2541,32 @@
     ];
   }
 
+  /* 20260905it: cozy wizard tower room past High Peak bear */
+  function buildWizardHouseGround() {
+    var cols = WIZARD_HOUSE_COLS, rows = WIZARD_HOUSE_ROWS;
+    var g = [], y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) row[x] = (x === 0 || y === 0 || x === cols - 1 || y === rows - 1) ? "#" : "f";
+      g[y] = row;
+    }
+    return g;
+  }
+
+  function buildWizardHouseProps() {
+    return [
+      { kind: "table", tx: 3, ty: 3 },
+      { kind: "crate", tx: 12, ty: 2 },
+      { kind: "lantern", tx: 11, ty: 3 },
+      { kind: "window", tx: 4, ty: 0 },
+      { kind: "window", tx: 11, ty: 0 },
+      { kind: "rug", tx: 7, ty: 5 },
+      { kind: "housePlant", tx: 2, ty: 6 },
+      { kind: "doormat", tx: 8, ty: 8 },
+      { kind: "inndoor", tx: 8, ty: 9 }
+    ];
+  }
+
   function buildShopGround() {
     var cols = SHOP_COLS, rows = SHOP_ROWS;
     var g = [];
@@ -2936,6 +2976,11 @@
       ROWS = L_HOUSE_ROWS;
       GROUND = buildLHouseGround();
       PROPS = buildLHouseProps();
+    } else if (name === "wizardHouse") {
+      COLS = WIZARD_HOUSE_COLS;
+      ROWS = WIZARD_HOUSE_ROWS;
+      GROUND = buildWizardHouseGround();
+      PROPS = buildWizardHouseProps();
     } else if (name === "forest") {
       COLS = FOREST_COLS;
       ROWS = FOREST_ROWS;
@@ -4318,7 +4363,10 @@
     cells = [
       [22, 15], [23, 15], [24, 15], [25, 15], [26, 15],
       [22, 16], [23, 16], [24, 16], [25, 16], [26, 16],
-      [22, 17], [23, 17], [24, 17], [25, 17], [26, 17]
+      [22, 17], [23, 17], [24, 17], [25, 17], [26, 17],
+      /* 20260905it: stoop + approach for wizard house on summit clearing */
+      [22, 6], [23, 6], [24, 6], [25, 6],
+      [22, 7], [23, 7], [24, 7], [25, 7]
     ];
     for (i = 0; i < cells.length; i++) {
       tx = cells[i][0];
@@ -4353,6 +4401,8 @@
     ];
     if (found.pathClear || found.bearFed) {
       list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx + 3, ty: highPeakBearAt.ty, aside: true });
+      /* 20260905it: wizard house appears once the bear path is open */
+      list.push({ kind: "wizardHouse", tx: wizardHouseAt.tx, ty: wizardHouseAt.ty });
     } else {
       list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx, ty: highPeakBearAt.ty });
     }
@@ -4482,6 +4532,22 @@
       bear.tx = highPeakBearAt.tx + 3;
       bear.ty = highPeakBearAt.ty;
       openHighPeakPathLive();
+      /* 20260905it: house appears as soon as the path clears (no re-enter needed) */
+      (function () {
+        var i, has = false;
+        for (i = 0; i < PROPS.length; i++) {
+          if (PROPS[i] && PROPS[i].kind === "wizardHouse") { has = true; break; }
+        }
+        if (!has) PROPS.push({ kind: "wizardHouse", tx: wizardHouseAt.tx, ty: wizardHouseAt.ty });
+        if (sceneCache && sceneCache.highPeak && sceneCache.highPeak.props) {
+          has = false;
+          for (i = 0; i < sceneCache.highPeak.props.length; i++) {
+            if (sceneCache.highPeak.props[i] && sceneCache.highPeak.props[i].kind === "wizardHouse") { has = true; break; }
+          }
+          if (!has) sceneCache.highPeak.props.push({ kind: "wizardHouse", tx: wizardHouseAt.tx, ty: wizardHouseAt.ty });
+        }
+        buildSolid();
+      })();
       showLineNote("THANK YOU!");
       playSfx("toast");
       if (player) spawnSparks(bear.tx * TILE + 8, bear.ty * TILE - 8);
@@ -4525,6 +4591,129 @@
       return;
     }
     pending = { type: "talkSleepingBear" };
+    startWalk(player, path, 3.5);
+  }
+
+
+  /* 20260905it: wizard house past the High Peak bear */
+  function isWizardHouseEntrance(tx, ty) {
+    return currentScene === "highPeak" && (found.pathClear || found.bearFed) &&
+      tx === wizardHouseIn.tx && ty === wizardHouseIn.ty;
+  }
+
+  function isWizardHouseExit(tx, ty) {
+    return currentScene === "wizardHouse" && tx === wizardHouseOut.tx && ty === wizardHouseOut.ty;
+  }
+
+  function wizardHouseDoorHit(tx, ty) {
+    if (currentScene !== "highPeak" || !(found.pathClear || found.bearFed)) return false;
+    if (tx === wizardHouseIn.tx && ty === wizardHouseIn.ty) return false;
+    if (tx === wizardHouseIn.tx && ty === wizardHouseIn.ty - 1) return true;
+    if (tx === wizardHouseIn.tx + 1 && ty === wizardHouseIn.ty - 1) return true;
+    if (tx === wizardHouseIn.tx - 1 && ty === wizardHouseIn.ty - 1) return true;
+    return false;
+  }
+
+  function enterWizardHouse() {
+    startDoorFade(function () {
+      applyScene("wizardHouse");
+      unlocked.wizardHouseEntered = true;
+      placePlayer(8, 6, "up");
+      persistSave();
+    });
+  }
+
+  function exitWizardHouse() {
+    startDoorFade(function () {
+      applyScene("highPeak");
+      placePlayer(wizardHouseLand.tx, wizardHouseLand.ty, "down");
+      if (!walkable(player.tx, player.ty)) {
+        placePlayer(wizardHouseIn.tx, wizardHouseIn.ty, "down");
+      }
+      persistSave();
+    });
+  }
+
+  function goEnterWizardHouse() {
+    var path;
+    highlight = { tx: wizardHouseIn.tx, ty: wizardHouseIn.ty };
+    if (player.tx === wizardHouseIn.tx && player.ty === wizardHouseIn.ty) {
+      enterWizardHouse();
+      return;
+    }
+    path = findPath(player.tx, player.ty, wizardHouseIn.tx, wizardHouseIn.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, wizardHouseIn.tx, wizardHouseIn.ty)) enterWizardHouse();
+      return;
+    }
+    pending = { type: "enterWizardHouse" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitWizardHouse() {
+    var path;
+    highlight = { tx: wizardHouseOut.tx, ty: wizardHouseOut.ty };
+    if (player.tx === wizardHouseOut.tx && player.ty === wizardHouseOut.ty) {
+      exitWizardHouse();
+      return;
+    }
+    path = findPath(player.tx, player.ty, wizardHouseOut.tx, wizardHouseOut.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, wizardHouseOut.tx, wizardHouseOut.ty)) exitWizardHouse();
+      return;
+    }
+    pending = { type: "exitWizardHouse" };
+    startWalk(player, path, 3.5);
+  }
+
+  function talkWizard() {
+    faceToward(player, wizardNpcAt.tx, wizardNpcAt.ty);
+    found.wizardMet = true;
+    if (wandOwned || found.wand) {
+      openDialogue("WIZARD", [
+        "THE WAND IS YOURS.",
+        "HOLD IT TO WEAR",
+        "WIZARD ROBES."
+      ]);
+      persistSave();
+      return;
+    }
+    wandOwned = true;
+    found.wand = true;
+    unlocked.wand = true;
+    giveTool("wand");
+    selectTool("wand");
+    showLineNote("GOT A MAGIC WAND!");
+    playSfx("craft");
+    if (player) spawnSparks(player.x, player.y - 12);
+    openDialogue("WIZARD", [
+      "WELCOME, TRAVELER.",
+      "TAKE THIS MAGIC WAND.",
+      "HOLD IT — WEAR ROBES!"
+    ]);
+    persistSave();
+  }
+
+  function goTalkWizard() {
+    var dest, path;
+    highlight = { tx: wizardNpcAt.tx, ty: wizardNpcAt.ty };
+    if (isNear(player.tx, player.ty, wizardNpcAt.tx, wizardNpcAt.ty) ||
+        (player.tx === wizardNpcAt.tx && player.ty === wizardNpcAt.ty)) {
+      pending = null;
+      talkWizard();
+      return;
+    }
+    dest = nearestAdjacent(wizardNpcAt.tx, wizardNpcAt.ty);
+    if (!dest) {
+      talkWizard();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkWizard();
+      return;
+    }
+    pending = { type: "talkWizard" };
     startWalk(player, path, 3.5);
   }
 
@@ -6661,6 +6850,14 @@
         for (y = 0; y < 4; y++) {
           for (x = 0; x < 5; x++) block(p.tx + x, p.ty + y);
         }
+      } else if (p.kind === "wizardHouse") {
+        /* 20260905it: 4×5 footprint; leave stoop tile walkable */
+        for (y = 0; y < 5; y++) {
+          for (x = 0; x < 4; x++) {
+            if (p.tx + x === wizardHouseIn.tx && p.ty + y === wizardHouseIn.ty) continue;
+            block(p.tx + x, p.ty + y);
+          }
+        }
       } else if (p.kind === "fountain") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
@@ -7539,6 +7736,10 @@
     if (p.kind === "shopHouse") return tx >= p.tx && tx < p.tx + 6 && ty >= p.ty && ty < p.ty + 4;
     if (p.kind === "townHouseA" || p.kind === "townHouseC") return tx >= p.tx && tx < p.tx + 4 && ty >= p.ty && ty < p.ty + 5;
     if (p.kind === "townHouseB" || p.kind === "townHouseD") return tx >= p.tx && tx < p.tx + 5 && ty >= p.ty && ty < p.ty + 4;
+    if (p.kind === "wizardHouse") {
+      if (tx === wizardHouseIn.tx && ty === wizardHouseIn.ty) return false;
+      return tx >= p.tx && tx < p.tx + 4 && ty >= p.ty && ty < p.ty + 5;
+    }
     if (p.kind === "fountain") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "counter") return tx >= p.tx && tx < p.tx + 3 && ty === p.ty;
     if (p.kind === "bed") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
@@ -8957,7 +9158,7 @@
      NOT weapons (tools may share the tray freely): axe, pick, diamondPick,
      shovel, pole (fishing), hat, leash, seeds/kits. */
   function isWeaponKey(key) {
-    return key === "sword" || key === "bow";
+    return key === "sword" || key === "bow" || key === "wand";
   }
 
   function parkRecInBag(rec) {
@@ -10385,7 +10586,7 @@
     if (isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || houseDoorHit(tx, ty, world)) return true;
     if (isForestEntrance(tx, ty) || isForestExit(tx, ty)) return true;
     if (isOceanEntrance(tx, ty) || isOceanExit(tx, ty)) return true;
-    if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world)) return true;
+    if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world) || isWizardHouseEntrance(tx, ty) || isWizardHouseExit(tx, ty) || wizardHouseDoorHit(tx, ty)) return true;
     if (isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty)) return true;
     if (isPeakCave(tx, ty) || isPeakMineMouth(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) || isMountainMineExit(tx, ty) || isMountainMineHighExit(tx, ty) || isHighPeakCave(tx, ty) || isSleepingBear(tx, ty)) return true;
     return false;
@@ -10648,6 +10849,8 @@
         found.mtChest3 = !!data.found.mtChest3;
         found.bearFed = !!data.found.bearFed;
         found.pathClear = !!data.found.pathClear || !!data.found.bearFed;
+        found.wizardMet = !!data.found.wizardMet;
+        found.wand = !!data.found.wand;
       }
       if (data.ball && typeof data.ball === "object") {
         ball.tx = data.ball.tx | 0;
@@ -10745,6 +10948,9 @@
       shieldOwned = !!data.shieldOwned;
       ironSwordOwned = !!data.ironSwordOwned;
       bowOwned = !!data.bowOwned;
+      wandOwned = !!(data.wandOwned || (data.found && data.found.wand) || (data.unlocked && data.unlocked.wand));
+      if (!wandOwned && data.weaponDock && data.weaponDock.key === "wand") wandOwned = true;
+      if (!wandOwned && found.wand) wandOwned = true;
       mineFloor = clampMineFloor(data.mineFloor);
       treeFloor = clampTreeFloor(data.treeFloor);
       climbFloor = clampClimbFloor(data.climbFloor);
@@ -11173,6 +11379,7 @@
         shieldOwned: !!shieldOwned,
         ironSwordOwned: !!ironSwordOwned,
         bowOwned: !!bowOwned,
+        wandOwned: !!wandOwned,
         mineFloor: clampMineFloor(mineFloor),
         treeFloor: clampTreeFloor(treeFloor),
         climbFloor: clampClimbFloor(climbFloor),
@@ -11378,6 +11585,14 @@
       }
       if (isLHouseEntrance(tx, ty)) {
         return { tx: lHouseLand.tx, ty: lHouseLand.ty, face: "down" };
+      }
+    } else if (currentScene === "highPeak") {
+      if (isWizardHouseEntrance(tx, ty)) {
+        return { tx: wizardHouseLand.tx, ty: wizardHouseLand.ty, face: "down" };
+      }
+    } else if (currentScene === "wizardHouse") {
+      if (isWizardHouseExit(tx, ty)) {
+        return { tx: wizardHouseLand.tx, ty: wizardHouseLand.ty, face: "down" };
       }
     } else if (currentScene === "house") {
       if (isHouseExit(tx, ty)) {
@@ -12553,6 +12768,7 @@
     if (!isWeaponKey(key)) return;
     if (key === "sword" && !swordOwned) return;
     if (key === "bow" && !bowOwned) return;
+    if (key === "wand" && !wandOwned) return;
     if (weaponDock && weaponDock.key === key) return;
     if (bagCount(key) >= 1) return;
     if (bagHeld && bagHeld.key === key) return;
@@ -12575,8 +12791,10 @@
     placeToolInTrayFirst("potatoSeed");
     placeToolInTrayFirst("berrySeed");
     /* Weapons: respect saved / player dock choice (05ho — do not placeTool-stomp). */
+    if (found.wand) wandOwned = true;
     ensureWeaponFindable("sword");
     ensureWeaponFindable("bow");
+    ensureWeaponFindable("wand");
     forceSwordIntoTray(false);
     ensureOnePole();
     syncBagCounts();
@@ -14447,6 +14665,14 @@
       if (hasGrilledGoldenSwordfish()) return "FEED THE SLEEPY BEAR.";
       return "GRILL A GOLDEN SWORDFISH.";
     }
+    /* 20260905it: past the bear — visit the wizard for a magic wand */
+    if (found.pathClear && !wandOwned) {
+      if (currentScene === "highPeak" || currentScene === "wizardHouse") return "VISIT THE WIZARD HOUSE.";
+      return "VISIT THE WIZARD HOUSE.";
+    }
+    if (wandOwned && !selectedIs("wand") && !(weaponDock && weaponDock.key === "wand")) {
+      return "HOLD THE WAND FOR ROBES.";
+    }
     /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
     if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
       return "SWORD THE NIGHT SLUGS.";
@@ -16209,6 +16435,52 @@
       }
       return false;
     }
+    if (currentScene === "highPeak") {
+      if (isWizardHouseEntrance(player.tx, player.ty) || wizardHouseDoorHit(player.tx, player.ty)) {
+        enterWizardHouse();
+        return true;
+      }
+      f = facingTile();
+      if (wizardHouseDoorHit(f.tx, f.ty) || isWizardHouseEntrance(f.tx, f.ty)) {
+        enterWizardHouse();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (wizardHouseDoorHit(t.tx, t.ty) || isWizardHouseEntrance(t.tx, t.ty)) {
+          enterWizardHouse();
+          return true;
+        }
+      }
+      return false;
+    }
+    if (currentScene === "wizardHouse") {
+      if (isWizardHouseExit(player.tx, player.ty)) {
+        exitWizardHouse();
+        return true;
+      }
+      f = facingTile();
+      if (isWizardHouseExit(f.tx, f.ty)) {
+        exitWizardHouse();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isWizardHouseExit(t.tx, t.ty)) {
+          exitWizardHouse();
+          return true;
+        }
+      }
+      if ((player.tx === wizardNpcAt.tx && player.ty === wizardNpcAt.ty) ||
+          (f.tx === wizardNpcAt.tx && f.ty === wizardNpcAt.ty) ||
+          isNear(player.tx, player.ty, wizardNpcAt.tx, wizardNpcAt.ty)) {
+        talkWizard();
+        return true;
+      }
+      return false;
+    }
     if (currentScene === "cottage") {
       if (isCottageExit(player.tx, player.ty)) {
         exitCottage();
@@ -16877,6 +17149,7 @@
     if (id === "pole") return !!(poleOwned && selectedIs("pole"));
     if (id === "sword") return swordEquipped();
     if (id === "bow") return !!(bowOwned && selectedIs("bow"));
+    if (id === "wand") return !!(wandOwned && selectedIs("wand"));
     return false;
   }
 
@@ -17781,7 +18054,7 @@
   }
 
   function hasActionTool() {
-    return !!(swordOwned || bowOwned);
+    return !!(swordOwned || bowOwned || wandOwned);
   }
 
   function adjacentFoe() {
@@ -17801,8 +18074,14 @@
 
   function actionIcon() {
     if (toolEquipped("bow")) return "bow";
+    if (toolEquipped("wand")) return "wand";
     if (ironSwordOwned) return "ironSword";
     return "sword";
+  }
+
+  function startWandSwing() {
+    /* 20260905it: wand uses the sword swing path (canSwordSwing + drawSwordArc wand art) */
+    return startSwordSwing();
   }
 
   function arrowBusy() {
@@ -18107,6 +18386,7 @@
     if (uiPaused() || faintFx || fishing) return false;
     if (isCozyInterior()) return false;
     if (toolEquipped("bow")) return true;
+    if (toolEquipped("wand")) return true;
     if (swordEquipped()) return true;
     return currentScene === "mine";
   }
@@ -20010,6 +20290,16 @@
       exitLHouse();
       return;
     }
+    if (isWizardHouseEntrance(player.tx, player.ty)) {
+      pending = null;
+      enterWizardHouse();
+      return;
+    }
+    if (isWizardHouseExit(player.tx, player.ty)) {
+      pending = null;
+      exitWizardHouse();
+      return;
+    }
     if (isIslandCaveEntrance(player.tx, player.ty)) {
       pending = null;
       enterIslandCave();
@@ -20318,6 +20608,12 @@
       enterMountainMine();
     } else if (act.type === "exitMountainMine") {
       exitMountainMine();
+    } else if (act.type === "enterWizardHouse") {
+      enterWizardHouse();
+    } else if (act.type === "exitWizardHouse") {
+      exitWizardHouse();
+    } else if (act.type === "talkWizard") {
+      talkWizard();
     } else if (act.type === "enterHighPeak") {
       enterHighPeak();
     } else if (act.type === "exitHighPeak") {
@@ -21523,6 +21819,21 @@
     drawShadow(g, player.x, player.y, 5);
     if (!(iFrames > 0 && ((tick / 80) | 0) % 2 === 0)) {
       Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
+      /* 20260905it: wizard robes overlay while wand held — never replaces Orion base art */
+      if (wandOwned && selectedIs("wand") && Assets.wizardRobes) {
+        var _rb = Assets.wizardRobes, _rs = g.imageSmoothingEnabled, _riw, _rih;
+        _riw = _rb.naturalWidth || _rb.width || 32;
+        _rih = _rb.naturalHeight || _rb.height || 64;
+        g.imageSmoothingEnabled = false;
+        g.globalAlpha = 0.92;
+        g.drawImage(_rb, 0, 0, _riw, _rih,
+          Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy), 16, 32);
+        g.globalAlpha = 1;
+        g.imageSmoothingEnabled = _rs;
+      } else if (wandOwned && selectedIs("wand")) {
+        fill(g, Math.round(player.x - 6 + sx), Math.round(player.y - 22 + bob + sy), 12, 18, "rgba(110,70,170,0.85)");
+        fill(g, Math.round(player.x - 7 + sx), Math.round(player.y - 28 + bob + sy), 14, 6, "rgba(90,50,140,0.9)");
+      }
       if (hatOn) {
         /* 20260905w: tray strawHat is 32px — draw 16px so it sits on the head, not a billboard */
         drawUiIcon(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy));
@@ -21690,7 +22001,12 @@
     g.imageSmoothingEnabled = false;
     g.translate(Math.round(hand.x), Math.round(hand.y));
     g.rotate(ang);
-    Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", -8, -13);
+    if (toolEquipped("wand") && Assets.wand) {
+      var _wimg = Assets.wand, _wiw = _wimg.naturalWidth || 32, _wih = _wimg.naturalHeight || 32;
+      g.drawImage(_wimg, 0, 0, _wiw, _wih, -8, -13, 16, 16);
+    } else {
+      Assets.draw(g, ironSwordOwned ? "ironSword" : "sword", -8, -13);
+    }
     g.restore();
     /* 20260905bz: bigger bright crescent + soft omni ring so pad hits read any facing */
     /* 20260905df: pad crescent a bit brighter so dark floors still read the slash */
@@ -21857,6 +22173,7 @@
     if (p.kind === "shopHouse") return p.ty * TILE + 64;
     if (p.kind === "townHouseA" || p.kind === "townHouseC") return p.ty * TILE + 80;
     if (p.kind === "townHouseB" || p.kind === "townHouseD") return p.ty * TILE + 64;
+    if (p.kind === "wizardHouse") return p.ty * TILE + 80;
     if (p.kind === "fountain") return p.ty * TILE + 28;
     if (p.kind === "statue") return p.ty * TILE + 28;
     if (p.kind === "counter") return p.ty * TILE + 20;
@@ -21914,6 +22231,7 @@
     if (p.kind === "shopHouse") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 96, h: 80 };
     if (p.kind === "townHouseA" || p.kind === "townHouseC") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 96 };
     if (p.kind === "townHouseB" || p.kind === "townHouseD") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 96, h: 80 };
+    if (p.kind === "wizardHouse") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 80 };
     if (p.kind === "fountain") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
     if (p.kind === "statue") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
@@ -22207,6 +22525,20 @@
     }
     if (p.kind === "house") {
       Assets.draw(g, "house", x, y);
+    } else if (p.kind === "wizardHouse") {
+      /* 20260905it: dense 2× house 128×160 → 64×80 logical (oy -16 like town houses) */
+      if (Assets.wizardHouse) {
+        var _wh = Assets.wizardHouse, _ws = g.imageSmoothingEnabled, _iw, _ih;
+        _iw = _wh.naturalWidth || _wh.width || 128;
+        _ih = _wh.naturalHeight || _wh.height || 160;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(_wh, 0, 0, _iw, _ih, x, y - 16, 64, 80);
+        g.imageSmoothingEnabled = _ws;
+      } else {
+        fill(g, x + 4, y + 20, 56, 50, "#7650A8");
+        fill(g, x + 16, y + 8, 32, 18, "#482878");
+        fill(g, x + 24, y + 48, 16, 22, "#3A2058");
+      }
     } else if (p.kind === "bed") {
       Assets.draw(g, "bed", x, y);
       /* 20260905cl: floating SLEEP so the bed is obvious */
@@ -22789,6 +23121,15 @@
     g.rect(Math.round(player.x - 10 + sx), top, 20, peekH);
     g.clip();
     Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
+    if (wandOwned && selectedIs("wand") && Assets.wizardRobes) {
+      var _crb = Assets.wizardRobes, _crs = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.globalAlpha = 0.92;
+      g.drawImage(_crb, 0, 0, _crb.naturalWidth || 32, _crb.naturalHeight || 64,
+        Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy), 16, 32);
+      g.globalAlpha = 1;
+      g.imageSmoothingEnabled = _crs;
+    }
     if (hatOn) {
       drawUiIcon(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy));
     }
@@ -22855,6 +23196,9 @@
     if (currentScene === "cottage2") {
       list.push({ foot: tileFootY(3), kind: "maple" });
     }
+    if (currentScene === "wizardHouse") {
+      list.push({ foot: tileFootY(wizardNpcAt.ty), kind: "wizardNpc" });
+    }
     return list;
   }
 
@@ -22885,6 +23229,16 @@
     } else if (item.kind === "maple") {
       drawShadow(g, tileCenterX(4), tileFootY(3), 5);
       Assets.draw(g, Assets.spr["reed-down"] ? "reed-down" : "pip-down", tileCenterX(4), tileFootY(3), 0);
+    } else if (item.kind === "wizardNpc") {
+      var wBob = Math.round(Math.sin(tick / 390) * 1);
+      var wx = tileCenterX(wizardNpcAt.tx), wy = tileFootY(wizardNpcAt.ty);
+      drawShadow(g, wx, wy, 5);
+      if (!drawStandSprite(g, Assets.wizardNpc, wizardNpcAt.tx * TILE, wizardNpcAt.ty * TILE + wBob, 16, 32)) {
+        /* fallback silhouette */
+        fill(g, wx - 5, wy - 28 + wBob, 10, 20, "#6A3AA0");
+        fill(g, wx - 4, wy - 34 + wBob, 8, 8, "#F0C8A0");
+      }
+      if (talkCueNear(wizardNpcAt.tx, wizardNpcAt.ty)) drawTalkCue(g, wx, wy + wBob);
     } else drawNpc(g);
   }
 
@@ -24391,6 +24745,14 @@
     else if (key === "pick") { if (!drawUiIcon(g, "pickaxe", x, y)) paintBagKeyFallback(g, x, y, "#8B5A28", "#C8C8D0"); }
     else if (key === "diamondPick") { if (!drawUiIcon(g, "diamondPickaxe", x, y)) paintBagKeyFallback(g, x, y, "#4A8AD0", "#E0F0FF"); }
     else if (key === "bow") { if (!drawUiIcon(g, "bow", x, y)) paintBagKeyFallback(g, x, y, "#8B5A28", "#E8B060"); }
+    else if (key === "wand") {
+      if (Assets.wand) {
+        var _ws = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.wand, 0, 0, Assets.wand.naturalWidth || 32, Assets.wand.naturalHeight || 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _ws;
+      } else paintBagKeyFallback(g, x, y, "#6A40A0", "#C8F8FF");
+    }
     else if (key === "pole") { if (!drawUiIcon(g, "fishingPole", x, y)) paintFishingPole(g, x, y); }
     else if (key === "leash") { if (!drawUiIcon(g, "leash", x, y)) paintBagKeyFallback(g, x, y, "#A86C14", "#E8B060"); }
     else if (key === "lampKit") { if (!drawUiIcon(g, "lanternIcon", x, y)) paintBagKeyFallback(g, x, y, "#C47A38", "#FFE9A0"); }
@@ -25799,6 +26161,28 @@
     if (dogSceneOk() && hitSprite(world, dog.x, dog.y, 16, 16, 8, 14)) {
       talkDog();
       return;
+    }
+    if (currentScene === "highPeak") {
+      if (isWizardHouseEntrance(tx, ty) || wizardHouseDoorHit(tx, ty)) {
+        goEnterWizardHouse();
+        return;
+      }
+      if (propAt(tx, ty) && propAt(tx, ty).kind === "wizardHouse") {
+        goEnterWizardHouse();
+        return;
+      }
+    }
+    if (currentScene === "wizardHouse") {
+      if (hitSprite(world, tileCenterX(wizardNpcAt.tx), tileFootY(wizardNpcAt.ty), 16, 32, 8, 28) ||
+          (tx === wizardNpcAt.tx && ty === wizardNpcAt.ty) ||
+          isNear(tx, ty, wizardNpcAt.tx, wizardNpcAt.ty)) {
+        goTalkWizard();
+        return;
+      }
+      if (isWizardHouseExit(tx, ty)) {
+        goExitWizardHouse();
+        return;
+      }
     }
     if (currentScene === "cottage") {
       if (hitSprite(world, tileCenterX(4), tileFootY(4), 16, 32, 8, 28) || (tx === 4 && ty === 4)) {
@@ -27344,7 +27728,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905is", BUILD);
+      ok("BUILD", BUILD === "20260905it", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -29757,8 +30141,30 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("highPeakPathOpen", !!_bear && !!_bear.aside && walkable(highPeakBearAt.tx, highPeakBearAt.ty), "open");
       exitHighPeak();
       ok("highPeakExitMine", currentScene === "mountainMine" && player.ty >= mountainMineHighAt.ty + 2, player.tx + "," + player.ty);
+      /* 20260905it: wizard house past bear → wand → robes overlay flag */
+      found.bearFed = true;
+      found.pathClear = true;
+      enterHighPeak();
+      ok("wizardHouseProp", !!PROPS.some(function (p) { return p && p.kind === "wizardHouse"; }), "prop");
+      ok("wizardHouseStoopWalk", walkable(wizardHouseIn.tx, wizardHouseIn.ty), wizardHouseIn.tx + "," + wizardHouseIn.ty);
+      enterWizardHouse();
+      ok("wizardHouseScene", currentScene === "wizardHouse", currentScene);
+      wandOwned = false;
+      found.wand = false;
+      found.wizardMet = false;
+      talkWizard();
+      ok("wizardGaveWand", !!(wandOwned && found.wand && weaponDock && weaponDock.key === "wand"), weaponDock && weaponDock.key);
+      selectTool("wand");
+      ok("wandSelected", selectedIs("wand"), String(selectedSlot));
+      ok("wizardRobesHeld", !!(wandOwned && selectedIs("wand")), "robes gate");
+      exitWizardHouse();
+      ok("wizardHouseExitPeak", currentScene === "highPeak", currentScene);
       found.bearFed = false;
       found.pathClear = false;
+      found.wizardMet = false;
+      found.wand = false;
+      wandOwned = false;
+      if (weaponDock && weaponDock.key === "wand") weaponDock = null;
       inventory.cookedGoldenSwordfish = 0;
       applyScene("peak");
       var pk = nudgeRestoreOffGate(18, 25, "up");

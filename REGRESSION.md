@@ -8,6 +8,15 @@ Status column: **KEEP** = still required in new builds.
 
 ---
 
+## BUILD 20260905it (Local 9/10) — wizard house / wand / robes
+
+- High Peak past bear: wizard house enter/exit, wizard talk → wand in weapon dock, robes overlay while wand held.
+- Save-safe: `found.wizardMet` / `found.wand` / `wandOwned` (never START OVER).
+- Frozen untouched: DAY_MS, walk energy, Orion base art, grass0–3, evening.
+- Kickables 2×: already Done 05iq; pink gate recheck PASS (playBall + kickCart).
+- Art: standalone dense 2× PNGs (no atlas height change / no 1× repack). Pink-chroma gate PASS.
+- Autotest: wizard house prop + stoop + grant wand + select + exit peak.
+
 ## Frozen forever (do not touch)
 
 | Invariant | BUILD | Status |

@@ -439,10 +439,12 @@ Local 9/4 (BUILD 20260904f): ocean pier/beach fishing has a 1-in-50 Golden Sword
 
 Past the sleeping bear on High Peak. Household save; never START OVER. Frozen: Orion base art (wizard robes are a held-wand overlay only), farm grass0–3, evening color, walk energy, DAY_MS. Imagine art for house / wizard / wand / robes.
 
+Local 9/10 (BUILD 20260905it): Wizard house past High Peak bear — enterable tower on summit clearing after grilled swordfish feed; wizard NPC grants magic wand into weapon dock; robes overlay while wand selected. Dense 2× standalone PNGs (Imagine unavailable — code-BOX); pink-chroma gate PASS; DAY_MS / walk energy / Orion base / grass0–3 / evening frozen. Kickables 2× already Done 05iq (reconfirmed). Never START OVER.
+
 | Priority | Status | Item | Notes |
 | --- | --- | --- | --- |
-| High | Open | Wizard house past the High Peak bear | After feeding the bear and walking past: enterable **wizard house** with a wizard inside. Talk → he gives a **magic wand**. Wand parks in the **weapon dock** (same one-weapon slot as sword/bow). While the wand is held/selected, Orion wears **wizard robes** (clothes update). Kid-plain: past the bear, visit the wizard, get a wand, look like a wizard when you hold it. |
-| Medium | Done 9/8 ~4pm live farm | Kick balls / kickables → 2× graphics | **FIXED**/PASS LIVE 9/8 pm BUILD 20260905iq: farm playBall dense 2× + kick/slide (`06-ball-before.png` / `07-ball-after.png`). Town kickCart UNTESTED this pass. Local 9/8: dense 2× playBall + kickCart props (32→16); code-paint fills replaced. Kid-plain: balls look sharp like other 2× props. |
+| High | Local 9/10 05it | Wizard house past the High Peak bear | **Local BUILD 20260905it:** after feeding the bear, enterable **wizard house** on High Peak; talk wizard → **magic wand** parks in **weapon dock**; holding wand shows **wizard robes** overlay (Orion base art frozen). Save flags `found.wizardMet` / `found.wand` / `wandOwned` / `unlocked.wand`. Art: dense 2× BOX’d house/NPC/wand/robes (Imagine unavailable this agent); pink-chroma gate PASS; no atlas 1× repack. Kid-plain: past the bear, visit the wizard, get a wand, look like a wizard when you hold it. **Needs live.** |
+| Medium | Done 9/8 ~4pm live farm | Kick balls / kickables → 2× graphics | **FIXED**/PASS LIVE 9/8 pm BUILD 20260905iq (+ STILL PASS 9/9–9/10): farm playBall dense 2× + kick/slide. Town kickCart art already 2× (32→16). Pink-chroma gate rechecked 9/10 (0 pink). No 05iu restamp needed. Kid-plain: balls look sharp like other 2× props. |
 
 ## Queued 9/4 evening (Darren asks)
 

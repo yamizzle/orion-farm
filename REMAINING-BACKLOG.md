@@ -17,8 +17,8 @@ Format: `Priority | Status | Title | note`
 
 ## Queued 9/7 — Darren asks
 
-- **High** | Open | Wizard house past the High Peak bear | After the bear: enterable wizard house; talk → magic wand in weapon dock (sword/bow slot); holding wand shows wizard robes on Orion. Imagine art. Never START OVER.
-- **Medium** | Done 9/8 farm live 05iq | Kick balls / kickables → 2× graphics | BUILD 20260905iq dense 2× playBall+kickCart; farm kickball LIVE PASS 9/8 pm (+ STILL PASS 9/9 am). Town kickCart still lightly unverified.
+- **High** | Local 9/10 05it | Wizard house past the High Peak bear | BUILD 20260905it: house + wizard + wand dock + robes overlay; Imagine unavailable → dense 2× BOX art; pink-chroma PASS. **Needs live.** Never START OVER.
+- **Medium** | Done 9/8 farm live 05iq | Kick balls / kickables → 2× graphics | BUILD 20260905iq dense 2× playBall+kickCart; farm kickball LIVE PASS 9/8–9/10. No 05iu restamp (already Done).
 
 ## Queued 9/4 evening — still remaining
 
