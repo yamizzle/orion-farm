@@ -17,7 +17,7 @@ Format: `Priority | Status | Title | note`
 
 ## Queued 9/10 — Darren asks (past High Peak bear)
 
-- **High** | Open | River + fell-tree bridge | Mountain scene; river blocks path; chop tallest riverside tree → log bridge.
+- **High** | Done Local 9/11 05iy | River + fell-tree bridge | BUILD 20260905iy: High Peak E–W river; chop riverside giant → fall → logBridge; wizard north bank. **Needs live.**
 - **High** | Open | Abandoned cabin across river | Cabin like home (bed/stove/chest/craft); sleep; **save bed moves here**.
 - **High** | Open | Giant-tree forest + torch + blue mushroom | North of cabin: skyscraper forest, branch+moss torch light, pick glowing blue mushroom, plant by cabin; grows ~5 ft/day off-screen tall.
 

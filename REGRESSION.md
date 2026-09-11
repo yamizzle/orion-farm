@@ -1,5 +1,8 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905iy (Local 9/11) — High Peak river + fell-tree log bridge
+HIGH_PEAK_ROWS 52; bear ty 32; E–W river blocks (`TOO WET`) until `bridgePine` chop → fall anim → `logBridge` + `found.logBridge` forever; tall grove scenery; wizard north bank after bear clear + bridge. Bear grilled-swordfish feed unchanged. Pink gate PASS; atlas 1477. Never START OVER.
+
 ## BUILD 20260905ix (Local 9/11) — grilled golden swordfish distinct + bear-only
 Dense sword+sparkle tray icon (not cookedFish lookalike); animated twinkle overlay; cannot eat grilled golden swordfish (bear feed only); bag tip FEEDS THE SLEEPY BEAR. Frozen DAY_MS/walk/Orion/grass/evening.
 
@@ -70,6 +73,8 @@ Status column: **KEEP** = still required in new builds.
 | After rocks clear: **secret mountain mine** mouth on cleared path; walk/tap/Space enter; OUT back to peak; save-safe loot flags | 20260905hl | KEEP |
 | Summit mountain mine polish: denser crystals (glow+sparkle+toast), kickable carts (CART/CLANK), 3 chests with gems/ore/gold/bars; OUT still labeled; enter/OUT peak keep | 20260905hu | KEEP |
 | Mountain-mine north exit → **HIGH PEAK**; sleepy bear blocks path; only grilled golden swordfish feeds / clears path; bearFed+pathClear save; Jobs tips A BIGGER PEAK OPENS / THE BEAR IS SLEEPY / GRILL A GOLDEN SWORDFISH; OUT still returns to old peak | 20260905hw | KEEP |
+| High Peak **river** E–W hard-blocks until riverside `bridgePine` axe-chop → fall anim → walkable `logBridge`; `found.logBridge` persists forever (never START OVER); scenery `peakGiant` not choppable | 20260905iy | KEEP |
+| Wizard house on **north bank** past bridge; only after bearFed/pathClear + bridge crossable; Jobs CHOP THE TALL TREE BY THE RIVER / VISIT THE WIZARD HOUSE; bear grilled-swordfish feed unchanged | 20260905iy | KEEP |
 | HIGH PEAK ground + bear are **Imagine stamps** (flat 16px rock/dirt path tiles — not postage-stamp peakMap crops; dense 2× true sleeping-pose sleepingBear; Imagine pines — no code checker / oval / triangle paint) | 20260905hz + 20260905hy | KEEP |
 | PEAK ground is **tiles-only** (warm brown dirt path on walk mask + calm pale snow-rock off-path) + smashable rock **props** never painted-in; clearing leaves clean path (no scrub scar / busy stripe checker); `peakRocksCleared` household save kept | 20260905ib | KEEP |
 | Mine OUT/UP findable (bobbing gold labels + Jobs tip); pad must not cover OUT | 20260905bx + 31t | KEEP |

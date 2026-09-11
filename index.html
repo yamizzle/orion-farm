@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ix";
-  var ASSET_REV = "464566-ix";
+  var BUILD = "20260905iy";
+  var ASSET_REV = "464567-iy";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
   var PIXEL_FONT_READY = false;
@@ -444,6 +444,9 @@
           loadImage("assets/tiles/oceanMap.png").then(function (im) { Assets.oceanMap = im; }).catch(function () {}),
           loadImage("assets/props/peakRocks.png").then(function (im) { Assets.peakRocks = im; }).catch(function () {}),
           loadImage("assets/props/sleepingBear.png").then(function (im) { Assets.sleepingBear = im; }).catch(function () {}),
+          loadImage("assets/props/peakGiant.png").then(function (im) { Assets.peakGiant = im; }).catch(function () {}),
+          loadImage("assets/props/bridgePine.png").then(function (im) { Assets.bridgePine = im; }).catch(function () {}),
+          loadImage("assets/props/logBridge.png").then(function (im) { Assets.logBridge = im; }).catch(function () {}),
           loadImage("assets/tiles/highPeakMap.png").then(function (im) { Assets.highPeakMap = im; }).catch(function () {}),
           loadImage("assets/props/caveMouth.png").then(function (im) { Assets.caveMouth = im; }).catch(function () {}),
           loadImage("assets/props/caveStairs.png").then(function (im) { Assets.caveStairs = im; }).catch(function () {}),
@@ -720,11 +723,17 @@
   /* 20260905hw: north cave in summit mine → even larger peak beyond */
   var mountainMineHighAt = { tx: 9, ty: 2 };
   var HIGH_PEAK_COLS = 48;
-  var HIGH_PEAK_ROWS = 36;
-  var highPeakLand = { tx: 24, ty: 32 };
-  var highPeakCaveAt = { tx: 24, ty: 33 };
-  var highPeakBearAt = { tx: 24, ty: 16 };
-  /* 20260905iu: wizard house past the sleepy bear (summit clearing) */
+  var HIGH_PEAK_ROWS = 52;
+  var highPeakLand = { tx: 24, ty: 48 };
+  var highPeakCaveAt = { tx: 24, ty: 49 };
+  var highPeakBearAt = { tx: 24, ty: 32 };
+  /* 20260905iy: river E-W + fell-tree bridge; wizard on north bank */
+  var highPeakRiverTy0 = 8;
+  var highPeakRiverTy1 = 10;
+  var bridgePineAt = { tx: 26, ty: 11 };
+  var logBridgeAt = { tx: 23, ty: 10 };
+  var bridgeFall = null;
+  /* 20260905iu/iy: wizard house on north bank past the river */
   var WIZARD_HOUSE_COLS = 16;
   var WIZARD_HOUSE_ROWS = 10;
   var wizardHouseAt = { tx: 21, ty: 1 };
@@ -785,7 +794,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false, bearFed: false, pathClear: false, wizardMet: false, wand: false, oceanCatchesNoGolden: 0 };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false, bearFed: false, pathClear: false, logBridge: false, wizardMet: false, wand: false, oceanCatchesNoGolden: 0 };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -2631,7 +2640,7 @@
     rec = { cols: COLS, rows: ROWS, ground: GROUND, props: props };
     if (currentScene === "house") rec.houseTier = houseTier | 0;
     if (currentScene === "ocean") rec.boatDock = { tx: dockTx, ty: dockTy };
-    if (currentScene === "highPeak") rec.artRev = "05hz";
+    if (currentScene === "highPeak") rec.artRev = "05iy";
     if (currentScene === "peak") rec.artRev = "05ib";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
@@ -2901,9 +2910,18 @@
       }
       if (found.pathClear && (!_hasBear || !_bearAside)) cached = null;
       if (!found.pathClear && (!_hasBear || _bearAside)) cached = null;
+      var _hasBridge = false, _hasPine = false, _bi;
+      for (_bi = 0; _bi < cached.props.length; _bi++) {
+        if (!cached.props[_bi]) continue;
+        if (cached.props[_bi].kind === "logBridge") _hasBridge = true;
+        if (cached.props[_bi].kind === "bridgePine") _hasPine = true;
+      }
+      if (cached && found.logBridge && !_hasBridge) cached = null;
+      if (cached && !found.logBridge && _hasBridge) cached = null;
+      if (cached && !found.logBridge && !_hasPine) cached = null;
     }
-    /* 20260905hz: bust pre-flat-tile highPeak cache (postage-stamp peakMap era) */
-    if (name === "highPeak" && cached && (cached.artRev || "") !== "05hz") {
+    /* 20260905iy: bust pre-river highPeak cache */
+    if (name === "highPeak" && cached && (cached.artRev || "") !== "05iy") {
       cached = null;
     }
     /* 20260905ib: bust pre-dirt-ribbon peak cache (noisy tan/stripe/white era) */
@@ -4316,8 +4334,24 @@
       ".....................fffffff....................",
       ".......................fff......................",
       ".......................fff......................",
+      "..wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww..",
+      "..wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww..",
+      "..wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww..",
       ".......................fff......................",
       ".......................fff......................",
+      "......................fff.......................",
+      ".....................fff........................",
+      "....................fff.........................",
+      "...................fff..........................",
+      "....................fff.........................",
+      ".....................fff........................",
+      "......................fff.......................",
+      ".......................fff......................",
+      "........................fff.....................",
+      ".......................fff......................",
+      "......................fff.......................",
+      ".....................fff........................",
+      "......................fff.......................",
       ".......................fff......................",
       "........................fff.....................",
       ".......................fff......................",
@@ -4350,11 +4384,14 @@
       row = [];
       for (x = 0; x < cols; x++) {
         ch = (walk[y] && walk[y].charAt(x)) || ".";
-        row[x] = (ch === "f") ? "f" : "y";
+        if (ch === "f") row[x] = "f";
+        else if (ch === "w") row[x] = "w";
+        else row[x] = "y";
       }
       g[y] = row;
     }
     if (found.pathClear) applyHighPeakPathOpen(g);
+    if (found.logBridge) applyLogBridgeOpen(g);
     return g;
   }
 
@@ -4363,10 +4400,10 @@
     if (!g) return;
     /* open the bear choke so kids can walk past after grilled swordfish */
     cells = [
-      [22, 15], [23, 15], [24, 15], [25, 15], [26, 15],
-      [22, 16], [23, 16], [24, 16], [25, 16], [26, 16],
-      [22, 17], [23, 17], [24, 17], [25, 17], [26, 17],
-      /* 20260905iu: stoop + approach for wizard house on summit clearing */
+      [22, 31], [23, 31], [24, 31], [25, 31], [26, 31],
+      [22, 32], [23, 32], [24, 32], [25, 32], [26, 32],
+      [22, 33], [23, 33], [24, 33], [25, 33], [26, 33],
+      /* 20260905iy: stoop + approach for wizard house on north bank */
       [22, 6], [23, 6], [24, 6], [25, 6],
       [22, 7], [23, 7], [24, 7], [25, 7]
     ];
@@ -4388,22 +4425,55 @@
     buildSolid();
   }
 
+  function applyLogBridgeOpen(g) {
+    var cells, i, tx, ty, row;
+    if (!g) return;
+    cells = [
+      [23, 8], [24, 8], [25, 8],
+      [23, 9], [24, 9], [25, 9],
+      [23, 10], [24, 10], [25, 10],
+      [23, 11], [24, 11], [25, 11]
+    ];
+    for (i = 0; i < cells.length; i++) {
+      tx = cells[i][0];
+      ty = cells[i][1];
+      if (ty < 0 || ty >= g.length) continue;
+      row = g[ty];
+      if (!row || tx < 0 || tx >= row.length) continue;
+      row[tx] = "f";
+    }
+  }
+
+  function openLogBridgeLive() {
+    applyLogBridgeOpen(GROUND);
+    if (sceneCache && sceneCache.highPeak && sceneCache.highPeak.ground) {
+      applyLogBridgeOpen(sceneCache.highPeak.ground);
+    }
+    buildSolid();
+  }
+
   function buildHighPeakProps() {
-    /* 20260905hx/hz: Imagine pine props (not code triangles); map is flat rock+dirt stamps */
+    /* 20260905iy: tall grove + river bridge pine; pines along trail; wizard north bank */
     var list = [
       { kind: "caveMouth", tx: highPeakCaveAt.tx, ty: highPeakCaveAt.ty, highPeakGate: true },
-      { kind: "peakSign", tx: 22, ty: 34 },
-      { kind: "pine", tx: 18, ty: 30 }, { kind: "pine", tx: 29, ty: 30 },
-      { kind: "pine", tx: 17, ty: 26 }, { kind: "pine", tx: 30, ty: 25 },
-      { kind: "pine", tx: 16, ty: 21 }, { kind: "pine", tx: 31, ty: 20 },
-      { kind: "pine", tx: 15, ty: 14 }, { kind: "pine", tx: 32, ty: 13 },
-      { kind: "pine", tx: 19, ty: 10 }, { kind: "pine", tx: 28, ty: 9 },
-      { kind: "pine", tx: 14, ty: 34 }, { kind: "pine", tx: 33, ty: 33 },
-      { kind: "pine", tx: 18, ty: 7 }, { kind: "pine", tx: 31, ty: 6 }
+      { kind: "peakSign", tx: 22, ty: 50 },
+      { kind: "peakGiant", tx: 18, ty: 14 }, { kind: "peakGiant", tx: 30, ty: 15 },
+      { kind: "peakGiant", tx: 16, ty: 18 }, { kind: "peakGiant", tx: 32, ty: 19 },
+      { kind: "peakGiant", tx: 15, ty: 22 }, { kind: "peakGiant", tx: 33, ty: 23 },
+      { kind: "peakGiant", tx: 19, ty: 26 }, { kind: "peakGiant", tx: 29, ty: 27 },
+      { kind: "pine", tx: 18, ty: 46 }, { kind: "pine", tx: 29, ty: 46 },
+      { kind: "pine", tx: 17, ty: 42 }, { kind: "pine", tx: 30, ty: 41 },
+      { kind: "pine", tx: 16, ty: 37 }, { kind: "pine", tx: 31, ty: 36 },
+      { kind: "pine", tx: 14, ty: 50 }, { kind: "pine", tx: 33, ty: 49 },
+      { kind: "pine", tx: 20, ty: 29 }, { kind: "pine", tx: 28, ty: 30 }
     ];
+    if (found.logBridge) {
+      list.push({ kind: "logBridge", tx: logBridgeAt.tx, ty: logBridgeAt.ty });
+    } else {
+      list.push({ kind: "bridgePine", tx: bridgePineAt.tx, ty: bridgePineAt.ty });
+    }
     if (found.pathClear || found.bearFed) {
       list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx + 3, ty: highPeakBearAt.ty, aside: true });
-      /* 20260905iu: wizard house appears once the bear path is open */
       list.push({ kind: "wizardHouse", tx: wizardHouseAt.tx, ty: wizardHouseAt.ty });
     } else {
       list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx, ty: highPeakBearAt.ty });
@@ -4596,6 +4666,87 @@
     startWalk(player, path, 3.5);
   }
 
+
+  /* 20260905iy: chop riverside giant → fall across river → walkable log bridge */
+  function startBridgePineFall(prop) {
+    var i;
+    if (!prop || found.logBridge || bridgeFall) return;
+    bridgeFall = {
+      tx: prop.tx,
+      ty: prop.ty,
+      t: 0,
+      dur: 1000,
+      x: prop.tx * TILE + 8,
+      y: prop.ty * TILE + 8
+    };
+    i = PROPS.indexOf(prop);
+    if (i >= 0) PROPS.splice(i, 1);
+    buildSolid();
+    spawnTreeFallPuff(prop.tx * TILE + 8, prop.ty * TILE + 4);
+    spawnGroundLoot("wood", prop.tx, prop.ty, 3);
+    spawnGroundLoot("pinecone", prop.tx, prop.ty, 1);
+    showLineNote("TIMBER!");
+    playSfx("toast");
+  }
+
+  function completeLogBridge() {
+    var i, has = false;
+    found.logBridge = true;
+    bridgeFall = null;
+    for (i = 0; i < PROPS.length; i++) {
+      if (PROPS[i] && PROPS[i].kind === "bridgePine") {
+        PROPS.splice(i, 1);
+        break;
+      }
+    }
+    for (i = 0; i < PROPS.length; i++) {
+      if (PROPS[i] && PROPS[i].kind === "logBridge") { has = true; break; }
+    }
+    if (!has) PROPS.push({ kind: "logBridge", tx: logBridgeAt.tx, ty: logBridgeAt.ty });
+    if (sceneCache && sceneCache.highPeak && sceneCache.highPeak.props) {
+      sceneCache.highPeak.props = PROPS.slice();
+      if (sceneCache.highPeak.ground) applyLogBridgeOpen(sceneCache.highPeak.ground);
+    }
+    openLogBridgeLive();
+    showLineNote("LOG BRIDGE!");
+    playSfx("toast");
+    if (player) spawnSparks(logBridgeAt.tx * TILE + 8, logBridgeAt.ty * TILE - 4);
+    unlocked.logBridgeTip = true;
+    persistSave();
+  }
+
+  function updateBridgeFall(dt) {
+    if (!bridgeFall) return;
+    bridgeFall.t += dt;
+    if (bridgeFall.t >= bridgeFall.dur) completeLogBridge();
+  }
+
+  function drawBridgeFall(g) {
+    var img, ang, cx, cy, p, dw, dh, smooth;
+    if (!bridgeFall) return;
+    p = Math.min(1, bridgeFall.t / bridgeFall.dur);
+    /* rotate from upright toward north (fall across river) */
+    ang = -p * (Math.PI / 2);
+    img = Assets.bridgePine || Assets.peakGiant || Assets.pine;
+    cx = bridgeFall.x;
+    cy = bridgeFall.y;
+    dw = 48; dh = 128;
+    g.save();
+    g.translate(cx, cy);
+    g.rotate(ang);
+    if (img) {
+      smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(img, -dw / 2, -dh, dw, dh);
+      g.imageSmoothingEnabled = smooth;
+    } else {
+      g.fillStyle = "#2A6A22";
+      g.fillRect(-10, -dh, 20, dh - 8);
+      g.fillStyle = "#5A3A18";
+      g.fillRect(-3, -12, 6, 12);
+    }
+    g.restore();
+  }
 
   /* 20260905iu: wizard house past the High Peak bear */
   function isWizardHouseEntrance(tx, ty) {
@@ -6919,6 +7070,10 @@
         block(p.tx - 2, p.ty);
         block(p.tx - 1, p.ty);
         block(p.tx + 1, p.ty);
+      } else if (p.kind === "peakGiant" || p.kind === "bridgePine") {
+        block(p.tx, p.ty);
+      } else if (p.kind === "logBridge") {
+        /* walkable fallen trunk — no solid */
       } else if (
         p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "palm" ||
         p.kind === "stump" || p.kind === "berryBush" || p.kind === "well" || p.kind === "rock" ||
@@ -7737,7 +7892,7 @@
 
   function isWoodChop(p) {
     /* 20260905bk: fences are pick-up builds, not multi-hit wood chops. */
-    return p && (p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "palm" || p.kind === "stump" || p.kind === "log");
+    return p && (p.kind === "tree" || p.kind === "pine" || p.kind === "oak" || p.kind === "birch" || p.kind === "palm" || p.kind === "bridgePine" || p.kind === "stump" || p.kind === "log");
   }
 
   function isHarvestable(p) {
@@ -10035,7 +10190,7 @@
 
   function nodeHurtStage(p) {
     var rec, max, hp;
-    if (!p || (p.kind !== "tree" && p.kind !== "pine" && p.kind !== "oak" && p.kind !== "birch" && p.kind !== "palm" && p.kind !== "rock" && p.kind !== "peakRocks")) return 0;
+    if (!p || (p.kind !== "tree" && p.kind !== "pine" && p.kind !== "oak" && p.kind !== "birch" && p.kind !== "palm" && p.kind !== "bridgePine" && p.kind !== "rock" && p.kind !== "peakRocks")) return 0;
     rec = harvestNodes[nodeKey(liveHarvestScene(), p.tx, p.ty)];
     if (!rec || rec.state !== "hurt") return 0;
     max = rec.maxHp || nodeMaxHp(p);
@@ -10072,7 +10227,7 @@
   function treeSeedKind(prop) {
     var k;
     if (!prop) return "";
-    if (prop.kind === "pine") return "pinecone";
+    if (prop.kind === "pine" || prop.kind === "bridgePine") return "pinecone";
     if (prop.kind === "palm") return "coconut";
     if (prop.kind === "oak" || prop.kind === "tree" || prop.kind === "birch") return "acorn";
     if (prop.kind === "stump") {
@@ -10162,6 +10317,11 @@
       spawnGroundLoot("wood", prop.tx, prop.ty, harvestDropFor(prop));
       rememberHarvest(prop, stumpWas, "gone");
       persistSave();
+      return;
+    }
+    if (prop.kind === "bridgePine") {
+      /* 20260905iy: final chop starts fall anim across the river → log bridge */
+      startBridgePineFall(prop);
       return;
     }
     if (prop.kind === "tree" || prop.kind === "pine" || prop.kind === "oak" || prop.kind === "birch" || prop.kind === "palm") {
@@ -10876,6 +11036,7 @@
         found.mtChest3 = !!data.found.mtChest3;
         found.bearFed = !!data.found.bearFed;
         found.pathClear = !!data.found.pathClear || !!data.found.bearFed;
+        found.logBridge = !!data.found.logBridge;
         found.wizardMet = !!data.found.wizardMet;
         found.wand = !!data.found.wand;
         /* 20260905iw: ocean golden-swordfish soft pity (never wipe on missing) */
@@ -14761,8 +14922,11 @@
       if (hasGrilledGoldenSwordfish()) return "FEED THE SLEEPY BEAR.";
       return "GRILL A GOLDEN SWORDFISH.";
     }
-    /* 20260905iu: past the bear — visit the wizard for a magic wand */
-    if (found.pathClear && !wandOwned) {
+    /* 20260905iy: past the bear — chop riverside giant for a log bridge, then wizard */
+    if (found.pathClear && !found.logBridge) {
+      return "CHOP THE TALL TREE BY THE RIVER.";
+    }
+    if (found.pathClear && found.logBridge && !wandOwned) {
       if (currentScene === "highPeak" || currentScene === "wizardHouse") return "VISIT THE WIZARD HOUSE.";
       return "VISIT THE WIZARD HOUSE.";
     }
@@ -22285,6 +22449,8 @@
     if (p.kind === "townHouseA" || p.kind === "townHouseC") return p.ty * TILE + 80;
     if (p.kind === "townHouseB" || p.kind === "townHouseD") return p.ty * TILE + 64;
     if (p.kind === "wizardHouse") return p.ty * TILE + 80;
+    if (p.kind === "peakGiant" || p.kind === "bridgePine") return p.ty * TILE + 24;
+    if (p.kind === "logBridge") return p.ty * TILE + 8;
     if (p.kind === "fountain") return p.ty * TILE + 28;
     if (p.kind === "statue") return p.ty * TILE + 28;
     if (p.kind === "counter") return p.ty * TILE + 20;
@@ -22366,6 +22532,8 @@
     }
     if (p.kind === "tree") return { x: p.tx * TILE - 16, y: p.ty * TILE - 48, w: 48, h: 64 };
     if (p.kind === "pine") return { x: p.tx * TILE - 12, y: p.ty * TILE - 56, w: 40, h: 72 };
+    if (p.kind === "peakGiant" || p.kind === "bridgePine") return { x: p.tx * TILE - 16, y: p.ty * TILE - 112, w: 48, h: 128 };
+    if (p.kind === "logBridge") return { x: p.tx * TILE - 8, y: p.ty * TILE - 56, w: 48, h: 72 };
     if (p.kind === "oak") return { x: p.tx * TILE - 20, y: p.ty * TILE - 48, w: 56, h: 64 };
     if (p.kind === "birch") return { x: p.tx * TILE - 12, y: p.ty * TILE - 48, w: 40, h: 64 };
     if (p.kind === "palm") return { x: p.tx * TILE - 12, y: p.ty * TILE - 48, w: 40, h: 64 };
@@ -22845,6 +23013,16 @@
       if (currentScene === "mountainMine") drawShaftLabel(g, p, p.highPeak ? "PEAK" : "OUT");
       if (currentScene === "peak" && p.peakMine) drawShaftLabel(g, p, "MINE");
       if (currentScene === "highPeak" && p.highPeakGate) drawShaftLabel(g, p, "MINE");
+    } else if (p.kind === "peakGiant" || p.kind === "bridgePine") {
+      var _tg = (p.kind === "bridgePine" ? (Assets.bridgePine || Assets.peakGiant) : Assets.peakGiant) || Assets.pine;
+      if (!drawStandSprite(g, _tg, x, y, 48, 128)) {
+        drawPine(g, x, y, nodeHurtStage(p), p);
+      }
+    } else if (p.kind === "logBridge") {
+      if (!drawStandSprite(g, Assets.logBridge, x + 16, y, 40, 64)) {
+        fill(g, x - 4, y - 40, 40, 14, "#6D4427");
+        fill(g, x - 2, y - 38, 36, 4, "#C47A38");
+      }
     } else if (p.kind === "sleepingBear") {
       drawSleepingBear(g, p, x, y);
     } else if (p.kind === "caveStairs") {
@@ -25769,6 +25947,7 @@
       g.save();
       g.translate(-camX, -camY);
       drawActors(g);
+      drawBridgeFall(g);
       drawBirdFly(g);
       drawPickups(g);
       drawArrows(g);
@@ -25781,6 +25960,7 @@
       drawBirdRideOverlay(g);
     } else {
       drawActors(g);
+      drawBridgeFall(g);
       drawBirdFly(g);
       drawPickups(g);
       drawArrows(g);
@@ -27096,6 +27276,7 @@ if (currentScene === "ocean") goExitOcean();
       updatePickups(dt);
       updateGroundLoot(dt);
       updateFx(dt);
+      updateBridgeFall(dt);
       updateFestConfetti(dt);
       updateTiredZs(dt);
       tick += dt;
@@ -27886,7 +28067,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ix", BUILD);
+      ok("BUILD", BUILD === "20260905iy", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -30391,13 +30572,16 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("highPeakPathOpen", !!_bear && !!_bear.aside && walkable(highPeakBearAt.tx, highPeakBearAt.ty), "open");
       exitHighPeak();
       ok("highPeakExitMine", currentScene === "mountainMine" && player.ty >= mountainMineHighAt.ty + 2, player.tx + "," + player.ty);
-      /* 20260905iu: wizard house past bear → wand → robes overlay flag */
+      /* 20260905iu/iy: wizard house past bear → wand → robes overlay flag (bridge open for path) */
       found.bearFed = true;
       found.pathClear = true;
+      found.logBridge = true;
+      if (sceneCache) sceneCache.highPeak = null;
       enterHighPeak();
       ok("wizardHouseProp", !!PROPS.some(function (p) { return p && p.kind === "wizardHouse"; }), "prop");
       ok("wizardHouseStoopWalk", walkable(wizardHouseIn.tx, wizardHouseIn.ty), wizardHouseIn.tx + "," + wizardHouseIn.ty);
       enterWizardHouse();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
       ok("wizardHouseScene", currentScene === "wizardHouse", currentScene);
       wandOwned = false;
       found.wand = false;
@@ -30408,14 +30592,35 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("wandSelected", selectedIs("wand"), String(selectedSlot));
       ok("wizardRobesHeld", !!(wandOwned && selectedIs("wand")), "robes gate");
       exitWizardHouse();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
       ok("wizardHouseExitPeak", currentScene === "highPeak", currentScene);
+      /* 20260905iy: river blocks until log bridge; chop bridgePine → walkable */
+      found.bearFed = true;
+      found.pathClear = true;
+      found.logBridge = false;
+      if (sceneCache) sceneCache.highPeak = null;
+      applyScene("highPeak");
+      ok("highPeakRiverBlock", !walkable(24, 9) && cell(24, 9) === "w", cell(24, 9));
+      ok("highPeakBridgePine", !!PROPS.some(function (p) { return p && p.kind === "bridgePine"; }), "pine");
+      ok("highPeakWizardNorth", wizardHouseAt.ty <= 2 && highPeakBearAt.ty === 32, wizardHouseAt.ty + "/" + highPeakBearAt.ty);
+      var _bp = null, _bpi;
+      for (_bpi = 0; _bpi < PROPS.length; _bpi++) {
+        if (PROPS[_bpi] && PROPS[_bpi].kind === "bridgePine") { _bp = PROPS[_bpi]; break; }
+      }
+      if (_bp) startBridgePineFall(_bp);
+      if (bridgeFall) { bridgeFall.t = bridgeFall.dur; updateBridgeFall(0); }
+      ok("highPeakLogBridge", !!(found.logBridge && walkable(24, 9)), "bridge=" + found.logBridge + " walk=" + walkable(24, 9));
+      ok("highPeakBridgeProp", !!PROPS.some(function (p) { return p && p.kind === "logBridge"; }), "log");
       found.bearFed = false;
       found.pathClear = false;
+      found.logBridge = false;
       found.wizardMet = false;
       found.wand = false;
       wandOwned = false;
+      bridgeFall = null;
       if (weaponDock && weaponDock.key === "wand") weaponDock = null;
       inventory.cookedGoldenSwordfish = 0;
+      if (sceneCache) sceneCache.highPeak = null;
       applyScene("peak");
       var pk = nudgeRestoreOffGate(18, 25, "up");
       ok("peakCaveNudge", !!(pk && pk.tx === peakLand.tx && pk.ty === peakLand.ty), pk && (pk.tx + "," + pk.ty));
