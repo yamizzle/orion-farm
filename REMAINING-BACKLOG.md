@@ -15,6 +15,12 @@ Format: `Priority | Status | Title | note`
 - **Low** Closing a panel by tapping the world also walks → **Done 9/5 7:10pm live** (05bc/05be PASS; table was stale “live still needed”).
 - **Critical** Day clock races → **Done 9/10 live 05ir** (9/9 reopen race FIXED live; DAY_MS 480000 / ~8 min/day still Done; gap-discard + realtime budget harden).
 
+## Queued 9/10 — Darren asks (past High Peak bear)
+
+- **High** | Open | River + fell-tree bridge | Mountain scene; river blocks path; chop tallest riverside tree → log bridge.
+- **High** | Open | Abandoned cabin across river | Cabin like home (bed/stove/chest/craft); sleep; **save bed moves here**.
+- **High** | Open | Giant-tree forest + torch + blue mushroom | North of cabin: skyscraper forest, branch+moss torch light, pick glowing blue mushroom, plant by cabin; grows ~5 ft/day off-screen tall.
+
 ## Queued 9/7 — Darren asks
 
 - **High** | Local 9/10 05it | Wizard house past the High Peak bear | BUILD 20260905it: house + wizard + wand dock + robes overlay; Imagine unavailable → dense 2× BOX art; pink-chroma PASS. **Needs live.** Never START OVER.
@@ -82,6 +88,7 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 
 ## Counts
 
+- Queued 9/10 remaining: **3**
 - Queued 9/7 remaining: **1**
 - Queued 9/4 remaining: **3**
 - Playtest active (Critical+High+Medium+Low): **35** (C1 / H8 / M20 / L6)

@@ -437,6 +437,16 @@ Local 9/4 (BUILD 20260904h): dog runs around more inside the house (faster/short
 Local 9/4 (BUILD 20260904g): only one fishing pole (dedupe tray/bag on load/grant); walk into / tap chicken scoots it off the tile. Darren 9/4 asks still Open (dog indoors livelier, boat, bigger ocean, island Diamond Pickaxe, more trees, Pip shop art). Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904f): ocean pier/beach fishing has a 1-in-50 Golden Swordfish (ocean-only; farm ponds unchanged). Sword swing still 300ms. Pip shop art still queued. Household save intact. Never START OVER.
 
+## Queued 9/10 (Darren asks)
+
+Past the High Peak bear / wizard path. Household save; never START OVER. Frozen: Orion art, farm grass0–3, evening color, walk energy, DAY_MS. Imagine art for new scenes/props.
+
+| Priority | Status | Item | Notes |
+| --- | --- | --- | --- |
+| High | Open | River + fell-tree bridge past the bear | New scene further up the mountain: large river blocks the path. Tall trees; chop the **tallest by the river** so it falls across as a **log bridge** you can cross. Kid-plain: cut the big tree by the water so it becomes a bridge. |
+| High | Open | Abandoned cabin across the river | New scene past the log bridge: nice clean abandoned cabin like Orion's house (bed, stove, chest, crafting table). Sleep works here; **save bed moves to this cabin bed** (not the original farm bed). Kid-plain: cozy empty cabin becomes your new save bed. |
+| High | Open | Giant-tree forest + torch + blue mushroom grow | North of abandoned cabin: forest of skyscraper-tall trees. Orion goes deep with a **torch** crafted from branch + moss, lit on fire — torch light burns and illuminates the dark. Dead-end grove of **glowing blue mushrooms**; pick one, plant in dirt patch outside the cabin. Mushroom grows **~5 feet per day**, can grow so tall it goes off-screen. Kid-plain: dark giant forest, torch, plant a glowing mushroom that grows huge each day. |
+
 ## Queued 9/7 (Darren asks)
 
 Past the sleeping bear on High Peak. Household save; never START OVER. Frozen: Orion base art (wizard robes are a held-wand overlay only), farm grass0–3, evening color, walk energy, DAY_MS. Imagine art for house / wizard / wand / robes.
