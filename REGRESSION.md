@@ -1,5 +1,9 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905iw (Local 9/11) — ocean golden swordfish fairer
+Ocean golden roll 1/50→1/20; soft pity `found.oceanCatchesNoGolden` forces golden after 25 ocean catches without one; farm ponds stay oceanOnly-blocked. Save-safe. Story fish for sleepy bear. Frozen DAY_MS/walk/Orion/grass/evening.
+
+
 ## BUILD 20260905iv (Local 9/11) — multi-tab day-clock save harden
 Multi-tab localStorage race: `savedAt` + adopt-ahead on persist; `storage` syncs clock fields; updateClock only when visible + hasFocus. DAY_MS frozen. Autotest stubs. Needs live verify. Never START OVER.
 
@@ -45,6 +49,7 @@ Status column: **KEEP** = still required in new builds.
 | Rideable pier boat: GET IN → row water → **GET OUT** only on sand/pier (TOO DEEP on open water); leave-ocean blocked while aboard | 20260905a | KEEP |
 | Aboard: water taps **row** (not “need a fishing pole”); pole-steal toast must not block rowing | 20260905h | KEEP |
 | **Fish from the boat** when pole is selected (Space/tap water casts ocean fish + rare golden swordfish); without pole, water still rows | 20260905hj | KEEP |
+| Ocean **golden swordfish** roll **1/20** + soft pity after **25** ocean catches without one (`found.oceanCatchesNoGolden`); farm ponds never get it (`oceanOnly`) | 20260905iw | KEEP |
 | **Island boat GET OUT** works on island beach sand/pier (all `f` rowable while aboard); boat docks / stays where you leave it (`boatDock`, `BOAT STAYS HERE.`) | 20260905ad + 20260905bo | KEEP |
 | Hard-refresh mid-row keeps you **aboard** (onBoat persist); island cave refresh does not dump you on the farm | 20260905ef + 20260905eh | KEEP |
 

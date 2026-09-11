@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905iv";
+  var BUILD = "20260905iw";
   var ASSET_REV = "464566-iu";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -785,7 +785,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false, bearFed: false, pathClear: false, wizardMet: false, wand: false };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false, bearFed: false, pathClear: false, wizardMet: false, wand: false, oceanCatchesNoGolden: 0 };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -10853,6 +10853,8 @@
         found.pathClear = !!data.found.pathClear || !!data.found.bearFed;
         found.wizardMet = !!data.found.wizardMet;
         found.wand = !!data.found.wand;
+        /* 20260905iw: ocean golden-swordfish soft pity (never wipe on missing) */
+        found.oceanCatchesNoGolden = Math.max(0, data.found.oceanCatchesNoGolden | 0);
       }
       if (data.ball && typeof data.ball === "object") {
         ball.tx = data.ball.tx | 0;
@@ -17662,9 +17664,14 @@
   }
 
   function pickCatchFish() {
-    var i, total = 0, roll, acc = 0, ocean;
+    var i, total = 0, roll, acc = 0, ocean, pity;
     ocean = !!(fishing && fishing.waterKind === "ocean");
-    if (ocean && Math.random() < 1 / 50) return fishKindById("goldenSwordfish");
+    /* 20260905iw: ocean golden swordfish 1/20 + soft pity after 25 misses (farm ponds stay oceanOnly-blocked) */
+    if (ocean) {
+      pity = found.oceanCatchesNoGolden | 0;
+      if (pity >= 25) return fishKindById("goldenSwordfish");
+      if (Math.random() < 1 / 20) return fishKindById("goldenSwordfish");
+    }
     for (i = 0; i < FISH_KINDS.length; i++) {
       if (FISH_KINDS[i].oceanOnly) continue;
       total += FISH_KINDS[i].weight;
@@ -17730,9 +17737,10 @@
   }
 
   function finishFishingReel() {
-    var fish;
+    var fish, wasOcean;
     if (!fishing) return;
     fish = fishing.fish;
+    wasOcean = fishing.waterKind === "ocean";
     fishing = null;
     player.workTool = "";
     player.swing = 0;
@@ -17741,6 +17749,12 @@
       /* 20260905gi + 20260905hp: pin catch into tray; keep pole selected for another cast
          (empty hand still arms the fish for tray-tap eat / cook tip). */
       if (bagCount(fish.id) >= 1) pinPickupKeepHeld(fish.id);
+      /* 20260905iw: ocean pity — reset on golden, else count toward force at 25 */
+      if (wasOcean) {
+        if (fish.id === "goldenSwordfish") found.oceanCatchesNoGolden = 0;
+        else found.oceanCatchesNoGolden = (found.oceanCatchesNoGolden | 0) + 1;
+        persistSave();
+      }
       if (fish.id === "goldenSwordfish") {
         showLineNote("WOW! A GOLDEN SWORDFISH!");
         /* 20260905dn: special gold sparkle for the rare ocean catch */
@@ -27820,7 +27834,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905iv", BUILD);
+      ok("BUILD", BUILD === "20260905iw", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -30565,6 +30579,32 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       onBoat = false;
       cancelFishing();
       closeDialogue();
+
+      /* 20260905iw: ocean golden swordfish 1/20 + pity@25; farm ponds never roll it */
+      (function () {
+        var _src = Function.prototype.toString.call(pickCatchFish);
+        var _fin = Function.prototype.toString.call(finishFishingReel);
+        var _savedPity, _savedFish, _got, _i, _pondFish, _prevRand, _forced;
+        ok("oceanGoldenRoll1in20", _src.indexOf("1 / 20") >= 0 && _src.indexOf("1 / 50") < 0, "roll");
+        ok("oceanGoldenPity25", _src.indexOf("pity >= 25") >= 0 || _src.indexOf("oceanCatchesNoGolden") >= 0, "pity gate");
+        ok("oceanGoldenPityPersist", _fin.indexOf("oceanCatchesNoGolden") >= 0, "finish pity");
+        ok("oceanGoldenOceanOnly", !!(fishKindById("goldenSwordfish") && fishKindById("goldenSwordfish").oceanOnly), "oceanOnly");
+        _savedPity = found.oceanCatchesNoGolden | 0;
+        _savedFish = fishing;
+        fishing = { waterKind: "ocean" };
+        found.oceanCatchesNoGolden = 25;
+        _forced = pickCatchFish();
+        ok("oceanGoldenPityForce", !!_forced && _forced.id === "goldenSwordfish", _forced && _forced.id);
+        found.oceanCatchesNoGolden = 0;
+        _prevRand = Math.random;
+        Math.random = function () { return 0.99; }; /* miss golden 1/20 */
+        fishing = { waterKind: "pond" };
+        _pondFish = pickCatchFish();
+        ok("pondNeverGoldenSwordfish", !!_pondFish && _pondFish.id !== "goldenSwordfish", _pondFish && _pondFish.id);
+        Math.random = _prevRand;
+        fishing = _savedFish;
+        found.oceanCatchesNoGolden = _savedPity;
+      })();
 
       /* 20260905eh: ocean saveScene stores visible docked boat + boatDock field */
       onBoat = true;
