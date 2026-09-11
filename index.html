@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905it";
-  var ASSET_REV = "464565-it";
+  var BUILD = "20260905iu";
+  var ASSET_REV = "464566-iu";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
   var PIXEL_FONT_READY = false;
@@ -459,7 +459,7 @@
           /* 20260905iq: dense 2× kickballs / kick cart */
           loadImage("assets/props/playBall.png").then(function (im) { Assets.playBall = im; }).catch(function () {}),
           loadImage("assets/props/kickCart.png").then(function (im) { Assets.kickCart = im; }).catch(function () {}),
-          /* 20260905it: wizard house / NPC / wand / robes (standalone dense 2×; no atlas repack) */
+          /* 20260905iu: wizard house / NPC / wand / robes Imagine BOX 2× (was code-BOX 05it) */
           loadImage("assets/props/wizardHouse.png").then(function (im) { Assets.wizardHouse = im; }).catch(function () {}),
           loadImage("assets/actors/wizardNpc.png").then(function (im) { Assets.wizardNpc = im; }).catch(function () {}),
           loadImage("assets/ui/wand.png").then(function (im) { Assets.wand = im; }).catch(function () {}),
@@ -722,7 +722,7 @@
   var highPeakLand = { tx: 24, ty: 32 };
   var highPeakCaveAt = { tx: 24, ty: 33 };
   var highPeakBearAt = { tx: 24, ty: 16 };
-  /* 20260905it: wizard house past the sleepy bear (summit clearing) */
+  /* 20260905iu: wizard house past the sleepy bear (summit clearing) */
   var WIZARD_HOUSE_COLS = 16;
   var WIZARD_HOUSE_ROWS = 10;
   var wizardHouseAt = { tx: 21, ty: 1 };
@@ -2541,7 +2541,7 @@
     ];
   }
 
-  /* 20260905it: cozy wizard tower room past High Peak bear */
+  /* 20260905iu: cozy wizard tower room past High Peak bear */
   function buildWizardHouseGround() {
     var cols = WIZARD_HOUSE_COLS, rows = WIZARD_HOUSE_ROWS;
     var g = [], y, x, row;
@@ -4364,7 +4364,7 @@
       [22, 15], [23, 15], [24, 15], [25, 15], [26, 15],
       [22, 16], [23, 16], [24, 16], [25, 16], [26, 16],
       [22, 17], [23, 17], [24, 17], [25, 17], [26, 17],
-      /* 20260905it: stoop + approach for wizard house on summit clearing */
+      /* 20260905iu: stoop + approach for wizard house on summit clearing */
       [22, 6], [23, 6], [24, 6], [25, 6],
       [22, 7], [23, 7], [24, 7], [25, 7]
     ];
@@ -4401,7 +4401,7 @@
     ];
     if (found.pathClear || found.bearFed) {
       list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx + 3, ty: highPeakBearAt.ty, aside: true });
-      /* 20260905it: wizard house appears once the bear path is open */
+      /* 20260905iu: wizard house appears once the bear path is open */
       list.push({ kind: "wizardHouse", tx: wizardHouseAt.tx, ty: wizardHouseAt.ty });
     } else {
       list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx, ty: highPeakBearAt.ty });
@@ -4532,7 +4532,7 @@
       bear.tx = highPeakBearAt.tx + 3;
       bear.ty = highPeakBearAt.ty;
       openHighPeakPathLive();
-      /* 20260905it: house appears as soon as the path clears (no re-enter needed) */
+      /* 20260905iu: house appears as soon as the path clears (no re-enter needed) */
       (function () {
         var i, has = false;
         for (i = 0; i < PROPS.length; i++) {
@@ -4595,7 +4595,7 @@
   }
 
 
-  /* 20260905it: wizard house past the High Peak bear */
+  /* 20260905iu: wizard house past the High Peak bear */
   function isWizardHouseEntrance(tx, ty) {
     return currentScene === "highPeak" && (found.pathClear || found.bearFed) &&
       tx === wizardHouseIn.tx && ty === wizardHouseIn.ty;
@@ -6851,7 +6851,7 @@
           for (x = 0; x < 5; x++) block(p.tx + x, p.ty + y);
         }
       } else if (p.kind === "wizardHouse") {
-        /* 20260905it: 4×5 footprint; leave stoop tile walkable */
+        /* 20260905iu: 4×5 footprint; leave stoop tile walkable */
         for (y = 0; y < 5; y++) {
           for (x = 0; x < 4; x++) {
             if (p.tx + x === wizardHouseIn.tx && p.ty + y === wizardHouseIn.ty) continue;
@@ -14665,7 +14665,7 @@
       if (hasGrilledGoldenSwordfish()) return "FEED THE SLEEPY BEAR.";
       return "GRILL A GOLDEN SWORDFISH.";
     }
-    /* 20260905it: past the bear — visit the wizard for a magic wand */
+    /* 20260905iu: past the bear — visit the wizard for a magic wand */
     if (found.pathClear && !wandOwned) {
       if (currentScene === "highPeak" || currentScene === "wizardHouse") return "VISIT THE WIZARD HOUSE.";
       return "VISIT THE WIZARD HOUSE.";
@@ -18080,7 +18080,7 @@
   }
 
   function startWandSwing() {
-    /* 20260905it: wand uses the sword swing path (canSwordSwing + drawSwordArc wand art) */
+    /* 20260905iu: wand uses the sword swing path (canSwordSwing + drawSwordArc wand art) */
     return startSwordSwing();
   }
 
@@ -21819,7 +21819,7 @@
     drawShadow(g, player.x, player.y, 5);
     if (!(iFrames > 0 && ((tick / 80) | 0) % 2 === 0)) {
       Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
-      /* 20260905it: wizard robes overlay while wand held — never replaces Orion base art */
+      /* 20260905iu: wizard robes overlay while wand held — never replaces Orion base art */
       if (wandOwned && selectedIs("wand") && Assets.wizardRobes) {
         var _rb = Assets.wizardRobes, _rs = g.imageSmoothingEnabled, _riw, _rih;
         _riw = _rb.naturalWidth || _rb.width || 32;
@@ -22526,7 +22526,7 @@
     if (p.kind === "house") {
       Assets.draw(g, "house", x, y);
     } else if (p.kind === "wizardHouse") {
-      /* 20260905it: dense 2× house 128×160 → 64×80 logical (oy -16 like town houses) */
+      /* 20260905iu: dense 2× house 128×160 → 64×80 logical (oy -16 like town houses) */
       if (Assets.wizardHouse) {
         var _wh = Assets.wizardHouse, _ws = g.imageSmoothingEnabled, _iw, _ih;
         _iw = _wh.naturalWidth || _wh.width || 128;
@@ -27728,7 +27728,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905it", BUILD);
+      ok("BUILD", BUILD === "20260905iu", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -30141,7 +30141,7 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("highPeakPathOpen", !!_bear && !!_bear.aside && walkable(highPeakBearAt.tx, highPeakBearAt.ty), "open");
       exitHighPeak();
       ok("highPeakExitMine", currentScene === "mountainMine" && player.ty >= mountainMineHighAt.ty + 2, player.tx + "," + player.ty);
-      /* 20260905it: wizard house past bear → wand → robes overlay flag */
+      /* 20260905iu: wizard house past bear → wand → robes overlay flag */
       found.bearFed = true;
       found.pathClear = true;
       enterHighPeak();

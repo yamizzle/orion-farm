@@ -1,5 +1,9 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905iu (Local 9/11) — wizard Imagine regen
+Graphics audit: replace 05it code-BOX wizardHouse/wizardNpc/wand/wizardRobes with Imagine + BOX/AREA dense 2×. Pink gate PASS. No atlas repack. Frozen assets untouched.
+
+
 **Rule:** Skim this before every ship. Never revert these without Darren saying so.
 These are **HITL bugs Darren manually hit or called out** — not every backlog ship note.
 Source: live reports + Local ship notes that closed those reports. Full history stays in `BACKLOG.md`.
