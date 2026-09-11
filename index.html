@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905iw";
-  var ASSET_REV = "464566-iu";
+  var BUILD = "20260905ix";
+  var ASSET_REV = "464566-ix";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
   var PIXEL_FONT_READY = false;
@@ -6036,7 +6036,32 @@
     px(g, x + 13, y + 7, "#C45A38");
   }
 
+
+  /* 20260905ix: 2–3 twinkling pixels off game clock so grilled golden reads special even at 16×16 */
+  function paintCookedGoldenSwordfishSparkles(g, x, y) {
+    var t = (typeof tick === "number" ? tick : 0) | 0;
+    var phase = ((t / 180) | 0) % 3;
+    var cols = ["#FFFDF4", "#FFE9A0", "#FFFFFF"];
+    var spots = [
+      [4, 3],
+      [10, 4],
+      [13, 6]
+    ];
+    var i, s;
+    for (i = 0; i < spots.length; i++) {
+      if (((phase + i) % 3) === 2) continue; /* one off each beat */
+      s = spots[i];
+      px(g, x + s[0], y + s[1], cols[(phase + i) % cols.length]);
+    }
+  }
+
   function paintFishIcon(g, x, y, id) {
+    /* 20260905ix: grilled golden swordfish keeps own atlas icon + twinkle — never cookedFish lookalike */
+    if (id === "cookedGoldenSwordfish") {
+      drawUiIcon(g, "cookedGoldenSwordfish", x, y);
+      paintCookedGoldenSwordfishSparkles(g, x, y);
+      return;
+    }
     if (drawUiIcon(g, id, x, y)) return;
     var body, belly, fin, eye, cooked, rawId, ck;
     cooked = false;
@@ -19553,8 +19578,11 @@
   }
 
   function eatCookedFish() {
-    var fk = cookedFishKindById(selectedKey());
+    var key = selectedKey();
+    var fk = cookedFishKindById(key);
     if (!fk) return false;
+    /* 20260905ix: grilled golden swordfish is bear food only — not edible */
+    if (key === "cookedGoldenSwordfish" || fk.cookedId === "cookedGoldenSwordfish") return false;
     return eatFood(fk.cookedId, fk.cookedHeal | 0, fk.cookedEnergy | 0, ["YUM! " + cookedFishName(fk) + "!"]);
   }
 
@@ -24617,10 +24645,33 @@
   }
 
   function notifyHotbarSelect(n) {
+    var T, sx, sy, key;
     if (n !== SLOT_WEAPON_DOCK && (n < 0 || n >= TRAY_CELLS)) return;
     hotbarPop = 260;
     hotbarPopSlot = n;
     spawnHotbarSelectSparks(n);
+    /* 20260905ix: spare gold twinkle when grilled golden swordfish is selected (screen-space) */
+    key = (trayCells[n] && trayCells[n].key) || "";
+    if (key === "cookedGoldenSwordfish") {
+      var i, ang, cols;
+      T = trayLayout();
+      sx = T.bx + n * (T.slot + T.gap) + ((T.slot / 2) | 0);
+      sy = T.by + ((T.slot / 2) | 0) - 2;
+      cols = ["#FFE9A0", "#FFFDF4", "#E8C84A", "#FFFFFF", "#FFD78A"];
+      for (i = 0; i < 6; i++) {
+        ang = (i / 6) * Math.PI * 2 + Math.random() * 0.4;
+        sparks.push({
+          x: sx + (Math.random() * 5 - 2.5),
+          y: sy + (Math.random() * 4 - 2),
+          vx: Math.cos(ang) * (0.02 + Math.random() * 0.02),
+          vy: Math.sin(ang) * 0.01 - 0.04 - Math.random() * 0.02,
+          age: 0,
+          life: 320 + Math.random() * 180,
+          col: cols[i % cols.length],
+          screen: true
+        });
+      }
+    }
   }
 
   function notifyEmptyTrayClick(n) {
@@ -24729,7 +24780,7 @@
     ck = cookedFishKindById(key);
     if (ck) {
       if (key === "cookedGoldenSwordfish") {
-        return { name: "GRILLED GOLDEN SWORDFISH", blurb: "YUMMY. FEEDS THE SLEEPY BEAR." };
+        return { name: "GRILLED GOLDEN SWORDFISH", blurb: "FEEDS THE SLEEPY BEAR." };
       }
       return { name: cookedFishName(ck), blurb: "COOKED FISH. TAP TO EAT." };
     }
@@ -26029,7 +26080,8 @@
         if (key === "coconut") eatCoconut();
         if (key === "mushroom") eatMushroom();
         if (fishKindById(key)) eatRawFish();
-        if (cookedFishKindById(key)) eatCookedFish();
+        /* 20260905ix: grilled golden swordfish not eatable (bear feed only) */
+        if (key !== "cookedGoldenSwordfish" && cookedFishKindById(key)) eatCookedFish();
         if (key === "hat" && hatOwned) {
           hatOn = !hatOn;
           persistSave();
@@ -27834,7 +27886,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905iw", BUILD);
+      ok("BUILD", BUILD === "20260905ix", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -27916,11 +27968,28 @@ if (currentScene === "ocean") goExitOcean();
         var c = bagItemInfo("weirdNewThing");
         var d = bagItemInfo("minnow");
         ok("bagTipDiamond", !!(a && a.name === "DIAMOND PICK" && a.blurb), a ? a.name : "");
-        ok("bagTipGrilledSwordfish", !!(b && /SWORDFISH/.test(b.name) && /BEAR/.test(b.blurb)), b ? b.name : "");
+        ok("bagTipGrilledSwordfish", !!(b && /SWORDFISH/.test(b.name) && /BEAR/.test(b.blurb) && !/EAT|YUM/.test(b.blurb)), b ? (b.name + " / " + b.blurb) : "");
         ok("bagTipFallback", !!(c && c.name === "WEIRD NEW THING"), c ? c.name : "");
         ok("bagTipFish", !!(d && d.name === "MINNOW"), d ? d.name : "");
         ok("bagTipFns", typeof activeBagTipKey === "function" && typeof setBagTip === "function" && typeof clearBagTip === "function", "");
       })();
+      (function () {
+        /* 20260905ix: grilled golden swordfish cannot be eaten — bear feed only */
+        var prevSel = selectedSlot, prevInv, prevTray0, ate, n0, n1;
+        prevInv = inventory.cookedGoldenSwordfish | 0;
+        prevTray0 = trayCells[0] ? { key: trayCells[0].key, count: trayCells[0].count } : null;
+        inventory.cookedGoldenSwordfish = Math.max(1, prevInv);
+        placeToolInTrayFirst("cookedGoldenSwordfish");
+        selectTool("cookedGoldenSwordfish");
+        n0 = bagCount("cookedGoldenSwordfish");
+        ate = eatCookedFish();
+        n1 = bagCount("cookedGoldenSwordfish");
+        ok("grilledSwordfishNotEatable", ate === false && n1 === n0 && n0 >= 1, "ate=" + ate + " n0=" + n0 + " n1=" + n1);
+        inventory.cookedGoldenSwordfish = prevInv;
+        if (prevTray0) trayCells[0] = { key: prevTray0.key, count: prevTray0.count };
+        selectedSlot = prevSel;
+      })();
+
       /* Local 9/6 + 9/9 clock audit: race harden; DAY_MS frozen.
          Expected ~2 real min/phase, ~8 real min/day — not "no day change". */
       ok("DAY_MS_frozen", DAY_MS === 480000, "DAY_MS=" + DAY_MS);

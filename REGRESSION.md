@@ -1,5 +1,8 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905ix (Local 9/11) — grilled golden swordfish distinct + bear-only
+Dense sword+sparkle tray icon (not cookedFish lookalike); animated twinkle overlay; cannot eat grilled golden swordfish (bear feed only); bag tip FEEDS THE SLEEPY BEAR. Frozen DAY_MS/walk/Orion/grass/evening.
+
 ## BUILD 20260905iw (Local 9/11) — ocean golden swordfish fairer
 Ocean golden roll 1/50→1/20; soft pity `found.oceanCatchesNoGolden` forces golden after 25 ocean catches without one; farm ponds stay oceanOnly-blocked. Save-safe. Story fish for sleepy bear. Frozen DAY_MS/walk/Orion/grass/evening.
 
@@ -50,6 +53,8 @@ Status column: **KEEP** = still required in new builds.
 | Aboard: water taps **row** (not “need a fishing pole”); pole-steal toast must not block rowing | 20260905h | KEEP |
 | **Fish from the boat** when pole is selected (Space/tap water casts ocean fish + rare golden swordfish); without pole, water still rows | 20260905hj | KEEP |
 | Ocean **golden swordfish** roll **1/20** + soft pity after **25** ocean catches without one (`found.oceanCatchesNoGolden`); farm ponds never get it (`oceanOnly`) | 20260905iw | KEEP |
+| Grilled **golden swordfish** tray icon distinct (long sword bill + sparkles; not cookedFish lookalike); animated twinkle in `paintFishIcon` | 20260905ix | KEEP |
+| Cannot **eat** grilled golden swordfish (tray-tap / `eatCookedFish`); bear-feed spend still works; bag tip FEEDS THE SLEEPY BEAR (no EAT/YUM) | 20260905ix | KEEP |
 | **Island boat GET OUT** works on island beach sand/pier (all `f` rowable while aboard); boat docks / stays where you leave it (`boatDock`, `BOAT STAYS HERE.`) | 20260905ad + 20260905bo | KEEP |
 | Hard-refresh mid-row keeps you **aboard** (onBoat persist); island cave refresh does not dump you on the farm | 20260905ef + 20260905eh | KEEP |
 

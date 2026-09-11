@@ -2472,7 +2472,7 @@
     },
     {
       "id": "cookedGoldenSwordfish",
-      "file": "ui/cookedFish.png",
+      "file": "ui/cookedGoldenSwordfish.png",
       "w": 32,
       "h": 32,
       "frames": 1,
