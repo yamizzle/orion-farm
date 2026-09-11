@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905iy";
+  var BUILD = "20260905iz";
   var ASSET_REV = "464567-iy";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -464,6 +464,13 @@
           loadImage("assets/props/kickCart.png").then(function (im) { Assets.kickCart = im; }).catch(function () {}),
           /* 20260905iu: wizard house / NPC / wand / robes Imagine BOX 2× (was code-BOX 05it) */
           loadImage("assets/props/wizardHouse.png").then(function (im) { Assets.wizardHouse = im; }).catch(function () {}),
+          loadImage("assets/props/abandonedCabin.png").then(function (im) { Assets.abandonedCabin = im; }).catch(function () {}),
+          loadImage("assets/props/blueGlowMushroom.png").then(function (im) { Assets.blueGlowMushroom = im; }).catch(function () {}),
+          loadImage("assets/props/darkGiantTree.png").then(function (im) { Assets.darkGiantTree = im; }).catch(function () {}),
+          loadImage("assets/props/torch.png").then(function (im) { Assets.torch = im; }).catch(function () {}),
+          loadImage("assets/props/torchUnlit.png").then(function (im) { Assets.torchUnlit = im; }).catch(function () {}),
+          loadImage("assets/props/branch.png").then(function (im) { Assets.branch = im; }).catch(function () {}),
+          loadImage("assets/props/moss.png").then(function (im) { Assets.moss = im; }).catch(function () {}),
           loadImage("assets/actors/wizardNpc.png").then(function (im) { Assets.wizardNpc = im; }).catch(function () {}),
           loadImage("assets/ui/wand.png").then(function (im) { Assets.wand = im; }).catch(function () {}),
           loadImage("assets/props/wizardRobes.png").then(function (im) { Assets.wizardRobes = im; }).catch(function () {})
@@ -613,7 +620,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null };
   var tick = 0;
   var lastTs = 0;
   /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
@@ -678,7 +685,7 @@
   var lHouseLand = { tx: 61, ty: 34 }; /* 20260905ew: 2-tile south of door (61,32) */
 
   function isCozyInterior() {
-    return currentScene === "house" || currentScene === "shop" || currentScene === "cottage" || currentScene === "cottage2" || currentScene === "tallCottage" || currentScene === "lHouse" || currentScene === "wizardHouse";
+    return currentScene === "house" || currentScene === "shop" || currentScene === "cottage" || currentScene === "cottage2" || currentScene === "tallCottage" || currentScene === "lHouse" || currentScene === "wizardHouse" || currentScene === "cabin";
   }
   var FOREST_COLS = 28;
   var FOREST_ROWS = 66;
@@ -722,25 +729,40 @@
   var mountainMineOut = { tx: 9, ty: 12 };
   /* 20260905hw: north cave in summit mine → even larger peak beyond */
   var mountainMineHighAt = { tx: 9, ty: 2 };
-  var HIGH_PEAK_COLS = 48;
-  var HIGH_PEAK_ROWS = 52;
-  var highPeakLand = { tx: 24, ty: 48 };
-  var highPeakCaveAt = { tx: 24, ty: 49 };
-  var highPeakBearAt = { tx: 24, ty: 32 };
-  /* 20260905iy: river E-W + fell-tree bridge; wizard on north bank */
-  var highPeakRiverTy0 = 8;
-  var highPeakRiverTy1 = 10;
-  var bridgePineAt = { tx: 26, ty: 11 };
-  var logBridgeAt = { tx: 23, ty: 10 };
+  /* 20260905iz: expand north-bank ~4xN / ~2xE / ~2xW; cabin center, wizard west, dark forest north */
+  var HIGH_PEAK_COLS = 64;
+  var HIGH_PEAK_ROWS = 68;
+  var highPeakLand = { tx: 32, ty: 64 };
+  var highPeakCaveAt = { tx: 32, ty: 65 };
+  var highPeakBearAt = { tx: 32, ty: 48 };
+  /* river E-W + fell-tree bridge (shifted with map expand) */
+  var highPeakRiverTy0 = 24;
+  var highPeakRiverTy1 = 26;
+  var bridgePineAt = { tx: 34, ty: 27 };
+  var logBridgeAt = { tx: 31, ty: 26 };
   var bridgeFall = null;
-  /* 20260905iu/iy: wizard house on north bank past the river */
+  /* Abandoned cabin (Orion mountain house) center of north bank */
+  var CABIN_COLS = 20;
+  var CABIN_ROWS = 12;
+  var cabinAt = { tx: 30, ty: 12 };
+  var cabinIn = { tx: 32, ty: 16 };
+  var cabinOut = { tx: 10, ty: 10 };
+  var cabinLand = { tx: 32, ty: 17 };
+  var cabinGarden = [{ tx: 35, ty: 15 }, { tx: 36, ty: 15 }, { tx: 35, ty: 16 }, { tx: 36, ty: 16 }];
+  /* Wizard house relocated west of cabin (wand gift unchanged) */
   var WIZARD_HOUSE_COLS = 16;
   var WIZARD_HOUSE_ROWS = 10;
-  var wizardHouseAt = { tx: 21, ty: 1 };
-  var wizardHouseIn = { tx: 23, ty: 6 };
+  var wizardHouseAt = { tx: 16, ty: 11 };
+  var wizardHouseIn = { tx: 18, ty: 15 };
   var wizardHouseOut = { tx: 8, ty: 8 };
-  var wizardHouseLand = { tx: 23, ty: 7 };
+  var wizardHouseLand = { tx: 18, ty: 16 };
   var wizardNpcAt = { tx: 8, ty: 4 };
+  /* Dark gigantic-tree forest north of cabin yard */
+  var DARK_FOREST_COLS = 20;
+  var DARK_FOREST_ROWS = 24;
+  var darkForestAt = { tx: 32, ty: 4 };
+  var darkForestLand = { tx: 10, ty: 21 };
+  var darkForestOut = { tx: 10, ty: 22 };
   var peakCaveAt = { tx: 18, ty: 25 };
   var OCEAN_COLS = 64;
   var OCEAN_ROWS = 56;
@@ -794,7 +816,7 @@
     { at: 0.96, sat: 0.04, hueA: 0.90, hueR: 28, hueG: 68, hueB: 198, colorA: 0.40, colorR: 34, colorG: 74, colorB: 176, ovA: 0.12, ovR: 20, ovG: 48, ovB: 140, mulA: 0.56, mulR: 40, mulG: 78, mulB: 136 },
     { at: 1.00, sat: 0.00, hueA: 0.00, hueR: 46, hueG: 76, hueB: 184, colorA: 0.00, colorR: 255, colorG: 214, colorB: 170, ovA: 0.00, ovR: 16, ovG: 12, ovB: 48, mulA: 0.20, mulR: 255, mulG: 214, mulB: 170 }
   ];
-  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false, bearFed: false, pathClear: false, logBridge: false, wizardMet: false, wand: false, oceanCatchesNoGolden: 0 };
+  var found = { copper: false, mushroom: false, moonshard: false, gem: false, mooncrystal: false, iron: false, sapphire: false, peakLight: false, peakChest: false, birdArrived: false, birdNestFixed: false, bridgeFixed: false, kickedBall: false, kickedPlayBall: false, kickedTownPlayBall: false, diamondPick: false, peakRocksCleared: false, outdoorSlug: false, mtGem: false, mtGem2: false, mtSapphire: false, mtSapphire2: false, mtCrystal: false, mtCrystal2: false, mtSilver: false, mtGoldOre: false, mtChest: false, mtChest2: false, mtChest3: false, bearFed: false, pathClear: false, logBridge: false, wizardMet: false, wand: false, cabinEntered: false, cabinBed: false, blueGlowMushroom: false, mossPicked: false, oceanCatchesNoGolden: 0 };
   var introSeen = false;
   var outroSeen = false;
   var unlocked = {};
@@ -891,7 +913,12 @@
     { key: "cookedGoldenCarp", name: "COOKED GOLDEN CARP", icon: "cookedGoldenCarp" },
     { key: "cookedMoonfish", name: "COOKED MOONFISH", icon: "cookedMoonfish" },
     { key: "cookedStarfin", name: "COOKED STARFIN", icon: "cookedStarfin" },
-    { key: "cookedGoldenSwordfish", name: "GRILLED GOLDEN SWORDFISH", icon: "cookedGoldenSwordfish" }
+    { key: "cookedGoldenSwordfish", name: "GRILLED GOLDEN SWORDFISH", icon: "cookedGoldenSwordfish" },
+    { key: "branch", name: "BRANCH", icon: "branch" },
+    { key: "moss", name: "MOSS", icon: "moss" },
+    { key: "torch", name: "TORCH", icon: "torchUnlit" },
+    { key: "litTorch", name: "LIT TORCH", icon: "torch" },
+    { key: "blueGlowMushroom", name: "GLOW MUSHROOM", icon: "blueGlowMushroom" }
   ];
   var shieldSkip = false;
   var arrows = [];
@@ -901,7 +928,9 @@
     { id: "pickaxe", name: "PICKAXE", wood: 5, stone: 2, icon: "pickaxe", made: "YOU MADE A PICKAXE!" },
     { id: "shield", name: "SHIELD", wood: 4, iron: 2, icon: "shield", made: "YOU MADE A SHIELD!" },
     { id: "ironSword", name: "IRON SWORD", wood: 4, iron: 3, icon: "ironSword", needSword: true, made: "YOU MADE AN IRON SWORD!" },
-    { id: "bow", name: "BOW", wood: 8, stone: 1, icon: "bow", made: "YOU MADE A BOW!" }
+    { id: "bow", name: "BOW", wood: 8, stone: 1, icon: "bow", made: "YOU MADE A BOW!" },
+    /* 20260905iz: branch + moss -> torch (light at stove); stackable */
+    { id: "torch", name: "TORCH", branch: 1, moss: 1, icon: "torch", stack: true, made: "YOU MADE A TORCH!" }
   ];
   var iFrames = 0;
   var hurtFlash = 0;
@@ -2640,7 +2669,7 @@
     rec = { cols: COLS, rows: ROWS, ground: GROUND, props: props };
     if (currentScene === "house") rec.houseTier = houseTier | 0;
     if (currentScene === "ocean") rec.boatDock = { tx: dockTx, ty: dockTy };
-    if (currentScene === "highPeak") rec.artRev = "05iy";
+    if (currentScene === "highPeak") rec.artRev = "05iz";
     if (currentScene === "peak") rec.artRev = "05ib";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
@@ -2919,9 +2948,19 @@
       if (cached && found.logBridge && !_hasBridge) cached = null;
       if (cached && !found.logBridge && _hasBridge) cached = null;
       if (cached && !found.logBridge && !_hasPine) cached = null;
+      /* 20260905iz: require cabin + west wizard once path is clear */
+      if (cached && (found.pathClear || found.bearFed)) {
+        var _hasCabin = false, _hasWiz = false, _ci;
+        for (_ci = 0; _ci < cached.props.length; _ci++) {
+          if (!cached.props[_ci]) continue;
+          if (cached.props[_ci].kind === "abandonedCabin") _hasCabin = true;
+          if (cached.props[_ci].kind === "wizardHouse") _hasWiz = true;
+        }
+        if (!_hasCabin || !_hasWiz) cached = null;
+      }
     }
     /* 20260905iy: bust pre-river highPeak cache */
-    if (name === "highPeak" && cached && (cached.artRev || "") !== "05iy") {
+    if (name === "highPeak" && cached && (cached.artRev || "") !== "05iz") {
       cached = null;
     }
     /* 20260905ib: bust pre-dirt-ribbon peak cache (noisy tan/stripe/white era) */
@@ -3001,6 +3040,16 @@
       ROWS = WIZARD_HOUSE_ROWS;
       GROUND = buildWizardHouseGround();
       PROPS = buildWizardHouseProps();
+    } else if (name === "cabin") {
+      COLS = CABIN_COLS;
+      ROWS = CABIN_ROWS;
+      GROUND = buildCabinGround();
+      PROPS = buildCabinProps();
+    } else if (name === "darkForest") {
+      COLS = DARK_FOREST_COLS;
+      ROWS = DARK_FOREST_ROWS;
+      GROUND = buildDarkForestGround();
+      PROPS = buildDarkForestProps();
     } else if (name === "forest") {
       COLS = FOREST_COLS;
       ROWS = FOREST_ROWS;
@@ -4322,74 +4371,57 @@
     return true;
   }
 
-  /* 20260905hw: larger peak beyond the summit mine — winding path + sleepy bear gate */
+
+  /* 20260905iz: expanded high peak — south trail+bear+river kept; north bank cabin yard */
   function buildHighPeakGround() {
     var cols = HIGH_PEAK_COLS, rows = HIGH_PEAK_ROWS;
-    var walk = [
-      "................................................",
-      "................................................",
-      ".....................fffffff....................",
-      ".....................fffffff....................",
-      ".....................fffffff....................",
-      ".....................fffffff....................",
-      ".......................fff......................",
-      ".......................fff......................",
-      "..wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww..",
-      "..wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww..",
-      "..wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww..",
-      ".......................fff......................",
-      ".......................fff......................",
-      "......................fff.......................",
-      ".....................fff........................",
-      "....................fff.........................",
-      "...................fff..........................",
-      "....................fff.........................",
-      ".....................fff........................",
-      "......................fff.......................",
-      ".......................fff......................",
-      "........................fff.....................",
-      ".......................fff......................",
-      "......................fff.......................",
-      ".....................fff........................",
-      "......................fff.......................",
-      ".......................fff......................",
-      "........................fff.....................",
-      ".......................fff......................",
-      "......................fff.......................",
-      ".....................fff........................",
-      "......................fff.......................",
-      "......................fffff.....................",
-      "......................fffff.....................",
-      ".........................fff....................",
-      "..........................fff...................",
-      ".........................fff....................",
-      "........................fff.....................",
-      ".......................fff......................",
-      "......................fff.......................",
-      ".....................fff........................",
-      "....................fff.........................",
-      "...................fff..........................",
-      "...................fff..........................",
-      "....................fff.........................",
-      ".....................fff........................",
-      "......................fff.......................",
-      ".....................fffffff....................",
-      ".....................fffffff....................",
-      ".....................fffffff....................",
-      ".....................fffffff....................",
-      "................................................"
-    ];
-    var g = [], y, x, row, ch;
+    var g = [], y, x, row, cx, river0, river1;
+    cx = 32;
+    river0 = highPeakRiverTy0;
+    river1 = highPeakRiverTy1;
     for (y = 0; y < rows; y++) {
       row = [];
       for (x = 0; x < cols; x++) {
-        ch = (walk[y] && walk[y].charAt(x)) || ".";
-        if (ch === "f") row[x] = "f";
-        else if (ch === "w") row[x] = "w";
+        if (y >= river0 && y <= river1 && x >= 2 && x <= cols - 3) row[x] = "w";
         else row[x] = "y";
       }
       g[y] = row;
     }
+    function stampF(x0, y0, x1, y1) {
+      var yy, xx;
+      for (yy = y0; yy <= y1; yy++) {
+        if (yy < 0 || yy >= rows) continue;
+        for (xx = x0; xx <= x1; xx++) {
+          if (xx < 0 || xx >= cols) continue;
+          if (g[yy][xx] === "w") continue;
+          g[yy][xx] = "f";
+        }
+      }
+    }
+    /* south entrance clearing + winding trail up to bear (shifted +8,+16 from 05iy) */
+    stampF(cx - 4, 60, cx + 4, 65);
+    stampF(cx - 2, 54, cx + 2, 59);
+    stampF(cx - 3, 50, cx + 3, 53);
+    stampF(cx - 2, 44, cx + 2, 49);
+    stampF(cx - 3, 40, cx + 2, 43);
+    stampF(cx - 2, 36, cx + 3, 39);
+    stampF(cx - 3, 32, cx + 2, 35);
+    stampF(cx - 2, 28, cx + 2, 31);
+    stampF(cx - 2, 27, cx + 2, 27);
+    /* north bank yard past river */
+    stampF(cx - 8, 8, cx + 9, 22);
+    stampF(cx - 18, 10, cx - 8, 19);
+    stampF(cx + 8, 10, cx + 17, 19);
+    stampF(cx - 3, 2, cx + 3, 8);
+    stampF(cx - 2, 22, cx + 2, 23);
+    /* cabin garden dirt patches */
+    (function () {
+      var i, s;
+      for (i = 0; i < cabinGarden.length; i++) {
+        s = cabinGarden[i];
+        if (s.ty >= 0 && s.ty < rows && g[s.ty] && s.tx >= 0 && s.tx < cols) g[s.ty][s.tx] = "p";
+      }
+    })();
     if (found.pathClear) applyHighPeakPathOpen(g);
     if (found.logBridge) applyLogBridgeOpen(g);
     return g;
@@ -4398,14 +4430,16 @@
   function applyHighPeakPathOpen(g) {
     var cells, i, tx, ty, row;
     if (!g) return;
-    /* open the bear choke so kids can walk past after grilled swordfish */
     cells = [
-      [22, 31], [23, 31], [24, 31], [25, 31], [26, 31],
-      [22, 32], [23, 32], [24, 32], [25, 32], [26, 32],
-      [22, 33], [23, 33], [24, 33], [25, 33], [26, 33],
-      /* 20260905iy: stoop + approach for wizard house on north bank */
-      [22, 6], [23, 6], [24, 6], [25, 6],
-      [22, 7], [23, 7], [24, 7], [25, 7]
+      [30, 47], [31, 47], [32, 47], [33, 47], [34, 47],
+      [30, 48], [31, 48], [32, 48], [33, 48], [34, 48],
+      [30, 49], [31, 49], [32, 49], [33, 49], [34, 49],
+      /* cabin stoop */
+      [31, 16], [32, 16], [33, 16], [34, 16],
+      [31, 17], [32, 17], [33, 17], [34, 17],
+      /* wizard stoop west */
+      [17, 15], [18, 15], [19, 15], [20, 15],
+      [17, 16], [18, 16], [19, 16], [20, 16]
     ];
     for (i = 0; i < cells.length; i++) {
       tx = cells[i][0];
@@ -4414,6 +4448,13 @@
       row = g[ty];
       if (!row || tx < 0 || tx >= row.length) continue;
       row[tx] = "f";
+    }
+    /* re-stamp garden dirt after path open */
+    if (typeof cabinGarden !== "undefined") {
+      for (i = 0; i < cabinGarden.length; i++) {
+        tx = cabinGarden[i].tx; ty = cabinGarden[i].ty;
+        if (ty >= 0 && ty < g.length && g[ty] && tx >= 0 && tx < g[ty].length) g[ty][tx] = "p";
+      }
     }
   }
 
@@ -4429,10 +4470,10 @@
     var cells, i, tx, ty, row;
     if (!g) return;
     cells = [
-      [23, 8], [24, 8], [25, 8],
-      [23, 9], [24, 9], [25, 9],
-      [23, 10], [24, 10], [25, 10],
-      [23, 11], [24, 11], [25, 11]
+      [31, 24], [32, 24], [33, 24],
+      [31, 25], [32, 25], [33, 25],
+      [31, 26], [32, 26], [33, 26],
+      [31, 27], [32, 27], [33, 27]
     ];
     for (i = 0; i < cells.length; i++) {
       tx = cells[i][0];
@@ -4453,19 +4494,18 @@
   }
 
   function buildHighPeakProps() {
-    /* 20260905iy: tall grove + river bridge pine; pines along trail; wizard north bank */
     var list = [
       { kind: "caveMouth", tx: highPeakCaveAt.tx, ty: highPeakCaveAt.ty, highPeakGate: true },
-      { kind: "peakSign", tx: 22, ty: 50 },
-      { kind: "peakGiant", tx: 18, ty: 14 }, { kind: "peakGiant", tx: 30, ty: 15 },
-      { kind: "peakGiant", tx: 16, ty: 18 }, { kind: "peakGiant", tx: 32, ty: 19 },
-      { kind: "peakGiant", tx: 15, ty: 22 }, { kind: "peakGiant", tx: 33, ty: 23 },
-      { kind: "peakGiant", tx: 19, ty: 26 }, { kind: "peakGiant", tx: 29, ty: 27 },
-      { kind: "pine", tx: 18, ty: 46 }, { kind: "pine", tx: 29, ty: 46 },
-      { kind: "pine", tx: 17, ty: 42 }, { kind: "pine", tx: 30, ty: 41 },
-      { kind: "pine", tx: 16, ty: 37 }, { kind: "pine", tx: 31, ty: 36 },
-      { kind: "pine", tx: 14, ty: 50 }, { kind: "pine", tx: 33, ty: 49 },
-      { kind: "pine", tx: 20, ty: 29 }, { kind: "pine", tx: 28, ty: 30 }
+      { kind: "peakSign", tx: 30, ty: 66 },
+      { kind: "peakGiant", tx: 26, ty: 30 }, { kind: "peakGiant", tx: 38, ty: 31 },
+      { kind: "peakGiant", tx: 24, ty: 34 }, { kind: "peakGiant", tx: 40, ty: 35 },
+      { kind: "peakGiant", tx: 23, ty: 38 }, { kind: "peakGiant", tx: 41, ty: 39 },
+      { kind: "peakGiant", tx: 27, ty: 42 }, { kind: "peakGiant", tx: 37, ty: 43 },
+      { kind: "pine", tx: 26, ty: 62 }, { kind: "pine", tx: 37, ty: 62 },
+      { kind: "pine", tx: 25, ty: 58 }, { kind: "pine", tx: 38, ty: 57 },
+      { kind: "pine", tx: 24, ty: 53 }, { kind: "pine", tx: 39, ty: 52 },
+      { kind: "pine", tx: 22, ty: 66 }, { kind: "pine", tx: 41, ty: 65 },
+      { kind: "pine", tx: 28, ty: 45 }, { kind: "pine", tx: 36, ty: 46 }
     ];
     if (found.logBridge) {
       list.push({ kind: "logBridge", tx: logBridgeAt.tx, ty: logBridgeAt.ty });
@@ -4474,12 +4514,99 @@
     }
     if (found.pathClear || found.bearFed) {
       list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx + 3, ty: highPeakBearAt.ty, aside: true });
+      /* cabin center + wizard west + east chop trees + dark forest mouth */
+      list.push({ kind: "abandonedCabin", tx: cabinAt.tx, ty: cabinAt.ty });
       list.push({ kind: "wizardHouse", tx: wizardHouseAt.tx, ty: wizardHouseAt.ty });
+      list.push({ kind: "caveMouth", tx: darkForestAt.tx, ty: darkForestAt.ty, darkForestGate: true });
+      list.push({ kind: "pine", tx: 42, ty: 12 });
+      list.push({ kind: "pine", tx: 45, ty: 14 });
+      list.push({ kind: "pine", tx: 48, ty: 13 });
+      list.push({ kind: "pine", tx: 44, ty: 17 });
+      list.push({ kind: "pine", tx: 47, ty: 16 });
+      list.push({ kind: "pine", tx: 50, ty: 15 });
+      list.push({ kind: "oak", tx: 43, ty: 18 });
+      list.push({ kind: "birch", tx: 49, ty: 18 });
     } else {
       list.push({ kind: "sleepingBear", tx: highPeakBearAt.tx, ty: highPeakBearAt.ty });
     }
     return list;
   }
+
+  function buildCabinGround() {
+    var cols = CABIN_COLS, rows = CABIN_ROWS;
+    var g = [], y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) row[x] = (x === 0 || y === 0 || x === cols - 1 || y === rows - 1) ? "#" : "f";
+      g[y] = row;
+    }
+    return g;
+  }
+
+  function buildCabinProps() {
+    return [
+      { kind: "bed", tx: 2, ty: 2 },
+      { kind: "window", tx: 6, ty: 0 },
+      { kind: "window", tx: 13, ty: 0 },
+      { kind: "stove", tx: 15, ty: 3 },
+      { kind: "fireplace", tx: 17, ty: 1 },
+      { kind: "table", tx: 10, ty: 4 },
+      { kind: "lantern", tx: 12, ty: 3 },
+      { kind: "rug", tx: 7, ty: 5 },
+      { kind: "workbench", tx: 1, ty: 7 },
+      { kind: "houseChest", tx: 4, ty: 7 },
+      { kind: "crate", tx: 16, ty: 7 },
+      { kind: "housePlant", tx: 17, ty: 9 },
+      { kind: "doormat", tx: 10, ty: 10 },
+      { kind: "inndoor", tx: 10, ty: 11 }
+    ];
+  }
+
+  function buildDarkForestGround() {
+    var cols = DARK_FOREST_COLS, rows = DARK_FOREST_ROWS;
+    var g = [], y, x, row;
+    for (y = 0; y < rows; y++) {
+      row = [];
+      for (x = 0; x < cols; x++) {
+        if (x === 0 || y === 0 || x === cols - 1 || y === rows - 1) row[x] = "#";
+        else if (Math.abs(x - 10) <= 2) row[x] = "f";
+        else if (y >= 2 && y <= 6 && Math.abs(x - 10) <= 4) row[x] = "f";
+        else row[x] = "y";
+      }
+      g[y] = row;
+    }
+    /* north mushroom clearing */
+    for (y = 2; y <= 5; y++) {
+      for (x = 6; x <= 14; x++) g[y][x] = "f";
+    }
+    return g;
+  }
+
+  function buildDarkForestProps() {
+    var list = [
+      { kind: "caveMouth", tx: darkForestOut.tx, ty: darkForestOut.ty, darkForestExit: true },
+      { kind: "darkGiantTree", tx: 3, ty: 10 },
+      { kind: "darkGiantTree", tx: 15, ty: 11 },
+      { kind: "darkGiantTree", tx: 2, ty: 16 },
+      { kind: "darkGiantTree", tx: 16, ty: 17 },
+      { kind: "darkGiantTree", tx: 4, ty: 20 },
+      { kind: "darkGiantTree", tx: 14, ty: 19 },
+      { kind: "darkGiantTree", tx: 7, ty: 8 },
+      { kind: "darkGiantTree", tx: 12, ty: 9 }
+    ];
+    if (!found.blueGlowMushroom) {
+      list.push({ kind: "blueGlowMushroom", tx: 8, ty: 3 });
+      list.push({ kind: "blueGlowMushroom", tx: 11, ty: 4 });
+      list.push({ kind: "blueGlowMushroom", tx: 10, ty: 3, pickable: true, primary: true });
+    }
+    if (!found.mossPicked) {
+      list.push({ kind: "mossClump", tx: 6, ty: 12 });
+      list.push({ kind: "mossClump", tx: 13, ty: 14 });
+      list.push({ kind: "mossClump", tx: 9, ty: 18 });
+    }
+    return list;
+  }
+
 
   function isHighPeakCave(tx, ty) {
     if (currentScene !== "highPeak") return false;
@@ -4604,21 +4731,17 @@
       bear.tx = highPeakBearAt.tx + 3;
       bear.ty = highPeakBearAt.ty;
       openHighPeakPathLive();
-      /* 20260905iu: house appears as soon as the path clears (no re-enter needed) */
+      /* 20260905iz: cabin + wizard west + forest mouth appear as path clears */
       (function () {
-        var i, has = false;
-        for (i = 0; i < PROPS.length; i++) {
-          if (PROPS[i] && PROPS[i].kind === "wizardHouse") { has = true; break; }
-        }
-        if (!has) PROPS.push({ kind: "wizardHouse", tx: wizardHouseAt.tx, ty: wizardHouseAt.ty });
-        if (sceneCache && sceneCache.highPeak && sceneCache.highPeak.props) {
-          has = false;
-          for (i = 0; i < sceneCache.highPeak.props.length; i++) {
-            if (sceneCache.highPeak.props[i] && sceneCache.highPeak.props[i].kind === "wizardHouse") { has = true; break; }
+        if (sceneCache) sceneCache.highPeak = null;
+        if (currentScene === "highPeak") {
+          PROPS = buildHighPeakProps();
+          GROUND = buildHighPeakGround();
+          buildSolid();
+          if (sceneCache) {
+            sceneCache.highPeak = { cols: COLS, rows: ROWS, ground: GROUND, props: PROPS, artRev: "05iz" };
           }
-          if (!has) sceneCache.highPeak.props.push({ kind: "wizardHouse", tx: wizardHouseAt.tx, ty: wizardHouseAt.ty });
         }
-        buildSolid();
       })();
       showLineNote("THANK YOU!");
       playSfx("toast");
@@ -4758,6 +4881,15 @@
     return currentScene === "wizardHouse" && tx === wizardHouseOut.tx && ty === wizardHouseOut.ty;
   }
 
+  function isCabinEntrance(tx, ty) {
+    return currentScene === "highPeak" && (found.pathClear || found.bearFed) &&
+      tx === cabinIn.tx && ty === cabinIn.ty;
+  }
+
+  function isCabinExit(tx, ty) {
+    return currentScene === "cabin" && tx === cabinOut.tx && ty === cabinOut.ty;
+  }
+
   function wizardHouseDoorHit(tx, ty) {
     if (currentScene !== "highPeak" || !(found.pathClear || found.bearFed)) return false;
     if (tx === wizardHouseIn.tx && ty === wizardHouseIn.ty) return false;
@@ -4785,6 +4917,137 @@
       }
       persistSave();
     });
+  }
+
+  function cabinDoorHit(tx, ty) {
+    if (currentScene !== "highPeak" || !(found.pathClear || found.bearFed)) return false;
+    if (tx === cabinIn.tx && ty === cabinIn.ty) return false;
+    if (tx === cabinIn.tx && ty === cabinIn.ty - 1) return true;
+    if (tx === cabinIn.tx + 1 && ty === cabinIn.ty - 1) return true;
+    if (tx === cabinIn.tx - 1 && ty === cabinIn.ty - 1) return true;
+    return false;
+  }
+
+  function enterCabin() {
+    startDoorFade(function () {
+      applyScene("cabin");
+      unlocked.cabinEntered = true;
+      found.cabinEntered = true;
+      placePlayer(10, 8, "up");
+      persistSave();
+    });
+  }
+
+  function exitCabin() {
+    startDoorFade(function () {
+      applyScene("highPeak");
+      placePlayer(cabinLand.tx, cabinLand.ty, "down");
+      if (!walkable(player.tx, player.ty)) {
+        placePlayer(cabinIn.tx, cabinIn.ty, "down");
+      }
+      persistSave();
+    });
+  }
+
+  function goEnterCabin() {
+    var path;
+    highlight = { tx: cabinIn.tx, ty: cabinIn.ty };
+    if (player.tx === cabinIn.tx && player.ty === cabinIn.ty) {
+      enterCabin();
+      return;
+    }
+    path = findPath(player.tx, player.ty, cabinIn.tx, cabinIn.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, cabinIn.tx, cabinIn.ty)) enterCabin();
+      return;
+    }
+    pending = { type: "enterCabin" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitCabin() {
+    var path;
+    highlight = { tx: cabinOut.tx, ty: cabinOut.ty };
+    if (player.tx === cabinOut.tx && player.ty === cabinOut.ty) {
+      exitCabin();
+      return;
+    }
+    path = findPath(player.tx, player.ty, cabinOut.tx, cabinOut.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, cabinOut.tx, cabinOut.ty)) exitCabin();
+      return;
+    }
+    pending = { type: "exitCabin" };
+    startWalk(player, path, 3.5);
+  }
+
+  function isDarkForestMouth(tx, ty) {
+    if (currentScene !== "highPeak") return false;
+    if (tx === darkForestAt.tx && ty === darkForestAt.ty) return true;
+    var p = propAt(tx, ty);
+    return !!(p && p.kind === "caveMouth" && p.darkForestGate);
+  }
+
+  function isDarkForestExit(tx, ty) {
+    if (currentScene !== "darkForest") return false;
+    if (tx === darkForestOut.tx && ty === darkForestOut.ty) return true;
+    var p = propAt(tx, ty);
+    return !!(p && p.kind === "caveMouth" && p.darkForestExit);
+  }
+
+  function enterDarkForest() {
+    startDoorFade(function () {
+      applyScene("darkForest");
+      unlocked.darkForestEntered = true;
+      placePlayer(darkForestLand.tx, darkForestLand.ty, "up");
+      if (!walkable(player.tx, player.ty)) placePlayer(10, 20, "up");
+      persistSave();
+    });
+  }
+
+  function exitDarkForest() {
+    startDoorFade(function () {
+      applyScene("highPeak");
+      placePlayer(darkForestAt.tx, darkForestAt.ty + 2, "down");
+      if (!walkable(player.tx, player.ty)) placePlayer(darkForestAt.tx, darkForestAt.ty + 1, "down");
+      persistSave();
+    });
+  }
+
+  function goEnterDarkForest() {
+    var path;
+    highlight = { tx: darkForestAt.tx, ty: darkForestAt.ty };
+    if (player.tx === darkForestAt.tx && player.ty === darkForestAt.ty) {
+      enterDarkForest();
+      return;
+    }
+    path = findPath(player.tx, player.ty, darkForestAt.tx, darkForestAt.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, darkForestAt.tx, darkForestAt.ty)) enterDarkForest();
+      return;
+    }
+    pending = { type: "enterDarkForest" };
+    startWalk(player, path, 3.5);
+  }
+
+  function goExitDarkForest() {
+    var path;
+    highlight = { tx: darkForestOut.tx, ty: darkForestOut.ty };
+    if (player.tx === darkForestOut.tx && player.ty === darkForestOut.ty) {
+      exitDarkForest();
+      return;
+    }
+    path = findPath(player.tx, player.ty, darkForestOut.tx, darkForestOut.ty);
+    if (!path.length) {
+      if (isNear(player.tx, player.ty, darkForestOut.tx, darkForestOut.ty)) exitDarkForest();
+      return;
+    }
+    pending = { type: "exitDarkForest" };
+    startWalk(player, path, 3.5);
+  }
+
+  function torchIsLitHeld() {
+    return selectedIs("litTorch");
   }
 
   function goEnterWizardHouse() {
@@ -6089,6 +6352,27 @@
   }
   function drawCropSprite(g, crop, x, y) {
     var id = cropSprite(crop);
+    var gh, gw, im, prev;
+    if (crop && crop.crop === "blueGlow") {
+      /* ~5 ft per day — 10px logical per day; can grow off-screen tall */
+      gh = 16 + Math.min(400, (crop.growDays | 0) * 10);
+      gw = 12 + Math.min(28, (crop.growDays | 0));
+      im = Assets.blueGlowMushroom;
+      if (im) {
+        prev = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(im, x + 8 - (gw / 2 | 0), y + 16 - gh, gw, gh);
+        g.imageSmoothingEnabled = prev;
+      } else {
+        fill(g, x + 6, y + 16 - gh, 4, gh, "#D8D0B8");
+        fill(g, x + 2, y + 16 - gh, 12, 10, "#4090FF");
+      }
+      g.save();
+      g.globalAlpha = 0.28 + 0.12 * Math.sin((tick || 0) / 180);
+      fill(g, x, y + 12 - gh, 16, 12, "#80C8FF");
+      g.restore();
+      return;
+    }
     if (id === "potatoReady") { paintPotatoReady(g, x, y); return; }
     if (id === "potatoYoung") { paintPotatoYoung(g, x, y); return; }
     if (id === "berryReady") { paintBerryReady(g, x, y); return; }
@@ -7036,6 +7320,15 @@
             block(p.tx + x, p.ty + y);
           }
         }
+      } else if (p.kind === "abandonedCabin") {
+        for (y = 0; y < 5; y++) {
+          for (x = 0; x < 5; x++) {
+            if (p.tx + x === cabinIn.tx && p.ty + y === cabinIn.ty) continue;
+            block(p.tx + x, p.ty + y);
+          }
+        }
+      } else if (p.kind === "darkGiantTree") {
+        block(p.tx, p.ty); block(p.tx + 1, p.ty); block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
       } else if (p.kind === "fountain") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
@@ -7365,7 +7658,7 @@
         maxY = Math.max(0, worldH - VIEW_H);
       }
     }
-    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean") {
+    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
       } else {
@@ -7394,7 +7687,7 @@
     if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean") {
+        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean") {
           if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
         } else if (camY < minY) {
           camY = minY;
@@ -7808,6 +8101,7 @@
   function cropKindOf(c) {
     if (c && c.crop === "potato") return "potato";
     if (c && c.crop === "berry") return "berry";
+    if (c && c.crop === "blueGlow") return "blueGlow";
     return "carrot";
   }
 
@@ -7820,6 +8114,7 @@
   function cropSprite(c) {
     var st = cropStage(c);
     var kind = cropKindOf(c);
+    if (kind === "blueGlow") return "blueGlowMushroom";
     if (kind === "potato") {
       if (st === "ready") return "potatoReady";
       if (st === "young") return "potatoYoung";
@@ -7837,7 +8132,7 @@
 
   function updateCrops() {
     var t = worldTime();
-    var k, c, age, next, changed;
+    var k, c, age, next, changed, days;
     changed = false;
     for (k in crops) {
       if (!Object.prototype.hasOwnProperty.call(crops, k)) continue;
@@ -7847,6 +8142,15 @@
         crops[k] = { stage: c, plantTime: t };
         c = crops[k];
         changed = true;
+      }
+      if (c.crop === "blueGlow") {
+        days = Math.max(0, (dayNumber | 0) - (c.plantDay | 0));
+        if ((c.growDays | 0) !== days) {
+          c.growDays = days;
+          c.stage = days <= 0 ? "sprout" : (days < 3 ? "young" : "ready");
+          changed = true;
+        }
+        continue;
       }
       age = t - (c.plantTime || 0);
       if (age < 0) age = 0;
@@ -7863,8 +8167,33 @@
 
   function plantAt(tx, ty) {
     var k = tx + "," + ty;
+    var i, s, onCabinGarden;
     if (cell(tx, ty) !== "p") return;
     if (crops[k]) return;
+    /* 20260905iz: cabin garden — only glowing blue mushroom */
+    onCabinGarden = false;
+    if (currentScene === "highPeak" && cabinGarden) {
+      for (i = 0; i < cabinGarden.length; i++) {
+        s = cabinGarden[i];
+        if (s.tx === tx && s.ty === ty) { onCabinGarden = true; break; }
+      }
+    }
+    if (onCabinGarden) {
+      if (!selectedIs("blueGlowMushroom")) {
+        showLineNote("ONLY GLOW MUSHROOMS HERE.");
+        return;
+      }
+      if (!spendSelected("blueGlowMushroom", 1)) return;
+      crops[k] = { stage: "sprout", plantTime: worldTime(), crop: "blueGlow", plantDay: dayNumber | 0, growDays: 0 };
+      unlocked.glowMushPlanted = true;
+      showLineNote("PLANTED A GLOW MUSHROOM!");
+      persistSave();
+      return;
+    }
+    if (selectedIs("blueGlowMushroom")) {
+      showLineNote("PLANT THAT BY THE CABIN.");
+      return;
+    }
     crops[k] = { stage: "sprout", plantTime: worldTime(), crop: selectedCropKind() };
     persistSave();
   }
@@ -7874,6 +8203,8 @@
     var cx, cy;
     if (!cropIsReady(crops[k])) return;
     var kind = cropKindOf(crops[k]);
+    /* glowing mushroom keeps growing — not a harvest crop */
+    if (kind === "blueGlow") return;
     delete crops[k];
     /* 20260905ct: harvest pop juice — sparks + soft chip spray */
     cx = tx * TILE + 8;
@@ -7922,6 +8253,13 @@
       if (tx === wizardHouseIn.tx && ty === wizardHouseIn.ty) return false;
       return tx >= p.tx && tx < p.tx + 4 && ty >= p.ty && ty < p.ty + 5;
     }
+    if (p.kind === "abandonedCabin") {
+      if (tx === cabinIn.tx && ty === cabinIn.ty) return false;
+      return tx >= p.tx && tx < p.tx + 5 && ty >= p.ty && ty < p.ty + 5;
+    }
+    if (p.kind === "darkGiantTree") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
+    if (p.kind === "blueGlowMushroom" || p.kind === "mossClump") return tx === p.tx && ty === p.ty;
+    if (p.kind === "glowMushroomPlant") return tx === p.tx && ty === p.ty;
     if (p.kind === "fountain") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
     if (p.kind === "counter") return tx >= p.tx && tx < p.tx + 3 && ty === p.ty;
     if (p.kind === "bed") return tx >= p.tx && tx < p.tx + 2 && ty >= p.ty && ty < p.ty + 2;
@@ -9322,7 +9660,7 @@
         kind === "cookedMinnow" || kind === "cookedBluegill" || kind === "cookedPerch" || kind === "cookedCatfish" ||
         kind === "cookedTrout" || kind === "cookedBass" || kind === "cookedGoldenCarp" || kind === "cookedMoonfish" ||
         kind === "cookedStarfin" || kind === "cookedGoldenSwordfish" ||
-        kind === "lampKit" || kind === "crateKit") {
+        kind === "lampKit" || kind === "crateKit" || kind === "branch" || kind === "moss" || kind === "torch" || kind === "litTorch" || kind === "blueGlowMushroom" || kind === "leash") {
       return kind;
     }
     return "";
@@ -9720,7 +10058,7 @@
     return Math.max(0, chestCap(key) - chestCount(key));
   }
 
-  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","coconut","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","goldenSwordfish","cookedMinnow","cookedBluegill","cookedPerch","cookedCatfish","cookedTrout","cookedBass","cookedGoldenCarp","cookedMoonfish","cookedStarfin","cookedGoldenSwordfish","leash"];
+  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","coconut","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","goldenSwordfish","cookedMinnow","cookedBluegill","cookedPerch","cookedCatfish","cookedTrout","cookedBass","cookedGoldenCarp","cookedMoonfish","cookedStarfin","cookedGoldenSwordfish","leash","branch","moss","torch","litTorch","blueGlowMushroom"];
 
   function addInvCount(k, n) {
     if (Object.prototype.hasOwnProperty.call(inventory, k)) inventory[k] = (inventory[k] | 0) + (n | 0);
@@ -10335,6 +10673,8 @@
       /* 20260905dd: leaf/dust puff when the chop finishes */
       spawnTreeFallPuff(prop.tx * TILE + 8, prop.ty * TILE + 4);
       spawnGroundLoot("wood", prop.tx, prop.ty, harvestDropFor(prop));
+      /* 20260905iz: high-peak trees also drop a branch for torch craft */
+      if (currentScene === "highPeak") spawnGroundLoot("branch", prop.tx, prop.ty, 1);
       if (fellSeed) spawnGroundLoot(fellSeed, prop.tx, prop.ty, 1);
       rememberHarvest(prop, treeKind, "stump");
     } else if (prop.kind === "peakRocks") {
@@ -10773,7 +11113,7 @@
     if (isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || houseDoorHit(tx, ty, world)) return true;
     if (isForestEntrance(tx, ty) || isForestExit(tx, ty)) return true;
     if (isOceanEntrance(tx, ty) || isOceanExit(tx, ty)) return true;
-    if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world) || isWizardHouseEntrance(tx, ty) || isWizardHouseExit(tx, ty) || wizardHouseDoorHit(tx, ty)) return true;
+    if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world) || isWizardHouseEntrance(tx, ty) || isWizardHouseExit(tx, ty) || wizardHouseDoorHit(tx, ty) || isCabinEntrance(tx, ty) || isCabinExit(tx, ty) || cabinDoorHit(tx, ty) || isDarkForestMouth(tx, ty) || isDarkForestExit(tx, ty)) return true;
     if (isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty)) return true;
     if (isPeakCave(tx, ty) || isPeakMineMouth(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) || isMountainMineExit(tx, ty) || isMountainMineHighExit(tx, ty) || isHighPeakCave(tx, ty) || isSleepingBear(tx, ty)) return true;
     return false;
@@ -11039,6 +11379,10 @@
         found.logBridge = !!data.found.logBridge;
         found.wizardMet = !!data.found.wizardMet;
         found.wand = !!data.found.wand;
+        if (data.found.cabinEntered != null) found.cabinEntered = !!data.found.cabinEntered;
+        if (data.found.cabinBed != null) found.cabinBed = !!data.found.cabinBed;
+        if (data.found.blueGlowMushroom != null) found.blueGlowMushroom = !!data.found.blueGlowMushroom;
+        if (data.found.mossPicked != null) found.mossPicked = !!data.found.mossPicked;
         /* 20260905iw: ocean golden-swordfish soft pity (never wipe on missing) */
         found.oceanCatchesNoGolden = Math.max(0, data.found.oceanCatchesNoGolden | 0);
       }
@@ -11994,7 +12338,16 @@
 
   /* 20260905he: beds in cottage / tall / L finally sleep (SLEEP float already
      showed; house-only gate left those beds silent solids). */
+  /* 20260905iz: once cabin is reachable (bridge+bear), only cabin bed sleeps/saves. */
+  function cabinSaveReady() {
+    return !!(found && found.pathClear && found.logBridge);
+  }
+  function isKitchenScene() {
+    return currentScene === "house" || currentScene === "cabin";
+  }
   function sleepSceneOk() {
+    if (currentScene === "cabin") return true;
+    if (cabinSaveReady()) return false;
     return currentScene === "house" || currentScene === "cottage" ||
            currentScene === "tallCottage" || currentScene === "lHouse";
   }
@@ -12065,7 +12418,7 @@
 
   function fireplaceHit(tx, ty, world) {
     var fire, b;
-    if (currentScene !== "house") return false;
+    if (!isKitchenScene()) return false;
     fire = findFireplace();
     if (!fire) return false;
     if (propOccupies(fire, tx, ty)) return true;
@@ -12118,7 +12471,7 @@
 
   function doSmeltNow() {
     var ore, bar, fire, i, ores;
-    if (currentScene !== "house") return false;
+    if (!isKitchenScene()) return false;
     ore = selectedSmeltOre();
     if (!ore) {
       /* 20260905ey: bag-only ore — cook already fell back; smelt still said THE FIRE WANTS ORE. */
@@ -12164,7 +12517,7 @@
   }
 
   function trySmeltHere() {
-    if (currentScene !== "house") return false;
+    if (!isKitchenScene()) return false;
     if (!nearFireplace()) return false;
     doSmeltNow();
     return true;
@@ -12172,7 +12525,7 @@
 
   function goSmelt() {
     var fire, dest, path, x, y, best, d, cand;
-    if (currentScene !== "house") return;
+    if (!isKitchenScene()) return;
     fire = findFireplace();
     highlight = fire ? { tx: fire.tx, ty: fire.ty } : null;
     if (!fire || nearFireplace()) {
@@ -12225,7 +12578,7 @@
 
   function stoveHit(tx, ty, world) {
     var stove, b;
-    if (currentScene !== "house") return false;
+    if (!isKitchenScene()) return false;
     stove = findStove();
     if (!stove) return false;
     if (propOccupies(stove, tx, ty)) return true;
@@ -12270,7 +12623,7 @@
     /* 20260905cn: once toast when a seed is selected outdoors */
     if (unlocked.plantSeedTip) return;
     if (currentScene !== "overworld") return;
-    if (!(selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed"))) return;
+    if (!(selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed") || selectedIs("blueGlowMushroom"))) return;
     unlocked.plantSeedTip = true;
     showLineNote("TAP DIRT TO PLANT");
     persistSave();
@@ -12302,9 +12655,24 @@
     persistSave();
   }
 
-  function doCookNow() {
+    function tryLightTorch() {
+    if (!selectedIs("torch")) return false;
+    if (!nearStove() && !nearFireplace()) return false;
+    if (!spendSelected("torch", 1)) return false;
+    addToBag("litTorch", 1);
+    placeToolInTrayFirst("litTorch");
+    selectTool("litTorch");
+    unlocked.torchLit = true;
+    showLineNote("TORCH LIT!");
+    playSfx("craft");
+    if (player) spawnSparks(player.x, player.y - 10);
+    persistSave();
+    return true;
+  }
+
+function doCookNow() {
     var fk, cooked, stove;
-    if (currentScene !== "house") return false;
+    if (!isKitchenScene()) return false;
     fk = cookingFish();
     if (!fk) {
       /* Bag-only raw fish: pick the first kind kids own. */
@@ -12348,7 +12716,7 @@
   }
 
   function tryCookHere() {
-    if (currentScene !== "house") return false;
+    if (!isKitchenScene()) return false;
     if (!nearStove()) return false;
     doCookNow();
     return true;
@@ -12356,22 +12724,22 @@
 
   function goCook() {
     var stove, dest, path;
-    if (currentScene !== "house") return;
+    if (!isKitchenScene()) return;
     stove = findStove();
     highlight = stove ? { tx: stove.tx, ty: stove.ty } : null;
     if (!stove || nearStove()) {
       pending = null;
-      doCookNow();
+      if (!tryLightTorch()) doCookNow();
       return;
     }
     dest = nearestAdjacent(stove.tx, stove.ty);
     if (!dest) {
-      doCookNow();
+      if (!tryLightTorch()) doCookNow();
       return;
     }
     path = findPath(player.tx, player.ty, dest.tx, dest.ty);
     if (!path.length) {
-      doCookNow();
+      if (!tryLightTorch()) doCookNow();
       return;
     }
     pending = { type: "cook" };
@@ -12403,7 +12771,7 @@
      cook/smelt/chest Space existed; workbench Space was a silent no-op). */
   function tryCraftHere() {
     if (uiPaused() || faintFx) return false;
-    if (currentScene !== "house") return false;
+    if (!isKitchenScene()) return false;
     if (!nearWorkbench()) return false;
     pending = null;
     openCraft();
@@ -12412,7 +12780,7 @@
 
   function workbenchHit(tx, ty, world) {
     var bench, b;
-    if (currentScene !== "house") return false;
+    if (!isKitchenScene()) return false;
     bench = findWorkbench();
     if (!bench) return false;
     if (propOccupies(bench, tx, ty)) return true;
@@ -12423,6 +12791,7 @@
 
   function craftOwned(rec) {
     if (!rec) return false;
+    if (rec.stack) return false;
     if (rec.id === "axe") return !!axeOwned;
     if (rec.id === "shovel") return !!shovelOwned;
     if (rec.id === "pickaxe") return !!pickaxeOwned;
@@ -12444,21 +12813,28 @@
   function recWood(rec) { return (rec && rec.wood) ? rec.wood | 0 : 0; }
   function recStone(rec) { return (rec && rec.stone) ? rec.stone | 0 : 0; }
   function recIron(rec) { return (rec && rec.iron) ? rec.iron | 0 : 0; }
+  function recBranch(rec) { return (rec && rec.branch) ? rec.branch | 0 : 0; }
+  function recMoss(rec) { return (rec && rec.moss) ? rec.moss | 0 : 0; }
 
   function craftCostLine(rec) {
     var parts = [];
     if (recWood(rec)) parts.push(recWood(rec) + " WOOD");
     if (recStone(rec)) parts.push(recStone(rec) + " STONE");
     if (recIron(rec)) parts.push(recIron(rec) + " IRON");
+    if (recBranch(rec)) parts.push(recBranch(rec) + " BRANCH");
+    if (recMoss(rec)) parts.push(recMoss(rec) + " MOSS");
     return parts.join("  ");
   }
 
   function craftCanMake(rec) {
-    if (!rec || craftOwned(rec)) return false;
+    if (!rec) return false;
+    if (!rec.stack && craftOwned(rec)) return false;
     if (rec.needSword && !swordOwned) return false;
     if (bagCount("wood") < recWood(rec)) return false;
     if (bagCount("stone") < recStone(rec)) return false;
     if (bagCount("iron") < recIron(rec)) return false;
+    if (bagCount("branch") < recBranch(rec)) return false;
+    if (bagCount("moss") < recMoss(rec)) return false;
     return true;
   }
 
@@ -12475,7 +12851,7 @@
   }
 
   function craftLayout() {
-    var w = 292, h = 172;
+    var w = 292, h = 192;
     var x = ((VIEW_W - w) / 2) | 0;
     var y = 12;
     /* 20260905dw: X close like Jobs/BAG/Stars (Esc + world-tap already work) */
@@ -12503,6 +12879,7 @@
     var key;
     if (!rec) return false;
     if (rec.id === "shield") return false;
+    if (rec.stack || rec.id === "torch") return false;
     if (rec.id === "ironSword") {
       if (!swordOwned && !ironSwordOwned) return false;
       forceSwordIntoTray(true);
@@ -12534,7 +12911,15 @@
     takeFromBag("wood", recWood(rec));
     takeFromBag("stone", recStone(rec));
     takeFromBag("iron", recIron(rec));
-    setCraftOwned(rec);
+    takeFromBag("branch", recBranch(rec));
+    takeFromBag("moss", recMoss(rec));
+    if (!rec.stack) setCraftOwned(rec);
+    if (rec.id === "torch") {
+      addToBag("torch", 1);
+      placeToolInTrayFirst("torch");
+      selectTool("torch");
+      unlocked.torchCrafted = true;
+    }
     if (rec.id === "shovel") giveTool("shovel");
     if (rec.id === "axe") giveTool("axe");
     if (rec.id === "pickaxe") giveTool("pick");
@@ -12629,7 +13014,7 @@
 
   function goCraft() {
     var bench, dest, path, x, best, d, cand;
-    if (currentScene !== "house") return;
+    if (!isKitchenScene()) return;
     bench = findWorkbench();
     highlight = bench ? { tx: bench.tx, ty: bench.ty } : null;
     if (!bench || nearWorkbench()) {
@@ -13120,7 +13505,7 @@
 
   function houseChestHit(tx, ty, world) {
     var box, b;
-    if (currentScene !== "house" && currentScene !== "forest" && currentScene !== "tree") return false;
+    if (currentScene !== "house" && currentScene !== "cabin" && currentScene !== "forest" && currentScene !== "tree") return false;
     box = findHouseChest();
     if (!box) return false;
     if (propOccupies(box, tx, ty)) return true;
@@ -13526,6 +13911,10 @@
 
   function finishSleepAdvance() {
     var spot;
+    if (currentScene === "cabin") {
+      found.cabinBed = true;
+      unlocked.cabinBed = true;
+    }
     dayNumber += 1;
     dayMs = 0;
     refillVitals();
@@ -14675,6 +15064,70 @@
     return currentScene === "mine" || currentScene === "caveclimb" || currentScene === "islandCave" || currentScene === "mountainMine";
   }
 
+  function isDarkForestScene() {
+    return currentScene === "darkForest";
+  }
+
+  function drawDarkForestOverlay(g) {
+    var cx, cy, rad, grd, lit;
+    if (!isDarkForestScene()) return;
+    lit = torchIsLitHeld();
+    g.save();
+    if (!lit) {
+      /* nearly pitch — kids need a torch */
+      g.fillStyle = "rgba(4,6,12,0.82)";
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+      /* tiny sight around Orion so they know they exist */
+      cx = VIEW_W * 0.5;
+      cy = VIEW_H * 0.55;
+      grd = g.createRadialGradient(cx, cy, 8, cx, cy, 42);
+      grd.addColorStop(0, "rgba(4,6,12,0)");
+      grd.addColorStop(1, "rgba(4,6,12,0.82)");
+      g.globalCompositeOperation = "destination-out";
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(cx, cy, 42, 0, Math.PI * 2);
+      g.fill();
+      g.globalCompositeOperation = "source-over";
+      g.fillStyle = "rgba(4,6,12,0.55)";
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+      /* punch a soft hole again */
+      g.globalCompositeOperation = "destination-out";
+      grd = g.createRadialGradient(cx, cy, 4, cx, cy, 36);
+      grd.addColorStop(0, "rgba(0,0,0,0.85)");
+      grd.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(cx, cy, 36, 0, Math.PI * 2);
+      g.fill();
+    } else {
+      /* torch held — warm pool + soft vignette */
+      g.fillStyle = "rgba(8,10,18,0.42)";
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+      cx = VIEW_W * 0.5;
+      cy = VIEW_H * 0.52;
+      rad = 110 + Math.sin((tick || 0) / 140) * 8;
+      g.globalCompositeOperation = "destination-out";
+      grd = g.createRadialGradient(cx, cy, 10, cx, cy, rad);
+      grd.addColorStop(0, "rgba(0,0,0,0.92)");
+      grd.addColorStop(0.55, "rgba(0,0,0,0.55)");
+      grd.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(cx, cy, rad, 0, Math.PI * 2);
+      g.fill();
+      g.globalCompositeOperation = "screen";
+      grd = g.createRadialGradient(cx, cy, 2, cx, cy, rad * 0.7);
+      grd.addColorStop(0, "rgba(255,210,120,0.35)");
+      grd.addColorStop(1, "rgba(255,140,40,0)");
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(cx, cy, rad * 0.7, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.restore();
+  }
+
   function forEachCaveTorch(fn) {
     var i, p;
     for (i = 0; i < PROPS.length; i++) {
@@ -14752,6 +15205,7 @@
       }
       if (currentScene === "house" && homeLightOn()) drawHouseHomeGlow(g);
       if (isCaveLitScene()) drawCaveTorchFalloff(g);
+    drawDarkForestOverlay(g);
       return;
     }
     drawOutdoorGrade(g);
@@ -14933,6 +15387,29 @@
     if (wandOwned && !selectedIs("wand") && !(weaponDock && weaponDock.key === "wand")) {
       return "HOLD THE WAND FOR ROBES.";
     }
+    /* 20260905iz: cabin / torch / dark forest / glow mushroom */
+    if (found.pathClear && found.logBridge && !found.cabinEntered && !unlocked.cabinEntered) {
+      return "VISIT THE MOUNTAIN CABIN.";
+    }
+    if ((found.cabinEntered || unlocked.cabinEntered) && cabinSaveReady() && currentScene === "cabin" && (hp < MAX_HP || clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
+      return "SLEEP HERE TO SAVE.";
+    }
+    if ((found.cabinEntered || unlocked.cabinEntered) && bagCount("torch") < 1 && bagCount("litTorch") < 1) {
+      if (bagCount("branch") < 1 || bagCount("moss") < 1) return "CRAFT A TORCH (BRANCH + MOSS).";
+      return "CRAFT A TORCH AT THE TABLE.";
+    }
+    if (bagCount("torch") >= 1 && bagCount("litTorch") < 1) {
+      return "LIGHT THE TORCH ON THE STOVE.";
+    }
+    if ((found.cabinEntered || unlocked.cabinEntered) && !unlocked.darkForestEntered) {
+      return "EXPLORE THE DARK FOREST.";
+    }
+    if (unlocked.darkForestEntered && !found.blueGlowMushroom) {
+      return "PICK A GLOWING BLUE MUSHROOM.";
+    }
+    if (found.blueGlowMushroom && !unlocked.glowMushPlanted) {
+      return "PLANT THE GLOW MUSHROOM BY THE CABIN.";
+    }
     /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
     if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
       return "SWORD THE NIGHT SLUGS.";
@@ -14966,7 +15443,7 @@
     if (!lilaDone) return "PLANT FLOWERS WITH LILA";
     if (!reedDone) return "HELP REED'S CAR";
     /* 20260905cn: holding seeds + empty garden → plant tip (toast covers first select) */
-    if ((selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed")) && !hasAnyCrop()) {
+    if ((selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed") || selectedIs("blueGlowMushroom")) && !hasAnyCrop()) {
       return "PLANT SEEDS ON THE GARDEN DIRT.";
     }
     /* 20260905bv/05cn: nest bird cozy loop — clearer when wood is ready */
@@ -16700,9 +17177,25 @@
         enterWizardHouse();
         return true;
       }
+      if (isCabinEntrance(player.tx, player.ty) || cabinDoorHit(player.tx, player.ty)) {
+        enterCabin();
+        return true;
+      }
+      if (isDarkForestMouth(player.tx, player.ty)) {
+        enterDarkForest();
+        return true;
+      }
       f = facingTile();
       if (wizardHouseDoorHit(f.tx, f.ty) || isWizardHouseEntrance(f.tx, f.ty)) {
         enterWizardHouse();
+        return true;
+      }
+      if (cabinDoorHit(f.tx, f.ty) || isCabinEntrance(f.tx, f.ty)) {
+        enterCabin();
+        return true;
+      }
+      if (isDarkForestMouth(f.tx, f.ty)) {
+        enterDarkForest();
         return true;
       }
       spots = orthoSpots();
@@ -16710,6 +17203,14 @@
         t = spots[i];
         if (wizardHouseDoorHit(t.tx, t.ty) || isWizardHouseEntrance(t.tx, t.ty)) {
           enterWizardHouse();
+          return true;
+        }
+        if (cabinDoorHit(t.tx, t.ty) || isCabinEntrance(t.tx, t.ty)) {
+          enterCabin();
+          return true;
+        }
+        if (isDarkForestMouth(t.tx, t.ty)) {
+          enterDarkForest();
           return true;
         }
       }
@@ -16738,6 +17239,46 @@
           isNear(player.tx, player.ty, wizardNpcAt.tx, wizardNpcAt.ty)) {
         talkWizard();
         return true;
+      }
+      return false;
+    }
+    if (currentScene === "cabin") {
+      if (isCabinExit(player.tx, player.ty)) {
+        exitCabin();
+        return true;
+      }
+      f = facingTile();
+      if (isCabinExit(f.tx, f.ty)) {
+        exitCabin();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isCabinExit(t.tx, t.ty)) {
+          exitCabin();
+          return true;
+        }
+      }
+      return false;
+    }
+    if (currentScene === "darkForest") {
+      if (isDarkForestExit(player.tx, player.ty)) {
+        exitDarkForest();
+        return true;
+      }
+      f = facingTile();
+      if (isDarkForestExit(f.tx, f.ty)) {
+        exitDarkForest();
+        return true;
+      }
+      spots = orthoSpots();
+      for (i = 0; i < spots.length; i++) {
+        t = spots[i];
+        if (isDarkForestExit(t.tx, t.ty)) {
+          exitDarkForest();
+          return true;
+        }
       }
       return false;
     }
@@ -17639,7 +18180,7 @@
   function tryPlantFacing() {
     var t, k;
     if (uiPaused() || faintFx) return false;
-    if (!(selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed"))) return false;
+    if (!(selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed") || selectedIs("blueGlowMushroom"))) return false;
     t = facingTile();
     k = t.tx + "," + t.ty;
     if (cell(t.tx, t.ty) === "p" && !crops[k]) {
@@ -17674,7 +18215,7 @@
   function tryPlantAdjacent() {
     var spots, i, s, k;
     if (uiPaused() || faintFx) return false;
-    if (!(selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed"))) return false;
+    if (!(selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed") || selectedIs("blueGlowMushroom"))) return false;
     spots = [
       { tx: player.tx - 1, ty: player.ty },
       { tx: player.tx + 1, ty: player.ty },
@@ -19912,7 +20453,8 @@
     return p.kind === "copper" || p.kind === "mushroom" || p.kind === "moonshard" ||
       p.kind === "gem" || p.kind === "chest" || p.kind === "mooncrystal" ||
       p.kind === "iron" || p.kind === "sapphire" || p.kind === "silver" || p.kind === "goldore" ||
-      p.kind === "toadstool" || p.kind === "diamondPickaxe";
+      p.kind === "toadstool" || p.kind === "diamondPickaxe" ||
+      p.kind === "blueGlowMushroom" || p.kind === "mossClump";
   }
 
   function findNote() {
@@ -20096,6 +20638,31 @@
       spawnDiamondPickSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
       persistSave();
       openDialogue("ORION", ["A DIAMOND PICKAXE!", "IT CAN BREAK THE", "ROCKS ON THE PEAK."]);
+      return;
+    }
+    if (prop.kind === "blueGlowMushroom") {
+      i = PROPS.indexOf(prop);
+      if (i >= 0) PROPS.splice(i, 1);
+      addItem("blueGlowMushroom", 1);
+      spawnPickup("blueGlowMushroom", prop.tx, prop.ty, 0);
+      pinPickupKeepHeld("blueGlowMushroom");
+      found.blueGlowMushroom = true;
+      unlocked.blueGlowMushroom = true;
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      showLineNote("A GLOWING BLUE MUSHROOM!");
+      persistSave();
+      return;
+    }
+    if (prop.kind === "mossClump") {
+      i = PROPS.indexOf(prop);
+      if (i >= 0) PROPS.splice(i, 1);
+      addItem("moss", 1);
+      spawnPickup("moss", prop.tx, prop.ty, 0);
+      pinPickupKeepHeld("moss");
+      found.mossPicked = true;
+      spawnSparks(prop.tx * TILE + 8, prop.ty * TILE + 6);
+      showLineNote("GOT SOME MOSS!");
+      persistSave();
       return;
     }
     if (prop.kind === "toadstool") {
@@ -20681,7 +21248,7 @@
       return;
     }
     tryPickupHere();
-    if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && standingOnHouseChest()) {
+    if ((currentScene === "house" || currentScene === "cabin" || currentScene === "forest" || currentScene === "tree") && standingOnHouseChest()) {
       pending = null;
       openChest();
       return;
@@ -20808,7 +21375,7 @@
     } else if (act.type === "smelt") {
       if (nearFireplace()) doSmeltNow();
     } else if (act.type === "cook") {
-      if (nearStove()) doCookNow();
+      if (nearStove()) { if (!tryLightTorch()) doCookNow(); }
     } else if (act.type === "chest") {
       openChest();
     } else if (act.type === "kickBall") {
@@ -20887,6 +21454,14 @@
       enterWizardHouse();
     } else if (act.type === "exitWizardHouse") {
       exitWizardHouse();
+    } else if (act.type === "enterCabin") {
+      enterCabin();
+    } else if (act.type === "exitCabin") {
+      exitCabin();
+    } else if (act.type === "enterDarkForest") {
+      enterDarkForest();
+    } else if (act.type === "exitDarkForest") {
+      exitDarkForest();
     } else if (act.type === "talkWizard") {
       talkWizard();
     } else if (act.type === "enterHighPeak") {
@@ -21195,7 +21770,7 @@
       goExitOcean();
       return;
     }
-    if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && houseChestHit(tx, ty, null)) {
+    if ((currentScene === "house" || currentScene === "cabin" || currentScene === "forest" || currentScene === "tree") && houseChestHit(tx, ty, null)) {
       goChest();
       return;
     }
@@ -22449,6 +23024,9 @@
     if (p.kind === "townHouseA" || p.kind === "townHouseC") return p.ty * TILE + 80;
     if (p.kind === "townHouseB" || p.kind === "townHouseD") return p.ty * TILE + 64;
     if (p.kind === "wizardHouse") return p.ty * TILE + 80;
+    if (p.kind === "abandonedCabin") return p.ty * TILE + 80;
+    if (p.kind === "darkGiantTree") return p.ty * TILE + 24;
+    if (p.kind === "blueGlowMushroom" || p.kind === "mossClump" || p.kind === "glowMushroomPlant") return p.ty * TILE + 8;
     if (p.kind === "peakGiant" || p.kind === "bridgePine") return p.ty * TILE + 24;
     if (p.kind === "logBridge") return p.ty * TILE + 8;
     if (p.kind === "fountain") return p.ty * TILE + 28;
@@ -22509,6 +23087,13 @@
     if (p.kind === "townHouseA" || p.kind === "townHouseC") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 96 };
     if (p.kind === "townHouseB" || p.kind === "townHouseD") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 96, h: 80 };
     if (p.kind === "wizardHouse") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 80 };
+    if (p.kind === "abandonedCabin") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 80, h: 80 };
+    if (p.kind === "darkGiantTree") return { x: p.tx * TILE - 16, y: p.ty * TILE - 112, w: 48, h: 128 };
+    if (p.kind === "blueGlowMushroom" || p.kind === "mossClump") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
+    if (p.kind === "glowMushroomPlant") {
+      var _gh = 16 + Math.min(240, ((p.growDays | 0) * 10));
+      return { x: p.tx * TILE - 4, y: p.ty * TILE - _gh + 8, w: 24, h: _gh };
+    }
     if (p.kind === "fountain") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
     if (p.kind === "statue") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
@@ -22818,6 +23403,67 @@
         fill(g, x + 16, y + 8, 32, 18, "#482878");
         fill(g, x + 24, y + 48, 16, 22, "#3A2058");
       }
+    } else if (p.kind === "abandonedCabin") {
+      if (Assets.abandonedCabin) {
+        var _ac = Assets.abandonedCabin, _acs = g.imageSmoothingEnabled, _acw, _ach;
+        _acw = _ac.naturalWidth || _ac.width || 128;
+        _ach = _ac.naturalHeight || _ac.height || 160;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(_ac, 0, 0, _acw, _ach, x, y - 16, 80, 80);
+        g.imageSmoothingEnabled = _acs;
+      } else if (Assets.house) {
+        drawStandSprite(g, Assets.house, x + 24, y + 24, 64, 64);
+      } else {
+        fill(g, x + 8, y + 16, 64, 56, "#6A4A32");
+        fill(g, x + 28, y + 48, 16, 24, "#3A2818");
+      }
+    } else if (p.kind === "darkGiantTree") {
+      var _dt = Assets.darkGiantTree || Assets.peakGiant || Assets.pine;
+      if (!drawStandSprite(g, _dt, x + 16, y, 48, 128)) {
+        fill(g, x + 18, y - 80, 12, 90, "#1A1410");
+        fill(g, x + 4, y - 100, 40, 40, "#0E1A10");
+      }
+    } else if (p.kind === "blueGlowMushroom") {
+      if (Assets.blueGlowMushroom) {
+        var _bm = Assets.blueGlowMushroom, _bms = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(_bm, x, y - 8, 16, 16);
+        g.imageSmoothingEnabled = _bms;
+      } else {
+        fill(g, x + 6, y + 4, 4, 8, "#D8D0B8");
+        fill(g, x + 2, y - 2, 12, 8, "#4090FF");
+      }
+      /* soft glow */
+      g.save();
+      g.globalAlpha = 0.35 + 0.15 * Math.sin((tick || 0) / 200);
+      fill(g, x + 1, y - 3, 14, 10, "#80C8FF");
+      g.restore();
+    } else if (p.kind === "mossClump") {
+      if (Assets.moss) {
+        var _mo = Assets.moss, _mos = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(_mo, x, y, 16, 16);
+        g.imageSmoothingEnabled = _mos;
+      } else {
+        fill(g, x + 2, y + 6, 12, 8, "#3A7A28");
+      }
+    } else if (p.kind === "glowMushroomPlant") {
+      var _gd = (p.growDays | 0);
+      var _gh = 16 + Math.min(240, _gd * 10);
+      var _gw = 12 + Math.min(20, _gd * 1);
+      if (Assets.blueGlowMushroom) {
+        var _gp = Assets.blueGlowMushroom, _gps = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(_gp, x + 8 - (_gw / 2 | 0), y + 8 - _gh, _gw, _gh);
+        g.imageSmoothingEnabled = _gps;
+      } else {
+        fill(g, x + 6, y + 8 - _gh, 4, _gh, "#D8D0B8");
+        fill(g, x + 2, y + 8 - _gh, 12, 10, "#4090FF");
+      }
+      g.save();
+      g.globalAlpha = 0.25 + 0.1 * Math.sin((tick || 0) / 180);
+      fill(g, x, y + 4 - _gh, 16, 12, "#80C8FF");
+      g.restore();
     } else if (p.kind === "bed") {
       Assets.draw(g, "bed", x, y);
       /* 20260905cl: floating SLEEP so the bed is obvious */
@@ -24998,7 +25644,13 @@
       pole: { name: "FISHING POLE", blurb: "CAST IN WATER TO CATCH FISH." },
       leash: { name: "DOG LEASH", blurb: "KEEP IN TRAY SO DOG FOLLOWS." },
       lampKit: { name: "LAMP KIT", blurb: "TAP A TILE TO PLACE A LAMP." },
-      crateKit: { name: "CRATE KIT", blurb: "TAP A TILE TO PLACE A CRATE." }
+      crateKit: { name: "CRATE KIT", blurb: "TAP A TILE TO PLACE A CRATE." },
+      branch: { name: "BRANCH", blurb: "CRAFT A TORCH WITH MOSS." },
+      moss: { name: "MOSS", blurb: "CRAFT A TORCH WITH A BRANCH." },
+      torch: { name: "TORCH", blurb: "LIGHT IT ON THE STOVE." },
+      litTorch: { name: "LIT TORCH", blurb: "HOLD IT TO LIGHT THE DARK FOREST." },
+      blueGlowMushroom: { name: "GLOW MUSHROOM", blurb: "PLANT BY THE CABIN. GROWS TALL." },
+      wand: { name: "MAGIC WAND", blurb: "HOLD IT TO WEAR WIZARD ROBES." }
     };
     hit = map[key];
     if (hit) return hit;
@@ -25761,7 +26413,7 @@
     frameDayT = null;
     beginFrameGrade();
     updateCamera();
-    g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -26486,6 +27138,18 @@
         goEnterWizardHouse();
         return;
       }
+      if (isCabinEntrance(tx, ty) || cabinDoorHit(tx, ty)) {
+        goEnterCabin();
+        return;
+      }
+      if (propAt(tx, ty) && propAt(tx, ty).kind === "abandonedCabin") {
+        goEnterCabin();
+        return;
+      }
+      if (isDarkForestMouth(tx, ty)) {
+        goEnterDarkForest();
+        return;
+      }
     }
     if (currentScene === "wizardHouse") {
       if (hitSprite(world, tileCenterX(wizardNpcAt.tx), tileFootY(wizardNpcAt.ty), 16, 32, 8, 28) ||
@@ -26496,6 +27160,18 @@
       }
       if (isWizardHouseExit(tx, ty)) {
         goExitWizardHouse();
+        return;
+      }
+    }
+    if (currentScene === "cabin") {
+      if (isCabinExit(tx, ty)) {
+        goExitCabin();
+        return;
+      }
+    }
+    if (currentScene === "darkForest") {
+      if (isDarkForestExit(tx, ty)) {
+        goExitDarkForest();
         return;
       }
     }
@@ -26531,7 +27207,7 @@
         return;
       }
     }
-    if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && houseChestHit(tx, ty, world)) {
+    if ((currentScene === "house" || currentScene === "cabin" || currentScene === "forest" || currentScene === "tree") && houseChestHit(tx, ty, world)) {
       goChest();
       return;
     }
@@ -26945,7 +27621,7 @@
       goChair(hitProp);
       return;
     }
-    if (currentScene === "house" && (stoveHit(tx, ty, world) || (hitProp && hitProp.kind === "stove"))) {
+    if (isKitchenScene() && (stoveHit(tx, ty, world) || (hitProp && hitProp.kind === "stove"))) {
       goCook();
       return;
     }
@@ -26953,11 +27629,11 @@
       goSmelt();
       return;
     }
-    if (currentScene === "house" && (workbenchHit(tx, ty, world) || (hitProp && hitProp.kind === "workbench"))) {
+    if (isKitchenScene() && (workbenchHit(tx, ty, world) || (hitProp && hitProp.kind === "workbench"))) {
       goCraft();
       return;
     }
-    if ((currentScene === "house" || currentScene === "forest" || currentScene === "tree") && (houseChestHit(tx, ty, world) || (hitProp && hitProp.kind === "houseChest"))) {
+    if ((currentScene === "house" || currentScene === "cabin" || currentScene === "forest" || currentScene === "tree") && (houseChestHit(tx, ty, world) || (hitProp && hitProp.kind === "houseChest"))) {
       goChest();
       return;
     }
@@ -27156,7 +27832,7 @@ if (currentScene === "ocean") goExitOcean();
       goPickCrop(tx, ty);
       return;
     }
-    if ((selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed")) && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
+    if ((selectedIs("seed") || selectedIs("potatoSeed") || selectedIs("berrySeed") || selectedIs("blueGlowMushroom")) && cell(tx, ty) === "p" && !crops[tx + "," + ty]) {
       goPlant(tx, ty);
       return;
     }
@@ -28067,7 +28743,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905iy", BUILD);
+      ok("BUILD", BUILD === "20260905iz", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -30600,17 +31276,64 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       found.logBridge = false;
       if (sceneCache) sceneCache.highPeak = null;
       applyScene("highPeak");
-      ok("highPeakRiverBlock", !walkable(24, 9) && cell(24, 9) === "w", cell(24, 9));
+      ok("highPeakRiverBlock", !walkable(32, 25) && cell(32, 25) === "w", cell(32, 25));
       ok("highPeakBridgePine", !!PROPS.some(function (p) { return p && p.kind === "bridgePine"; }), "pine");
-      ok("highPeakWizardNorth", wizardHouseAt.ty <= 2 && highPeakBearAt.ty === 32, wizardHouseAt.ty + "/" + highPeakBearAt.ty);
+      ok("highPeakCabinNorth", cabinAt.ty < highPeakRiverTy0 && highPeakBearAt.ty === 48, cabinAt.ty + "/" + highPeakBearAt.ty);
+      ok("highPeakWizardWest", wizardHouseAt.tx < cabinAt.tx, wizardHouseAt.tx + "/" + cabinAt.tx);
       var _bp = null, _bpi;
       for (_bpi = 0; _bpi < PROPS.length; _bpi++) {
         if (PROPS[_bpi] && PROPS[_bpi].kind === "bridgePine") { _bp = PROPS[_bpi]; break; }
       }
       if (_bp) startBridgePineFall(_bp);
       if (bridgeFall) { bridgeFall.t = bridgeFall.dur; updateBridgeFall(0); }
-      ok("highPeakLogBridge", !!(found.logBridge && walkable(24, 9)), "bridge=" + found.logBridge + " walk=" + walkable(24, 9));
+      ok("highPeakLogBridge", !!(found.logBridge && walkable(32, 25)), "bridge=" + found.logBridge + " walk=" + walkable(32, 25));
       ok("highPeakBridgeProp", !!PROPS.some(function (p) { return p && p.kind === "logBridge"; }), "log");
+      /* 20260905iz: cabin + dark forest + torch + save-bed migration */
+      found.bearFed = true; found.pathClear = true; found.logBridge = true;
+      if (sceneCache) sceneCache.highPeak = null;
+      applyScene("highPeak");
+      ok("cabinProp", !!PROPS.some(function (p) { return p && p.kind === "abandonedCabin"; }), "cabin");
+      ok("cabinStoopWalk", walkable(cabinIn.tx, cabinIn.ty), cabinIn.tx + "," + cabinIn.ty);
+      ok("cabinGardenDirt", cell(cabinGarden[0].tx, cabinGarden[0].ty) === "p", cell(cabinGarden[0].tx, cabinGarden[0].ty));
+      ok("wizardWestOfCabin", wizardHouseAt.tx < cabinAt.tx && !!PROPS.some(function (p) { return p && p.kind === "wizardHouse"; }), "west");
+      enterCabin();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("cabinScene", currentScene === "cabin", currentScene);
+      ok("cabinSleepOk", sleepSceneOk() && !!findBed(), "sleep");
+      ok("farmBedBlocked", (function () { applyScene("house"); return !sleepSceneOk(); })(), "farm");
+      applyScene("cabin");
+      ok("cabinBedStill", sleepSceneOk(), "cabin2");
+      exitCabin();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("cabinExitPeak", currentScene === "highPeak", currentScene);
+      enterDarkForest();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("darkForestScene", currentScene === "darkForest", currentScene);
+      ok("darkForestNeedsTorch", !torchIsLitHeld() && isDarkForestScene(), "dark");
+      ok("darkForestMush", !!PROPS.some(function (p) { return p && p.kind === "blueGlowMushroom"; }), "mush");
+      addToBag("branch", 1); addToBag("moss", 1);
+      applyScene("cabin");
+      var _tr = null, _tri;
+      for (_tri = 0; _tri < CRAFT_RECIPES.length; _tri++) if (CRAFT_RECIPES[_tri].id === "torch") _tr = CRAFT_RECIPES[_tri];
+      ok("torchCraftable", !!_tr && craftCanMake(_tr), "craft");
+      if (_tr) doCraft(_tr);
+      ok("torchMade", bagCount("torch") >= 1, "torch=" + bagCount("torch"));
+      placeToolInTrayFirst("torch"); selectTool("torch");
+      placePlayer(15, 4, "up"); /* adjacent to cabin stove (15,3) */
+      ok("torchLight", !!tryLightTorch() && bagCount("litTorch") >= 1 && selectedIs("litTorch"), "lit");
+      applyScene("darkForest");
+      ok("darkForestLitHeld", torchIsLitHeld(), "held");
+      exitDarkForest();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      addToBag("blueGlowMushroom", 1);
+      placeToolInTrayFirst("blueGlowMushroom"); selectTool("blueGlowMushroom");
+      applyScene("highPeak");
+      plantAt(cabinGarden[0].tx, cabinGarden[0].ty);
+      var _ck = cabinGarden[0].tx + "," + cabinGarden[0].ty;
+      ok("glowMushPlanted", !!(crops[_ck] && crops[_ck].crop === "blueGlow"), "plant");
+      dayNumber = (crops[_ck].plantDay | 0) + 3;
+      updateCrops();
+      ok("glowMushGrew", !!(crops[_ck] && (crops[_ck].growDays | 0) >= 3), "grow=" + (crops[_ck] && crops[_ck].growDays));
       found.bearFed = false;
       found.pathClear = false;
       found.logBridge = false;

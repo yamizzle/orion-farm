@@ -17,9 +17,10 @@ Format: `Priority | Status | Title | note`
 
 ## Queued 9/10 — Darren asks (past High Peak bear)
 
+- **High** | Done Local 9/11 05iz | Abandoned Cabin + dark forest | BUILD 20260905iz: north-bank cabin (save bed), wizard west, east trees, dark forest+torch, blue mush grow. **Needs live.**
 - **High** | Done Local 9/11 05iy | River + fell-tree bridge | BUILD 20260905iy: High Peak E–W river; chop riverside giant → fall → logBridge; wizard north bank. **Needs live.**
-- **High** | Open | Abandoned cabin across river | Cabin like home (bed/stove/chest/craft); sleep; **save bed moves here**.
-- **High** | Open | Giant-tree forest + torch + blue mushroom | North of cabin: skyscraper forest, branch+moss torch light, pick glowing blue mushroom, plant by cabin; grows ~5 ft/day off-screen tall.
+- **High** | Done Local 9/11 05iz | Abandoned cabin across river | Shipped in 05iz (cabin bed = save).
+- **High** | Done Local 9/11 05iz | Giant-tree forest + torch + blue mushroom | Shipped in 05iz.
 
 ## Queued 9/7 — Darren asks
 
