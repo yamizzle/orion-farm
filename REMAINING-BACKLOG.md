@@ -13,7 +13,7 @@ Format: `Priority | Status | Title | note`
 - **Medium** Only one weapon equipped → **Done 9/6 live 05hm/05hn** (weapon dock PASS; 05ay tray rule superseded).
 - **Medium** Island cave Diamond Pickaxe → peak rocks → **Done 9/6 local 05bt+05hl** (+05hu polish; local+feature).
 - **Low** Closing a panel by tapping the world also walks → **Done 9/5 7:10pm live** (05bc/05be PASS; table was stale “live still needed”).
-- **Critical** Day clock races → **Done 9/10 live 05ir** (9/9 reopen race FIXED live; DAY_MS 480000 / ~8 min/day still Done; gap-discard + realtime budget harden).
+- **Critical** Day clock races → was **Done 9/10 live 05ir**; **REOPENED Local/Partial 9/11 BUILD 20260905iv** (multi-tab WORSE 9/10 pm; Needs live verify).
 
 ## Queued 9/10 — Darren asks (past High Peak bear)
 
@@ -40,6 +40,7 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 
 ### Critical
 
+- **Critical** | Local/Partial 9/11 05iv | Day clock races | BUILD 20260905iv multi-tab save harden (savedAt + adopt-ahead persist + storage clock sync + hasFocus); DAY_MS frozen; LIVE 9/10 pm WORSE evidence kept; **Needs live verify.**
 - **Critical** | Partial | Tree canopy hides Orion / standing on the tree | BUILD 20260905hv: peek harden (equal-foot side + peekH 18) on 05bw; **Needs live verify.**
 - **Critical** | Local 9/5 05bz | Sword: Space+hotbar kills; on-screen button and facing still miss | BUILD 20260905bz (+05hv dock autotest): pad omni + press damage + crescent; Space+hotbar PASS 04e; dock-era code solid; pad/facing **Needs live verify.**
 
@@ -91,11 +92,11 @@ Skip Done / FIXED-only rows. Flag **Local ship + Needs live** where Status/Notes
 - Queued 9/10 remaining: **3**
 - Queued 9/7 remaining: **1**
 - Queued 9/4 remaining: **3**
-- Playtest active (Critical+High+Medium+Low): **35** (C1 / H8 / M20 / L6)
-- Closed this wave: **5** (car, weapon dock, diamond-pick peak, panel dismiss, day-clock race 05ir)
-- **Grand total still open (Queued + playtest): 37**
+- Playtest active (Critical+High+Medium+Low): **36** (C2 / H8 / M20 / L6)
+- Closed this wave: **4** (car, weapon dock, diamond-pick peak, panel dismiss; day-clock race reopened 9/11 05iv)
+- **Grand total still open (Queued + playtest): 38**
 
 ## Local ship vs live
 
-Almost every remaining Local/Partial row already has a local BUILD noted; treat as **Needs live verify** before Done. Do **not** fake Done on Criticals (canopy Partial, sword pad). Day clock race **Done 9/10 live 05ir** (pace Done 9/7). Notable live-already-PASS pieces that do **not** close their whole row: pier boat (05a/05hn) inside Ocean Partial; slime/bat pad kills + i-frames (03b/04e) inside sword/slug rows; town cart kick (31o) inside kick-ball row.
+Almost every remaining Local/Partial row already has a local BUILD noted; treat as **Needs live verify** before Done. Do **not** fake Done on Criticals (canopy Partial, sword pad). Day clock race **reopened Local/Partial 9/11 05iv** (multi-tab; pace Done 9/7; Needs live). Notable live-already-PASS pieces that do **not** close their whole row: pier boat (05a/05hn) inside Ocean Partial; slime/bat pad kills + i-frames (03b/04e) inside sword/slug rows; town cart kick (31o) inside kick-ball row.
 

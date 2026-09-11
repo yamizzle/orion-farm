@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905iu";
+  var BUILD = "20260905iv";
   var ASSET_REV = "464566-iu";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -622,6 +622,8 @@
   var clockBudgetMs = 0;
   var CLOCK_STEP_MAX = 50;
   var CLOCK_GAP_DISCARD = 250;
+  /* 20260905iv: multi-tab SAVE_KEY clock — last persist savedAt we wrote. */
+  var lastWrittenAt = 0;
   var dialogue = null;
   var birdFly = null;
   var birdRideFx = null;
@@ -11238,6 +11240,59 @@
     }
   }
 
+  /* 20260905iv: multi-tab day-clock — rank / adopt without full loadSave. */
+  function clockRank(day, ms) {
+    day = day | 0;
+    ms = +ms;
+    if (!(ms >= 0) || ms !== ms) ms = 0;
+    return day * DAY_MS + ms;
+  }
+
+  function adoptClockFields(day, ms) {
+    var d = day | 0;
+    var m = +ms;
+    if (!(d >= 1)) return false;
+    if (!(m >= 0) || m !== m) m = 0;
+    while (m >= DAY_MS) {
+      m -= DAY_MS;
+      d += 1;
+    }
+    if (d === dayNumber && m === dayMs) return false;
+    dayNumber = d;
+    dayMs = m;
+    resetClockMark();
+    return true;
+  }
+
+  function maybeAdoptStoredClock(data) {
+    var sDay, sMs;
+    if (!data || typeof data !== "object") return false;
+    sDay = data.day | 0;
+    if (!(sDay >= 1)) return false;
+    sMs = (typeof data.dayMs === "number" && data.dayMs >= 0) ? data.dayMs : 0;
+    if (clockRank(sDay, sMs) > clockRank(dayNumber, dayMs)) {
+      return adoptClockFields(sDay, sMs);
+    }
+    return false;
+  }
+
+  function onRemoteSaveClock(data) {
+    var sDay, sMs, remoteRank, localRank, remoteAt;
+    if (!data || typeof data !== "object") return false;
+    sDay = data.day | 0;
+    if (!(sDay >= 1)) return false;
+    sMs = (typeof data.dayMs === "number" && data.dayMs >= 0) ? data.dayMs : 0;
+    remoteRank = clockRank(sDay, sMs);
+    localRank = clockRank(dayNumber, dayMs);
+    if (remoteRank === localRank) return false;
+    remoteAt = (typeof data.savedAt === "number" && data.savedAt === data.savedAt) ? data.savedAt : 0;
+    /* Prefer ahead clock always; also take behind clock when remote write is newer. */
+    if (remoteRank > localRank || remoteAt >= lastWrittenAt) {
+      return adoptClockFields(sDay, sMs);
+    }
+    return false;
+  }
+
   function persistSave() {
     if (loadingSave || persistBlocked || persistSave.busy) return;
     persistSave.busy = true;
@@ -11246,8 +11301,15 @@
          so tab-hide / refresh cannot vanish the stack (never wipe). */
       if (bagHeld) stashBagHeld();
       flushPickups();
+      /* 20260905iv: never clobber a newer multi-tab clock with an older tab. */
+      try {
+        var _raw = localStorage.getItem(SAVE_KEY);
+        if (_raw) maybeAdoptStoredClock(JSON.parse(_raw));
+      } catch (errAdopt) {}
+      lastWrittenAt = Date.now();
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         v: SAVE_VER,
+        savedAt: lastWrittenAt,
         found: found,
         unlocked: unlocked,
         introSeen: introSeen,
@@ -14028,9 +14090,16 @@
   }
 
   function timePaused() {
-    /* 20260905ir: treat non-visible (hidden/prerender) as pause — not only document.hidden. */
+    /* 20260905ir: treat non-visible (hidden/prerender) as pause — not only document.hidden.
+       20260905iv: also require document.hasFocus when available (multi-window visible tabs). */
     var vis = (typeof document !== "undefined") ? document.visibilityState : "visible";
-    return !!(uiPaused() || document.hidden || (vis && vis !== "visible"));
+    var unfocused = false;
+    try {
+      if (typeof document !== "undefined" && typeof document.hasFocus === "function") {
+        unfocused = !document.hasFocus();
+      }
+    } catch (err) { unfocused = false; }
+    return !!(uiPaused() || document.hidden || (vis && vis !== "visible") || unfocused);
   }
 
   function resetClockMark() {
@@ -27237,7 +27306,23 @@ if (currentScene === "ocean") goExitOcean();
     e.preventDefault();
     dropMoveKey(mk.id);
   });
-  window.addEventListener("blur", clearMoveKeys);
+  window.addEventListener("blur", function () {
+    clearMoveKeys();
+    /* 20260905iv: unfocused tab must not keep pouring dayMs. */
+    resetClockMark();
+    lastTs = 0;
+  });
+  window.addEventListener("focus", function () {
+    resetClockMark();
+    lastTs = 0;
+  });
+  /* 20260905iv: another tab wrote SAVE_KEY — sync clock fields only (no full loadSave). */
+  window.addEventListener("storage", function (e) {
+    if (!e || e.key !== SAVE_KEY || e.newValue == null || e.newValue === "") return;
+    try {
+      onRemoteSaveClock(JSON.parse(e.newValue));
+    } catch (err) {}
+  });
   document.addEventListener("touchstart", function (e) {
     if (!fillMode || !e.touches || !e.touches[0]) return;
     swipeStartY = e.touches[0].clientY < 56 ? e.touches[0].clientY : null;
@@ -27516,6 +27601,13 @@ if (currentScene === "ocean") goExitOcean();
       resetClockMark: resetClockMark,
       updateClock: updateClock,
       timePaused: timePaused,
+      clockRank: clockRank,
+      adoptClockFields: adoptClockFields,
+      maybeAdoptStoredClock: maybeAdoptStoredClock,
+      onRemoteSaveClock: onRemoteSaveClock,
+      lastWrittenAt: function () { return lastWrittenAt; },
+      persistSave: persistSave,
+      SAVE_KEY: SAVE_KEY,
       setDayMs: function (n) {
         n = +n;
         if (!(n >= 0) || n !== n) return;
@@ -27728,7 +27820,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905iu", BUILD);
+      ok("BUILD", BUILD === "20260905iv", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -27871,6 +27963,81 @@ if (currentScene === "ocean") goExitOcean();
         }
         ok("clockBurstBudget", burst <= 1100 && dayNumber <= beforeDay + 1, "burst=" + burst + " day=" + dayNumber);
         ok("clockOneDayMaxTick", true); /* ≤1 day/tick enforced in updateClock loop */
+        ok("clockRankHelper", typeof clockRank === "function" && clockRank(2, 100) === 2 * DAY_MS + 100, String(clockRank(2, 100)));
+        /* 20260905iv: multi-tab — stale older persist refused; newer stored clock adopted. */
+        (function () {
+          var store = {};
+          var realGet = localStorage.getItem.bind(localStorage);
+          var realSet = localStorage.setItem.bind(localStorage);
+          var written = null;
+          var aheadDay = (origDay | 0) + 5;
+          var aheadMs = 12345;
+          dayNumber = origDay;
+          dayMs = origMs;
+          resetClockMark();
+          lastWrittenAt = 1000;
+          try {
+            localStorage.getItem = function (k) {
+              if (k === SAVE_KEY) {
+                return JSON.stringify({
+                  v: SAVE_VER,
+                  savedAt: 9999,
+                  day: aheadDay,
+                  dayMs: aheadMs
+                });
+              }
+              return realGet(k);
+            };
+            localStorage.setItem = function (k, v) {
+              if (k === SAVE_KEY) {
+                written = v;
+                store[k] = v;
+                return;
+              }
+              return realSet(k, v);
+            };
+            persistSave();
+            ok("clockPersistAdoptsAhead", dayNumber === aheadDay && dayMs === aheadMs, "day=" + dayNumber + " ms=" + dayMs);
+            ok("clockPersistWritesSavedAt", !!(written && JSON.parse(written).savedAt > 0 && JSON.parse(written).day === aheadDay), written ? written.slice(0, 120) : "no write");
+            /* Older stored clock must not clobber a newer local. */
+            dayNumber = aheadDay + 2;
+            dayMs = 50;
+            localStorage.getItem = function (k) {
+              if (k === SAVE_KEY) {
+                return JSON.stringify({
+                  v: SAVE_VER,
+                  savedAt: 1,
+                  day: aheadDay,
+                  dayMs: aheadMs
+                });
+              }
+              return realGet(k);
+            };
+            persistSave();
+            ok("clockPersistKeepsNewerLocal", dayNumber === aheadDay + 2 && dayMs === 50, "day=" + dayNumber + " ms=" + dayMs);
+            /* Remote storage event: ahead clock always adopted. */
+            dayNumber = origDay;
+            dayMs = origMs;
+            lastWrittenAt = 5000;
+            onRemoteSaveClock({ savedAt: 4000, day: aheadDay, dayMs: aheadMs });
+            ok("clockStorageAdoptsAhead", dayNumber === aheadDay && dayMs === aheadMs, "day=" + dayNumber);
+            /* Remote behind but newer savedAt → take remote (other tab is authority by write time). */
+            dayNumber = aheadDay + 3;
+            dayMs = 9;
+            lastWrittenAt = 100;
+            onRemoteSaveClock({ savedAt: 200, day: aheadDay, dayMs: 1 });
+            ok("clockStorageNewerSavedAt", dayNumber === aheadDay && dayMs === 1, "day=" + dayNumber + " ms=" + dayMs);
+            /* Remote behind + older savedAt → keep local. */
+            dayNumber = aheadDay + 3;
+            dayMs = 9;
+            lastWrittenAt = 9000;
+            onRemoteSaveClock({ savedAt: 100, day: aheadDay, dayMs: 1 });
+            ok("clockStorageKeepsLocal", dayNumber === aheadDay + 3 && dayMs === 9, "day=" + dayNumber);
+          } finally {
+            localStorage.getItem = realGet;
+            localStorage.setItem = realSet;
+          }
+        })();
         /* Restore household clock — tests must not burn the live day. */
         dayMs = origMs;
         dayNumber = origDay;

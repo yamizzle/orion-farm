@@ -1,5 +1,9 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905iv (Local 9/11) — multi-tab day-clock save harden
+Multi-tab localStorage race: `savedAt` + adopt-ahead on persist; `storage` syncs clock fields; updateClock only when visible + hasFocus. DAY_MS frozen. Autotest stubs. Needs live verify. Never START OVER.
+
+
 ## BUILD 20260905iu (Local 9/11) — wizard Imagine regen
 Graphics audit: replace 05it code-BOX wizardHouse/wizardNpc/wand/wizardRobes with Imagine + BOX/AREA dense 2×. Pink gate PASS. No atlas repack. Frozen assets untouched.
 
@@ -138,7 +142,7 @@ Status column: **KEEP** = still required in new builds.
 
 | Invariant | BUILD | Status |
 | --- | --- | --- |
-| Day-clock **race harden** without changing DAY_MS: dedicated clockMark, 50ms step cap, ≤1 day rollover/tick, reset on pause/visibility/pageshow, single-flight rAF. Expected rate ~2 real min/phase (~8 min/day) — a day flip in a ~15 min pass is normal, not a race | 20260905bq | KEEP |
+| Day-clock **race harden** without changing DAY_MS: dedicated clockMark, 50ms step cap, ≤1 day rollover/tick, reset on pause/visibility/pageshow, single-flight rAF; **+ multi-tab** savedAt / adopt-ahead persist / storage clock sync / hasFocus gate (05iv). Expected rate ~2 real min/phase (~8 min/day) — a day flip in a ~15 min pass is normal, not a race | 20260905bq + 20260905ir + 20260905iv | KEEP |
 | Snappier Chromebook/iPad draw: reuse graded scratch bitmaps; multiply+mask night wash (no per-frame getImageData); off-camera cull — **without** softening 05hg density or evening colors | 20260905hk | KEEP |
 | Three-lights story spine → Moondrop Night (Home / Town / Peak lamps) | 20260905cb | KEEP |
 
