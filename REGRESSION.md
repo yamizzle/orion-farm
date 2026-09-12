@@ -1,5 +1,8 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905ji (Local 9/12) — darkForest torch cutout follows Orion
+Opaque black overlay + destination-out sphere at player screen pos (no screen/lighter/soft-light wash). Lit: medium ~1/3 view, 100%→5% punch. Unlit: tiny faint peek. 05jf floors/trees stay readable in the hole. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905jh (Local 9/12) — torch unlit until stove
 `drawBagKey`: torch→torchUnlit, litTorch→torch flame (never conflate); craft icon torchUnlit; drawItemIcon standalone props; optional tray flicker. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 
