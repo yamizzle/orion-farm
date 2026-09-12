@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jg";
-  var ASSET_REV = "464567-jg";
+  var BUILD = "20260905jh";
+  var ASSET_REV = "464567-jh";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
   var PIXEL_FONT_READY = false;
@@ -936,7 +936,7 @@
     { id: "ironSword", name: "IRON SWORD", wood: 4, iron: 3, icon: "ironSword", needSword: true, made: "YOU MADE AN IRON SWORD!" },
     { id: "bow", name: "BOW", wood: 8, stone: 1, icon: "bow", made: "YOU MADE A BOW!" },
     /* 20260905iz: branch + moss -> torch (light at stove); stackable */
-    { id: "torch", name: "TORCH", branch: 1, moss: 1, icon: "torch", stack: true, made: "YOU MADE A TORCH!" }
+    { id: "torch", name: "TORCH", branch: 1, moss: 1, icon: "torchUnlit", stack: true, made: "YOU MADE A TORCH!" }
   ];
   var iFrames = 0;
   var hurtFlash = 0;
@@ -6433,6 +6433,25 @@
       paintFishingPole(g, x, y); return;
     }
     if (fishKindById(id) || cookedFishKindById(id)) { paintFishIcon(g, x, y, id); return; }
+    /* 20260905jh: standalone torch props (not atlas) — craft/loot use drawItemIcon */
+    if (id === "torch" || id === "torchUnlit") {
+      if (Assets.torchUnlit) {
+        var _tiu = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.torchUnlit, 0, 0, Assets.torchUnlit.naturalWidth || 32, Assets.torchUnlit.naturalHeight || 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _tiu;
+      } else paintBagKeyFallback(g, x, y, "#8B5A28", "#C8C8D0");
+      return;
+    }
+    if (id === "litTorch" || id === "torchLit") {
+      if (Assets.torch) {
+        var _til = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.torch, 0, 0, Assets.torch.naturalWidth || 32, Assets.torch.naturalHeight || 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _til;
+      } else paintBagKeyFallback(g, x, y, "#C47A38", "#FFE9A0");
+      return;
+    }
     drawUiIcon(g, id, x, y);
   }
 
@@ -25871,21 +25890,27 @@ function doCookNow() {
         g.imageSmoothingEnabled = _mss;
       } else paintBagKeyFallback(g, x, y, "#3A7A28", "#8FD42A");
     }
-    else if (key === "torch" || key === "litTorch") {
-      if (Assets.torch) {
-        var _trs = g.imageSmoothingEnabled;
-        g.imageSmoothingEnabled = false;
-        g.drawImage(Assets.torch, 0, 0, Assets.torch.naturalWidth || 32, Assets.torch.naturalHeight || 32, x, y, 16, 16);
-        g.imageSmoothingEnabled = _trs;
-      } else paintBagKeyFallback(g, x, y, "#C47A38", "#FFE9A0");
-    }
-    else if (key === "torchUnlit") {
+    else if (key === "torch" || key === "torchUnlit") {
+      /* 20260905jh: crafted TORCH = unlit stick+wrap (never show flame until stove) */
       if (Assets.torchUnlit) {
         var _tus = g.imageSmoothingEnabled;
         g.imageSmoothingEnabled = false;
         g.drawImage(Assets.torchUnlit, 0, 0, Assets.torchUnlit.naturalWidth || 32, Assets.torchUnlit.naturalHeight || 32, x, y, 16, 16);
         g.imageSmoothingEnabled = _tus;
       } else paintBagKeyFallback(g, x, y, "#8B5A28", "#C8C8D0");
+    }
+    else if (key === "litTorch") {
+      /* 20260905jh: LIT TORCH = flame; tiny flicker when selected in tray */
+      if (Assets.torch) {
+        var _trs = g.imageSmoothingEnabled;
+        var _ty = y;
+        if (selectedIs("litTorch") && !bagOpen) {
+          _ty = y + ((((tick / 120) | 0) % 2) ? 0 : -1);
+        }
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.torch, 0, 0, Assets.torch.naturalWidth || 32, Assets.torch.naturalHeight || 32, x, _ty, 16, 16);
+        g.imageSmoothingEnabled = _trs;
+      } else paintBagKeyFallback(g, x, y, "#C47A38", "#FFE9A0");
     }
     else if (key === "pole") { if (!drawUiIcon(g, "fishingPole", x, y)) paintFishingPole(g, x, y); }
     else if (key === "leash") { if (!drawUiIcon(g, "leash", x, y)) paintBagKeyFallback(g, x, y, "#A86C14", "#E8B060"); }
@@ -28935,7 +28960,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jg", BUILD);
+      ok("BUILD", BUILD === "20260905jh", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -31581,6 +31606,15 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       placeToolInTrayFirst("torch"); selectTool("torch");
       placePlayer(15, 4, "up"); /* adjacent to cabin stove (15,3) */
       ok("torchLight", !!tryLightTorch() && bagCount("litTorch") >= 1 && selectedIs("litTorch"), "lit");
+      /* 20260905jh: drawBagKey must use torchUnlit for torch and Assets.torch for litTorch */
+      (function () {
+        var src = Function.prototype.toString.call(drawBagKey);
+        var itemSrc = Function.prototype.toString.call(drawItemIcon);
+        ok("torchDrawUnlit", src.indexOf('key === "torch"') >= 0 && src.indexOf("Assets.torchUnlit") >= 0 && src.indexOf('key === "torch" || key === "litTorch"') < 0, "bag");
+        ok("litTorchDrawFlame", src.indexOf('key === "litTorch"') >= 0 && src.indexOf("Assets.torch") >= 0, "lit");
+        ok("torchCraftIconUnlit", !!CRAFT_RECIPES.some(function (r) { return r.id === "torch" && r.icon === "torchUnlit"; }), "craft");
+        ok("torchItemIconPath", itemSrc.indexOf("Assets.torchUnlit") >= 0 && itemSrc.indexOf('id === "torch"') >= 0, "item");
+      })();
       applyScene("darkForest");
       ok("darkForestLitHeld", torchIsLitHeld(), "held");
       /* 20260905jd: night restyle smoke — black borders, giant tree draw, overlay wired */
