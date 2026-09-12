@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jc";
+  var BUILD = "20260905jd";
   var ASSET_REV = "464567-iy";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -411,6 +411,8 @@
           loadImage("assets/props/palm.png").then(function (im) { Assets.palm = im; }).catch(function () {}),
           loadImage("assets/tiles/forestFloor.png").then(function (im) { Assets.forestFloor = im; }).catch(function () {}),
           loadImage("assets/tiles/forestFloor2.png").then(function (im) { Assets.forestFloor2 = im; }).catch(function () {}),
+          loadImage("assets/tiles/darkForestFloor.png").then(function (im) { Assets.darkForestFloor = im; }).catch(function () {}),
+          loadImage("assets/tiles/darkForestFloor2.png").then(function (im) { Assets.darkForestFloor2 = im; }).catch(function () {}),
           loadImage("assets/tiles/forestClearing.png").then(function (im) { Assets.forestClearing = im; }).catch(function () {}),
           loadImage("assets/props/fern.png").then(function (im) { Assets.fern = im; }).catch(function () {}),
           loadImage("assets/props/wildflower.png").then(function (im) { Assets.wildflower = im; }).catch(function () {}),
@@ -2672,6 +2674,7 @@
     if (currentScene === "highPeak") rec.artRev = "05iz";
     if (currentScene === "peak") rec.artRev = "05ib";
     if (currentScene === "cabin") rec.artRev = "05jb";
+    if (currentScene === "darkForest") rec.artRev = "05jd";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
 
@@ -2970,6 +2973,11 @@
     /* 20260905ib: bust pre-dirt-ribbon peak cache (noisy tan/stripe/white era) */
     if (name === "peak" && cached && (cached.artRev || "") !== "05ib") {
       cached = null;
+    }
+    /* 20260905jd: bust darkForest cache — night restyle + giant trees */
+    if (name === "darkForest" && cached && (cached.artRev || "") !== "05jd") {
+      cached = null;
+      sceneCache.darkForest = null;
     }
     /* 20260905jb: bust cabin cache so lean props replace trophy extras */
     if (name === "cabin" && cached && (cached.artRev || "") !== "05jb") {
@@ -15074,56 +15082,55 @@ function doCookNow() {
     if (!isDarkForestScene()) return;
     lit = torchIsLitHeld();
     g.save();
+    /* 20260905jd: absolute black between trunks; torch cone only when litTorch held */
     if (!lit) {
-      /* nearly pitch — kids need a torch */
-      g.fillStyle = "rgba(4,6,12,0.82)";
+      g.fillStyle = "rgba(0,0,0,0.94)";
       g.fillRect(0, 0, VIEW_W, VIEW_H);
-      /* tiny sight around Orion so they know they exist */
       cx = VIEW_W * 0.5;
       cy = VIEW_H * 0.55;
-      grd = g.createRadialGradient(cx, cy, 8, cx, cy, 42);
-      grd.addColorStop(0, "rgba(4,6,12,0)");
-      grd.addColorStop(1, "rgba(4,6,12,0.82)");
       g.globalCompositeOperation = "destination-out";
-      g.fillStyle = grd;
-      g.beginPath();
-      g.arc(cx, cy, 42, 0, Math.PI * 2);
-      g.fill();
-      g.globalCompositeOperation = "source-over";
-      g.fillStyle = "rgba(4,6,12,0.55)";
-      g.fillRect(0, 0, VIEW_W, VIEW_H);
-      /* punch a soft hole again */
-      g.globalCompositeOperation = "destination-out";
-      grd = g.createRadialGradient(cx, cy, 4, cx, cy, 36);
-      grd.addColorStop(0, "rgba(0,0,0,0.85)");
+      grd = g.createRadialGradient(cx, cy, 2, cx, cy, 28);
+      grd.addColorStop(0, "rgba(0,0,0,0.75)");
       grd.addColorStop(1, "rgba(0,0,0,0)");
       g.fillStyle = grd;
       g.beginPath();
-      g.arc(cx, cy, 36, 0, Math.PI * 2);
+      g.arc(cx, cy, 28, 0, Math.PI * 2);
+      g.fill();
+      g.globalCompositeOperation = "source-over";
+      g.fillStyle = "rgba(0,0,0,0.55)";
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+      g.globalCompositeOperation = "destination-out";
+      grd = g.createRadialGradient(cx, cy, 1, cx, cy, 22);
+      grd.addColorStop(0, "rgba(0,0,0,0.7)");
+      grd.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(cx, cy, 22, 0, Math.PI * 2);
       g.fill();
     } else {
-      /* torch held — warm pool + soft vignette */
-      g.fillStyle = "rgba(8,10,18,0.42)";
+      g.fillStyle = "rgba(0,0,0,0.88)";
       g.fillRect(0, 0, VIEW_W, VIEW_H);
       cx = VIEW_W * 0.5;
       cy = VIEW_H * 0.52;
-      rad = 110 + Math.sin((tick || 0) / 140) * 8;
+      rad = 96 + Math.sin((tick || 0) / 140) * 6;
       g.globalCompositeOperation = "destination-out";
-      grd = g.createRadialGradient(cx, cy, 10, cx, cy, rad);
-      grd.addColorStop(0, "rgba(0,0,0,0.92)");
-      grd.addColorStop(0.55, "rgba(0,0,0,0.55)");
+      grd = g.createRadialGradient(cx, cy, 6, cx, cy, rad);
+      grd.addColorStop(0, "rgba(0,0,0,0.96)");
+      grd.addColorStop(0.45, "rgba(0,0,0,0.72)");
+      grd.addColorStop(0.78, "rgba(0,0,0,0.28)");
       grd.addColorStop(1, "rgba(0,0,0,0)");
       g.fillStyle = grd;
       g.beginPath();
       g.arc(cx, cy, rad, 0, Math.PI * 2);
       g.fill();
       g.globalCompositeOperation = "screen";
-      grd = g.createRadialGradient(cx, cy, 2, cx, cy, rad * 0.7);
-      grd.addColorStop(0, "rgba(255,210,120,0.35)");
-      grd.addColorStop(1, "rgba(255,140,40,0)");
+      grd = g.createRadialGradient(cx, cy, 2, cx, cy, rad * 0.62);
+      grd.addColorStop(0, "rgba(255,210,120,0.42)");
+      grd.addColorStop(0.55, "rgba(255,160,60,0.14)");
+      grd.addColorStop(1, "rgba(255,120,30,0)");
       g.fillStyle = grd;
       g.beginPath();
-      g.arc(cx, cy, rad * 0.7, 0, Math.PI * 2);
+      g.arc(cx, cy, rad * 0.62, 0, Math.PI * 2);
       g.fill();
     }
     g.restore();
@@ -15199,6 +15206,11 @@ function doCookNow() {
 
   function drawDayTint(g) {
     var tint, amt;
+    /* 20260905jd: darkForest is its own night cone — never outdoor day grade / brick-sky wash */
+    if (isDarkForestScene()) {
+      drawDarkForestOverlay(g);
+      return;
+    }
     if (isCozyInterior() || isCaveLitScene()) {
       tint = currentTint();
       if (tint && tint.a >= 0.01) {
@@ -15206,7 +15218,6 @@ function doCookNow() {
       }
       if (currentScene === "house" && homeLightOn()) drawHouseHomeGlow(g);
       if (isCaveLitScene()) drawCaveTorchFalloff(g);
-    drawDarkForestOverlay(g);
       return;
     }
     drawOutdoorGrade(g);
@@ -23151,7 +23162,7 @@ function doCookNow() {
     if (p.kind === "townHouseB" || p.kind === "townHouseD") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 96, h: 80 };
     if (p.kind === "wizardHouse") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 80 };
     if (p.kind === "abandonedCabin") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 80 };
-    if (p.kind === "darkGiantTree") return { x: p.tx * TILE - 16, y: p.ty * TILE - 112, w: 48, h: 128 };
+    if (p.kind === "darkGiantTree") return { x: p.tx * TILE - 64, y: p.ty * TILE - 368, w: 144, h: 384 };
     if (p.kind === "blueGlowMushroom" || p.kind === "mossClump") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "glowMushroomPlant") {
       var _gh = 16 + Math.min(240, ((p.growDays | 0) * 10));
@@ -23482,10 +23493,11 @@ function doCookNow() {
         fill(g, x + 28, y + 48, 16, 24, "#3A2818");
       }
     } else if (p.kind === "darkGiantTree") {
+      /* 20260905jd: ~3× draw (48×128 → 144×384); tall trunks may clip above map — OK */
       var _dt = Assets.darkGiantTree || Assets.peakGiant || Assets.pine;
-      if (!drawStandSprite(g, _dt, x + 16, y, 48, 128)) {
-        fill(g, x + 18, y - 80, 12, 90, "#1A1410");
-        fill(g, x + 4, y - 100, 40, 40, "#0E1A10");
+      if (!drawStandSprite(g, _dt, x + 16, y, 144, 384)) {
+        fill(g, x + 10, y - 300, 20, 320, "#12100C");
+        fill(g, x - 8, y - 360, 56, 70, "#0A120C");
       }
     } else if (p.kind === "blueGlowMushroom") {
       if (Assets.blueGlowMushroom) {
@@ -26521,7 +26533,7 @@ function doCookNow() {
     frameDayT = null;
     beginFrameGrade();
     updateCamera();
-    g.fillStyle = (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "darkForest") ? "#000000" : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -26543,7 +26555,7 @@ function doCookNow() {
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -26554,8 +26566,9 @@ function doCookNow() {
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
-          if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") drawSkyTile(g, tx, ty, dx, dy);
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+          if (currentScene === "darkForest") { g.fillStyle = "#000000"; g.fillRect(dx, dy, TILE, TILE); }
+          else if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") drawSkyTile(g, tx, ty, dx, dy);
           else if (currentScene === "ocean") { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
           else if (isCozyInterior()) Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
           else if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") {
@@ -26631,16 +26644,32 @@ function doCookNow() {
           drawMossTile(g, tx, ty, dx, dy);
         } else if (ch === "l") {
           drawLightTile(g, tx, ty, dx, dy);
-        } else if (ch === "y") {
-          drawSkyTile(g, tx, ty, dx, dy);
-        } else if (ch === "f") {
-          if (currentScene === "treetop" && Assets.canopyBranch) {
+        } else if (ch === "y" || ch === "f") {
+          if (currentScene === "darkForest") {
+            /* 20260905jd: dark needle/moss floor — not sky or bright dirt/wood */
+            var _dff = ((tx + ty) & 1) ? (Assets.darkForestFloor2 || Assets.darkForestFloor) : (Assets.darkForestFloor || Assets.darkForestFloor2);
+            if (_dff) g.drawImage(_dff, dx, dy, 16, 16);
+            else {
+              g.fillStyle = ch === "f" ? "#1A2214" : "#0C100A";
+              g.fillRect(dx, dy, TILE, TILE);
+            }
+            if (ch === "f") {
+              g.fillStyle = "rgba(40,48,28,0.35)";
+              g.fillRect(dx, dy, TILE, TILE);
+            }
+          } else if (ch === "y") {
+            drawSkyTile(g, tx, ty, dx, dy);
+          } else if (currentScene === "treetop" && Assets.canopyBranch) {
             g.drawImage(Assets.canopyBranch, dx, dy, 16, 16);
           } else {
             Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
           }
         } else if (ch === "#") {
-          if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") {
+          if (currentScene === "darkForest") {
+            /* 20260905jd: black void / dark tree-wall border — never gray brick */
+            g.fillStyle = "#000000";
+            g.fillRect(dx, dy, TILE, TILE);
+          } else if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") {
             Assets.draw(g, ((currentScene === "mine" && mineFloor >= 4) || (currentScene === "caveclimb" && climbFloor === 1)) ? "deepWall" : "mineWall", dx, dy);
           } else if (currentScene === "tree") {
             drawBarkWall(g, tx, ty, dx, dy);
@@ -28854,7 +28883,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jc", BUILD);
+      ok("BUILD", BUILD === "20260905jd", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -31474,6 +31503,16 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("torchLight", !!tryLightTorch() && bagCount("litTorch") >= 1 && selectedIs("litTorch"), "lit");
       applyScene("darkForest");
       ok("darkForestLitHeld", torchIsLitHeld(), "held");
+      /* 20260905jd: night restyle smoke — black borders, giant tree draw, overlay wired */
+      ok("darkForestBorderHash", cell(0, 0) === "#" && cell(DARK_FOREST_COLS - 1, DARK_FOREST_ROWS - 1) === "#", "border");
+      ok("darkForestGiantBounds", (function () {
+        var p = PROPS.find(function (q) { return q && q.kind === "darkGiantTree"; });
+        if (!p) return false;
+        var b = propBounds(p);
+        return b && b.w === 144 && b.h === 384;
+      })(), "tree 144x384");
+      saveScene();
+      ok("darkForestArtRev", !!(sceneCache.darkForest && sceneCache.darkForest.artRev === "05jd"), sceneCache.darkForest && sceneCache.darkForest.artRev);
       exitDarkForest();
       if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
       addToBag("blueGlowMushroom", 1);

@@ -1,5 +1,8 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905jd (Local 9/12) — darkForest night woods restyle
+Night overlay wired (was nested under cozy/cave only); absolute black borders (no brick); dark needle floors; darkGiantTree draw 48×128→144×384; artRev 05jd; atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905jc (Local 9/12) — Bird ride to High Peak bear
 After `peakRocksCleared`, bird menu adds BEAR (PEAK balcony kept); lands highPeak near bear; Jobs ASK THE BIRD TO THE BEAR once; dialogue 7-choice layout; highPeak cache null-guard. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 
