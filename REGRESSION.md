@@ -1,5 +1,8 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905jc (Local 9/12) — Bird ride to High Peak bear
+After `peakRocksCleared`, bird menu adds BEAR (PEAK balcony kept); lands highPeak near bear; Jobs ASK THE BIRD TO THE BEAR once; dialogue 7-choice layout; highPeak cache null-guard. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905jb (Local 9/12) — Cabin exit + lean interior
 Cabin doormat/inndoor → goExitCabin (not farm house); walk-onto cabinOut auto-exits; lean props bed/stove/craft/chest + door only; sceneCache artRev 05jb. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 

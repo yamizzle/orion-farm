@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jb";
+  var BUILD = "20260905jc";
   var ASSET_REV = "464567-iy";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -2940,17 +2940,20 @@
       }
       if (found.pathClear && (!_hasBear || !_bearAside)) cached = null;
       if (!found.pathClear && (!_hasBear || _bearAside)) cached = null;
-      var _hasBridge = false, _hasPine = false, _bi;
-      for (_bi = 0; _bi < cached.props.length; _bi++) {
-        if (!cached.props[_bi]) continue;
-        if (cached.props[_bi].kind === "logBridge") _hasBridge = true;
-        if (cached.props[_bi].kind === "bridgePine") _hasPine = true;
+      /* 20260905jc: stop reading props after invalidate (null deref) */
+      if (cached && cached.props) {
+        var _hasBridge = false, _hasPine = false, _bi;
+        for (_bi = 0; _bi < cached.props.length; _bi++) {
+          if (!cached.props[_bi]) continue;
+          if (cached.props[_bi].kind === "logBridge") _hasBridge = true;
+          if (cached.props[_bi].kind === "bridgePine") _hasPine = true;
+        }
+        if (found.logBridge && !_hasBridge) cached = null;
+        if (cached && !found.logBridge && _hasBridge) cached = null;
+        if (cached && !found.logBridge && !_hasPine) cached = null;
       }
-      if (cached && found.logBridge && !_hasBridge) cached = null;
-      if (cached && !found.logBridge && _hasBridge) cached = null;
-      if (cached && !found.logBridge && !_hasPine) cached = null;
       /* 20260905iz: require cabin + west wizard once path is clear */
-      if (cached && (found.pathClear || found.bearFed)) {
+      if (cached && cached.props && (found.pathClear || found.bearFed)) {
         var _hasCabin = false, _hasWiz = false, _ci;
         for (_ci = 0; _ci < cached.props.length; _ci++) {
           if (!cached.props[_ci]) continue;
@@ -15450,6 +15453,8 @@ function doCookNow() {
     }
     if (found.birdArrived && !found.birdNestFixed) return "BRING 10 WOOD TO THE NEST BIRD";
     if (found.birdNestFixed && !unlocked.birdRideTip) return "ASK THE BIRD FOR A RIDE";
+    /* 20260905jc: once — bird shortcut to High Peak bear after summit rocks clear */
+    if (found.peakRocksCleared && found.birdNestFixed && !unlocked.birdBearTip) return "ASK THE BIRD TO THE BEAR";
     if ((houseTier | 0) < 2) return "PIP SELLS A HOUSE KIT.";
     return "THE PEAK GLOWS.";
   }
@@ -16161,6 +16166,19 @@ function doCookNow() {
     { id: "stay", label: "STAY" }
   ];
 
+  /* 20260905jc: after summit rocks clear, bird can fly Orion to the High Peak bear */
+  function getBirdStops() {
+    var i, s, out = [];
+    for (i = 0; i < BIRD_STOPS.length; i++) {
+      s = BIRD_STOPS[i];
+      if (s.id === "stay" && found.peakRocksCleared) {
+        out.push({ id: "bear", label: "BEAR" });
+      }
+      out.push(s);
+    }
+    return out;
+  }
+
   function findEggNest() {
     var i, p;
     if (currentScene !== "treetop") return null;
@@ -16244,13 +16262,13 @@ function doCookNow() {
         spawnBirdWoodSparks(player.x, player.y - 10);
         playSfx("craft");
         /* 20260905bv: thank-you + star toast + ride picks in one cozy talk */
-        openDialogue("BIRD", ["THANK YOU.", "THE NEST IS SAFE.", "WANT A RIDE?"], BIRD_STOPS);
+        openDialogue("BIRD", ["THANK YOU.", "THE NEST IS SAFE.", "WANT A RIDE?"], getBirdStops());
         return;
       }
       openDialogue("BIRD", ["MY NEST NEEDS", "10 WOOD PLEASE."]);
       return;
     }
-    openDialogue("BIRD", ["WANT A RIDE?"], BIRD_STOPS);
+    openDialogue("BIRD", ["WANT A RIDE?"], getBirdStops());
   }
 
   function goTreetopBird() {
@@ -16315,6 +16333,32 @@ function doCookNow() {
       applyScene("peak");
       placePlayer(peakLand.tx, peakLand.ty, "up");
       note = "LANDED ON THE PEAK.";
+    } else if (stop === "bear" || stop === "highPeak") {
+      /* 20260905jc: land south of bear choke (not inside solid bear); fallback cave/land */
+      applyScene("highPeak");
+      (function () {
+        var cands, ci, c;
+        cands = [
+          { tx: highPeakBearAt.tx, ty: highPeakBearAt.ty + 2 },
+          { tx: highPeakBearAt.tx - 1, ty: highPeakBearAt.ty + 2 },
+          { tx: highPeakBearAt.tx + 1, ty: highPeakBearAt.ty + 2 },
+          { tx: highPeakBearAt.tx, ty: highPeakBearAt.ty + 3 },
+          { tx: highPeakBearAt.tx, ty: highPeakBearAt.ty },
+          { tx: highPeakCaveAt.tx, ty: highPeakCaveAt.ty - 1 },
+          { tx: highPeakLand.tx, ty: highPeakLand.ty }
+        ];
+        for (ci = 0; ci < cands.length; ci++) {
+          c = cands[ci];
+          if (walkable(c.tx, c.ty)) {
+            placePlayer(c.tx, c.ty, "up");
+            return;
+          }
+        }
+        placePlayer(highPeakLand.tx, highPeakLand.ty, "up");
+      })();
+      if (!walkable(player.tx, player.ty)) unstickPlayer();
+      note = "LANDED BY THE BEAR.";
+      if (!unlocked.birdBearTip) unlocked.birdBearTip = true;
     } else {
       ensureGiantBirdLanded();
       return;
@@ -24605,7 +24649,9 @@ function doCookNow() {
     var rows, h, y, okW, okH, okX, okY, closeW, closeH, closeX, closeY;
     var choiceRects, i, n, row, col, cols, btnW, btnH, gap, rowW, bx, by, startX;
     n = choices.length;
-    rows = n ? (n <= 3 ? 1 : 2) : 0;
+    /* 20260905jc: 3-col grid, as many rows as needed (bird BEAR stop = 7 picks) */
+    cols = n <= 3 ? Math.max(n, 0) : 3;
+    rows = n ? Math.ceil(n / (cols || 1)) : 0;
     h = 30 + Math.max(2, lines.length) * 10;
     if (rows) h += 8 + rows * 18;
     if (h < 64) h = 64;
@@ -24620,13 +24666,14 @@ function doCookNow() {
     closeY = y + 2;
     choiceRects = [];
     if (n) {
+      var rowCount;
       btnW = 52; btnH = 14; gap = 6;
-      cols = n <= 3 ? n : 3;
       by = y + 12 + lines.length * 10 + 6;
       for (i = 0; i < n; i++) {
-        row = i < cols ? 0 : 1;
-        col = i < cols ? i : i - cols;
-        rowW = (row === 0 ? Math.min(n, cols) : n - cols) * btnW + ((row === 0 ? Math.min(n, cols) : n - cols) - 1) * gap;
+        row = (i / cols) | 0;
+        col = i % cols;
+        rowCount = Math.min(cols, n - row * cols);
+        rowW = rowCount * btnW + (rowCount - 1) * gap;
         startX = x + ((w - rowW) / 2) | 0;
         bx = startX + col * (btnW + gap);
         choiceRects.push({ x: bx, y: by + row * 18, w: btnW, h: btnH, id: choices[i].id, label: choices[i].label });
@@ -24656,7 +24703,7 @@ function doCookNow() {
     else if (id === "leaveBoat") leaveBoat();
     else if (id === "boatNope" || id === "stay") {
       if (id === "stay" && currentScene === "treetop" && found.birdArrived) ensureGiantBirdLanded();
-    } else if (id === "tree" || id === "home" || id === "town" || id === "cave" || id === "peak") {
+    } else if (id === "tree" || id === "home" || id === "town" || id === "cave" || id === "peak" || id === "bear" || id === "highPeak") {
       beginBirdRide(id);
     }
   }
@@ -28807,7 +28854,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jb", BUILD);
+      ok("BUILD", BUILD === "20260905jc", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -31389,6 +31436,27 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       var _tapSrc = Function.prototype.toString.call(tap);
       ok("cabinDoormatGoExitCabin", _tapSrc.indexOf('currentScene === "cabin"') >= 0 && _tapSrc.indexOf("goExitCabin") >= 0 && _tapSrc.indexOf("goExitHouse") >= 0, "tap missing cabin branch");
       ok("cabinArriveHasExit", Function.prototype.toString.call(arrive).indexOf("isCabinExit") >= 0, "arrive missing isCabinExit");
+      /* 20260905jc: bird ride BEAR stop after peakRocksCleared → highPeak near bear */
+      found.peakRocksCleared = false;
+      var _bsOff = getBirdStops();
+      ok("birdStopsNoBear", !_bsOff.some(function (s) { return s && s.id === "bear"; }) && !!_bsOff.some(function (s) { return s && s.id === "peak"; }), _bsOff.map(function (s) { return s.id; }).join(","));
+      found.peakRocksCleared = true;
+      var _bsOn = getBirdStops();
+      ok("birdStopsHasBear", !!_bsOn.some(function (s) { return s && s.id === "bear"; }) && !!_bsOn.some(function (s) { return s && s.id === "peak"; }) && _bsOn[_bsOn.length - 1].id === "stay", _bsOn.map(function (s) { return s.id; }).join(","));
+      applyScene("overworld");
+      found.bearFed = false;
+      found.pathClear = false;
+      found.logBridge = false;
+      if (sceneCache) sceneCache.highPeak = null;
+      birdRideFx = { age: 9999, life: 1, stop: "bear" };
+      lineNote = null;
+      finishBirdRide();
+      ok("birdBearLandScene", currentScene === "highPeak", currentScene);
+      ok("birdBearLandWalk", walkable(player.tx, player.ty), player.tx + "," + player.ty);
+      ok("birdBearLandNear", Math.abs(player.tx - highPeakBearAt.tx) <= 2 && player.ty >= highPeakBearAt.ty && player.ty <= highPeakBearAt.ty + 3, player.tx + "," + player.ty + " bear=" + highPeakBearAt.tx + "," + highPeakBearAt.ty);
+      ok("birdBearNotSolid", !isSleepingBear(player.tx, player.ty), "on bear " + player.tx + "," + player.ty);
+      ok("birdBearNote", !!(lineNote && lineNote.text === "LANDED BY THE BEAR."), lineNote && lineNote.text);
+      ok("birdBearTipUnlock", !!unlocked.birdBearTip, String(unlocked.birdBearTip));
       enterDarkForest();
       if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
       ok("darkForestScene", currentScene === "darkForest", currentScene);
