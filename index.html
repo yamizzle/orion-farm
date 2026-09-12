@@ -14258,6 +14258,7 @@ function doCookNow() {
   function ensureOwnedTools() {
     if ((inventory.leash | 0) >= 1) placeToolInTrayFirst("leash");
     if (hatOwned) placeToolInTrayFirst("hat");
+    if (redHatOwned) placeToolInTrayFirst("redHat");
     if (shovelOwned) placeToolInTrayFirst("shovel");
     if (axeOwned) placeToolInTrayFirst("axe");
     if (pickaxeOwned) placeToolInTrayFirst("pick");
