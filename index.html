@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ja";
+  var BUILD = "20260905jb";
   var ASSET_REV = "464567-iy";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -2671,6 +2671,7 @@
     if (currentScene === "ocean") rec.boatDock = { tx: dockTx, ty: dockTy };
     if (currentScene === "highPeak") rec.artRev = "05iz";
     if (currentScene === "peak") rec.artRev = "05ib";
+    if (currentScene === "cabin") rec.artRev = "05jb";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
 
@@ -2965,6 +2966,10 @@
     }
     /* 20260905ib: bust pre-dirt-ribbon peak cache (noisy tan/stripe/white era) */
     if (name === "peak" && cached && (cached.artRev || "") !== "05ib") {
+      cached = null;
+    }
+    /* 20260905jb: bust cabin cache so lean props replace trophy extras */
+    if (name === "cabin" && cached && (cached.artRev || "") !== "05jb") {
       cached = null;
     }
     fresh = !cached;
@@ -4544,19 +4549,12 @@
   }
 
   function buildCabinProps() {
+    /* 20260905jb: lean cabin — bed/stove/craft/chest + exit only (no trophy extras). */
     return [
       { kind: "bed", tx: 2, ty: 2 },
-      { kind: "window", tx: 6, ty: 0 },
-      { kind: "window", tx: 13, ty: 0 },
       { kind: "stove", tx: 15, ty: 3 },
-      { kind: "fireplace", tx: 17, ty: 1 },
-      { kind: "table", tx: 10, ty: 4 },
-      { kind: "lantern", tx: 12, ty: 3 },
-      { kind: "rug", tx: 7, ty: 5 },
       { kind: "workbench", tx: 1, ty: 7 },
       { kind: "houseChest", tx: 4, ty: 7 },
-      { kind: "crate", tx: 16, ty: 7 },
-      { kind: "housePlant", tx: 17, ty: 9 },
       { kind: "doormat", tx: 10, ty: 10 },
       { kind: "inndoor", tx: 10, ty: 11 }
     ];
@@ -21142,6 +21140,27 @@ function doCookNow() {
       exitWizardHouse();
       return;
     }
+    /* 20260905jb: walk-onto cabinOut auto-exits (mirror isHouseExit) */
+    if (isCabinEntrance(player.tx, player.ty)) {
+      pending = null;
+      enterCabin();
+      return;
+    }
+    if (isCabinExit(player.tx, player.ty)) {
+      pending = null;
+      exitCabin();
+      return;
+    }
+    if (isDarkForestMouth(player.tx, player.ty)) {
+      pending = null;
+      enterDarkForest();
+      return;
+    }
+    if (isDarkForestExit(player.tx, player.ty)) {
+      pending = null;
+      exitDarkForest();
+      return;
+    }
     if (isIslandCaveEntrance(player.tx, player.ty)) {
       pending = null;
       enterIslandCave();
@@ -27684,12 +27703,15 @@ function doCookNow() {
       return;
     }
     if (hitProp && (hitProp.kind === "doormat" || hitProp.kind === "inndoor")) {
+      /* 20260905jb: cabin/wizard must not fall through to farm-house exit */
       if (currentScene === "shop") goExitShop();
       else if (currentScene === "cottage") goExitCottage();
       else if (currentScene === "cottage2") goExitCottage2();
       else if (currentScene === "tallCottage") goExitTallCottage();
       else if (currentScene === "lHouse") goExitLHouse();
       else if (currentScene === "islandCave") goExitIslandCave();
+      else if (currentScene === "cabin") goExitCabin();
+      else if (currentScene === "wizardHouse") goExitWizardHouse();
       else goExitHouse();
       return;
     }
@@ -28785,7 +28807,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905iz", BUILD);
+      ok("BUILD", BUILD === "20260905jb", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -31348,6 +31370,25 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       exitCabin();
       if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
       ok("cabinExitPeak", currentScene === "highPeak", currentScene);
+      /* 20260905jb: lean props + walk/tap exit paths */
+      if (sceneCache) sceneCache.cabin = null;
+      applyScene("cabin");
+      var _ckinds = {}, _cpi, _cp;
+      for (_cpi = 0; _cpi < PROPS.length; _cpi++) {
+        _cp = PROPS[_cpi];
+        if (_cp && _cp.kind) _ckinds[_cp.kind] = true;
+      }
+      ok("cabinLeanKeep", !!(!_ckinds.fireplace && !_ckinds.window && !_ckinds.table && !_ckinds.lantern && !_ckinds.rug && !_ckinds.crate && !_ckinds.housePlant && _ckinds.bed && _ckinds.stove && _ckinds.workbench && _ckinds.houseChest && _ckinds.doormat && _ckinds.inndoor), JSON.stringify(Object.keys(_ckinds)));
+      ok("cabinIsExit", isCabinExit(cabinOut.tx, cabinOut.ty), cabinOut.tx + "," + cabinOut.ty);
+      placePlayer(cabinOut.tx, cabinOut.ty, "down");
+      ok("cabinStandExit", isCabinExit(player.tx, player.ty), player.tx + "," + player.ty);
+      exitCabin();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("cabinExitLandPeak", currentScene === "highPeak" && walkable(player.tx, player.ty), currentScene + " @" + player.tx + "," + player.ty + " walk=" + walkable(player.tx, player.ty));
+      ok("cabinExitLandSpot", player.tx === cabinLand.tx && player.ty === cabinLand.ty, player.tx + "," + player.ty + " want " + cabinLand.tx + "," + cabinLand.ty);
+      var _tapSrc = Function.prototype.toString.call(tap);
+      ok("cabinDoormatGoExitCabin", _tapSrc.indexOf('currentScene === "cabin"') >= 0 && _tapSrc.indexOf("goExitCabin") >= 0 && _tapSrc.indexOf("goExitHouse") >= 0, "tap missing cabin branch");
+      ok("cabinArriveHasExit", Function.prototype.toString.call(arrive).indexOf("isCabinExit") >= 0, "arrive missing isCabinExit");
       enterDarkForest();
       if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
       ok("darkForestScene", currentScene === "darkForest", currentScene);

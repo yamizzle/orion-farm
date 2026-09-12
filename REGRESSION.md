@@ -1,5 +1,8 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905jb (Local 9/12) — Cabin exit + lean interior
+Cabin doormat/inndoor → goExitCabin (not farm house); walk-onto cabinOut auto-exits; lean props bed/stove/craft/chest + door only; sceneCache artRev 05jb. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905iz (Local 9/11) — Abandoned Cabin + dark forest north bank
 HIGH_PEAK 64×68 (~4×N / ~2×E/W north bank); cabin center (bed/stove/chest/craft); wizard west; east chop trees; dark forest north needs lit torch; blue mush plant grows by day; cabin bed = save once reachable (farm bed stops). Bridge/bear/river south frozen. Atlas 1477. Never START OVER.
 
@@ -81,6 +84,8 @@ Status column: **KEEP** = still required in new builds.
 | Cabin bed sleeps+saves once bridge+bear; farm house bed no longer save point when cabin reachable; bridge/bear/wand west unchanged | 20260905iz | KEEP |
 | Dark forest north of cabin needs lit torch; blue glow mushroom pick → plant on cabin garden grows by day | 20260905iz | KEEP |
 | Torch craft branch+moss; light on stove; east choppable trees; wizard west of cabin | 20260905iz | KEEP |
+| Cabin doormat/inndoor tap → goExitCabin (not goExitHouse); walk-onto cabinOut auto-exits to highPeak cabinLand walkable | 20260905jb | KEEP |
+| Cabin interior lean: bed + stove + workbench + houseChest + doormat/inndoor only (no fireplace/windows/table/lantern/rug/crate/plant) | 20260905jb | KEEP |
 | HIGH PEAK ground + bear are **Imagine stamps** (flat 16px rock/dirt path tiles — not postage-stamp peakMap crops; dense 2× true sleeping-pose sleepingBear; Imagine pines — no code checker / oval / triangle paint) | 20260905hz + 20260905hy | KEEP |
 | PEAK ground is **tiles-only** (warm brown dirt path on walk mask + calm pale snow-rock off-path) + smashable rock **props** never painted-in; clearing leaves clean path (no scrub scar / busy stripe checker); `peakRocksCleared` household save kept | 20260905ib | KEEP |
 | Mine OUT/UP findable (bobbing gold labels + Jobs tip); pad must not cover OUT | 20260905bx + 31t | KEEP |
