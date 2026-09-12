@@ -1,5 +1,8 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905jf (Local 9/12) — cabin sleep restore + darkForest torch readable
+loadSave whitelist adds cabin/darkForest/wizardHouse; cabin bed restore → sleepWakeSpot; darkForestFloor + darkGiantTree restamped brighter; softer warm-amber torch overlay; artRev 05jf. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905jd (Local 9/12) — darkForest night woods restyle
 Night overlay wired (was nested under cozy/cave only); absolute black borders (no brick); dark needle floors; darkGiantTree draw 48×128→144×384; artRev 05jd; atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 
@@ -95,6 +98,8 @@ Status column: **KEEP** = still required in new builds.
 | Torch craft branch+moss; light on stove; east choppable trees; wizard west of cabin | 20260905iz | KEEP |
 | Cabin doormat/inndoor tap → goExitCabin (not goExitHouse); walk-onto cabinOut auto-exits to highPeak cabinLand walkable | 20260905jb | KEEP |
 | Cabin interior lean: bed + stove + workbench + houseChest + doormat/inndoor only (no fireplace/windows/table/lantern/rug/crate/plant) | 20260905jb | KEEP |
+| Cabin / darkForest / wizardHouse **survive hard-refresh**: `loadSave` pendingRestore whitelist includes all three (not forced overworld); cabin unwalkable bed tile wakes at `sleepWakeSpot` | 20260905jf | KEEP |
+| Dark forest torch-readable: needle/moss floors + gray-brown giant trunks visible in warm-amber cone (not near-black void / green sphere); artRev 05jf; overlay softer when litTorch held | 20260905jf | KEEP |
 | HIGH PEAK ground + bear are **Imagine stamps** (flat 16px rock/dirt path tiles — not postage-stamp peakMap crops; dense 2× true sleeping-pose sleepingBear; Imagine pines — no code checker / oval / triangle paint) | 20260905hz + 20260905hy | KEEP |
 | PEAK ground is **tiles-only** (warm brown dirt path on walk mask + calm pale snow-rock off-path) + smashable rock **props** never painted-in; clearing leaves clean path (no scrub scar / busy stripe checker); `peakRocksCleared` household save kept | 20260905ib | KEEP |
 | Mine OUT/UP findable (bobbing gold labels + Jobs tip); pad must not cover OUT | 20260905bx + 31t | KEEP |
