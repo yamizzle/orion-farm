@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jk";
+  var BUILD = "20260905jl";
   var ASSET_REV = "464567-jk";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -477,6 +477,20 @@
           loadImage("assets/props/mushroomStalkPath.png").then(function (im) { Assets.mushroomStalkPath = im; }).catch(function () {}),
           loadImage("assets/props/mushroomCapFloor.png").then(function (im) { Assets.mushroomCapFloor = im; }).catch(function () {}),
           loadImage("assets/props/cloudLedge.png").then(function (im) { Assets.cloudLedge = im; }).catch(function () {}),
+          /* 20260905jl: Cloud City BOX dense 2× (pink gate PASS) */
+          loadImage("assets/props/cloudFloor.png").then(function (im) { Assets.cloudFloor = im; }).catch(function () {}),
+          loadImage("assets/props/cloudEdge.png").then(function (im) { Assets.cloudEdge = im; }).catch(function () {}),
+          loadImage("assets/props/cloudShopFood.png").then(function (im) { Assets.cloudShopFood = im; }).catch(function () {}),
+          loadImage("assets/props/cloudShopPotion.png").then(function (im) { Assets.cloudShopPotion = im; }).catch(function () {}),
+          loadImage("assets/props/cloudShopHat.png").then(function (im) { Assets.cloudShopHat = im; }).catch(function () {}),
+          loadImage("assets/props/cloudShopWeapons.png").then(function (im) { Assets.cloudShopWeapons = im; }).catch(function () {}),
+          loadImage("assets/props/cloudShopWizard.png").then(function (im) { Assets.cloudShopWizard = im; }).catch(function () {}),
+          loadImage("assets/ui/redHat.png").then(function (im) { Assets.redHat = im; }).catch(function () {}),
+          loadImage("assets/ui/heartPotion.png").then(function (im) { Assets.heartPotion = im; }).catch(function () {}),
+          loadImage("assets/ui/cloudPuff.png").then(function (im) { Assets.cloudPuff = im; }).catch(function () {}),
+          loadImage("assets/ui/skyJam.png").then(function (im) { Assets.skyJam = im; }).catch(function () {}),
+          loadImage("assets/ui/fluffySoup.png").then(function (im) { Assets.fluffySoup = im; }).catch(function () {}),
+          loadImage("assets/ui/starCookie.png").then(function (im) { Assets.starCookie = im; }).catch(function () {}),
           loadImage("assets/props/darkGiantTree.png").then(function (im) { Assets.darkGiantTree = im; }).catch(function () {}),
           loadImage("assets/props/torch.png").then(function (im) { Assets.torch = im; }).catch(function () {}),
           loadImage("assets/props/torchUnlit.png").then(function (im) { Assets.torchUnlit = im; }).catch(function () {}),
@@ -517,7 +531,7 @@
   var LOOT_POP_MS = 420; /* 20260905ci: longer loot hop so kids see the drop */
   var selectedSlot = 0;
   var fenceBuildOn = false;
-  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, coconut: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, cookedMinnow: 0, cookedBluegill: 0, cookedPerch: 0, cookedCatfish: 0, cookedTrout: 0, cookedBass: 0, cookedGoldenCarp: 0, cookedMoonfish: 0, cookedStarfin: 0, cookedGoldenSwordfish: 0, leash: 0 };
+  var inventory = { wood: 0, stone: 0, copper: 0, iron: 0, mushroom: 0, moonshard: 0, veggie: 0, flower: 0, snack: 0, silver: 0, goldore: 0, potato: 0, berry: 0, acorn: 0, pinecone: 0, coconut: 0, apple: 0, bread: 0, pie: 0, copperBar: 0, silverBar: 0, goldBar: 0, minnow: 0, bluegill: 0, perch: 0, catfish: 0, trout: 0, bass: 0, goldenCarp: 0, moonfish: 0, starfin: 0, goldenSwordfish: 0, cookedMinnow: 0, cookedBluegill: 0, cookedPerch: 0, cookedCatfish: 0, cookedTrout: 0, cookedBass: 0, cookedGoldenCarp: 0, cookedMoonfish: 0, cookedStarfin: 0, cookedGoldenSwordfish: 0, leash: 0, cloudPuff: 0, skyJam: 0, fluffySoup: 0, starCookie: 0, heartPotion: 0 };
   var BAG_CELLS = 90;
   var TRAY_CELLS = 10;
   var BAG_COLS = 15;
@@ -631,7 +645,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null, mushroomStalk: null, mushroomCap: null, cloudLedge: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null, mushroomStalk: null, mushroomCap: null, cloudLedge: null, cloudCity: null };
   var tick = 0;
   var lastTs = 0;
   /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
@@ -771,11 +785,17 @@
   var MUSHROOM_CAP_ROWS = 12;
   var CLOUD_LEDGE_COLS = 10;
   var CLOUD_LEDGE_ROWS = 8;
+  /* 20260905jl: Cloud City ~2× town plaza (TOWN_GREEN 13×4 → ~26×8 walkable + border) */
+  var CLOUD_CITY_COLS = 30;
+  var CLOUD_CITY_ROWS = 16;
   var mushroomStalkSouth = { tx: 6, ty: 26 };
   var mushroomStalkNorth = { tx: 6, ty: 2 };
   var mushroomCapSouth = { tx: 6, ty: 10 };
   var mushroomCapEast = { tx: 12, ty: 5 };
   var cloudLedgeWest = { tx: 1, ty: 4 };
+  var cloudLedgeEast = { tx: 8, ty: 4 };
+  var cloudCityWest = { tx: 2, ty: 8 };
+  var MAX_HP_BONUS = 5;
   var glowClimbReturn = { tx: 35, ty: 17 };
   /* Wizard house relocated west of cabin (wand gift unchanged) */
   var WIZARD_HOUSE_COLS = 16;
@@ -866,6 +886,23 @@
   var shopMsgT = 0;
   var hatOwned = false;
   var hatOn = false;
+  /* 20260905jl: Cloud City cosmetics / upgrades / spells */
+  var redHatOwned = false;
+  var redHatOn = false;
+  var maxHpBonus = 0;
+  var swordTier = 0;
+  var bowTier = 0;
+  var shieldTier = 0;
+  var wandSpells = { fireball: false, lightning: false, illumination: false };
+  var wandSpellSel = "fireball";
+  var spellFx = null;
+  var illumUntil = 0;
+  var cloudShopKind = null;
+  var cloudShopItems = null;
+  var cloudShopOpen = false;
+  var cloudShopSel = 0;
+  var cloudShopMsg = "";
+  var cloudShopMsgT = 0;
   var axeHintSeen = false;
   var pickHintSeen = false;
   var extraPlots = 0;
@@ -1510,6 +1547,29 @@
     makeFolk("reed", "REED", "reed", 55, 32, 54, 31, 56, 34, [
       ["THE RED CAR GOES", "ROUND AND ROUND!"],
       ["IT STOPS IF YOU", "STAND IN THE ROAD."]
+    ])
+  ];
+  /* 20260905jl: Cloud City townsfolk (walk/idle + short talk) */
+  var cloudFolk = [
+    makeFolk("nimbus", "NIMBUS", "npc", 8, 7, 6, 5, 12, 10, [
+      ["CLOUDS ARE SOFT!", "WATCH YOUR STEP."],
+      ["I MOP THE FLUFF.", "WANT A PUFF BUN?"]
+    ]),
+    makeFolk("cirrus", "CIRRUS", "lila", 14, 6, 12, 4, 18, 9, [
+      ["THE WIND SINGS.", "LISTEN CLOSE."],
+      ["RED HATS LOOK", "BRAVE UP HERE!"]
+    ]),
+    makeFolk("cumulus", "CUMULUS", "reed", 20, 9, 18, 7, 24, 12, [
+      ["SHOP FOR SNACKS!", "GOLD WORKS HERE."],
+      ["POTIONS GROW", "YOUR HEARTS."]
+    ]),
+    makeFolk("dew", "DEW", "nim", 10, 11, 8, 9, 14, 13, [
+      ["MORNING DEW", "TASTES SWEET."],
+      ["SAY HI TO THE", "WIZARD SHOP!"]
+    ]),
+    makeFolk("breeze", "BREEZE", "npc", 22, 5, 20, 3, 26, 8, [
+      ["I RACE THE GUSTS.", "CATCH ME IF YOU CAN!"],
+      ["SWORDS GET SHARP", "AT THE ARMORY."]
     ])
   ];
   var CAR_LOOP = [];
@@ -3107,6 +3167,11 @@
       ROWS = CLOUD_LEDGE_ROWS;
       GROUND = buildCloudLedgeGround();
       PROPS = buildCloudLedgeProps();
+    } else if (name === "cloudCity") {
+      COLS = CLOUD_CITY_COLS;
+      ROWS = CLOUD_CITY_ROWS;
+      GROUND = buildCloudCityGround();
+      PROPS = buildCloudCityProps();
     } else if (name === "forest") {
       COLS = FOREST_COLS;
       ROWS = FOREST_ROWS;
@@ -5150,19 +5215,100 @@
     for (y = 0; y < rows; y++) {
       g[y] = [];
       for (x = 0; x < cols; x++) {
-        if (y >= 3 && y <= 5 && x >= 2 && x <= 7) g[y][x] = "f";
+        if (y >= 3 && y <= 5 && x >= 1 && x <= 8) g[y][x] = "f";
         else g[y][x] = "y";
       }
     }
     g[cloudLedgeWest.ty][cloudLedgeWest.tx] = "f";
+    g[cloudLedgeEast.ty][cloudLedgeEast.tx] = "f";
     return g;
   }
   function buildCloudLedgeProps() {
     return [
       { kind: "cloudLedge", tx: 3, ty: 3 },
-      { kind: "note", tx: 5, ty: 4, text: "CLOUD CITY IS AHEAD." },
-      { kind: "ladder", tx: cloudLedgeWest.tx, ty: cloudLedgeWest.ty, dir: "down" }
+      { kind: "note", tx: 5, ty: 4, text: "EAST TO CLOUD CITY!" },
+      { kind: "ladder", tx: cloudLedgeWest.tx, ty: cloudLedgeWest.ty, dir: "down" },
+      { kind: "caveMouth", tx: cloudLedgeEast.tx, ty: cloudLedgeEast.ty, cloudCity: true }
     ];
+  }
+  /* 20260905jl: Cloud City — spacious cloud town (~2× plaza) */
+  function buildCloudCityGround() {
+    var cols = CLOUD_CITY_COLS, rows = CLOUD_CITY_ROWS;
+    var g = [], y, x;
+    for (y = 0; y < rows; y++) {
+      g[y] = [];
+      for (x = 0; x < cols; x++) {
+        if (y < 2 || y >= rows - 2 || x < 2 || x >= cols - 2) g[y][x] = "y";
+        else g[y][x] = "f";
+      }
+    }
+    g[cloudCityWest.ty][cloudCityWest.tx] = "f";
+    g[cloudCityWest.ty][cloudCityWest.tx - 1] = "f";
+    return g;
+  }
+  function buildCloudCityProps() {
+    return [
+      { kind: "cloudShopFood", tx: 6, ty: 4, shop: "food" },
+      { kind: "cloudShopPotion", tx: 12, ty: 4, shop: "potion" },
+      { kind: "cloudShopHat", tx: 18, ty: 4, shop: "hat" },
+      { kind: "cloudShopWeapons", tx: 8, ty: 10, shop: "weapons" },
+      { kind: "cloudShopWizard", tx: 16, ty: 10, shop: "wizard" },
+      { kind: "ladder", tx: cloudCityWest.tx, ty: cloudCityWest.ty, dir: "down" },
+      { kind: "note", tx: 14, ty: 8, text: "WELCOME TO CLOUD CITY!" },
+      { kind: "cloudEdge", tx: 3, ty: 2 },
+      { kind: "cloudEdge", tx: 24, ty: 2 },
+      { kind: "cloudEdge", tx: 3, ty: 13 },
+      { kind: "cloudEdge", tx: 24, ty: 13 }
+    ];
+  }
+  function playerMaxHp() {
+    return MAX_HP + Math.min(MAX_HP_BONUS, Math.max(0, maxHpBonus | 0)) * HP_PER_HEART;
+  }
+  function playerHearts() {
+    return HEARTS + Math.min(MAX_HP_BONUS, Math.max(0, maxHpBonus | 0));
+  }
+  function clampPlayerHp() {
+    var mx = playerMaxHp();
+    if (hp > mx) hp = mx;
+  }
+  function enterCloudCityFromCap() {
+    startDoorFade(function () {
+      applyScene("cloudCity");
+      unlocked.cloudCityEntered = true;
+      placePlayer(cloudCityWest.tx + 1, cloudCityWest.ty, "right");
+      if (!walkable(player.tx, player.ty)) placePlayer(cloudCityWest.tx + 2, cloudCityWest.ty, "right");
+      showLineNote("CLOUD CITY!");
+      if (!unlocked.cloudCityTip) {
+        unlocked.cloudCityTip = true;
+        showLineNote("TRY THE SHOPS!");
+      }
+      persistSave();
+    });
+  }
+  function enterCloudCityFromLedge() {
+    startDoorFade(function () {
+      applyScene("cloudCity");
+      unlocked.cloudCityEntered = true;
+      placePlayer(cloudCityWest.tx + 1, cloudCityWest.ty, "right");
+      if (!walkable(player.tx, player.ty)) placePlayer(cloudCityWest.tx + 2, cloudCityWest.ty, "right");
+      showLineNote("CLOUD CITY!");
+      persistSave();
+    });
+  }
+  function exitCloudCityToCap() {
+    startDoorFade(function () {
+      applyScene("mushroomCap");
+      placePlayer(mushroomCapEast.tx - 1, mushroomCapEast.ty, "left");
+      if (!walkable(player.tx, player.ty)) placePlayer(mushroomCapEast.tx - 2, mushroomCapEast.ty, "left");
+      showLineNote("BACK ON THE CAP.");
+      persistSave();
+    });
+  }
+  function isCloudLedgeEast(tx, ty) {
+    return currentScene === "cloudLedge" && tx === cloudLedgeEast.tx && ty === cloudLedgeEast.ty;
+  }
+  function isCloudCityWest(tx, ty) {
+    return currentScene === "cloudCity" && tx === cloudCityWest.tx && ty === cloudCityWest.ty;
   }
   function enterMushroomStalkFromYard() {
     startDoorFade(function () {
@@ -5208,12 +5354,12 @@
     });
   }
   function enterCloudLedgeFromCap() {
-    /* stub — Cloud City shops queued; tiny ledge + note for now */
+    /* 20260905jl: ledge kept as connector; Cap east prefers Cloud City */
     startDoorFade(function () {
       applyScene("cloudLedge");
       unlocked.cloudLedgeEntered = true;
       placePlayer(4, 4, "right");
-      showLineNote("CLOUD CITY IS AHEAD.");
+      showLineNote("EAST TO CLOUD CITY!");
       persistSave();
     });
   }
@@ -5287,7 +5433,7 @@
         exitMushroomCapToStalk(); return true;
       }
       if (isMushroomCapEast(player.tx, player.ty) || isMushroomCapEast(facingTile().tx, facingTile().ty)) {
-        enterCloudLedgeFromCap(); return true;
+        enterCloudCityFromCap(); return true;
       }
       return false;
     }
@@ -5295,9 +5441,303 @@
       if (isCloudLedgeWest(player.tx, player.ty) || isCloudLedgeWest(facingTile().tx, facingTile().ty)) {
         exitCloudLedgeToCap(); return true;
       }
+      if (isCloudLedgeEast(player.tx, player.ty) || isCloudLedgeEast(facingTile().tx, facingTile().ty)) {
+        enterCloudCityFromLedge(); return true;
+      }
+      return false;
+    }
+    if (currentScene === "cloudCity") {
+      if (isCloudCityWest(player.tx, player.ty) || isCloudCityWest(facingTile().tx, facingTile().ty)) {
+        exitCloudCityToCap(); return true;
+      }
       return false;
     }
     return false;
+  }
+
+  /* ===== 20260905jl Cloud City shops / spells ===== */
+  function cloudFoodItems() {
+    return [
+      { id: "cloudPuff", name: "PUFF BUN", price: 8, icon: "cloudPuff", heal: 16, energy: 14 },
+      { id: "skyJam", name: "SKY JAM", price: 10, icon: "skyJam", heal: 18, energy: 12 },
+      { id: "fluffySoup", name: "FLUFFY SOUP", price: 12, icon: "fluffySoup", heal: 22, energy: 18 },
+      { id: "starCookie", name: "STAR COOKIE", price: 14, icon: "starCookie", heal: 24, energy: 20 }
+    ];
+  }
+  function cloudPotionItems() {
+    return [{ id: "heartPotion", name: "HEART POTION", price: 40, icon: "heartPotion" }];
+  }
+  function cloudHatItems() {
+    return [{ id: "redHat", name: "RED HAT", price: 30, icon: "redHat" }];
+  }
+  function cloudWeaponItems() {
+    return [
+      { id: "upSword", name: "SWORD UP", price: 25, wood: 4, icon: "sword" },
+      { id: "upBow", name: "BOW UP", price: 25, wood: 4, icon: "bow" },
+      { id: "upShield", name: "SHIELD UP", price: 20, wood: 3, icon: "shield" }
+    ];
+  }
+  function cloudWizardItems() {
+    return [
+      { id: "spellFireball", name: "FIREBALL", price: 35, icon: "wand" },
+      { id: "spellLightning", name: "LIGHTNING", price: 40, icon: "wand" },
+      { id: "spellIllumination", name: "BRIGHT LIGHT", price: 30, icon: "wand" }
+    ];
+  }
+  function openCloudShop(kind) {
+    cloudShopKind = kind;
+    if (kind === "food") cloudShopItems = cloudFoodItems();
+    else if (kind === "potion") cloudShopItems = cloudPotionItems();
+    else if (kind === "hat") cloudShopItems = cloudHatItems();
+    else if (kind === "weapons") cloudShopItems = cloudWeaponItems();
+    else if (kind === "wizard") cloudShopItems = cloudWizardItems();
+    else cloudShopItems = [];
+    cloudShopOpen = true;
+    cloudShopSel = 0;
+    cloudShopMsg = "";
+    cloudShopMsgT = 0;
+    shopOpen = false;
+  }
+  function closeCloudShop() {
+    cloudShopOpen = false;
+    cloudShopKind = null;
+    cloudShopItems = null;
+    cloudShopMsg = "";
+  }
+  function cloudShopTitle() {
+    if (cloudShopKind === "food") return "FOOD SHOP";
+    if (cloudShopKind === "potion") return "POTION SHOP";
+    if (cloudShopKind === "hat") return "HAT SHOP";
+    if (cloudShopKind === "weapons") return "WEAPONS SHOP";
+    if (cloudShopKind === "wizard") return "WIZARD SHOP";
+    return "SHOP";
+  }
+  function buyCloudShopItem(item) {
+    var need, have, tier, key;
+    if (!item) return;
+    if (item.id === "redHat" && redHatOwned) {
+      redHatOn = !redHatOn;
+      if (redHatOn) hatOn = false;
+      persistSave();
+      cloudShopMsg = redHatOn ? "RED HAT ON!" : "HAT OFF.";
+      cloudShopMsgT = 1200;
+      return;
+    }
+    if (item.id === "heartPotion") {
+      if ((maxHpBonus | 0) >= MAX_HP_BONUS) {
+        cloudShopMsg = "HEARTS FULL!";
+        cloudShopMsgT = 1400;
+        return;
+      }
+      if (gold < item.price) { notifyNotEnoughGold(item.price); return; }
+      gold -= item.price;
+      maxHpBonus = (maxHpBonus | 0) + 1;
+      hp = playerMaxHp();
+      cloudShopMsg = "PLUS ONE HEART!";
+      cloudShopMsgT = 1400;
+      persistSave();
+      notifyShopBuySuccess();
+      return;
+    }
+    if (item.id === "upSword" || item.id === "upBow" || item.id === "upShield") {
+      tier = item.id === "upSword" ? (swordTier | 0) : (item.id === "upBow" ? (bowTier | 0) : (shieldTier | 0));
+      if (tier >= 3) { cloudShopMsg = "MAX UPGRADE!"; cloudShopMsgT = 1200; return; }
+      need = item.price + tier * 15;
+      if (item.id === "upSword" && !swordOwned) { cloudShopMsg = "NEED A SWORD."; cloudShopMsgT = 1200; return; }
+      if (item.id === "upBow" && !bowOwned) { cloudShopMsg = "NEED A BOW."; cloudShopMsgT = 1200; return; }
+      if (item.id === "upShield" && !shieldOwned) { cloudShopMsg = "NEED A SHIELD."; cloudShopMsgT = 1200; return; }
+      if (gold < need) { notifyNotEnoughGold(need); return; }
+      if (bagCount("wood") < (item.wood | 0)) { cloudShopMsg = "NEED " + item.wood + " WOOD."; cloudShopMsgT = 1200; return; }
+      gold -= need;
+      takeFromBag("wood", item.wood | 0);
+      if (item.id === "upSword") { swordTier = tier + 1; cloudShopMsg = "SWORD +" + swordTier + "!"; }
+      else if (item.id === "upBow") { bowTier = tier + 1; cloudShopMsg = "BOW +" + bowTier + "!"; }
+      else { shieldTier = tier + 1; cloudShopMsg = "SHIELD +" + shieldTier + "!"; }
+      cloudShopMsgT = 1400;
+      persistSave();
+      notifyShopBuySuccess();
+      return;
+    }
+    if (item.id === "spellFireball" || item.id === "spellLightning" || item.id === "spellIllumination") {
+      key = item.id === "spellFireball" ? "fireball" : (item.id === "spellLightning" ? "lightning" : "illumination");
+      if (wandSpells[key]) { cloudShopMsg = "ALREADY LEARNED!"; cloudShopMsgT = 1200; return; }
+      if (!wandOwned) { cloudShopMsg = "NEED THE WAND."; cloudShopMsgT = 1200; return; }
+      if (gold < item.price) { notifyNotEnoughGold(item.price); return; }
+      gold -= item.price;
+      wandSpells[key] = true;
+      wandSpellSel = key;
+      unlocked["spell_" + key] = true;
+      cloudShopMsg = key === "illumination" ? "BRIGHT LIGHT!" : (key.toUpperCase() + "!");
+      cloudShopMsgT = 1400;
+      persistSave();
+      notifyShopBuySuccess();
+      return;
+    }
+    if (item.id === "redHat") {
+      if (gold < item.price) { notifyNotEnoughGold(item.price); return; }
+      gold -= item.price;
+      redHatOwned = true;
+      redHatOn = true;
+      hatOn = false;
+      placeToolInTrayFirst("redHat");
+      selectTool("redHat");
+      cloudShopMsg = "A RED HAT!";
+      cloudShopMsgT = 1400;
+      persistSave();
+      notifyShopBuySuccess();
+      return;
+    }
+    /* foods */
+    if (gold < item.price) { notifyNotEnoughGold(item.price); return; }
+    if (bagRoom(item.id) < 1) { cloudShopMsg = "BAG FULL!"; cloudShopMsgT = 1200; return; }
+    gold -= item.price;
+    addToBag(item.id, 1);
+    placeToolInTrayFirst(item.id);
+    selectTool(item.id);
+    cloudShopMsg = "YUM SNACK!";
+    cloudShopMsgT = 1200;
+    persistSave();
+    notifyShopBuySuccess();
+  }
+  function cloudShopAt(tx, ty) {
+    var i, p;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (!p || !p.shop) continue;
+      if (Math.abs(p.tx - tx) <= 1 && Math.abs(p.ty + 2 - ty) <= 1) return p;
+      if (p.tx === tx && (p.ty === ty || p.ty + 1 === ty || p.ty + 2 === ty)) return p;
+    }
+    return null;
+  }
+  function tryCloudShopHere() {
+    var p, f;
+    if (currentScene !== "cloudCity") return false;
+    p = cloudShopAt(player.tx, player.ty);
+    if (!p) {
+      f = facingTile();
+      p = cloudShopAt(f.tx, f.ty);
+    }
+    if (!p) return false;
+    openCloudShop(p.shop);
+    playSfx("ui");
+    if (!unlocked["cloudShopTip_" + p.shop]) {
+      unlocked["cloudShopTip_" + p.shop] = true;
+      if (p.shop === "food") showLineNote("BUY CLOUD FOOD!");
+      else if (p.shop === "potion") showLineNote("POTIONS GROW HEARTS!");
+      else if (p.shop === "hat") showLineNote("BUY A RED HAT!");
+      else if (p.shop === "weapons") showLineNote("UPGRADE GEAR!");
+      else if (p.shop === "wizard") showLineNote("LEARN WAND SPELLS!");
+    }
+    return true;
+  }
+  function cycleWandSpell() {
+    var order = ["fireball", "lightning", "illumination"], i, next, start;
+    var have = order.filter(function (k) { return !!wandSpells[k]; });
+    if (!have.length) return;
+    start = have.indexOf(wandSpellSel);
+    next = have[(start + 1) % have.length];
+    wandSpellSel = next;
+    showLineNote(next === "illumination" ? "SPELL: BRIGHT LIGHT" : ("SPELL: " + next.toUpperCase()));
+    persistSave();
+  }
+  function anyWandSpell() {
+    return !!(wandSpells.fireball || wandSpells.lightning || wandSpells.illumination);
+  }
+  function tryCastWandSpell() {
+    var i, m, dx, dy, hit, dmg, key;
+    if (!wandOwned || !selectedIs("wand")) return false;
+    if (!anyWandSpell()) return false;
+    key = wandSpellSel;
+    if (!wandSpells[key]) {
+      cycleWandSpell();
+      key = wandSpellSel;
+      if (!wandSpells[key]) return false;
+    }
+    if (key === "illumination") {
+      illumUntil = Math.max(illumUntil, tick + 14000);
+      spellFx = { kind: "illumination", life: 900 };
+      showLineNote("BRIGHT LIGHT!");
+      playSfx("craft");
+      spawnSparks(player.x, player.y - 12);
+      persistSave();
+      return true;
+    }
+    dmg = key === "lightning" ? (5 + (swordTier | 0)) : (4 + (swordTier | 0));
+    hit = 0;
+    for (i = 0; i < monsters.length; i++) {
+      m = monsters[i];
+      if (!m || m.hp <= 0) continue;
+      dx = m.x - player.x;
+      dy = m.y - player.y;
+      if (key === "lightning") {
+        if (dx * dx + dy * dy > 90 * 90) continue;
+      } else {
+        /* fireball cone ahead */
+        if (dx * dx + dy * dy > 70 * 70) continue;
+        if (player.face === "left" && dx > 8) continue;
+        if (player.face === "right" && dx < -8) continue;
+        if (player.face === "up" && dy > 8) continue;
+        if (player.face === "down" && dy < -8) continue;
+      }
+      m.hp -= dmg;
+      m.flash = 340;
+      stunMonster(m);
+      spawnHitSparks(m.x, m.y - 4, false);
+      hit++;
+      if (m.hp <= 0) defeatMonster(m);
+    }
+    spellFx = { kind: key, life: 700, face: player.face };
+    showLineNote(key === "lightning" ? "ZAP!" : "WHOOSH!");
+    playSfx("hit");
+    if (!hit) spawnSparks(player.x, player.y - 10);
+    persistSave();
+    return true;
+  }
+  function illuminationActive() {
+    return (illumUntil > tick) || (wandOwned && selectedIs("wand") && wandSpells.illumination && wandSpellSel === "illumination");
+  }
+  function drawIlluminationOverlay(g) {
+    var cx, cy, rad, grd;
+    if (!illuminationActive()) return;
+    cx = player.x - camX;
+    cy = player.y - camY - (CAM_PLAYER_H / 2);
+    rad = Math.max(VIEW_W, VIEW_H) * 0.72;
+    g.save();
+    g.globalCompositeOperation = "screen";
+    grd = g.createRadialGradient(cx, cy, 8, cx, cy, rad);
+    grd.addColorStop(0, "rgba(255,255,230,0.72)");
+    grd.addColorStop(0.35, "rgba(255,245,200,0.38)");
+    grd.addColorStop(0.7, "rgba(255,230,160,0.14)");
+    grd.addColorStop(1, "rgba(255,220,140,0)");
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(cx, cy, rad, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  }
+  function updateSpellFx(dt) {
+    if (spellFx) {
+      spellFx.life -= dt;
+      if (spellFx.life <= 0) spellFx = null;
+    }
+  }
+  function drawSpellFx(g) {
+    var a, ox, oy;
+    if (!spellFx) return;
+    a = Math.max(0, spellFx.life / 700);
+    g.save();
+    g.globalAlpha = a;
+    ox = player.x; oy = player.y - 12;
+    if (spellFx.kind === "fireball") {
+      fill(g, Math.round(ox - 10), Math.round(oy - 10), 20, 20, "rgba(255,120,40,0.85)");
+      fill(g, Math.round(ox - 6), Math.round(oy - 6), 12, 12, "rgba(255,220,80,0.9)");
+    } else if (spellFx.kind === "lightning") {
+      fill(g, Math.round(ox - 2), Math.round(oy - 28), 4, 36, "rgba(200,230,255,0.95)");
+      fill(g, Math.round(ox - 12), Math.round(oy - 8), 24, 4, "rgba(255,255,255,0.9)");
+    } else {
+      fill(g, Math.round(ox - 14), Math.round(oy - 14), 28, 28, "rgba(255,255,210,0.7)");
+    }
+    g.restore();
   }
 
   function torchIsLitHeld() {
@@ -6338,7 +6778,7 @@
     if (spendSelected("potato", 1) < 1) return false;
     hp += VEGGIE_HEAL;
     energy += VEGGIE_ENERGY;
-    if (hp > MAX_HP) hp = MAX_HP;
+    if (hp > playerMaxHp()) hp = playerMaxHp();
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
@@ -6356,7 +6796,7 @@
     if (spendSelected("berry", 1) < 1) return false;
     hp += 8;
     energy += 7;
-    if (hp > MAX_HP) hp = MAX_HP;
+    if (hp > playerMaxHp()) hp = playerMaxHp();
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
@@ -7999,7 +8439,7 @@
         maxY = Math.max(0, worldH - VIEW_H);
       }
     }
-    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") {
+    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
       } else {
@@ -8028,7 +8468,7 @@
     if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") {
+        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
           if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
         } else if (camY < minY) {
           camY = minY;
@@ -10010,7 +10450,7 @@
         kind === "cookedMinnow" || kind === "cookedBluegill" || kind === "cookedPerch" || kind === "cookedCatfish" ||
         kind === "cookedTrout" || kind === "cookedBass" || kind === "cookedGoldenCarp" || kind === "cookedMoonfish" ||
         kind === "cookedStarfin" || kind === "cookedGoldenSwordfish" ||
-        kind === "lampKit" || kind === "crateKit" || kind === "branch" || kind === "moss" || kind === "torch" || kind === "litTorch" || kind === "blueGlowMushroom" || kind === "leash") {
+        kind === "lampKit" || kind === "crateKit" || kind === "branch" || kind === "moss" || kind === "torch" || kind === "litTorch" || kind === "blueGlowMushroom" || kind === "leash" || kind === "cloudPuff" || kind === "skyJam" || kind === "fluffySoup" || kind === "starCookie" || kind === "heartPotion") {
       return kind;
     }
     return "";
@@ -10018,7 +10458,7 @@
 
   function isToolKey(key) {
     return key === "seed" || key === "potatoSeed" || key === "berrySeed" ||
-      key === "hat" || key === "sword" || key === "shovel" || key === "axe" ||
+      key === "hat" || key === "redHat" || key === "sword" || key === "shovel" || key === "axe" ||
       key === "pick" || key === "diamondPick" || key === "pole" || key === "bow" || key === "leash";
   }
 
@@ -10408,7 +10848,7 @@
     return Math.max(0, chestCap(key) - chestCount(key));
   }
 
-  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","coconut","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","goldenSwordfish","cookedMinnow","cookedBluegill","cookedPerch","cookedCatfish","cookedTrout","cookedBass","cookedGoldenCarp","cookedMoonfish","cookedStarfin","cookedGoldenSwordfish","leash","branch","moss","torch","litTorch","blueGlowMushroom"];
+  var INV_KEYS = ["wood","stone","copper","iron","mushroom","moonshard","veggie","flower","snack","silver","goldore","potato","berry","acorn","pinecone","coconut","apple","bread","pie","copperBar","silverBar","goldBar","minnow","bluegill","perch","catfish","trout","bass","goldenCarp","moonfish","starfin","goldenSwordfish","cookedMinnow","cookedBluegill","cookedPerch","cookedCatfish","cookedTrout","cookedBass","cookedGoldenCarp","cookedMoonfish","cookedStarfin","cookedGoldenSwordfish","leash","branch","moss","torch","litTorch","blueGlowMushroom","cloudPuff","skyJam","fluffySoup","starCookie","heartPotion"];
 
   function addInvCount(k, n) {
     if (Object.prototype.hasOwnProperty.call(inventory, k)) inventory[k] = (inventory[k] | 0) + (n | 0);
@@ -11818,6 +12258,21 @@
       if (typeof data.gold === "number" && data.gold >= 0) gold = data.gold | 0;
       hatOwned = !!(data.hatOwned || data.hatOn);
       hatOn = !!data.hatOn;
+      redHatOwned = !!data.redHatOwned;
+      redHatOn = !!data.redHatOn;
+      maxHpBonus = Math.min(MAX_HP_BONUS, Math.max(0, data.maxHpBonus | 0));
+      swordTier = Math.min(3, Math.max(0, data.swordTier | 0));
+      bowTier = Math.min(3, Math.max(0, data.bowTier | 0));
+      shieldTier = Math.min(3, Math.max(0, data.shieldTier | 0));
+      if (data.wandSpells) {
+        wandSpells.fireball = !!data.wandSpells.fireball;
+        wandSpells.lightning = !!data.wandSpells.lightning;
+        wandSpells.illumination = !!data.wandSpells.illumination;
+      }
+      if (data.wandSpellSel === "fireball" || data.wandSpellSel === "lightning" || data.wandSpellSel === "illumination") {
+        wandSpellSel = data.wandSpellSel;
+      }
+      illumUntil = 0;
       axeHintSeen = !!data.axeHintSeen;
       pickHintSeen = !!data.pickHintSeen;
       swordOwned = !!data.swordOwned;
@@ -11840,7 +12295,7 @@
       climbFloor = clampClimbFloor(data.climbFloor);
       if (typeof data.hp === "number" && data.hp >= 0) {
         hp = data.hp | 0;
-        if (hp > MAX_HP) hp = MAX_HP;
+        if (hp > playerMaxHp()) hp = playerMaxHp();
       } else {
         hp = MAX_HP;
       }
@@ -12015,10 +12470,10 @@
       }
       syncLilaFlowers();
       /* 20260905jf: cabin/darkForest/wizardHouse were missing — sleep save remapped to overworld */
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down",
@@ -12325,6 +12780,14 @@
         },
         hatOwned: !!hatOwned,
         hatOn: !!hatOn,
+        redHatOwned: !!redHatOwned,
+        redHatOn: !!redHatOn,
+        maxHpBonus: maxHpBonus | 0,
+        swordTier: swordTier | 0,
+        bowTier: bowTier | 0,
+        shieldTier: shieldTier | 0,
+        wandSpells: { fireball: !!wandSpells.fireball, lightning: !!wandSpells.lightning, illumination: !!wandSpells.illumination },
+        wandSpellSel: wandSpellSel,
         axeHintSeen: !!axeHintSeen,
         pickHintSeen: !!pickHintSeen,
         swordOwned: !!swordOwned,
@@ -13591,6 +14054,7 @@ function doCookNow() {
     emptyBag();
     placeToolInTrayFirst("seed");
     if (hatOwned) placeToolInTrayFirst("hat");
+    if (redHatOwned) placeToolInTrayFirst("redHat");
     if (swordOwned) placeToolInTrayFirst("sword");
     if (shovelOwned) placeToolInTrayFirst("shovel");
     if (axeOwned) placeToolInTrayFirst("axe");
@@ -14914,6 +15378,7 @@ function doCookNow() {
     if (currentScene === "mushroomStalk") return "MUSHROOM STALK";
     if (currentScene === "mushroomCap") return "MUSHROOM CAP";
     if (currentScene === "cloudLedge") return "CLOUD LEDGE";
+    if (currentScene === "cloudCity") return "CLOUD CITY";
     if (currentScene === "cottage") return "COTTAGE";
     if (currentScene === "cottage2") return "COTTAGE 2";
     if (currentScene === "tallCottage") return "TALL COTTAGE";
@@ -14980,7 +15445,7 @@ function doCookNow() {
   }
 
   function modalOpen() {
-    return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || shopOpen || craftOpen || chestOpen || bagOpen);
+    return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || shopOpen || cloudShopOpen || craftOpen || chestOpen || bagOpen);
   }
 
   function uiPaused() {
@@ -15026,6 +15491,11 @@ function doCookNow() {
     }
     if (questOpen) {
       questOpen = false;
+      playSfx("ui");
+      return true;
+    }
+    if (cloudShopOpen) {
+      closeCloudShop();
       playSfx("ui");
       return true;
     }
@@ -15773,7 +16243,7 @@ function doCookNow() {
     /* 20260905bx: while underground, Jobs points kids to UP → OUT ladders */
     if (currentScene === "mine") return "FOLLOW UP SIGNS TO OUT";
     /* 20260905cl: bed clarity — sleep heals + new morning */
-    if (currentScene === "house" && (hp < MAX_HP || clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
+    if (currentScene === "house" && (hp < playerMaxHp() || clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
       return "SLEEP IN YOUR BED.";
     }
     /* 20260905ck: ocean fishing without a pole — send kids to Pip */
@@ -15815,7 +16285,7 @@ function doCookNow() {
     if (found.pathClear && found.logBridge && !found.cabinEntered && !unlocked.cabinEntered) {
       return "VISIT THE MOUNTAIN CABIN.";
     }
-    if ((found.cabinEntered || unlocked.cabinEntered) && cabinSaveReady() && currentScene === "cabin" && (hp < MAX_HP || clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
+    if ((found.cabinEntered || unlocked.cabinEntered) && cabinSaveReady() && currentScene === "cabin" && (hp < playerMaxHp() || clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
       return "SLEEP HERE TO SAVE.";
     }
     if ((found.cabinEntered || unlocked.cabinEntered) && bagCount("torch") < 1 && bagCount("litTorch") < 1) {
@@ -15841,6 +16311,18 @@ function doCookNow() {
         if ((_gs.growDays | 0) >= 3 && !unlocked.mushroomCapEntered) return "CLIMB TO THE CLOUDS.";
         if ((_gs.growDays | 0) >= 2 && !unlocked.glowMushClimbed && !unlocked.mushroomStalkEntered) return "CLIMB THE GLOWING MUSHROOM.";
       }
+    }
+    /* 20260905jl: Cloud City jobs */
+    if ((currentScene === "mushroomCap" || currentScene === "cloudLedge") && !unlocked.cloudCityEntered) {
+      return "VISIT CLOUD CITY.";
+    }
+    if (currentScene === "cloudCity") {
+      if (!unlocked.cloudShopTip_food) return "BUY CLOUD FOOD.";
+      if (!unlocked.cloudShopTip_potion) return "TRY THE POTION SHOP.";
+      if (!unlocked.cloudShopTip_hat) return "BUY A RED HAT.";
+      if (!unlocked.cloudShopTip_weapons) return "UPGRADE YOUR GEAR.";
+      if (!unlocked.cloudShopTip_wizard) return "LEARN WAND SPELLS.";
+      if (wandOwned && anyWandSpell() && !selectedIs("wand")) return "HOLD WAND + SPACE TO CAST.";
     }
     /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
     if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
@@ -15991,6 +16473,7 @@ function doCookNow() {
   function liveFolk() {
     if (currentScene === "forest") return forestFolk;
     if (currentScene === "overworld") return townFolk;
+    if (currentScene === "cloudCity") return cloudFolk;
     return [];
   }
 
@@ -16006,7 +16489,7 @@ function doCookNow() {
 
   function folkOk(f, tx, ty) {
     var p;
-    if (currentScene !== "overworld" && currentScene !== "forest") return false;
+    if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "cloudCity") return false;
     if (!walkable(tx, ty) && !(tx === f.tx && ty === f.ty)) return false;
     if (tx < f.patio.x0 || tx > f.patio.x1 || ty < f.patio.y0 || ty > f.patio.y1) return false;
     if (playerOccupies(tx, ty)) return false;
@@ -16151,7 +16634,7 @@ function doCookNow() {
   function updateTownFolk(dt) {
     var i, f, dest;
     var list;
-    if (currentScene !== "overworld" && currentScene !== "forest") return;
+    if (currentScene !== "overworld" && currentScene !== "forest" && currentScene !== "cloudCity") return;
     /* 20260905cf: Junie scoots when Orion walks into / toward her tile. */
     if (currentScene === "overworld" && npc) {
       if (playerOccupies(npc.tx, npc.ty) ||
@@ -18334,6 +18817,80 @@ function doCookNow() {
     }
   }
 
+  function cloudShopLayout() {
+    var w = 280, h = 200;
+    var x = ((VIEW_W - w) / 2) | 0;
+    var y = 3;
+    return {
+      x: x, y: y, w: w, h: h, listY: y + 16, rowH: 12,
+      buyX: x + 16, buyY: y + 182, buyW: 44, byeX: x + 220, byeW: 40, btnH: 14,
+      closeX: x + w - 16, closeY: y + 2, closeW: 13, closeH: 12
+    };
+  }
+  function drawCloudShop(g) {
+    var L, i, item, y, label, price, items;
+    if (!cloudShopOpen || !cloudShopItems) return;
+    items = cloudShopItems;
+    g.fillStyle = "rgba(20,12,8,0.40)";
+    g.fillRect(0, 0, VIEW_W, VIEW_H);
+    L = cloudShopLayout();
+    woodPanel(g, L.x, L.y, L.w, L.h);
+    fill(g, L.x + 4, L.y + 4, L.w - 8, L.h - 8, C.parch);
+    drawText(g, cloudShopTitle(), L.x + 12, L.y + 6, C.uiText);
+    woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
+    drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
+    drawText(g, (gold | 0) + "G", L.x + L.w - textWidth((gold | 0) + "G") - 12, L.y + 6, C.gold);
+    for (i = 0; i < items.length; i++) {
+      item = items[i];
+      y = L.listY + i * L.rowH;
+      if (i === cloudShopSel) fill(g, L.x + 8, y, L.w - 16, L.rowH - 1, "#E8C888");
+      label = item.name;
+      if (item.id === "redHat" && redHatOwned) label = redHatOn ? "RED HAT  ON" : "RED HAT  OFF";
+      if (item.id === "heartPotion") label = "HEART POTION " + (maxHpBonus | 0) + "/" + MAX_HP_BONUS;
+      if (item.id === "upSword") label = "SWORD UP +" + (swordTier | 0);
+      if (item.id === "upBow") label = "BOW UP +" + (bowTier | 0);
+      if (item.id === "upShield") label = "SHIELD UP +" + (shieldTier | 0);
+      if (item.id === "spellFireball" && wandSpells.fireball) label = "FIREBALL OWNED";
+      if (item.id === "spellLightning" && wandSpells.lightning) label = "LIGHTNING OWNED";
+      if (item.id === "spellIllumination" && wandSpells.illumination) label = "BRIGHT LIGHT OWNED";
+      price = (item.id === "redHat" && redHatOwned) ? "0G" : ((item.price | 0) + "G");
+      if (item.id === "upSword") price = (25 + (swordTier | 0) * 15) + "G+" + (item.wood | 0) + "W";
+      if (item.id === "upBow") price = (25 + (bowTier | 0) * 15) + "G+" + (item.wood | 0) + "W";
+      if (item.id === "upShield") price = (20 + (shieldTier | 0) * 15) + "G+" + (item.wood | 0) + "W";
+      drawText(g, label, L.x + 12, y + 2, C.uiText);
+      drawText(g, price, L.x + L.w - textWidth(price) - 12, y + 2, C.gold);
+    }
+    woodPanel(g, L.buyX, L.buyY, L.buyW, L.btnH);
+    drawText(g, "BUY", L.buyX + 12, L.buyY + 3, C.parch);
+    woodPanel(g, L.byeX, L.buyY, L.byeW, L.btnH);
+    drawText(g, "BYE", L.byeX + 10, L.buyY + 3, C.parch);
+    if (cloudShopMsgT > 0) drawText(g, cloudShopMsg, L.x + 12, L.buyY - 14, C.gold);
+  }
+  function tapCloudShop(p) {
+    var L, i, rowY, items;
+    if (!cloudShopOpen || !cloudShopItems) return false;
+    items = cloudShopItems;
+    L = cloudShopLayout();
+    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 6)) {
+      playSfx("ui"); closeCloudShop(); return true;
+    }
+    if (hitPad(p.x, p.y, L.byeX, L.buyY, L.byeW, L.btnH, 6)) {
+      playSfx("ui"); closeCloudShop(); return true;
+    }
+    if (hitPad(p.x, p.y, L.buyX, L.buyY, L.buyW, L.btnH, 6)) {
+      buyCloudShopItem(items[cloudShopSel]);
+      return true;
+    }
+    for (i = 0; i < items.length; i++) {
+      rowY = L.listY + i * L.rowH;
+      if (p.x >= L.x + 8 && p.x <= L.x + L.w - 8 && p.y >= rowY && p.y < rowY + L.rowH) {
+        cloudShopSel = i;
+        return true;
+      }
+    }
+    return true;
+  }
+
   function drawShop(g) {
     var L, i, item, rowY, price, label, goldLine, start, vis, idx;
     if (!shopOpen) return;
@@ -19406,6 +19963,10 @@ function doCookNow() {
 
   /* 20260905ez: pad / Space / fight — bow shoots; else sword swing. */
   function tryStrikeAction() {
+    /* 20260905jl: wand + unlocked spell → cast (Space/tap) */
+    if (wandOwned && selectedIs("wand") && anyWandSpell()) {
+      if (tryCastWandSpell()) return true;
+    }
     var foe;
     if (toolEquipped("bow")) return shootArrow();
     if (startSwordSwing()) return true;
@@ -19529,14 +20090,16 @@ function doCookNow() {
   }
 
   function strikeDamage(m, via) {
+    var bonus;
     if (via === "bow") {
-      if (m && (m.kind === "bat" || m.kind === "crystalbat")) return 3;
-      return 1;
+      bonus = bowTier | 0;
+      if (m && (m.kind === "bat" || m.kind === "crystalbat")) return 3 + bonus;
+      return 1 + bonus;
     }
     /* 20260903a: pad/mine swings always deal 4 — never gate on arc timer (lag/edge could zero arc mid-hit). */
-    if (via === "swing" || via === "pad" || currentScene === "mine") return 4;
+    if (via === "swing" || via === "pad" || currentScene === "mine") return 4 + (swordTier | 0);
     if (toolEquipped("pick") && m && (m.kind === "grub" || m.kind === "toughgrub")) return 3;
-    if (swordEquipped()) return ironSwordOwned ? 4 : 2;
+    if (swordEquipped()) return (ironSwordOwned ? 4 : 2) + (swordTier | 0);
     return 1;
   }
 
@@ -20221,10 +20784,11 @@ function doCookNow() {
   function hurtPlayer(amt) {
     if (iFrames > 0 || faintFx) return;
     if (shieldOwned) {
+      /* 20260905jl: higher shieldTier = more frequent blocks */
       shieldSkip = !shieldSkip;
-      if (shieldSkip) {
+      if (shieldSkip || ((shieldTier | 0) >= 2 && ((tick / 17) | 0) % 3 === 0)) {
         spawnSparks(player.x, player.y - 8);
-        showLineNote("BLOCKED!");
+        showLineNote((shieldTier | 0) > 0 ? ("BLOCKED +" + shieldTier + "!") : "BLOCKED!");
         iFrames = 2000;
         iframeFlash = 220;
         hurtFlash = 280;
@@ -20243,7 +20807,7 @@ function doCookNow() {
   }
 
   function refillVitals() {
-    hp = MAX_HP;
+    hp = playerMaxHp();
     energy = MAX_ENERGY;
   }
 
@@ -20671,7 +21235,7 @@ function doCookNow() {
     if (spendSelected("snack", 1) < 1) return false;
     hp += SNACK_HEAL;
     energy += SNACK_ENERGY;
-    if (hp > MAX_HP) hp = MAX_HP;
+    if (hp > playerMaxHp()) hp = playerMaxHp();
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
@@ -20689,7 +21253,7 @@ function doCookNow() {
     if (spendSelected(key, 1) < 1) return false;
     hp += heal;
     energy += energyAmt;
-    if (hp > MAX_HP) hp = MAX_HP;
+    if (hp > playerMaxHp()) hp = playerMaxHp();
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
@@ -20720,7 +21284,7 @@ function doCookNow() {
     if (spendSelected("veggie", 1) < 1) return false;
     hp += VEGGIE_HEAL;
     energy += VEGGIE_ENERGY;
-    if (hp > MAX_HP) hp = MAX_HP;
+    if (hp > playerMaxHp()) hp = playerMaxHp();
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
@@ -20736,7 +21300,7 @@ function doCookNow() {
     if (spendSelected("mushroom", 1) < 1) return false;
     hp += MUSH_HEAL;
     energy += MUSH_ENERGY;
-    if (hp > MAX_HP) hp = MAX_HP;
+    if (hp > playerMaxHp()) hp = playerMaxHp();
     if (energy > MAX_ENERGY) energy = MAX_ENERGY;
     persistSave();
     playSfx("eat");
@@ -21662,12 +22226,22 @@ function doCookNow() {
     }
     if (isMushroomCapEast(player.tx, player.ty)) {
       pending = null;
-      enterCloudLedgeFromCap();
+      enterCloudCityFromCap();
       return;
     }
     if (isCloudLedgeWest(player.tx, player.ty)) {
       pending = null;
       exitCloudLedgeToCap();
+      return;
+    }
+    if (isCloudLedgeEast(player.tx, player.ty)) {
+      pending = null;
+      enterCloudCityFromLedge();
+      return;
+    }
+    if (isCloudCityWest(player.tx, player.ty)) {
+      pending = null;
+      exitCloudCityToCap();
       return;
     }
     if (isIslandCaveEntrance(player.tx, player.ty)) {
@@ -21995,7 +22569,13 @@ function doCookNow() {
     } else if (act.type === "mushCapSouth") {
       exitMushroomCapToStalk();
     } else if (act.type === "mushCapEast") {
-      enterCloudLedgeFromCap();
+      enterCloudCityFromCap();
+    } else if (act.type === "cloudLedgeEast") {
+      if (isCloudLedgeEast(player.tx, player.ty)) enterCloudCityFromLedge();
+    } else if (act.type === "cloudCityWest") {
+      if (isCloudCityWest(player.tx, player.ty)) exitCloudCityToCap();
+    } else if (act.type === "cloudShop") {
+      if (act.shop) openCloudShop(act.shop);
     } else if (act.type === "cloudLedgeWest") {
       exitCloudLedgeToCap();
     } else if (act.type === "enterDarkForest") {
@@ -22189,6 +22769,12 @@ function doCookNow() {
         f = forestFolk[fi];
         if (nearWho(f)) { goTalkFolk(f); return true; }
       }
+    } else if (currentScene === "cloudCity") {
+      for (fi = 0; fi < cloudFolk.length; fi++) {
+        f = cloudFolk[fi];
+        if (nearWho(f)) { goTalkFolk(f); return true; }
+      }
+      if (tryCloudShopHere()) return true;
     } else if (currentScene === "tree") {
       /* 20260905gb: adjacent TREE bird/nest Space (facing-only left side silent;
          tap already goTalkBird / goTalkTreeNest'd; treetop already used nearProp). */
@@ -23224,7 +23810,18 @@ function doCookNow() {
         fill(g, Math.round(player.x - 6 + sx), Math.round(player.y - 22 + bob + sy), 12, 18, "rgba(110,70,170,0.85)");
         fill(g, Math.round(player.x - 7 + sx), Math.round(player.y - 28 + bob + sy), 14, 6, "rgba(90,50,140,0.9)");
       }
-      if (hatOn) {
+      if (redHatOn && redHatOwned) {
+        /* 20260905jl: red hat overlay — never replaces Orion base body */
+        if (Assets.redHat) {
+          var _rhs = g.imageSmoothingEnabled;
+          g.imageSmoothingEnabled = false;
+          g.drawImage(Assets.redHat, 0, 0, Assets.redHat.naturalWidth || 32, Assets.redHat.naturalHeight || 32,
+            Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy), 16, 16);
+          g.imageSmoothingEnabled = _rhs;
+        } else {
+          fill(g, Math.round(player.x - 7 + sx), Math.round(player.y - 30 + bob + sy), 14, 6, "#DC2840");
+        }
+      } else if (hatOn) {
         /* 20260905w: tray strawHat is 32px — draw 16px so it sits on the head, not a billboard */
         drawUiIcon(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy));
       }
@@ -23568,7 +24165,8 @@ function doCookNow() {
     if (p.kind === "darkGiantTree") return p.ty * TILE + 24;
     if (p.kind === "blueGlowMushroom" || p.kind === "mossClump") return p.ty * TILE + 8;
     if (p.kind === "glowMushroomPlant") return p.ty * TILE + 14;
-    if (p.kind === "cloudWall" || p.kind === "cloudLedge" || p.kind === "mushroomCapTop") return p.ty * TILE + 16;
+    if (p.kind === "cloudWall" || p.kind === "cloudLedge" || p.kind === "mushroomCapTop" || p.kind === "cloudEdge") return p.ty * TILE + 16;
+    if (p.kind === "cloudShopFood" || p.kind === "cloudShopPotion" || p.kind === "cloudShopHat" || p.kind === "cloudShopWeapons" || p.kind === "cloudShopWizard") return p.ty * TILE + 56;
     if (p.kind === "peakGiant" || p.kind === "bridgePine") return p.ty * TILE + 24;
     if (p.kind === "logBridge") return p.ty * TILE + 8;
     if (p.kind === "fountain") return p.ty * TILE + 28;
@@ -23639,6 +24237,10 @@ function doCookNow() {
     if (p.kind === "cloudWall") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 32 };
     if (p.kind === "mushroomCapTop") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 32 };
     if (p.kind === "cloudLedge") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 48, h: 24 };
+    if (p.kind === "cloudEdge") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 32, h: 32 };
+    if (p.kind === "cloudShopFood" || p.kind === "cloudShopPotion" || p.kind === "cloudShopHat" || p.kind === "cloudShopWeapons" || p.kind === "cloudShopWizard") {
+      return { x: p.tx * TILE - 8, y: p.ty * TILE - 40, w: 48, h: 56 };
+    }
     if (p.kind === "fountain") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
     if (p.kind === "statue") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
@@ -24013,6 +24615,21 @@ function doCookNow() {
         g.imageSmoothingEnabled = _mcs;
       } else {
         fill(g, x, y - 8, 64, 24, "#3080E8");
+      }
+    } else if (p.kind === "cloudShopFood" || p.kind === "cloudShopPotion" || p.kind === "cloudShopHat" || p.kind === "cloudShopWeapons" || p.kind === "cloudShopWizard" || p.kind === "cloudEdge") {
+      var _csim = p.kind === "cloudEdge" ? Assets.cloudEdge :
+        (p.kind === "cloudShopFood" ? Assets.cloudShopFood :
+        (p.kind === "cloudShopPotion" ? Assets.cloudShopPotion :
+        (p.kind === "cloudShopHat" ? Assets.cloudShopHat :
+        (p.kind === "cloudShopWeapons" ? Assets.cloudShopWeapons : Assets.cloudShopWizard))));
+      if (_csim) {
+        var _css = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        if (p.kind === "cloudEdge") g.drawImage(_csim, p.tx * TILE - 8, p.ty * TILE - 8, 32, 32);
+        else g.drawImage(_csim, p.tx * TILE - 8, p.ty * TILE - 40, 48, 56);
+        g.imageSmoothingEnabled = _css;
+      } else {
+        fill(g, p.tx * TILE, p.ty * TILE - 24, 32, 40, "rgba(230,235,250,0.95)");
       }
     } else if (p.kind === "cloudLedge") {
       if (Assets.cloudLedge) {
@@ -24444,7 +25061,7 @@ function doCookNow() {
         k === "townHouseC" || k === "townHouseD" || k === "bird" || k === "giantBird" ||
         k === "ladder" || k === "caveStairs" || k === "caveMouth" || k === "doormat" ||
         k === "bed" || k === "chair" || k === "stove" || k === "houseChest" ||
-        k === "glowMushroomPlant" || k === "cloudWall") return true;
+        k === "glowMushroomPlant" || k === "cloudWall" || k === "cloudShopFood" || k === "cloudShopPotion" || k === "cloudShopHat" || k === "cloudShopWeapons" || k === "cloudShopWizard") return true;
     if ((k === "copper" || k === "silver" || k === "goldore" || k === "iron" ||
          k === "mushroom" || k === "moonshard" || k === "gem" || k === "sapphire" ||
          k === "mooncrystal") && !p.deco) return true;
@@ -24625,7 +25242,15 @@ function doCookNow() {
       g.globalAlpha = 1;
       g.imageSmoothingEnabled = _crs;
     }
-    if (hatOn) {
+    if (redHatOn && redHatOwned) {
+      if (Assets.redHat) {
+        var _rhp = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.redHat, 0, 0, Assets.redHat.naturalWidth || 32, Assets.redHat.naturalHeight || 32,
+          Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy), 16, 16);
+        g.imageSmoothingEnabled = _rhp;
+      }
+    } else if (hatOn) {
       drawUiIcon(g, "strawHat", Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy));
     }
     g.restore();
@@ -24674,6 +25299,12 @@ function doCookNow() {
       for (i = 0; i < forestCritters.length; i++) {
         c = forestCritters[i];
         if (actorRoughlyOnScreen(c.x, c.y, 40)) list.push({ foot: c.y, kind: "critter", c: c });
+      }
+    }
+    if (currentScene === "cloudCity") {
+      for (i = 0; i < cloudFolk.length; i++) {
+        f = cloudFolk[i];
+        if (actorRoughlyOnScreen(f.x, f.y, 48)) list.push({ foot: f.y, kind: "folk", f: f });
       }
     }
     if (currentScene === "ocean") {
@@ -24983,7 +25614,7 @@ function doCookNow() {
     sortActors(list);
     for (i = 0; i < list.length; i++) {
       item = list[i];
-      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") {
+      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
         if (item.kind === "prop") drawGradedProp(g, item);
         else drawWashedActor(g, item);
       } else {
@@ -26195,6 +26826,12 @@ function doCookNow() {
       apple: { name: "APPLE", blurb: "TAP TO EAT. CRUNCHY SNACK." },
       bread: { name: "BREAD", blurb: "TAP TO EAT. FILLS YOU UP." },
       pie: { name: "BERRY PIE", blurb: "TAP TO EAT. BIG YUM TREAT." },
+      cloudPuff: { name: "PUFF BUN", blurb: "CLOUD CITY FOOD. TAP TO EAT." },
+      skyJam: { name: "SKY JAM", blurb: "SWEET CLOUD JAM. TAP TO EAT." },
+      fluffySoup: { name: "FLUFFY SOUP", blurb: "WARM CLOUD SOUP. TAP TO EAT." },
+      starCookie: { name: "STAR COOKIE", blurb: "SPARKLY COOKIE. TAP TO EAT." },
+      heartPotion: { name: "HEART POTION", blurb: "DRINK FOR A FOREVER HEART." },
+      redHat: { name: "RED HAT", blurb: "TAP TO PUT ON OR TAKE OFF." },
       flower: { name: "FLOWER", blurb: "TAP GRASS TO PLANT PRETTY." },
       snack: { name: "HONEY BUN", blurb: "TAP TO EAT. GIVES ENERGY." },
       hat: { name: "STRAW HAT", blurb: "TAP TO PUT ON OR TAKE OFF." },
@@ -26266,6 +26903,34 @@ function doCookNow() {
     else if (key === "flower") { if (!drawUiIcon(g, "townFlower", x, y)) paintBagKeyFallback(g, x, y, "#E878A0", "#FFC0D8"); }
     else if (key === "snack") { if (!drawUiIcon(g, "honeybun", x, y)) paintBagKeyFallback(g, x, y, "#C47A38", "#FFE9A0"); }
     else if (key === "hat") { if (!drawUiIcon(g, "strawHat", x, y)) paintBagKeyFallback(g, x, y, "#C9A227", "#FFE9A0"); }
+    else if (key === "redHat") {
+      if (Assets.redHat) {
+        var _rhd = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.redHat, 0, 0, 32, 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _rhd;
+      } else paintBagKeyFallback(g, x, y, "#DC2840", "#FF8899");
+    }
+    else if (key === "cloudPuff") {
+      if (Assets.cloudPuff) { var _s=g.imageSmoothingEnabled; g.imageSmoothingEnabled=false; g.drawImage(Assets.cloudPuff,0,0,32,32,x,y,16,16); g.imageSmoothingEnabled=_s; }
+      else paintBagKeyFallback(g, x, y, "#FFE0F0", "#FFFFFF");
+    }
+    else if (key === "skyJam") {
+      if (Assets.skyJam) { var _s2=g.imageSmoothingEnabled; g.imageSmoothingEnabled=false; g.drawImage(Assets.skyJam,0,0,32,32,x,y,16,16); g.imageSmoothingEnabled=_s2; }
+      else paintBagKeyFallback(g, x, y, "#50A0E0", "#FF80A0");
+    }
+    else if (key === "fluffySoup") {
+      if (Assets.fluffySoup) { var _s3=g.imageSmoothingEnabled; g.imageSmoothingEnabled=false; g.drawImage(Assets.fluffySoup,0,0,32,32,x,y,16,16); g.imageSmoothingEnabled=_s3; }
+      else paintBagKeyFallback(g, x, y, "#F0E8C8", "#C8E0FF");
+    }
+    else if (key === "starCookie") {
+      if (Assets.starCookie) { var _s4=g.imageSmoothingEnabled; g.imageSmoothingEnabled=false; g.drawImage(Assets.starCookie,0,0,32,32,x,y,16,16); g.imageSmoothingEnabled=_s4; }
+      else paintBagKeyFallback(g, x, y, "#FFE090", "#FFFFFF");
+    }
+    else if (key === "heartPotion") {
+      if (Assets.heartPotion) { var _s5=g.imageSmoothingEnabled; g.imageSmoothingEnabled=false; g.drawImage(Assets.heartPotion,0,0,32,32,x,y,16,16); g.imageSmoothingEnabled=_s5; }
+      else paintBagKeyFallback(g, x, y, "#FF5080", "#FFE0F0");
+    }
     else if (key === "sword") { if (!drawUiIcon(g, ironSwordOwned ? "ironSword" : "sword", x, y)) paintBagKeyFallback(g, x, y, "#6A6A70", "#E0E0E8"); }
     else if (key === "shovel") { if (!drawUiIcon(g, "shovel", x, y)) paintBagKeyFallback(g, x, y, "#8B5A28", "#C8C8D0"); }
     else if (key === "axe") { if (!drawUiIcon(g, "axe", x, y)) paintBagKeyFallback(g, x, y, "#8B5A28", "#C8C8D0"); }
@@ -26801,9 +27466,9 @@ function doCookNow() {
       px(g, 38, 4, C.flower);
     }
 
-    woodPanel(g, 46, 3, 68, 18);
+    woodPanel(g, 46, 3, Math.max(68, 18 + playerHearts() * 10), 18);
     var hi, hs, hid;
-    for (hi = 0; hi < HEARTS; hi++) {
+    for (hi = 0; hi < playerHearts(); hi++) {
       hid = (hp > hi * HP_PER_HEART) ? "heart" : "heartEmpty";
       hs = Assets.spr[hid];
       if (hs && Assets.img) {
@@ -27023,7 +27688,7 @@ function doCookNow() {
     frameDayT = null;
     beginFrameGrade();
     updateCamera();
-    g.fillStyle = (currentScene === "darkForest") ? "#000000" : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "darkForest") ? "#000000" : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -27045,7 +27710,7 @@ function doCookNow() {
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -27056,7 +27721,7 @@ function doCookNow() {
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
           if (currentScene === "darkForest") { g.fillStyle = "#000000"; g.fillRect(dx, dy, TILE, TILE); }
           else if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") drawSkyTile(g, tx, ty, dx, dy);
           else if (currentScene === "ocean") { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
@@ -27147,25 +27812,26 @@ function doCookNow() {
               g.fillStyle = "rgba(40,48,28,0.35)";
               g.fillRect(dx, dy, TILE, TILE);
             }
-          } else if (currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") {
+          } else if (currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
             if (ch === "f") {
-              var _mf = (currentScene === "mushroomCap") ? (Assets.mushroomCapFloor || Assets.mushroomStalkPath) : (Assets.mushroomStalkPath || Assets.mushroomCapFloor);
+              var _mf = (currentScene === "cloudCity") ? (Assets.cloudFloor || Assets.mushroomCapFloor) :
+                ((currentScene === "mushroomCap") ? (Assets.mushroomCapFloor || Assets.mushroomStalkPath) : (Assets.mushroomStalkPath || Assets.mushroomCapFloor));
               if (_mf) {
                 var _mfs = g.imageSmoothingEnabled;
                 g.imageSmoothingEnabled = false;
                 g.drawImage(_mf, dx, dy, 16, 16);
                 g.imageSmoothingEnabled = _mfs;
               } else {
-                g.fillStyle = currentScene === "mushroomCap" ? "#3880E0" : "#C8C0A0";
+                g.fillStyle = currentScene === "cloudCity" ? "#E8EEF8" : (currentScene === "mushroomCap" ? "#3880E0" : "#C8C0A0");
                 g.fillRect(dx, dy, TILE, TILE);
               }
             } else {
               drawSkyTile(g, tx, ty, dx, dy);
-              if (Assets.cloudWall && ((tx + ty) & 3) === 0) {
-                var _cw2 = g.imageSmoothingEnabled;
+              if ((Assets.cloudEdge || Assets.cloudWall) && ((tx + ty) & 3) === 0) {
+                var _cw2 = g.imageSmoothingEnabled, _ce = Assets.cloudEdge || Assets.cloudWall;
                 g.imageSmoothingEnabled = false;
-                g.globalAlpha = 0.55;
-                g.drawImage(Assets.cloudWall, dx - 8, dy - 8, 32, 32);
+                g.globalAlpha = 0.7;
+                g.drawImage(_ce, dx - 8, dy - 8, 32, 32);
                 g.globalAlpha = 1;
                 g.imageSmoothingEnabled = _cw2;
               }
@@ -27282,6 +27948,9 @@ function doCookNow() {
     drawToast(g);
     drawWipeAsk(g);
     drawShop(g);
+    drawCloudShop(g);
+    drawSpellFx(g);
+    drawIlluminationOverlay(g);
     drawScreenSparks(g);
     drawCraft(g);
     drawChest(g);
@@ -27640,6 +28309,17 @@ function doCookNow() {
       }
       return;
     }
+    if (cloudShopOpen) {
+      wasOpen = true;
+      L = cloudShopLayout();
+      tapCloudShop(p);
+      if (wasOpen && !cloudShopOpen) {
+        if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
+          swallowDismissTap();
+        }
+      }
+      return;
+    }
     if (shopOpen) {
       wasOpen = true;
       L = shopLayout();
@@ -27835,10 +28515,10 @@ function doCookNow() {
         return;
       }
       if (isMushroomCapEast(tx, ty)) {
-        if (player.tx === tx && player.ty === ty) { enterCloudLedgeFromCap(); return; }
+        if (player.tx === tx && player.ty === ty) { enterCloudCityFromCap(); return; }
         var _pce = findPath(player.tx, player.ty, tx, ty);
         if (_pce && _pce.length) { pending = { type: "mushCapEast" }; startWalk(player, _pce, 3.5); }
-        else if (isNear(player.tx, player.ty, tx, ty)) enterCloudLedgeFromCap();
+        else if (isNear(player.tx, player.ty, tx, ty)) enterCloudCityFromCap();
         return;
       }
     }
@@ -27850,8 +28530,47 @@ function doCookNow() {
         else if (isNear(player.tx, player.ty, tx, ty)) exitCloudLedgeToCap();
         return;
       }
+      if (isCloudLedgeEast(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { enterCloudCityFromLedge(); return; }
+        var _ple = findPath(player.tx, player.ty, tx, ty);
+        if (_ple && _ple.length) { pending = { type: "cloudLedgeEast" }; startWalk(player, _ple, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) enterCloudCityFromLedge();
+        return;
+      }
       if (propAt(tx, ty) && propAt(tx, ty).kind === "note") {
-        showLineNote("CLOUD CITY IS AHEAD.");
+        showLineNote("EAST TO CLOUD CITY!");
+        return;
+      }
+    }
+    if (currentScene === "cloudCity") {
+      var _cfi, _cf, _csp;
+      for (_cfi = 0; _cfi < cloudFolk.length; _cfi++) {
+        _cf = cloudFolk[_cfi];
+        if (hitSprite(world, _cf.x, _cf.y, 16, 32, 8, 28)) {
+          goTalkFolk(_cf);
+          return;
+        }
+      }
+      _csp = propAt(tx, ty);
+      if (_csp && _csp.shop) {
+        if (isNear(player.tx, player.ty, _csp.tx, _csp.ty) || (player.tx === _csp.tx && Math.abs(player.ty - _csp.ty) <= 2)) {
+          openCloudShop(_csp.shop);
+          return;
+        }
+        var _cspp = findPath(player.tx, player.ty, _csp.tx, _csp.ty + 2);
+        if (_cspp && _cspp.length) {
+          pending = { type: "cloudShop", shop: _csp.shop, tx: _csp.tx, ty: _csp.ty + 2 };
+          startWalk(player, _cspp, 3.5);
+        } else {
+          openCloudShop(_csp.shop);
+        }
+        return;
+      }
+      if (isCloudCityWest(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { exitCloudCityToCap(); return; }
+        var _pcw = findPath(player.tx, player.ty, tx, ty);
+        if (_pcw && _pcw.length) { pending = { type: "cloudCityWest" }; startWalk(player, _pcw, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) exitCloudCityToCap();
         return;
       }
     }
@@ -28665,6 +29384,8 @@ if (currentScene === "ocean") goExitOcean();
       tick += dt;
     }
     if (shopMsgT > 0) shopMsgT -= dt;
+    if (cloudShopMsgT > 0) cloudShopMsgT -= dt;
+    updateSpellFx(dt);
     if (craftMsgT > 0) craftMsgT -= dt;
     if (chestMsgT > 0) chestMsgT -= dt;
     updateClock();
@@ -28786,6 +29507,21 @@ if (currentScene === "ocean") goExitOcean();
         return;
       }
     }
+    if (cloudShopOpen && cloudShopItems) {
+      mk = moveKey(e);
+      if (mk) {
+        e.preventDefault();
+        if (e.repeat) return;
+        if (mk.dy > 0) cloudShopSel = Math.min(cloudShopItems.length - 1, (cloudShopSel | 0) + 1);
+        else if (mk.dy < 0) cloudShopSel = Math.max(0, (cloudShopSel | 0) - 1);
+        return;
+      }
+      if (!e.repeat && (e.code === "Space" || e.key === " " || e.code === "Enter" || e.key === "Enter")) {
+        e.preventDefault();
+        buyCloudShopItem(cloudShopItems[cloudShopSel | 0]);
+        return;
+      }
+    }
     if (shopOpen) {
       mk = moveKey(e);
       if (mk) {
@@ -28842,6 +29578,11 @@ if (currentScene === "ocean") goExitOcean();
       if (!e.repeat) selectHotbarIndex(slotN - 1);
       return;
     }
+    if (!e.repeat && (e.code === "KeyQ" || e.key === "q" || e.key === "Q") && wandOwned && selectedIs("wand") && anyWandSpell()) {
+      e.preventDefault();
+      cycleWandSpell();
+      return;
+    }
     actionKey = e.code === "Space" || e.code === "KeyJ" || e.code === "KeyE" ||
       e.key === " " || e.key === "j" || e.key === "J" || e.key === "e" || e.key === "E";
     if (bagOpen && !e.repeat && (e.code === "Space" || e.key === " ")) {
@@ -28859,8 +29600,9 @@ if (currentScene === "ocean") goExitOcean();
       if (trySceneDoors()) return;
       /* 20260905fy: Space TREE enter/climb/exit (was enterTreetop bug + ladder no-op). */
       if (tryTreeDoors()) return;
-      /* 20260905jk: climb glowing mushroom / stalk / cap / cloud stub */
+      /* 20260905jk/jl: climb mushroom / Cloud City doors */
       if (tryMushroomDoors()) return;
+      if (tryCloudShopHere()) return;
       if (tryCookHere()) return;
       if (trySmeltHere()) return;
       /* 20260905fs: Space craft at workbench + home-glow table talk (tap already worked). */
@@ -29454,7 +30196,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jk", BUILD);
+      ok("BUILD", BUILD === "20260905jl", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -32198,10 +32940,45 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       enterMushroomCapFromStalk();
       if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
       ok("glowSceneCap", currentScene === "mushroomCap", currentScene);
+      enterCloudCityFromCap();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("cloudCityEnter", currentScene === "cloudCity", currentScene);
+      ok("cloudCitySize", CLOUD_CITY_COLS === 30 && CLOUD_CITY_ROWS === 16, CLOUD_CITY_COLS + "x" + CLOUD_CITY_ROWS);
+      ok("cloudCityWalk", walkable(cloudCityWest.tx + 1, cloudCityWest.ty) || walkable(14, 8), "walk");
+      ok("cloudCityEdgeSolid", !walkable(0, 8) && !walkable(CLOUD_CITY_COLS - 1, 8), "edges");
+      ok("cloudCityShops", PROPS.filter(function (p) { return p && p.shop; }).length >= 5, "shops");
+      ok("cloudFolkFive", cloudFolk.length === 5, cloudFolk.length);
+      /* potion maxHp */
+      var _hb = maxHpBonus | 0;
+      gold = 200;
+      openCloudShop("potion");
+      buyCloudShopItem(cloudPotionItems()[0]);
+      ok("potionMaxHp", (maxHpBonus | 0) === _hb + 1 && playerMaxHp() === MAX_HP + (_hb + 1) * HP_PER_HEART, "bonus=" + maxHpBonus + " max=" + playerMaxHp());
+      closeCloudShop();
+      /* spell unlock stubs */
+      wandOwned = true; found.wand = true;
+      gold = 200;
+      openCloudShop("wizard");
+      buyCloudShopItem(cloudWizardItems()[0]);
+      ok("spellFireballUnlock", !!wandSpells.fireball, String(wandSpells.fireball));
+      buyCloudShopItem(cloudWizardItems()[1]);
+      ok("spellLightningUnlock", !!wandSpells.lightning, String(wandSpells.lightning));
+      buyCloudShopItem(cloudWizardItems()[2]);
+      ok("spellIllumUnlock", !!wandSpells.illumination, String(wandSpells.illumination));
+      selectTool("wand");
+      wandSpellSel = "illumination";
+      ok("spellCastStub", !!tryCastWandSpell() && illuminationActive(), "illum");
+      closeCloudShop();
+      exitCloudCityToCap();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("cloudCityBackCap", currentScene === "mushroomCap", currentScene);
+      /* ledge east also enters city */
       enterCloudLedgeFromCap();
       if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
-      ok("glowCloudStub", currentScene === "cloudLedge", currentScene);
-      exitCloudLedgeToCap();
+      enterCloudCityFromLedge();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("cloudCityFromLedge", currentScene === "cloudCity", currentScene);
+      exitCloudCityToCap();
       if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
       exitMushroomCapToStalk();
       if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
@@ -32253,6 +33030,13 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       found.wizardMet = false;
       found.wand = false;
       wandOwned = false;
+      maxHpBonus = 0;
+      swordTier = 0; bowTier = 0; shieldTier = 0;
+      wandSpells = { fireball: false, lightning: false, illumination: false };
+      wandSpellSel = "fireball";
+      illumUntil = 0;
+      redHatOwned = false; redHatOn = false;
+      closeCloudShop();
       bridgeFall = null;
       if (weaponDock && weaponDock.key === "wand") weaponDock = null;
       inventory.cookedGoldenSwordfish = 0;

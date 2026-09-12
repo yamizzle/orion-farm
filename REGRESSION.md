@@ -1,3 +1,6 @@
+## BUILD 20260905jl (Local 9/12) — Cloud City
+Cap/ledge east → cloudCity (30×16); west→cap. Food/Potion/Hat/Weapons/Wizard shops; 5 folk; wand spells (Space cast, Q cycle); potion maxHpBonus cap +5; red hat overlay. Atlas 1477 keep. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905jk (Local 9/12) — blue glow mushroom climb stages
 Staged day1/2/3 sizes; day2+ climb gate; day3 → mushroomStalk → mushroomCap → cloudLedge stub (Cloud City later). Persist growDays migrate. Atlas 1477 keep.
 

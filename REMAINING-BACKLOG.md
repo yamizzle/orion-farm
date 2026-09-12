@@ -17,7 +17,7 @@ Format: `Priority | Status | Title | note`
 
 ## Queued 9/10 — Darren asks (past High Peak bear)
 
-- **High** | Open follow-up | Cloud City (east of mushroom cap) | Queued after 05jk climb stub — shops/NPC not built yet. Cap east → cloudLedge toast only.
+- **High** | Done Local 9/12 05jl | Cloud City | BUILD 20260905jl: shops/folk/upgrades/spells. Cap/ledge east → cloudCity. **Needs live.**
 - **High** | Done Local 9/12 05jk | Blue glow mushroom climb stages | Day1/2/3 sizes + mushroomStalk/Cap + cloud stub. Needs live.
 - **High** | Done Local 9/11 05iz | Abandoned Cabin + dark forest | BUILD 20260905iz: north-bank cabin (save bed), wizard west, east trees, dark forest+torch, blue mush grow. **Needs live.**
 - **High** | Done Local 9/11 05iy | River + fell-tree bridge | BUILD 20260905iy: High Peak E–W river; chop riverside giant → fall → logBridge; wizard north bank. **Needs live.**
