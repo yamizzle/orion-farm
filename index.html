@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905iz";
+  var BUILD = "20260905ja";
   var ASSET_REV = "464567-iy";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -23087,7 +23087,7 @@ function doCookNow() {
     if (p.kind === "townHouseA" || p.kind === "townHouseC") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 96 };
     if (p.kind === "townHouseB" || p.kind === "townHouseD") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 96, h: 80 };
     if (p.kind === "wizardHouse") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 80 };
-    if (p.kind === "abandonedCabin") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 80, h: 80 };
+    if (p.kind === "abandonedCabin") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 80 };
     if (p.kind === "darkGiantTree") return { x: p.tx * TILE - 16, y: p.ty * TILE - 112, w: 48, h: 128 };
     if (p.kind === "blueGlowMushroom" || p.kind === "mossClump") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "glowMushroomPlant") {
@@ -23409,7 +23409,8 @@ function doCookNow() {
         _acw = _ac.naturalWidth || _ac.width || 128;
         _ach = _ac.naturalHeight || _ac.height || 160;
         g.imageSmoothingEnabled = false;
-        g.drawImage(_ac, 0, 0, _acw, _ach, x, y - 16, 80, 80);
+        /* 20260905ja: true 2× dest 64×80 (was 80×80 squash of 128×160) */
+        g.drawImage(_ac, 0, 0, _acw, _ach, x, y - 16, 64, 80);
         g.imageSmoothingEnabled = _acs;
       } else if (Assets.house) {
         drawStandSprite(g, Assets.house, x + 24, y + 24, 64, 64);
@@ -25716,6 +25717,47 @@ function doCookNow() {
         g.drawImage(Assets.wand, 0, 0, Assets.wand.naturalWidth || 32, Assets.wand.naturalHeight || 32, x, y, 16, 16);
         g.imageSmoothingEnabled = _ws;
       } else paintBagKeyFallback(g, x, y, "#6A40A0", "#C8F8FF");
+    }
+    else if (key === "blueGlowMushroom") {
+      /* 20260905ja: dense 32→16 bag icon (was fallback square) */
+      if (Assets.blueGlowMushroom) {
+        var _bms = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.blueGlowMushroom, 0, 0, Assets.blueGlowMushroom.naturalWidth || 32, Assets.blueGlowMushroom.naturalHeight || 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _bms;
+      } else paintBagKeyFallback(g, x, y, "#4090FF", "#80C8FF");
+    }
+    else if (key === "branch") {
+      if (Assets.branch) {
+        var _brs = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.branch, 0, 0, Assets.branch.naturalWidth || 32, Assets.branch.naturalHeight || 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _brs;
+      } else paintBagKeyFallback(g, x, y, "#8B5A28", "#C47A38");
+    }
+    else if (key === "moss") {
+      if (Assets.moss) {
+        var _mss = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.moss, 0, 0, Assets.moss.naturalWidth || 16, Assets.moss.naturalHeight || 16, x, y, 16, 16);
+        g.imageSmoothingEnabled = _mss;
+      } else paintBagKeyFallback(g, x, y, "#3A7A28", "#8FD42A");
+    }
+    else if (key === "torch" || key === "litTorch") {
+      if (Assets.torch) {
+        var _trs = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.torch, 0, 0, Assets.torch.naturalWidth || 32, Assets.torch.naturalHeight || 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _trs;
+      } else paintBagKeyFallback(g, x, y, "#C47A38", "#FFE9A0");
+    }
+    else if (key === "torchUnlit") {
+      if (Assets.torchUnlit) {
+        var _tus = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.torchUnlit, 0, 0, Assets.torchUnlit.naturalWidth || 32, Assets.torchUnlit.naturalHeight || 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _tus;
+      } else paintBagKeyFallback(g, x, y, "#8B5A28", "#C8C8D0");
     }
     else if (key === "pole") { if (!drawUiIcon(g, "fishingPole", x, y)) paintFishingPole(g, x, y); }
     else if (key === "leash") { if (!drawUiIcon(g, "leash", x, y)) paintBagKeyFallback(g, x, y, "#A86C14", "#E8B060"); }
