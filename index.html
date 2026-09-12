@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jd";
+  var BUILD = "20260905je";
   var ASSET_REV = "464567-iy";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -636,6 +636,10 @@
   var CLOCK_GAP_DISCARD = 250;
   /* 20260905iv: multi-tab SAVE_KEY clock — last persist savedAt we wrote. */
   var lastWrittenAt = 0;
+  /* 20260905je: absolute wall ceiling — game clock rank since arm cannot exceed wall ms elapsed. */
+  var clockWallOrigin = 0;
+  var clockRankOrigin = 0;
+  var CLOCK_WALL_SLACK = 120;
   var dialogue = null;
   var birdFly = null;
   var birdRideFx = null;
@@ -11806,15 +11810,18 @@
   }
 
   function maybeAdoptStoredClock(data) {
-    var sDay, sMs;
+    var sDay, sMs, jump, remoteAt;
     if (!data || typeof data !== "object") return false;
     sDay = data.day | 0;
     if (!(sDay >= 1)) return false;
     sMs = (typeof data.dayMs === "number" && data.dayMs >= 0) ? data.dayMs : 0;
-    if (clockRank(sDay, sMs) > clockRank(dayNumber, dayMs)) {
-      return adoptClockFields(sDay, sMs);
-    }
-    return false;
+    jump = clockRank(sDay, sMs) - clockRank(dayNumber, dayMs);
+    if (!(jump > 0)) return false;
+    remoteAt = (typeof data.savedAt === "number" && data.savedAt === data.savedAt) ? data.savedAt : 0;
+    /* 20260905je: refuse multi-day storage jumps unless that write is clearly newer
+       than our last persist (real other-tab play). Stops same-origin noise leaping days. */
+    if (jump > DAY_MS && !(remoteAt > lastWrittenAt + 500)) return false;
+    return adoptClockFields(sDay, sMs);
   }
 
   function onRemoteSaveClock(data) {
@@ -13926,6 +13933,12 @@ function doCookNow() {
     }
     dayNumber += 1;
     dayMs = 0;
+    /* 20260905je: sleep is intentional day+1 — re-arm wall ceiling to the new rank. */
+    clockWallOrigin = Date.now();
+    clockRankOrigin = clockRank(dayNumber, dayMs);
+    clockMark = 0;
+    clockBudgetWall = 0;
+    clockBudgetMs = 0;
     refillVitals();
     monsterCache[1] = null;
     monsterCache[2] = null;
@@ -14692,26 +14705,55 @@ function doCookNow() {
     clockMark = 0;
     clockBudgetWall = 0;
     clockBudgetMs = 0;
+    /* 20260905je: pause/focus/wake re-arms wall ceiling (no catch-up debt). */
+    clockWallOrigin = 0;
+    clockRankOrigin = 0;
   }
 
-  /* 20260905bq + 20260905ir: dedicated clockMark (not gameplay dt).
+  /* 20260905bq + 20260905ir + 20260905je: dedicated clockMark (not gameplay dt).
      Cap each step, discard large wake/background gaps (do not pour hitch into dayMs),
-     real-time budget so rAF storms cannot outrun wall time, ≤1 day rollover/tick.
+     real-time budget so rAF storms cannot outrun wall time, ≤1 day rollover/tick,
+     plus absolute Date.now wall ceiling so poured rank cannot exceed wall elapsed.
      DAY_MS frozen. */
+  function clampClockToWall() {
+    var wallNow, elapsed, maxRank, cur, keep;
+    if (!clockWallOrigin) return;
+    wallNow = Date.now();
+    elapsed = wallNow - clockWallOrigin;
+    if (!(elapsed >= 0)) elapsed = 0;
+    maxRank = clockRankOrigin + elapsed + CLOCK_WALL_SLACK;
+    cur = clockRank(dayNumber, dayMs);
+    if (!(cur > maxRank)) return;
+    keep = maxRank;
+    if (keep < clockRankOrigin) keep = clockRankOrigin;
+    /* clockRank(day, ms) = day * DAY_MS + ms (day ≥ 1). */
+    dayNumber = Math.floor(keep / DAY_MS);
+    if (dayNumber < 1) dayNumber = 1;
+    dayMs = keep - dayNumber * DAY_MS;
+    if (dayMs < 0) dayMs = 0;
+    if (dayMs >= DAY_MS) dayMs = dayMs % DAY_MS;
+  }
+
   function updateClock() {
-    var now, dt, before, beforeDay, rolled, wall;
+    var now, dt, before, beforeDay, rolled, wall, wallDate;
     if (timePaused()) {
       resetClockMark();
       return;
     }
     now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
     wall = now;
+    wallDate = Date.now();
     if (!clockBudgetWall || wall - clockBudgetWall >= 1000) {
       clockBudgetWall = wall;
       clockBudgetMs = 1000;
     }
     if (!clockMark) {
       clockMark = now;
+      /* 20260905je: arm absolute wall ceiling at first unpaused tick. */
+      if (!clockWallOrigin) {
+        clockWallOrigin = wallDate;
+        clockRankOrigin = clockRank(dayNumber, dayMs);
+      }
       return;
     }
     dt = now - clockMark;
@@ -14733,6 +14775,8 @@ function doCookNow() {
       rolled += 1;
     }
     if (dayMs >= DAY_MS) dayMs = dayMs % DAY_MS;
+    /* Absolute wall ceiling — cannot outrun Date.now elapsed since arm. */
+    clampClockToWall();
     if (clockPhase() !== before || dayNumber !== beforeDay) {
       if (currentScene === "overworld") {
         holidaySyncKey = "";
@@ -28659,6 +28703,8 @@ if (currentScene === "ocean") goExitOcean();
       DAY_MS: DAY_MS,
       CLOCK_STEP_MAX: CLOCK_STEP_MAX,
       CLOCK_GAP_DISCARD: CLOCK_GAP_DISCARD,
+      CLOCK_WALL_SLACK: CLOCK_WALL_SLACK,
+      clampClockToWall: clampClockToWall,
       clockMark: function () { return clockMark; },
       rafScheduled: function () { return rafScheduled; },
       resetClockMark: resetClockMark,
@@ -29044,6 +29090,34 @@ if (currentScene === "ocean") goExitOcean();
         ok("clockBurstBudget", burst <= 1100 && dayNumber <= beforeDay + 1, "burst=" + burst + " day=" + dayNumber);
         ok("clockOneDayMaxTick", true); /* ≤1 day/tick enforced in updateClock loop */
         ok("clockRankHelper", typeof clockRank === "function" && clockRank(2, 100) === 2 * DAY_MS + 100, String(clockRank(2, 100)));
+        /* 20260905je: absolute wall ceiling clamps a forged ahead rank. */
+        (function () {
+          var d0 = dayNumber, m0 = dayMs, rank0, after;
+          resetClockMark();
+          updateClock(); /* arm */
+          ok("clockWallArm", clockWallOrigin > 0 && clockRankOrigin === clockRank(d0, m0), "origin=" + clockWallOrigin);
+          rank0 = clockRank(dayNumber, dayMs);
+          dayNumber = d0 + 3;
+          dayMs = 0;
+          clampClockToWall();
+          after = clockRank(dayNumber, dayMs);
+          ok("clockWallClamp", after <= rank0 + CLOCK_WALL_SLACK + 50, "after=" + after + " rank0=" + rank0);
+          dayNumber = d0;
+          dayMs = m0;
+          resetClockMark();
+        })();
+        /* 20260905je: multi-day adopt refused without fresher savedAt. */
+        (function () {
+          var d0 = dayNumber, m0 = dayMs;
+          lastWrittenAt = 5000;
+          dayNumber = d0;
+          dayMs = m0;
+          ok("clockAdoptRefuseMultiDay", !maybeAdoptStoredClock({ savedAt: 5000, day: d0 + 3, dayMs: 0 }), "adopted day=" + dayNumber);
+          ok("clockAdoptAllowFreshMultiDay", !!maybeAdoptStoredClock({ savedAt: 6000, day: d0 + 3, dayMs: 10 }), "day=" + dayNumber);
+          dayNumber = d0;
+          dayMs = m0;
+          resetClockMark();
+        })();
         /* 20260905iv: multi-tab — stale older persist refused; newer stored clock adopted. */
         (function () {
           var store = {};

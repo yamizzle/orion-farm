@@ -22,6 +22,9 @@ Dense sword+sparkle tray icon (not cookedFish lookalike); animated twinkle overl
 Ocean golden roll 1/50→1/20; soft pity `found.oceanCatchesNoGolden` forces golden after 25 ocean catches without one; farm ponds stay oceanOnly-blocked. Save-safe. Story fish for sleepy bear. Frozen DAY_MS/walk/Orion/grass/evening.
 
 
+## BUILD 20260905je (Local 9/12) — day-clock wall ceiling
+Absolute Date.now wall ceiling + refuse multi-day storage adopt without fresher savedAt. DAY_MS frozen. Needs live verify. Never START OVER.
+
 ## BUILD 20260905iv (Local 9/11) — multi-tab day-clock save harden
 Multi-tab localStorage race: `savedAt` + adopt-ahead on persist; `storage` syncs clock fields; updateClock only when visible + hasFocus. DAY_MS frozen. Autotest stubs. Needs live verify. Never START OVER.
 
@@ -174,7 +177,7 @@ Status column: **KEEP** = still required in new builds.
 
 | Invariant | BUILD | Status |
 | --- | --- | --- |
-| Day-clock **race harden** without changing DAY_MS: dedicated clockMark, 50ms step cap, ≤1 day rollover/tick, reset on pause/visibility/pageshow, single-flight rAF; **+ multi-tab** savedAt / adopt-ahead persist / storage clock sync / hasFocus gate (05iv). Expected rate ~2 real min/phase (~8 min/day) — a day flip in a ~15 min pass is normal, not a race | 20260905bq + 20260905ir + 20260905iv | KEEP |
+| Day-clock **race harden** without changing DAY_MS: dedicated clockMark, 50ms step cap, ≤1 day rollover/tick, reset on pause/visibility/pageshow, single-flight rAF; **+ multi-tab** savedAt / adopt-ahead persist / storage clock sync / hasFocus gate (05iv); **+ absolute Date.now wall ceiling** + multi-day adopt sanity (05je). Expected rate ~2 real min/phase (~8 min/day) — a day flip in a ~15 min pass is normal, not a race | 20260905bq + 20260905ir + 20260905iv + 20260905je | KEEP |
 | Snappier Chromebook/iPad draw: reuse graded scratch bitmaps; multiply+mask night wash (no per-frame getImageData); off-camera cull — **without** softening 05hg density or evening colors | 20260905hk | KEEP |
 | Three-lights story spine → Moondrop Night (Home / Town / Peak lamps) | 20260905cb | KEEP |
 
