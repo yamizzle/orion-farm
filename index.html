@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jj";
-  var ASSET_REV = "464567-jj";
+  var BUILD = "20260905jk";
+  var ASSET_REV = "464567-jk";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
   var PIXEL_FONT_READY = false;
@@ -468,6 +468,15 @@
           loadImage("assets/props/wizardHouse.png").then(function (im) { Assets.wizardHouse = im; }).catch(function () {}),
           loadImage("assets/props/abandonedCabin.png").then(function (im) { Assets.abandonedCabin = im; }).catch(function () {}),
           loadImage("assets/props/blueGlowMushroom.png").then(function (im) { Assets.blueGlowMushroom = im; }).catch(function () {}),
+          /* 20260905jk: staged blue glow climb art (dense 2× BOX, pink gate PASS) */
+          loadImage("assets/props/blueGlowStage1.png").then(function (im) { Assets.blueGlowStage1 = im; }).catch(function () {}),
+          loadImage("assets/props/blueGlowStage2.png").then(function (im) { Assets.blueGlowStage2 = im; }).catch(function () {}),
+          loadImage("assets/props/blueGlowStage3.png").then(function (im) { Assets.blueGlowStage3 = im; }).catch(function () {}),
+          loadImage("assets/props/mushroomCapTop.png").then(function (im) { Assets.mushroomCapTop = im; }).catch(function () {}),
+          loadImage("assets/props/cloudWall.png").then(function (im) { Assets.cloudWall = im; }).catch(function () {}),
+          loadImage("assets/props/mushroomStalkPath.png").then(function (im) { Assets.mushroomStalkPath = im; }).catch(function () {}),
+          loadImage("assets/props/mushroomCapFloor.png").then(function (im) { Assets.mushroomCapFloor = im; }).catch(function () {}),
+          loadImage("assets/props/cloudLedge.png").then(function (im) { Assets.cloudLedge = im; }).catch(function () {}),
           loadImage("assets/props/darkGiantTree.png").then(function (im) { Assets.darkGiantTree = im; }).catch(function () {}),
           loadImage("assets/props/torch.png").then(function (im) { Assets.torch = im; }).catch(function () {}),
           loadImage("assets/props/torchUnlit.png").then(function (im) { Assets.torchUnlit = im; }).catch(function () {}),
@@ -622,7 +631,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null, mushroomStalk: null, mushroomCap: null, cloudLedge: null };
   var tick = 0;
   var lastTs = 0;
   /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
@@ -755,6 +764,19 @@
   var cabinOut = { tx: 10, ty: 10 };
   var cabinLand = { tx: 32, ty: 17 };
   var cabinGarden = [{ tx: 35, ty: 15 }, { tx: 36, ty: 15 }, { tx: 35, ty: 16 }, { tx: 36, ty: 16 }];
+  /* 20260905jk: blue glow climb stages — stalk / cap / cloud stub (Cloud City later) */
+  var MUSHROOM_STALK_COLS = 12;
+  var MUSHROOM_STALK_ROWS = 28;
+  var MUSHROOM_CAP_COLS = 14;
+  var MUSHROOM_CAP_ROWS = 12;
+  var CLOUD_LEDGE_COLS = 10;
+  var CLOUD_LEDGE_ROWS = 8;
+  var mushroomStalkSouth = { tx: 6, ty: 26 };
+  var mushroomStalkNorth = { tx: 6, ty: 2 };
+  var mushroomCapSouth = { tx: 6, ty: 10 };
+  var mushroomCapEast = { tx: 12, ty: 5 };
+  var cloudLedgeWest = { tx: 1, ty: 4 };
+  var glowClimbReturn = { tx: 35, ty: 17 };
   /* Wizard house relocated west of cabin (wand gift unchanged) */
   var WIZARD_HOUSE_COLS = 16;
   var WIZARD_HOUSE_ROWS = 10;
@@ -3070,6 +3092,21 @@
       ROWS = DARK_FOREST_ROWS;
       GROUND = buildDarkForestGround();
       PROPS = buildDarkForestProps();
+    } else if (name === "mushroomStalk") {
+      COLS = MUSHROOM_STALK_COLS;
+      ROWS = MUSHROOM_STALK_ROWS;
+      GROUND = buildMushroomStalkGround();
+      PROPS = buildMushroomStalkProps();
+    } else if (name === "mushroomCap") {
+      COLS = MUSHROOM_CAP_COLS;
+      ROWS = MUSHROOM_CAP_ROWS;
+      GROUND = buildMushroomCapGround();
+      PROPS = buildMushroomCapProps();
+    } else if (name === "cloudLedge") {
+      COLS = CLOUD_LEDGE_COLS;
+      ROWS = CLOUD_LEDGE_ROWS;
+      GROUND = buildCloudLedgeGround();
+      PROPS = buildCloudLedgeProps();
     } else if (name === "forest") {
       COLS = FOREST_COLS;
       ROWS = FOREST_ROWS;
@@ -3162,6 +3199,8 @@
     } else {
       monsters = [];
     }
+    /* 20260905jk: inject Y-sorted glowing plant from crops before solid */
+    if (name === "highPeak") syncGlowMushroomProps();
     buildSolid();
     if (name === "overworld" || name === "forest") {
       /* null = never seeded this day; [] = cleared/killed — don't instantly reswarm on re-entry.
@@ -5059,6 +5098,208 @@
     startWalk(player, path, 3.5);
   }
 
+  /* 20260905jk: climb glowing mushroom → stalk / cap / cloud stub */
+  function buildMushroomStalkGround() {
+    var cols = MUSHROOM_STALK_COLS, rows = MUSHROOM_STALK_ROWS;
+    var g = [], y, x, mid;
+    mid = (cols / 2) | 0;
+    for (y = 0; y < rows; y++) {
+      g[y] = [];
+      for (x = 0; x < cols; x++) {
+        if (x === mid || x === mid + 1) g[y][x] = "f";
+        else g[y][x] = "y"; /* unwalkable cloud sides */
+      }
+    }
+    return g;
+  }
+  function buildMushroomStalkProps() {
+    var list = [], y, mid = (MUSHROOM_STALK_COLS / 2) | 0;
+    for (y = 1; y < MUSHROOM_STALK_ROWS - 1; y += 2) {
+      list.push({ kind: "cloudWall", tx: mid - 2, ty: y });
+      list.push({ kind: "cloudWall", tx: mid + 3, ty: y });
+    }
+    list.push({ kind: "ladder", tx: mushroomStalkSouth.tx, ty: mushroomStalkSouth.ty, dir: "down" });
+    list.push({ kind: "ladder", tx: mushroomStalkNorth.tx, ty: mushroomStalkNorth.ty, dir: "up" });
+    return list;
+  }
+  function buildMushroomCapGround() {
+    var cols = MUSHROOM_CAP_COLS, rows = MUSHROOM_CAP_ROWS;
+    var g = [], y, x;
+    for (y = 0; y < rows; y++) {
+      g[y] = [];
+      for (x = 0; x < cols; x++) {
+        if (y === 0 || y === rows - 1 || x === 0 || x === cols - 1) g[y][x] = "y";
+        else if (y >= 3 && y <= 8 && x >= 2 && x <= 11) g[y][x] = "f";
+        else g[y][x] = "y";
+      }
+    }
+    g[mushroomCapSouth.ty][mushroomCapSouth.tx] = "f";
+    g[mushroomCapEast.ty][mushroomCapEast.tx] = "f";
+    return g;
+  }
+  function buildMushroomCapProps() {
+    return [
+      { kind: "mushroomCapTop", tx: 3, ty: 4 },
+      { kind: "ladder", tx: mushroomCapSouth.tx, ty: mushroomCapSouth.ty, dir: "down" },
+      { kind: "caveMouth", tx: mushroomCapEast.tx, ty: mushroomCapEast.ty, cloudStub: true }
+    ];
+  }
+  function buildCloudLedgeGround() {
+    var cols = CLOUD_LEDGE_COLS, rows = CLOUD_LEDGE_ROWS;
+    var g = [], y, x;
+    for (y = 0; y < rows; y++) {
+      g[y] = [];
+      for (x = 0; x < cols; x++) {
+        if (y >= 3 && y <= 5 && x >= 2 && x <= 7) g[y][x] = "f";
+        else g[y][x] = "y";
+      }
+    }
+    g[cloudLedgeWest.ty][cloudLedgeWest.tx] = "f";
+    return g;
+  }
+  function buildCloudLedgeProps() {
+    return [
+      { kind: "cloudLedge", tx: 3, ty: 3 },
+      { kind: "note", tx: 5, ty: 4, text: "CLOUD CITY IS AHEAD." },
+      { kind: "ladder", tx: cloudLedgeWest.tx, ty: cloudLedgeWest.ty, dir: "down" }
+    ];
+  }
+  function enterMushroomStalkFromYard() {
+    startDoorFade(function () {
+      applyScene("mushroomStalk");
+      unlocked.mushroomStalkEntered = true;
+      placePlayer(mushroomStalkSouth.tx, mushroomStalkSouth.ty - 1, "up");
+      if (!walkable(player.tx, player.ty)) placePlayer(mushroomStalkSouth.tx, mushroomStalkSouth.ty - 2, "up");
+      showLineNote("UP THE GLOWING STALK!");
+      persistSave();
+    });
+  }
+  function exitMushroomStalkToYard() {
+    var spot = findGlowPlantSpot();
+    startDoorFade(function () {
+      applyScene("highPeak");
+      if (spot) placePlayer(spot.tx, spot.ty + 1, "down");
+      else placePlayer(glowClimbReturn.tx, glowClimbReturn.ty, "down");
+      if (!walkable(player.tx, player.ty)) {
+        placePlayer(glowClimbReturn.tx, glowClimbReturn.ty, "down");
+      }
+      syncGlowMushroomProps();
+      buildSolid();
+      showLineNote("BACK BY THE CABIN.");
+      persistSave();
+    });
+  }
+  function enterMushroomCapFromStalk() {
+    startDoorFade(function () {
+      applyScene("mushroomCap");
+      unlocked.mushroomCapEntered = true;
+      placePlayer(mushroomCapSouth.tx, mushroomCapSouth.ty - 1, "up");
+      if (!walkable(player.tx, player.ty)) placePlayer(mushroomCapSouth.tx, mushroomCapSouth.ty - 2, "up");
+      showLineNote("TOP OF THE BLUE MUSHROOM!");
+      persistSave();
+    });
+  }
+  function exitMushroomCapToStalk() {
+    startDoorFade(function () {
+      applyScene("mushroomStalk");
+      placePlayer(mushroomStalkNorth.tx, mushroomStalkNorth.ty + 1, "down");
+      if (!walkable(player.tx, player.ty)) placePlayer(mushroomStalkNorth.tx, mushroomStalkNorth.ty + 2, "down");
+      persistSave();
+    });
+  }
+  function enterCloudLedgeFromCap() {
+    /* stub — Cloud City shops queued; tiny ledge + note for now */
+    startDoorFade(function () {
+      applyScene("cloudLedge");
+      unlocked.cloudLedgeEntered = true;
+      placePlayer(4, 4, "right");
+      showLineNote("CLOUD CITY IS AHEAD.");
+      persistSave();
+    });
+  }
+  function exitCloudLedgeToCap() {
+    startDoorFade(function () {
+      applyScene("mushroomCap");
+      placePlayer(mushroomCapEast.tx - 1, mushroomCapEast.ty, "left");
+      if (!walkable(player.tx, player.ty)) placePlayer(mushroomCapEast.tx - 2, mushroomCapEast.ty, "left");
+      persistSave();
+    });
+  }
+  function tryClimbGlowMushroom() {
+    var spot, days;
+    if (currentScene !== "highPeak") return false;
+    spot = isGlowClimbSpot(player.tx, player.ty);
+    if (!spot) {
+      var f = facingTile();
+      spot = isGlowClimbSpot(f.tx, f.ty);
+    }
+    if (!spot) {
+      var dirs = [[0, 0], [0, 1], [0, -1], [-1, 0], [1, 0]], i, t;
+      for (i = 0; i < dirs.length; i++) {
+        t = { tx: player.tx + dirs[i][0], ty: player.ty + dirs[i][1] };
+        spot = isGlowClimbSpot(t.tx, t.ty);
+        if (spot) break;
+      }
+    }
+    if (!spot) return false;
+    days = spot.crop.growDays | 0;
+    if (days < 2) return false;
+    if (days >= 3) {
+      enterMushroomStalkFromYard();
+      return true;
+    }
+    /* day 2: climbable juice, stay in yard */
+    spawnSparks(player.x, player.y - 12);
+    showLineNote("YOU CLIMB THE GLOWING MUSHROOM!");
+    playSfx("toast");
+    unlocked.glowMushClimbed = true;
+    persistSave();
+    return true;
+  }
+  function isMushroomStalkSouth(tx, ty) {
+    return currentScene === "mushroomStalk" && tx === mushroomStalkSouth.tx && ty === mushroomStalkSouth.ty;
+  }
+  function isMushroomStalkNorth(tx, ty) {
+    return currentScene === "mushroomStalk" && tx === mushroomStalkNorth.tx && ty === mushroomStalkNorth.ty;
+  }
+  function isMushroomCapSouth(tx, ty) {
+    return currentScene === "mushroomCap" && tx === mushroomCapSouth.tx && ty === mushroomCapSouth.ty;
+  }
+  function isMushroomCapEast(tx, ty) {
+    return currentScene === "mushroomCap" && tx === mushroomCapEast.tx && ty === mushroomCapEast.ty;
+  }
+  function isCloudLedgeWest(tx, ty) {
+    return currentScene === "cloudLedge" && tx === cloudLedgeWest.tx && ty === cloudLedgeWest.ty;
+  }
+  function tryMushroomDoors() {
+    if (currentScene === "highPeak") return tryClimbGlowMushroom();
+    if (currentScene === "mushroomStalk") {
+      if (isMushroomStalkSouth(player.tx, player.ty) || isMushroomStalkSouth(facingTile().tx, facingTile().ty)) {
+        exitMushroomStalkToYard(); return true;
+      }
+      if (isMushroomStalkNorth(player.tx, player.ty) || isMushroomStalkNorth(facingTile().tx, facingTile().ty)) {
+        enterMushroomCapFromStalk(); return true;
+      }
+      return false;
+    }
+    if (currentScene === "mushroomCap") {
+      if (isMushroomCapSouth(player.tx, player.ty) || isMushroomCapSouth(facingTile().tx, facingTile().ty)) {
+        exitMushroomCapToStalk(); return true;
+      }
+      if (isMushroomCapEast(player.tx, player.ty) || isMushroomCapEast(facingTile().tx, facingTile().ty)) {
+        enterCloudLedgeFromCap(); return true;
+      }
+      return false;
+    }
+    if (currentScene === "cloudLedge") {
+      if (isCloudLedgeWest(player.tx, player.ty) || isCloudLedgeWest(facingTile().tx, facingTile().ty)) {
+        exitCloudLedgeToCap(); return true;
+      }
+      return false;
+    }
+    return false;
+  }
+
   function torchIsLitHeld() {
     return selectedIs("litTorch");
   }
@@ -6363,27 +6604,90 @@
       if (h > 0.82) px(g, dx + ((h * 12) | 0) + 2, dy + 2 + ((hash(ty, i, 4) * 10) | 0), "#F8FCFF");
     }
   }
+  /* 20260905jk: staged blue glow sizes (day from sleep growDays) */
+  function blueGlowStage(growDays) {
+    var d = growDays | 0;
+    if (d >= 3) return 3;
+    if (d >= 2) return 2;
+    if (d >= 1) return 1;
+    return 0;
+  }
+  function blueGlowSize(growDays) {
+    var st = blueGlowStage(growDays);
+    if (st >= 3) return { w: 40, h: 220 };
+    if (st === 2) return { w: 32, h: 96 };
+    if (st === 1) return { w: 16, h: 32 };
+    return { w: 10, h: 14 };
+  }
+  function blueGlowArt(growDays) {
+    var st = blueGlowStage(growDays);
+    if (st >= 3 && Assets.blueGlowStage3) return Assets.blueGlowStage3;
+    if (st === 2 && Assets.blueGlowStage2) return Assets.blueGlowStage2;
+    if (st === 1 && Assets.blueGlowStage1) return Assets.blueGlowStage1;
+    return Assets.blueGlowMushroom || Assets.blueGlowStage1 || null;
+  }
+  function blueGlowCropAt(tx, ty) {
+    var c = crops[tx + "," + ty];
+    return (c && c.crop === "blueGlow") ? c : null;
+  }
+  function findGlowPlantSpot() {
+    var k, c, parts, tx, ty, best = null;
+    for (k in crops) {
+      if (!Object.prototype.hasOwnProperty.call(crops, k)) continue;
+      c = crops[k];
+      if (!c || c.crop !== "blueGlow") continue;
+      parts = k.split(",");
+      tx = parts[0] | 0; ty = parts[1] | 0;
+      if (!best || (c.growDays | 0) > (best.growDays | 0)) best = { tx: tx, ty: ty, growDays: c.growDays | 0 };
+    }
+    return best;
+  }
+  function isGlowClimbSpot(tx, ty) {
+    var c = blueGlowCropAt(tx, ty);
+    if (c && (c.growDays | 0) >= 2) return { tx: tx, ty: ty, crop: c };
+    c = blueGlowCropAt(tx, ty - 1);
+    if (c && (c.growDays | 0) >= 2) return { tx: tx, ty: ty - 1, crop: c };
+    return null;
+  }
+  function syncGlowMushroomProps() {
+    var i, k, c, parts, tx, ty, list, p;
+    if (currentScene !== "highPeak") return;
+    list = [];
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p && p.kind !== "glowMushroomPlant") list.push(p);
+    }
+    for (k in crops) {
+      if (!Object.prototype.hasOwnProperty.call(crops, k)) continue;
+      c = crops[k];
+      if (!c || c.crop !== "blueGlow") continue;
+      parts = k.split(",");
+      tx = parts[0] | 0; ty = parts[1] | 0;
+      list.push({ kind: "glowMushroomPlant", tx: tx, ty: ty, growDays: c.growDays | 0 });
+    }
+    PROPS = list;
+  }
+  function drawBlueGlowSprite(g, growDays, x, y, footPad) {
+    var sz = blueGlowSize(growDays), im = blueGlowArt(growDays), prev, gh = sz.h, gw = sz.w, pad = footPad | 0;
+    if (im) {
+      prev = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(im, x + 8 - (gw / 2 | 0), y + pad - gh, gw, gh);
+      g.imageSmoothingEnabled = prev;
+    } else {
+      fill(g, x + 6, y + pad - gh, 4, gh, "#D8D0B8");
+      fill(g, x + 2, y + pad - Math.min(gh, 14), Math.max(12, gw - 4), Math.min(14, gh), "#4090FF");
+    }
+    g.save();
+    g.globalAlpha = 0.28 + 0.12 * Math.sin((tick || 0) / 180);
+    fill(g, x + 8 - (gw / 2 | 0), y + pad - gh, gw, 12, "#80C8FF");
+    g.restore();
+  }
   function drawCropSprite(g, crop, x, y) {
     var id = cropSprite(crop);
     var gh, gw, im, prev;
     if (crop && crop.crop === "blueGlow") {
-      /* ~5 ft per day — 10px logical per day; can grow off-screen tall */
-      gh = 16 + Math.min(400, (crop.growDays | 0) * 10);
-      gw = 12 + Math.min(28, (crop.growDays | 0));
-      im = Assets.blueGlowMushroom;
-      if (im) {
-        prev = g.imageSmoothingEnabled;
-        g.imageSmoothingEnabled = false;
-        g.drawImage(im, x + 8 - (gw / 2 | 0), y + 16 - gh, gw, gh);
-        g.imageSmoothingEnabled = prev;
-      } else {
-        fill(g, x + 6, y + 16 - gh, 4, gh, "#D8D0B8");
-        fill(g, x + 2, y + 16 - gh, 12, 10, "#4090FF");
-      }
-      g.save();
-      g.globalAlpha = 0.28 + 0.12 * Math.sin((tick || 0) / 180);
-      fill(g, x, y + 12 - gh, 16, 12, "#80C8FF");
-      g.restore();
+      /* drawn as Y-sorted glowMushroomPlant prop on highPeak; till-only here */
       return;
     }
     if (id === "potatoReady") { paintPotatoReady(g, x, y); return; }
@@ -7361,6 +7665,11 @@
         }
       } else if (p.kind === "darkGiantTree") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty); block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
+      } else if (p.kind === "glowMushroomPlant") {
+        /* trunk tile only — wide cap is Y-sort walk-behind, not a solid wall */
+        block(p.tx, p.ty);
+      } else if (p.kind === "cloudWall" || p.kind === "mushroomCapTop" || p.kind === "cloudLedge") {
+        /* decorative; ground "y" already blocks cloud sides */
       } else if (p.kind === "fountain") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
@@ -7690,7 +7999,7 @@
         maxY = Math.max(0, worldH - VIEW_H);
       }
     }
-    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean") {
+    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
       } else {
@@ -7719,7 +8028,7 @@
     if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean") {
+        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") {
           if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
         } else if (camY < minY) {
           camY = minY;
@@ -8194,7 +8503,13 @@
         changed = true;
       }
     }
-    if (changed) persistSave();
+    if (changed) {
+      if (currentScene === "highPeak") {
+        syncGlowMushroomProps();
+        buildSolid();
+      }
+      persistSave();
+    }
   }
 
   function plantAt(tx, ty) {
@@ -8219,6 +8534,8 @@
       crops[k] = { stage: "sprout", plantTime: worldTime(), crop: "blueGlow", plantDay: dayNumber | 0, growDays: 0 };
       unlocked.glowMushPlanted = true;
       showLineNote("PLANTED A GLOW MUSHROOM!");
+      syncGlowMushroomProps();
+      buildSolid();
       persistSave();
       return;
     }
@@ -11146,7 +11463,7 @@
     if (isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || houseDoorHit(tx, ty, world)) return true;
     if (isForestEntrance(tx, ty) || isForestExit(tx, ty)) return true;
     if (isOceanEntrance(tx, ty) || isOceanExit(tx, ty)) return true;
-    if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world) || isWizardHouseEntrance(tx, ty) || isWizardHouseExit(tx, ty) || wizardHouseDoorHit(tx, ty) || isCabinEntrance(tx, ty) || isCabinExit(tx, ty) || cabinDoorHit(tx, ty) || isDarkForestMouth(tx, ty) || isDarkForestExit(tx, ty)) return true;
+    if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world) || isWizardHouseEntrance(tx, ty) || isWizardHouseExit(tx, ty) || wizardHouseDoorHit(tx, ty) || isCabinEntrance(tx, ty) || isCabinExit(tx, ty) || cabinDoorHit(tx, ty) || isDarkForestMouth(tx, ty) || isDarkForestExit(tx, ty) || isMushroomStalkSouth(tx, ty) || isMushroomStalkNorth(tx, ty) || isMushroomCapSouth(tx, ty) || isMushroomCapEast(tx, ty) || isCloudLedgeWest(tx, ty) || !!isGlowClimbSpot(tx, ty)) return true;
     if (isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty)) return true;
     if (isPeakCave(tx, ty) || isPeakMineMouth(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) || isMountainMineExit(tx, ty) || isMountainMineHighExit(tx, ty) || isHighPeakCave(tx, ty) || isSleepingBear(tx, ty)) return true;
     return false;
@@ -11646,7 +11963,18 @@
           } else if (cv && typeof cv === "object") {
             stage = cv.stage === "ready" || cv.stage === "young" ? cv.stage : "sprout";
             plantTime = typeof cv.plantTime === "number" ? cv.plantTime : worldTime();
-            crops[ck] = { stage: stage, plantTime: plantTime, crop: (cv.crop === "potato" || cv.crop === "berry") ? cv.crop : "carrot" };
+            /* 20260905jk: keep blueGlow + plantDay/growDays (was remapped to carrot) */
+            if (cv.crop === "blueGlow") {
+              crops[ck] = {
+                stage: stage,
+                plantTime: plantTime,
+                crop: "blueGlow",
+                plantDay: typeof cv.plantDay === "number" ? cv.plantDay | 0 : (dayNumber | 0),
+                growDays: typeof cv.growDays === "number" ? cv.growDays | 0 : 0
+              };
+            } else {
+              crops[ck] = { stage: stage, plantTime: plantTime, crop: (cv.crop === "potato" || cv.crop === "berry") ? cv.crop : "carrot" };
+            }
           }
         }
       }
@@ -11687,10 +12015,10 @@
       }
       syncLilaFlowers();
       /* 20260905jf: cabin/darkForest/wizardHouse were missing — sleep save remapped to overworld */
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down",
@@ -14583,6 +14911,9 @@ function doCookNow() {
     if (currentScene === "islandCave") return "ISLAND CAVE";
     if (currentScene === "mountainMine") return "MOUNTAIN MINE";
     if (currentScene === "highPeak") return "HIGH PEAK";
+    if (currentScene === "mushroomStalk") return "MUSHROOM STALK";
+    if (currentScene === "mushroomCap") return "MUSHROOM CAP";
+    if (currentScene === "cloudLedge") return "CLOUD LEDGE";
     if (currentScene === "cottage") return "COTTAGE";
     if (currentScene === "cottage2") return "COTTAGE 2";
     if (currentScene === "tallCottage") return "TALL COTTAGE";
@@ -15502,6 +15833,14 @@ function doCookNow() {
     }
     if (found.blueGlowMushroom && !unlocked.glowMushPlanted) {
       return "PLANT THE GLOW MUSHROOM BY THE CABIN.";
+    }
+    /* 20260905jk: climb stages after plant */
+    if (found.blueGlowMushroom && unlocked.glowMushPlanted) {
+      var _gs = findGlowPlantSpot();
+      if (_gs) {
+        if ((_gs.growDays | 0) >= 3 && !unlocked.mushroomCapEntered) return "CLIMB TO THE CLOUDS.";
+        if ((_gs.growDays | 0) >= 2 && !unlocked.glowMushClimbed && !unlocked.mushroomStalkEntered) return "CLIMB THE GLOWING MUSHROOM.";
+      }
     }
     /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
     if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
@@ -21297,6 +21636,40 @@ function doCookNow() {
       exitDarkForest();
       return;
     }
+    /* 20260905jk: mushroom climb scene doors + yard climb trigger */
+    if (currentScene === "highPeak" && isGlowClimbSpot(player.tx, player.ty)) {
+      var _gc = isGlowClimbSpot(player.tx, player.ty);
+      if (_gc && (_gc.crop.growDays | 0) >= 2) {
+        pending = null;
+        tryClimbGlowMushroom();
+        return;
+      }
+    }
+    if (isMushroomStalkSouth(player.tx, player.ty)) {
+      pending = null;
+      exitMushroomStalkToYard();
+      return;
+    }
+    if (isMushroomStalkNorth(player.tx, player.ty)) {
+      pending = null;
+      enterMushroomCapFromStalk();
+      return;
+    }
+    if (isMushroomCapSouth(player.tx, player.ty)) {
+      pending = null;
+      exitMushroomCapToStalk();
+      return;
+    }
+    if (isMushroomCapEast(player.tx, player.ty)) {
+      pending = null;
+      enterCloudLedgeFromCap();
+      return;
+    }
+    if (isCloudLedgeWest(player.tx, player.ty)) {
+      pending = null;
+      exitCloudLedgeToCap();
+      return;
+    }
     if (isIslandCaveEntrance(player.tx, player.ty)) {
       pending = null;
       enterIslandCave();
@@ -21613,6 +21986,18 @@ function doCookNow() {
       enterCabin();
     } else if (act.type === "exitCabin") {
       exitCabin();
+    } else if (act.type === "climbGlow") {
+      tryClimbGlowMushroom();
+    } else if (act.type === "mushStalkSouth") {
+      exitMushroomStalkToYard();
+    } else if (act.type === "mushStalkNorth") {
+      enterMushroomCapFromStalk();
+    } else if (act.type === "mushCapSouth") {
+      exitMushroomCapToStalk();
+    } else if (act.type === "mushCapEast") {
+      enterCloudLedgeFromCap();
+    } else if (act.type === "cloudLedgeWest") {
+      exitCloudLedgeToCap();
     } else if (act.type === "enterDarkForest") {
       enterDarkForest();
     } else if (act.type === "exitDarkForest") {
@@ -23181,7 +23566,9 @@ function doCookNow() {
     if (p.kind === "wizardHouse") return p.ty * TILE + 80;
     if (p.kind === "abandonedCabin") return p.ty * TILE + 80;
     if (p.kind === "darkGiantTree") return p.ty * TILE + 24;
-    if (p.kind === "blueGlowMushroom" || p.kind === "mossClump" || p.kind === "glowMushroomPlant") return p.ty * TILE + 8;
+    if (p.kind === "blueGlowMushroom" || p.kind === "mossClump") return p.ty * TILE + 8;
+    if (p.kind === "glowMushroomPlant") return p.ty * TILE + 14;
+    if (p.kind === "cloudWall" || p.kind === "cloudLedge" || p.kind === "mushroomCapTop") return p.ty * TILE + 16;
     if (p.kind === "peakGiant" || p.kind === "bridgePine") return p.ty * TILE + 24;
     if (p.kind === "logBridge") return p.ty * TILE + 8;
     if (p.kind === "fountain") return p.ty * TILE + 28;
@@ -23246,9 +23633,12 @@ function doCookNow() {
     if (p.kind === "darkGiantTree") return { x: p.tx * TILE - 64, y: p.ty * TILE - 368, w: 144, h: 384 };
     if (p.kind === "blueGlowMushroom" || p.kind === "mossClump") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 16, h: 24 };
     if (p.kind === "glowMushroomPlant") {
-      var _gh = 16 + Math.min(240, ((p.growDays | 0) * 10));
-      return { x: p.tx * TILE - 4, y: p.ty * TILE - _gh + 8, w: 24, h: _gh };
+      var _sz = blueGlowSize(p.growDays | 0);
+      return { x: p.tx * TILE + 8 - (_sz.w / 2 | 0) - 2, y: p.ty * TILE + 14 - _sz.h, w: _sz.w + 4, h: _sz.h };
     }
+    if (p.kind === "cloudWall") return { x: p.tx * TILE - 8, y: p.ty * TILE - 16, w: 32, h: 32 };
+    if (p.kind === "mushroomCapTop") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 64, h: 32 };
+    if (p.kind === "cloudLedge") return { x: p.tx * TILE - 8, y: p.ty * TILE - 8, w: 48, h: 24 };
     if (p.kind === "fountain") return { x: p.tx * TILE, y: p.ty * TILE, w: 32, h: 32 };
     if (p.kind === "statue") return { x: p.tx * TILE, y: p.ty * TILE - 16, w: 16, h: 32 };
     if (p.kind === "counter") return { x: p.tx * TILE, y: p.ty * TILE - 8, w: 48, h: 24 };
@@ -23605,22 +23995,34 @@ function doCookNow() {
         fill(g, x + 2, y + 6, 12, 8, "#3A7A28");
       }
     } else if (p.kind === "glowMushroomPlant") {
-      var _gd = (p.growDays | 0);
-      var _gh = 16 + Math.min(240, _gd * 10);
-      var _gw = 12 + Math.min(20, _gd * 1);
-      if (Assets.blueGlowMushroom) {
-        var _gp = Assets.blueGlowMushroom, _gps = g.imageSmoothingEnabled;
+      drawBlueGlowSprite(g, p.growDays | 0, x, y, 14);
+    } else if (p.kind === "cloudWall") {
+      if (Assets.cloudWall) {
+        var _cw = Assets.cloudWall, _cws = g.imageSmoothingEnabled;
         g.imageSmoothingEnabled = false;
-        g.drawImage(_gp, x + 8 - (_gw / 2 | 0), y + 8 - _gh, _gw, _gh);
-        g.imageSmoothingEnabled = _gps;
+        g.drawImage(_cw, x - 8, y - 16, 32, 32);
+        g.imageSmoothingEnabled = _cws;
       } else {
-        fill(g, x + 6, y + 8 - _gh, 4, _gh, "#D8D0B8");
-        fill(g, x + 2, y + 8 - _gh, 12, 10, "#4090FF");
+        fill(g, x - 4, y - 8, 24, 16, "#E8F0FF");
       }
-      g.save();
-      g.globalAlpha = 0.25 + 0.1 * Math.sin((tick || 0) / 180);
-      fill(g, x, y + 4 - _gh, 16, 12, "#80C8FF");
-      g.restore();
+    } else if (p.kind === "mushroomCapTop") {
+      if (Assets.mushroomCapTop) {
+        var _mct = Assets.mushroomCapTop, _mcs = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(_mct, x, y - 16, 64, 32);
+        g.imageSmoothingEnabled = _mcs;
+      } else {
+        fill(g, x, y - 8, 64, 24, "#3080E8");
+      }
+    } else if (p.kind === "cloudLedge") {
+      if (Assets.cloudLedge) {
+        var _cl = Assets.cloudLedge, _cls = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(_cl, x - 8, y - 8, 48, 24);
+        g.imageSmoothingEnabled = _cls;
+      } else {
+        fill(g, x, y, 40, 16, "#F0F6FF");
+      }
     } else if (p.kind === "bed") {
       Assets.draw(g, "bed", x, y);
       /* 20260905cl: floating SLEEP so the bed is obvious */
@@ -24041,7 +24443,8 @@ function doCookNow() {
         k === "brokenBridge" || k === "rowboat" || k === "shopSign" ||
         k === "townHouseC" || k === "townHouseD" || k === "bird" || k === "giantBird" ||
         k === "ladder" || k === "caveStairs" || k === "caveMouth" || k === "doormat" ||
-        k === "bed" || k === "chair" || k === "stove" || k === "houseChest") return true;
+        k === "bed" || k === "chair" || k === "stove" || k === "houseChest" ||
+        k === "glowMushroomPlant" || k === "cloudWall") return true;
     if ((k === "copper" || k === "silver" || k === "goldore" || k === "iron" ||
          k === "mushroom" || k === "moonshard" || k === "gem" || k === "sapphire" ||
          k === "mooncrystal") && !p.deco) return true;
@@ -24580,7 +24983,7 @@ function doCookNow() {
     sortActors(list);
     for (i = 0; i < list.length; i++) {
       item = list[i];
-      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") {
+      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") {
         if (item.kind === "prop") drawGradedProp(g, item);
         else drawWashedActor(g, item);
       } else {
@@ -25809,7 +26212,7 @@ function doCookNow() {
       moss: { name: "MOSS", blurb: "CRAFT A TORCH WITH A BRANCH." },
       torch: { name: "TORCH", blurb: "LIGHT IT ON THE STOVE." },
       litTorch: { name: "LIT TORCH", blurb: "HOLD IT TO LIGHT THE DARK FOREST." },
-      blueGlowMushroom: { name: "GLOW MUSHROOM", blurb: "PLANT BY THE CABIN. GROWS TALL." },
+      blueGlowMushroom: { name: "GLOW MUSHROOM", blurb: "PLANT BY THE CABIN. GROWS BIGGER EACH DAY — CLIMB ON DAY 2." },
       wand: { name: "MAGIC WAND", blurb: "HOLD IT TO WEAR WIZARD ROBES." }
     };
     hit = map[key];
@@ -26620,7 +27023,7 @@ function doCookNow() {
     frameDayT = null;
     beginFrameGrade();
     updateCamera();
-    g.fillStyle = (currentScene === "darkForest") ? "#000000" : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "darkForest") ? "#000000" : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -26642,7 +27045,7 @@ function doCookNow() {
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -26653,7 +27056,7 @@ function doCookNow() {
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
           if (currentScene === "darkForest") { g.fillStyle = "#000000"; g.fillRect(dx, dy, TILE, TILE); }
           else if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") drawSkyTile(g, tx, ty, dx, dy);
           else if (currentScene === "ocean") { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
@@ -26743,6 +27146,29 @@ function doCookNow() {
             if (ch === "f") {
               g.fillStyle = "rgba(40,48,28,0.35)";
               g.fillRect(dx, dy, TILE, TILE);
+            }
+          } else if (currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge") {
+            if (ch === "f") {
+              var _mf = (currentScene === "mushroomCap") ? (Assets.mushroomCapFloor || Assets.mushroomStalkPath) : (Assets.mushroomStalkPath || Assets.mushroomCapFloor);
+              if (_mf) {
+                var _mfs = g.imageSmoothingEnabled;
+                g.imageSmoothingEnabled = false;
+                g.drawImage(_mf, dx, dy, 16, 16);
+                g.imageSmoothingEnabled = _mfs;
+              } else {
+                g.fillStyle = currentScene === "mushroomCap" ? "#3880E0" : "#C8C0A0";
+                g.fillRect(dx, dy, TILE, TILE);
+              }
+            } else {
+              drawSkyTile(g, tx, ty, dx, dy);
+              if (Assets.cloudWall && ((tx + ty) & 3) === 0) {
+                var _cw2 = g.imageSmoothingEnabled;
+                g.imageSmoothingEnabled = false;
+                g.globalAlpha = 0.55;
+                g.drawImage(Assets.cloudWall, dx - 8, dy - 8, 32, 32);
+                g.globalAlpha = 1;
+                g.imageSmoothingEnabled = _cw2;
+              }
             }
           } else if (ch === "y") {
             drawSkyTile(g, tx, ty, dx, dy);
@@ -27372,6 +27798,60 @@ function doCookNow() {
       }
       if (isDarkForestMouth(tx, ty)) {
         goEnterDarkForest();
+        return;
+      }
+      if (isGlowClimbSpot(tx, ty) || (propAt(tx, ty) && propAt(tx, ty).kind === "glowMushroomPlant" && (propAt(tx, ty).growDays | 0) >= 2)) {
+        if (player.tx === tx && player.ty === ty) { tryClimbGlowMushroom(); return; }
+        var _gpath = findPath(player.tx, player.ty, tx, ty);
+        if (_gpath && _gpath.length) {
+          pending = { type: "climbGlow" };
+          startWalk(player, _gpath, 3.5);
+        } else if (isNear(player.tx, player.ty, tx, ty)) tryClimbGlowMushroom();
+        return;
+      }
+    }
+    if (currentScene === "mushroomStalk") {
+      if (isMushroomStalkSouth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { exitMushroomStalkToYard(); return; }
+        var _ps = findPath(player.tx, player.ty, tx, ty);
+        if (_ps && _ps.length) { pending = { type: "mushStalkSouth" }; startWalk(player, _ps, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) exitMushroomStalkToYard();
+        return;
+      }
+      if (isMushroomStalkNorth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { enterMushroomCapFromStalk(); return; }
+        var _pn = findPath(player.tx, player.ty, tx, ty);
+        if (_pn && _pn.length) { pending = { type: "mushStalkNorth" }; startWalk(player, _pn, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) enterMushroomCapFromStalk();
+        return;
+      }
+    }
+    if (currentScene === "mushroomCap") {
+      if (isMushroomCapSouth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { exitMushroomCapToStalk(); return; }
+        var _pcs = findPath(player.tx, player.ty, tx, ty);
+        if (_pcs && _pcs.length) { pending = { type: "mushCapSouth" }; startWalk(player, _pcs, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) exitMushroomCapToStalk();
+        return;
+      }
+      if (isMushroomCapEast(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { enterCloudLedgeFromCap(); return; }
+        var _pce = findPath(player.tx, player.ty, tx, ty);
+        if (_pce && _pce.length) { pending = { type: "mushCapEast" }; startWalk(player, _pce, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) enterCloudLedgeFromCap();
+        return;
+      }
+    }
+    if (currentScene === "cloudLedge") {
+      if (isCloudLedgeWest(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { exitCloudLedgeToCap(); return; }
+        var _plw = findPath(player.tx, player.ty, tx, ty);
+        if (_plw && _plw.length) { pending = { type: "cloudLedgeWest" }; startWalk(player, _plw, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) exitCloudLedgeToCap();
+        return;
+      }
+      if (propAt(tx, ty) && propAt(tx, ty).kind === "note") {
+        showLineNote("CLOUD CITY IS AHEAD.");
         return;
       }
     }
@@ -28379,6 +28859,8 @@ if (currentScene === "ocean") goExitOcean();
       if (trySceneDoors()) return;
       /* 20260905fy: Space TREE enter/climb/exit (was enterTreetop bug + ladder no-op). */
       if (tryTreeDoors()) return;
+      /* 20260905jk: climb glowing mushroom / stalk / cap / cloud stub */
+      if (tryMushroomDoors()) return;
       if (tryCookHere()) return;
       if (trySmeltHere()) return;
       /* 20260905fs: Space craft at workbench + home-glow table talk (tap already worked). */
@@ -28972,7 +29454,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jj", BUILD);
+      ok("BUILD", BUILD === "20260905jk", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -31685,9 +32167,51 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       plantAt(cabinGarden[0].tx, cabinGarden[0].ty);
       var _ck = cabinGarden[0].tx + "," + cabinGarden[0].ty;
       ok("glowMushPlanted", !!(crops[_ck] && crops[_ck].crop === "blueGlow"), "plant");
+      /* 20260905jk: staged sizes / climb gate / scene enter */
+      dayNumber = (crops[_ck].plantDay | 0) + 1;
+      updateCrops();
+      ok("glowMushDay1", (crops[_ck].growDays | 0) === 1, "grow=" + (crops[_ck] && crops[_ck].growDays));
+      var _s1 = blueGlowSize(1);
+      ok("glowSizeDay1", _s1.w === 16 && _s1.h === 32, _s1.w + "x" + _s1.h);
+      ok("glowClimbGateDay1", !isGlowClimbSpot(cabinGarden[0].tx, cabinGarden[0].ty + 1) || (isGlowClimbSpot(cabinGarden[0].tx, cabinGarden[0].ty + 1).crop.growDays | 0) < 2, "day1");
+      dayNumber = (crops[_ck].plantDay | 0) + 2;
+      updateCrops();
+      ok("glowMushDay2", (crops[_ck].growDays | 0) === 2, "grow=" + (crops[_ck] && crops[_ck].growDays));
+      var _s2 = blueGlowSize(2);
+      ok("glowSizeDay2", _s2.w === 32 && _s2.h === 96, _s2.w + "x" + _s2.h);
+      ok("glowClimbGateDay2", !!isGlowClimbSpot(cabinGarden[0].tx, cabinGarden[0].ty + 1) || !!isGlowClimbSpot(cabinGarden[0].tx, cabinGarden[0].ty), "day2 climb");
       dayNumber = (crops[_ck].plantDay | 0) + 3;
       updateCrops();
       ok("glowMushGrew", !!(crops[_ck] && (crops[_ck].growDays | 0) >= 3), "grow=" + (crops[_ck] && crops[_ck].growDays));
+      var _s3 = blueGlowSize(3);
+      ok("glowSizeDay3", _s3.w === 40 && _s3.h === 220, _s3.w + "x" + _s3.h);
+      ok("glowArtAlwaysBlue", !!(Assets.blueGlowMushroom || Assets.blueGlowStage3), "art");
+      syncGlowMushroomProps();
+      ok("glowPropSynced", !!PROPS.some(function (p) { return p && p.kind === "glowMushroomPlant" && (p.growDays | 0) >= 3; }), "prop");
+      placePlayer(cabinGarden[0].tx, cabinGarden[0].ty + 1, "up");
+      if (!walkable(player.tx, player.ty)) placePlayer(cabinGarden[0].tx, cabinGarden[0].ty + 2, "up");
+      enterMushroomStalkFromYard();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("glowSceneStalk", currentScene === "mushroomStalk", currentScene);
+      ok("glowStalkWalk", walkable(mushroomStalkSouth.tx, mushroomStalkSouth.ty - 1) || walkable(mushroomStalkSouth.tx, mushroomStalkSouth.ty - 2), "path");
+      ok("glowStalkCloudSolid", !walkable(0, 10) && !walkable(MUSHROOM_STALK_COLS - 1, 10), "clouds");
+      enterMushroomCapFromStalk();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("glowSceneCap", currentScene === "mushroomCap", currentScene);
+      enterCloudLedgeFromCap();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("glowCloudStub", currentScene === "cloudLedge", currentScene);
+      exitCloudLedgeToCap();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      exitMushroomCapToStalk();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      exitMushroomStalkToYard();
+      if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+      ok("glowBackYard", currentScene === "highPeak", currentScene);
+      /* migrate save keeps blueGlow */
+      persistSave();
+      loadSave();
+      ok("glowMigrateCrop", !!(crops[_ck] && crops[_ck].crop === "blueGlow"), crops[_ck] && crops[_ck].crop);
       /* 20260905jg: highPeak pine chop must drop branch (lootKindOk was missing branch/moss) */
       ok("lootKindOkBranch", lootKindOk("branch") === "branch", String(lootKindOk("branch")));
       ok("lootKindOkMoss", lootKindOk("moss") === "moss", String(lootKindOk("moss")));

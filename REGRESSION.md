@@ -1,3 +1,6 @@
+## BUILD 20260905jk (Local 9/12) — blue glow mushroom climb stages
+Staged day1/2/3 sizes; day2+ climb gate; day3 → mushroomStalk → mushroomCap → cloudLedge stub (Cloud City later). Persist growDays migrate. Atlas 1477 keep.
+
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
 ## BUILD 20260905jj (Local 9/12) — darkForest torch offscreen cutout (green leak)
