@@ -1,5 +1,8 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905jg (Local 9/12) — High Peak branch drop
+lootKindOk allows branch+moss so highPeak pine chop spawnGroundLoot("branch") works; collect via stackKey. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905jf (Local 9/12) — cabin sleep restore + darkForest torch readable
 loadSave whitelist adds cabin/darkForest/wizardHouse; cabin bed restore → sleepWakeSpot; darkForestFloor + darkGiantTree restamped brighter; softer warm-amber torch overlay; artRev 05jf. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 
@@ -96,6 +99,7 @@ Status column: **KEEP** = still required in new builds.
 | Cabin bed sleeps+saves once bridge+bear; farm house bed no longer save point when cabin reachable; bridge/bear/wand west unchanged | 20260905iz | KEEP |
 | Dark forest north of cabin needs lit torch; blue glow mushroom pick → plant on cabin garden grows by day | 20260905iz | KEEP |
 | Torch craft branch+moss; light on stove; east choppable trees; wizard west of cabin | 20260905iz | KEEP |
+| High Peak tree chop drops **branch** ground loot (lootKindOk includes branch+moss; wood/pinecone unchanged); pickup stacks via INV_KEYS/stackKey | 20260905jg | KEEP |
 | Cabin doormat/inndoor tap → goExitCabin (not goExitHouse); walk-onto cabinOut auto-exits to highPeak cabinLand walkable | 20260905jb | KEEP |
 | Cabin interior lean: bed + stove + workbench + houseChest + doormat/inndoor only (no fireplace/windows/table/lantern/rug/crate/plant) | 20260905jb | KEEP |
 | Cabin / darkForest / wizardHouse **survive hard-refresh**: `loadSave` pendingRestore whitelist includes all three (not forced overworld); cabin unwalkable bed tile wakes at `sleepWakeSpot` | 20260905jf | KEEP |
