@@ -1,5 +1,8 @@
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+## BUILD 20260905jj (Local 9/12) — darkForest torch offscreen cutout (green leak)
+Darkness on reused VIEW_W×VIEW_H offscreen: opaque black + destination-out sphere; source-over blit to main. Never dest-out on main game ctx (was punching transparent holes → CSS #5FBF22 lime sphere). Lit torchIsLitHeld medium ~1/3; unlit tiny peek; no color wash. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905ji (Local 9/12) — darkForest torch cutout follows Orion
 Opaque black overlay + destination-out sphere at player screen pos (no screen/lighter/soft-light wash). Lit: medium ~1/3 view, 100%→5% punch. Unlit: tiny faint peek. 05jf floors/trees stay readable in the hole. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 
