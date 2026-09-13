@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jm";
+  var BUILD = "20260905jn";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -5746,15 +5746,18 @@
   function drawIlluminationOverlay(g) {
     var cx, cy, rad, grd;
     if (!illuminationActive()) return;
+    /* 20260905jn: darkForest folds BRIGHT LIGHT into offscreen cutout — never screen-wash white. */
+    if (isDarkForestScene()) return;
+    /* Outdoors: soft warm vignette at low alpha (source-over). No white screen wash anywhere. */
     cx = player.x - camX;
     cy = player.y - camY - (CAM_PLAYER_H / 2);
-    rad = Math.max(VIEW_W, VIEW_H) * 0.72;
+    rad = Math.max(VIEW_W, VIEW_H) * 0.55;
     g.save();
-    g.globalCompositeOperation = "screen";
-    grd = g.createRadialGradient(cx, cy, 8, cx, cy, rad);
-    grd.addColorStop(0, "rgba(255,255,230,0.72)");
-    grd.addColorStop(0.35, "rgba(255,245,200,0.38)");
-    grd.addColorStop(0.7, "rgba(255,230,160,0.14)");
+    g.globalCompositeOperation = "source-over";
+    g.globalAlpha = 1;
+    grd = g.createRadialGradient(cx, cy, 4, cx, cy, rad);
+    grd.addColorStop(0, "rgba(255,245,200,0.10)");
+    grd.addColorStop(0.45, "rgba(255,230,160,0.05)");
     grd.addColorStop(1, "rgba(255,220,140,0)");
     g.fillStyle = grd;
     g.beginPath();
@@ -16019,11 +16022,13 @@ function doCookNow() {
   }
 
   function drawDarkForestOverlay(g) {
-    var cx, cy, rad, grd, lit, unlitRad, og;
+    var cx, cy, rad, grd, lit, unlitRad, og, illum;
     if (!isDarkForestScene()) return;
+    illum = illuminationActive();
     lit = torchIsLitHeld();
     /* 20260905jj: paint black + dest-out hole on offscreen VIEW_W×VIEW_H, then source-over blit.
-       Never destination-out on main game ctx — that erased world pixels → CSS #5FBF22 lime sphere. */
+       Never destination-out on main game ctx — that erased world pixels → CSS #5FBF22 lime sphere.
+       20260905jn: wand BRIGHT LIGHT = large clear hole here (not screen wash). */
     og = ensureDarkForestOverlayBuf();
     og.setTransform(1, 0, 0, 1, 0, 0);
     og.globalCompositeOperation = "source-over";
@@ -16035,7 +16040,19 @@ function doCookNow() {
       cx = player.x - camX;
       cy = player.y - camY - (CAM_PLAYER_H / 2);
       og.globalCompositeOperation = "destination-out";
-      if (lit) {
+      if (illum) {
+        /* large radius ~0.6 of view; 100% punch center → ~5% punch at rim (brighter/larger than torch) */
+        rad = Math.max(VIEW_W, VIEW_H) * 0.6 + Math.sin((tick || 0) / 140) * 4;
+        grd = og.createRadialGradient(cx, cy, 0, cx, cy, rad);
+        grd.addColorStop(0, "rgba(0,0,0,1)");
+        grd.addColorStop(0.38, "rgba(0,0,0,0.70)");
+        grd.addColorStop(0.72, "rgba(0,0,0,0.18)");
+        grd.addColorStop(1, "rgba(0,0,0,0.05)");
+        og.fillStyle = grd;
+        og.beginPath();
+        og.arc(cx, cy, rad, 0, Math.PI * 2);
+        og.fill();
+      } else if (lit) {
         /* medium radius ~1/3 of view; 100% punch center → ~5% punch at rim */
         rad = Math.max(VIEW_W, VIEW_H) / 3 + Math.sin((tick || 0) / 140) * 4;
         grd = og.createRadialGradient(cx, cy, 0, cx, cy, rad);
@@ -30261,7 +30278,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jm", BUILD);
+      ok("BUILD", BUILD === "20260905jn", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -32918,15 +32935,19 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       })();
       applyScene("darkForest");
       ok("darkForestLitHeld", torchIsLitHeld(), "held");
-      /* 20260905jj: offscreen dest-out + source-over blit; no wash; unlit tiny; green leak fix */
+      /* 20260905jj: offscreen dest-out + source-over blit; no wash; unlit tiny; green leak fix
+         20260905jn: illuminationActive large cutout; drawIlluminationOverlay skips darkForest (no screen wash) */
       (function () {
         var ov = Function.prototype.toString.call(drawDarkForestOverlay);
         var ens = Function.prototype.toString.call(ensureDarkForestOverlayBuf);
+        var ill = Function.prototype.toString.call(drawIlluminationOverlay);
         ok("darkForestNoWash", ov.indexOf('"screen"') < 0 && ov.indexOf("soft-light") < 0 && ov.indexOf("lighter") < 0 && ov.indexOf("255,200") < 0 && ov.indexOf("255,150") < 0 && ov.indexOf("255,110") < 0, "wash");
         ok("darkForestFollowsPlayer", ov.indexOf("player.x") >= 0 && ov.indexOf("camX") >= 0 && ov.indexOf("player.y") >= 0 && ov.indexOf("camY") >= 0 && ov.indexOf("CAM_PLAYER_H") >= 0, "player");
         ok("darkForestUnlitTiny", ov.indexOf("unlitRad") >= 0 && ov.indexOf("22") >= 0 && ov.indexOf("destination-out") >= 0 && ov.indexOf("torchIsLitHeld") >= 0, "tiny");
         ok("darkForestLitMedium", ov.indexOf("/ 3") >= 0 && ov.indexOf("0.05") >= 0, "medium");
         ok("darkForestOffscreenCutout", typeof ensureDarkForestOverlayBuf === "function" && ens.indexOf("createElement") >= 0 && ens.indexOf("VIEW_W") >= 0 && ens.indexOf("VIEW_H") >= 0 && ov.indexOf("drawImage") >= 0 && ov.indexOf("darkForestOverlayBuf") >= 0 && ov.indexOf("ensureDarkForestOverlayBuf") >= 0 && ov.indexOf("destination-out") >= 0 && ov.indexOf('"source-over"') >= 0, "buf");
+        ok("darkForestIllumCutout", ov.indexOf("illuminationActive") >= 0 && ov.indexOf("0.6") >= 0, "illum hole");
+        ok("illumNoDarkForestScreen", ill.indexOf("isDarkForestScene") >= 0 && ill.indexOf("return") >= 0 && ill.indexOf('"screen"') < 0, "no screen");
       })();
       /* 20260905jd: night restyle smoke — black borders, giant tree draw, overlay wired */
       ok("darkForestBorderHash", cell(0, 0) === "#" && cell(DARK_FOREST_COLS - 1, DARK_FOREST_ROWS - 1) === "#", "border");
