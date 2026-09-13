@@ -1,3 +1,6 @@
+## BUILD 20260905jp (Local 9/12) — wizard robes face with walk
+While wand held, robes overlay uses left/right/up Imagine stamps (down keeps wizardRobes.png); never replace Orion base. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905jo (Local 9/12) — mushroom cap climb-down via stalk
 mushroomCapSouth on walkable south rim (ty 8, was 10 past gap); ladder/stairs → mushroomStalkHole (glowing stalk + DOWN); stalk scene ends same; cache rebuild if old ladder. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 

@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jo";
+  var BUILD = "20260905jp";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -539,7 +539,10 @@
           loadImage("assets/props/moss.png").then(function (im) { Assets.moss = im; }).catch(function () {}),
           loadImage("assets/actors/wizardNpc.png").then(function (im) { Assets.wizardNpc = im; }).catch(function () {}),
           loadImage("assets/ui/wand.png").then(function (im) { Assets.wand = im; }).catch(function () {}),
-          loadImage("assets/props/wizardRobes.png").then(function (im) { Assets.wizardRobes = im; }).catch(function () {})
+          loadImage("assets/props/wizardRobes.png").then(function (im) { Assets.wizardRobes = im; }).catch(function () {}),
+          loadImage("assets/props/wizardRobes-left.png").then(function (im) { Assets.wizardRobesLeft = im; }).catch(function () {}),
+          loadImage("assets/props/wizardRobes-right.png").then(function (im) { Assets.wizardRobesRight = im; }).catch(function () {}),
+          loadImage("assets/props/wizardRobes-up.png").then(function (im) { Assets.wizardRobesUp = im; }).catch(function () {})
         ]);
       });
     },
@@ -10824,7 +10827,30 @@
     return n;
   }
 
-  function selectedIs(key) {
+    /* 20260905jp: robes face with Orion (down/left/right/up) */
+  function wizardRobesImg() {
+    var face = player.face || "down";
+    if (face === "left" && Assets.wizardRobesLeft) return Assets.wizardRobesLeft;
+    if (face === "right" && Assets.wizardRobesRight) return Assets.wizardRobesRight;
+    if (face === "up" && Assets.wizardRobesUp) return Assets.wizardRobesUp;
+    return Assets.wizardRobes || null;
+  }
+  function drawWizardRobesOverlay(g, sx, sy, bob) {
+    var _rb = wizardRobesImg();
+    if (!_rb) {
+      fill(g, Math.round(player.x - 6 + sx), Math.round(player.y - 22 + bob + sy), 12, 18, "rgba(110,70,170,0.85)");
+      fill(g, Math.round(player.x - 7 + sx), Math.round(player.y - 28 + bob + sy), 14, 6, "rgba(90,50,140,0.9)");
+      return;
+    }
+    var _rs = g.imageSmoothingEnabled, _riw = _rb.naturalWidth || _rb.width || 32, _rih = _rb.naturalHeight || _rb.height || 64;
+    g.imageSmoothingEnabled = false;
+    g.globalAlpha = 0.92;
+    g.drawImage(_rb, 0, 0, _riw, _rih,
+      Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy), 16, 32);
+    g.globalAlpha = 1;
+    g.imageSmoothingEnabled = _rs;
+  }
+function selectedIs(key) {
     return selectedKey() === key;
   }
 
@@ -23880,20 +23906,9 @@ function doCookNow() {
     drawShadow(g, player.x, player.y, 5);
     if (!(iFrames > 0 && ((tick / 80) | 0) % 2 === 0)) {
       Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
-      /* 20260905iu: wizard robes overlay while wand held — never replaces Orion base art */
-      if (wandOwned && selectedIs("wand") && Assets.wizardRobes) {
-        var _rb = Assets.wizardRobes, _rs = g.imageSmoothingEnabled, _riw, _rih;
-        _riw = _rb.naturalWidth || _rb.width || 32;
-        _rih = _rb.naturalHeight || _rb.height || 64;
-        g.imageSmoothingEnabled = false;
-        g.globalAlpha = 0.92;
-        g.drawImage(_rb, 0, 0, _riw, _rih,
-          Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy), 16, 32);
-        g.globalAlpha = 1;
-        g.imageSmoothingEnabled = _rs;
-      } else if (wandOwned && selectedIs("wand")) {
-        fill(g, Math.round(player.x - 6 + sx), Math.round(player.y - 22 + bob + sy), 12, 18, "rgba(110,70,170,0.85)");
-        fill(g, Math.round(player.x - 7 + sx), Math.round(player.y - 28 + bob + sy), 14, 6, "rgba(90,50,140,0.9)");
+      /* 20260905iu/jp: wizard robes overlay while wand held — faces with Orion */
+      if (wandOwned && selectedIs("wand")) {
+        drawWizardRobesOverlay(g, sx, sy, bob);
       }
       if (redHatOn && redHatOwned) {
         /* 20260905jl: red hat overlay — never replaces Orion base body */
@@ -25351,14 +25366,8 @@ function doCookNow() {
     g.rect(Math.round(player.x - 10 + sx), top, 20, peekH);
     g.clip();
     Assets.draw(g, "player-" + player.face, player.x + sx, player.y + bob + sy, player.frame);
-    if (wandOwned && selectedIs("wand") && Assets.wizardRobes) {
-      var _crb = Assets.wizardRobes, _crs = g.imageSmoothingEnabled;
-      g.imageSmoothingEnabled = false;
-      g.globalAlpha = 0.92;
-      g.drawImage(_crb, 0, 0, _crb.naturalWidth || 32, _crb.naturalHeight || 64,
-        Math.round(player.x - 8 + sx), Math.round(player.y - 32 + bob + sy), 16, 32);
-      g.globalAlpha = 1;
-      g.imageSmoothingEnabled = _crs;
+    if (wandOwned && selectedIs("wand")) {
+      drawWizardRobesOverlay(g, sx, sy, bob);
     }
     if (redHatOn && redHatOwned) {
       if (Assets.redHat) {
