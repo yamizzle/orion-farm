@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jn";
+  var BUILD = "20260905jo";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -831,7 +831,7 @@
   var CLOUD_CITY_ROWS = 16;
   var mushroomStalkSouth = { tx: 6, ty: 26 };
   var mushroomStalkNorth = { tx: 6, ty: 2 };
-  var mushroomCapSouth = { tx: 6, ty: 10 };
+  var mushroomCapSouth = { tx: 6, ty: 8 }; /* 20260905jo: on walkable south rim (was 10, unreachable) */
   var mushroomCapEast = { tx: 12, ty: 5 };
   var cloudLedgeWest = { tx: 1, ty: 4 };
   var cloudLedgeEast = { tx: 8, ty: 4 };
@@ -3112,6 +3112,18 @@
       cached = null;
     }
     /* 20260905jm: bust cloudCity cache — Imagine shops/folk art */
+    /* 20260905jo: rebuild stalk/cap if climb still uses ladder stairs */
+    if ((name === "mushroomCap" || name === "mushroomStalk") && cached && cached.props) {
+      var _mh, _hasStalkHole = false, _hasOldLadder = false;
+      for (_mh = 0; _mh < cached.props.length; _mh++) {
+        if (cached.props[_mh] && cached.props[_mh].kind === "mushroomStalkHole") _hasStalkHole = true;
+        if (cached.props[_mh] && cached.props[_mh].kind === "ladder") _hasOldLadder = true;
+      }
+      if (!_hasStalkHole || _hasOldLadder) {
+        cached = null;
+        sceneCache[name] = null;
+      }
+    }
     if (name === "cloudCity" && cached && (cached.artRev || "") !== "05jm") {
       cached = null;
       sceneCache.cloudCity = null;
@@ -5230,8 +5242,9 @@
       list.push({ kind: "cloudWall", tx: mid - 2, ty: y });
       list.push({ kind: "cloudWall", tx: mid + 3, ty: y });
     }
-    list.push({ kind: "ladder", tx: mushroomStalkSouth.tx, ty: mushroomStalkSouth.ty, dir: "down" });
-    list.push({ kind: "ladder", tx: mushroomStalkNorth.tx, ty: mushroomStalkNorth.ty, dir: "up" });
+    /* 20260905jo: stalk ends, not ladder graphics */
+    list.push({ kind: "mushroomStalkHole", tx: mushroomStalkSouth.tx, ty: mushroomStalkSouth.ty, dir: "down" });
+    list.push({ kind: "mushroomStalkHole", tx: mushroomStalkNorth.tx, ty: mushroomStalkNorth.ty, dir: "up" });
     return list;
   }
   function buildMushroomCapGround() {
@@ -5245,14 +5258,17 @@
         else g[y][x] = "y";
       }
     }
+    /* 20260905jo: stalk hole + neighbor stay walkable on the rim */
     g[mushroomCapSouth.ty][mushroomCapSouth.tx] = "f";
+    if (mushroomCapSouth.tx + 1 < cols) g[mushroomCapSouth.ty][mushroomCapSouth.tx + 1] = "f";
     g[mushroomCapEast.ty][mushroomCapEast.tx] = "f";
     return g;
   }
   function buildMushroomCapProps() {
+    /* 20260905jo: climb-down is the stalk opening, not a ladder/stairs */
     return [
       { kind: "mushroomCapTop", tx: 3, ty: 4 },
-      { kind: "ladder", tx: mushroomCapSouth.tx, ty: mushroomCapSouth.ty, dir: "down" },
+      { kind: "mushroomStalkHole", tx: mushroomCapSouth.tx, ty: mushroomCapSouth.ty, dir: "down" },
       { kind: "caveMouth", tx: mushroomCapEast.tx, ty: mushroomCapEast.ty, cloudStub: true }
     ];
   }
@@ -5386,8 +5402,12 @@
     startDoorFade(function () {
       applyScene("mushroomCap");
       unlocked.mushroomCapEntered = true;
+      /* 20260905jo: land just north of stalk hole so you can walk onto it to climb down */
       placePlayer(mushroomCapSouth.tx, mushroomCapSouth.ty - 1, "up");
-      if (!walkable(player.tx, player.ty)) placePlayer(mushroomCapSouth.tx, mushroomCapSouth.ty - 2, "up");
+      if (!walkable(player.tx, player.ty) || (player.tx === mushroomCapSouth.tx && player.ty === mushroomCapSouth.ty)) {
+        placePlayer(mushroomCapSouth.tx, mushroomCapSouth.ty - 2, "up");
+      }
+      if (!walkable(player.tx, player.ty)) placePlayer(mushroomCapSouth.tx - 1, mushroomCapSouth.ty - 1, "up");
       showLineNote("TOP OF THE BLUE MUSHROOM!");
       persistSave();
     });
@@ -24279,6 +24299,7 @@ function doCookNow() {
     if (p.kind === "moonAltar") return p.ty * TILE + 28;
     if (p.kind === "hole") return p.ty * TILE + 2;
     if (p.kind === "ladder") return p.ty * TILE + 20;
+    if (p.kind === "mushroomStalkHole") return p.ty * TILE + 18;
     if (p.kind === "swordPedestal") return p.ty * TILE + 20;
     if (p.kind === "giantTree") return p.ty * TILE + 24;
     if (p.kind === "woodsDown") return p.ty * TILE + 4;
@@ -24894,6 +24915,21 @@ function doCookNow() {
       else if (!drawAtlas2x(g, lit ? "lantern" : "lanternOff", x, y)) {
         Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
       }
+    } else if (p.kind === "mushroomStalkHole") {
+      /* 20260905jo: glowing blue stalk opening (not stairs) */
+      var _stx = p.tx * TILE, _sty = p.ty * TILE;
+      if (Assets.mushroomStalkPath) {
+        var _msp = Assets.mushroomStalkPath, _mss = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(_msp, _stx, _sty, TILE, TILE);
+        g.imageSmoothingEnabled = _mss;
+      } else {
+        fill(g, _stx + 2, _sty + 2, TILE - 4, TILE - 4, "#2870C8");
+      }
+      fill(g, _stx + 4, _sty - 10, 8, 14, "#40A0F0");
+      fill(g, _stx + 4, _sty - 10, 8, 3, "#A0D8FF");
+      fill(g, _stx + 3, _sty + 4, 10, 8, "rgba(20,40,90,0.55)");
+      drawShaftLabel(g, p, p.dir === "up" ? "UP" : "DOWN");
     } else if (p.kind === "ladder") {
       /* 20260905bs: TREE climb uses denser bigger draw; mine/others keep atlas half-scale */
       if (currentScene === "tree") {
@@ -29107,7 +29143,7 @@ function doCookNow() {
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "sleepingBear" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "mushroomStalkHole" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "sleepingBear" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
