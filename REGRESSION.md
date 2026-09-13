@@ -1,3 +1,6 @@
+## BUILD 20260905jm (Local 9/12) — Imagine Cloud City art
+Stamp Imagine sources → live cloudFloor/Edge/Wall/Ledge/Shops + UI icons + 5 folk actor facings. Pink gate PASS. artRev `05jm`. Atlas 1477 keep. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905jl (Local 9/12) — Cloud City
 Cap/ledge east → cloudCity (30×16); west→cap. Food/Potion/Hat/Weapons/Wizard shops; 5 folk; wand spells (Space cast, Q cycle); potion maxHpBonus cap +5; red hat overlay. Atlas 1477 keep. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 

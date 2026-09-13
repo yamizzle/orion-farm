@@ -115,8 +115,8 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jl";
-  var ASSET_REV = "464567-jk";
+  var BUILD = "20260905jm";
+  var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
   var PIXEL_FONT_READY = false;
@@ -477,7 +477,7 @@
           loadImage("assets/props/mushroomStalkPath.png").then(function (im) { Assets.mushroomStalkPath = im; }).catch(function () {}),
           loadImage("assets/props/mushroomCapFloor.png").then(function (im) { Assets.mushroomCapFloor = im; }).catch(function () {}),
           loadImage("assets/props/cloudLedge.png").then(function (im) { Assets.cloudLedge = im; }).catch(function () {}),
-          /* 20260905jl: Cloud City BOX dense 2× (pink gate PASS) */
+          /* 20260905jm: Cloud City Imagine AREA dense 2× (pink gate PASS) */
           loadImage("assets/props/cloudFloor.png").then(function (im) { Assets.cloudFloor = im; }).catch(function () {}),
           loadImage("assets/props/cloudEdge.png").then(function (im) { Assets.cloudEdge = im; }).catch(function () {}),
           loadImage("assets/props/cloudShopFood.png").then(function (im) { Assets.cloudShopFood = im; }).catch(function () {}),
@@ -491,6 +491,47 @@
           loadImage("assets/ui/skyJam.png").then(function (im) { Assets.skyJam = im; }).catch(function () {}),
           loadImage("assets/ui/fluffySoup.png").then(function (im) { Assets.fluffySoup = im; }).catch(function () {}),
           loadImage("assets/ui/starCookie.png").then(function (im) { Assets.starCookie = im; }).catch(function () {}),
+          /* 20260905jm: dedicated cloud folk facings (32×48, atlas 1477 keep) */
+          loadImage("assets/actors/nimbus-down-0.png").then(function (im) { Assets["nimbus-down-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/nimbus-down-1.png").then(function (im) { Assets["nimbus-down-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/nimbus-left-0.png").then(function (im) { Assets["nimbus-left-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/nimbus-left-1.png").then(function (im) { Assets["nimbus-left-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/nimbus-right-0.png").then(function (im) { Assets["nimbus-right-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/nimbus-right-1.png").then(function (im) { Assets["nimbus-right-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/nimbus-up-0.png").then(function (im) { Assets["nimbus-up-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/nimbus-up-1.png").then(function (im) { Assets["nimbus-up-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cirrus-down-0.png").then(function (im) { Assets["cirrus-down-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cirrus-down-1.png").then(function (im) { Assets["cirrus-down-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cirrus-left-0.png").then(function (im) { Assets["cirrus-left-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cirrus-left-1.png").then(function (im) { Assets["cirrus-left-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cirrus-right-0.png").then(function (im) { Assets["cirrus-right-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cirrus-right-1.png").then(function (im) { Assets["cirrus-right-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cirrus-up-0.png").then(function (im) { Assets["cirrus-up-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cirrus-up-1.png").then(function (im) { Assets["cirrus-up-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cumulus-down-0.png").then(function (im) { Assets["cumulus-down-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cumulus-down-1.png").then(function (im) { Assets["cumulus-down-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cumulus-left-0.png").then(function (im) { Assets["cumulus-left-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cumulus-left-1.png").then(function (im) { Assets["cumulus-left-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cumulus-right-0.png").then(function (im) { Assets["cumulus-right-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cumulus-right-1.png").then(function (im) { Assets["cumulus-right-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cumulus-up-0.png").then(function (im) { Assets["cumulus-up-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/cumulus-up-1.png").then(function (im) { Assets["cumulus-up-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/dew-down-0.png").then(function (im) { Assets["dew-down-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/dew-down-1.png").then(function (im) { Assets["dew-down-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/dew-left-0.png").then(function (im) { Assets["dew-left-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/dew-left-1.png").then(function (im) { Assets["dew-left-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/dew-right-0.png").then(function (im) { Assets["dew-right-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/dew-right-1.png").then(function (im) { Assets["dew-right-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/dew-up-0.png").then(function (im) { Assets["dew-up-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/dew-up-1.png").then(function (im) { Assets["dew-up-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/breeze-down-0.png").then(function (im) { Assets["breeze-down-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/breeze-down-1.png").then(function (im) { Assets["breeze-down-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/breeze-left-0.png").then(function (im) { Assets["breeze-left-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/breeze-left-1.png").then(function (im) { Assets["breeze-left-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/breeze-right-0.png").then(function (im) { Assets["breeze-right-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/breeze-right-1.png").then(function (im) { Assets["breeze-right-1"] = im; }).catch(function () {}),
+          loadImage("assets/actors/breeze-up-0.png").then(function (im) { Assets["breeze-up-0"] = im; }).catch(function () {}),
+          loadImage("assets/actors/breeze-up-1.png").then(function (im) { Assets["breeze-up-1"] = im; }).catch(function () {}),
           loadImage("assets/props/darkGiantTree.png").then(function (im) { Assets.darkGiantTree = im; }).catch(function () {}),
           loadImage("assets/props/torch.png").then(function (im) { Assets.torch = im; }).catch(function () {}),
           loadImage("assets/props/torchUnlit.png").then(function (im) { Assets.torchUnlit = im; }).catch(function () {}),
@@ -1549,25 +1590,25 @@
       ["IT STOPS IF YOU", "STAND IN THE ROAD."]
     ])
   ];
-  /* 20260905jl: Cloud City townsfolk (walk/idle + short talk) */
+  /* 20260905jm: Cloud City townsfolk — dedicated Imagine sprites */
   var cloudFolk = [
-    makeFolk("nimbus", "NIMBUS", "npc", 8, 7, 6, 5, 12, 10, [
+    makeFolk("nimbus", "NIMBUS", "nimbus", 8, 7, 6, 5, 12, 10, [
       ["CLOUDS ARE SOFT!", "WATCH YOUR STEP."],
       ["I MOP THE FLUFF.", "WANT A PUFF BUN?"]
     ]),
-    makeFolk("cirrus", "CIRRUS", "lila", 14, 6, 12, 4, 18, 9, [
+    makeFolk("cirrus", "CIRRUS", "cirrus", 14, 6, 12, 4, 18, 9, [
       ["THE WIND SINGS.", "LISTEN CLOSE."],
       ["RED HATS LOOK", "BRAVE UP HERE!"]
     ]),
-    makeFolk("cumulus", "CUMULUS", "reed", 20, 9, 18, 7, 24, 12, [
+    makeFolk("cumulus", "CUMULUS", "cumulus", 20, 9, 18, 7, 24, 12, [
       ["SHOP FOR SNACKS!", "GOLD WORKS HERE."],
       ["POTIONS GROW", "YOUR HEARTS."]
     ]),
-    makeFolk("dew", "DEW", "nim", 10, 11, 8, 9, 14, 13, [
+    makeFolk("dew", "DEW", "dew", 10, 11, 8, 9, 14, 13, [
       ["MORNING DEW", "TASTES SWEET."],
       ["SAY HI TO THE", "WIZARD SHOP!"]
     ]),
-    makeFolk("breeze", "BREEZE", "npc", 22, 5, 20, 3, 26, 8, [
+    makeFolk("breeze", "BREEZE", "breeze", 22, 5, 20, 3, 26, 8, [
       ["I RACE THE GUSTS.", "CATCH ME IF YOU CAN!"],
       ["SWORDS GET SHARP", "AT THE ARMORY."]
     ])
@@ -2761,6 +2802,7 @@
     if (currentScene === "peak") rec.artRev = "05ib";
     if (currentScene === "cabin") rec.artRev = "05jb";
     if (currentScene === "darkForest") rec.artRev = "05jf";
+    if (currentScene === "cloudCity") rec.artRev = "05jm";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
 
@@ -3068,6 +3110,11 @@
     /* 20260905jb: bust cabin cache so lean props replace trophy extras */
     if (name === "cabin" && cached && (cached.artRev || "") !== "05jb") {
       cached = null;
+    }
+    /* 20260905jm: bust cloudCity cache — Imagine shops/folk art */
+    if (name === "cloudCity" && cached && (cached.artRev || "") !== "05jm") {
+      cached = null;
+      sceneCache.cloudCity = null;
     }
     fresh = !cached;
     if (cached) {
@@ -24099,11 +24146,28 @@ function doCookNow() {
     var face = f.face || "down";
     var sid = f.sprite + "-" + face;
     var bob = 0;
-    if (!Assets.spr[sid]) sid = f.sprite + "-down";
+    var fr, img, key, smooth, dw, dh;
     /* 20260905co: idle breath when standing still */
     if (!(f.path && f.path.length)) bob = Math.round(Math.sin(tick / 400 + (f.tx || 0)) * 1);
     if (f.frame) bob -= 1;
     drawShadow(g, f.x, f.y, 5);
+    /* 20260905jm: dedicated cloud folk (32×48 → 16×24 logical, mirror lila/nim foot) */
+    fr = f.frame || 0;
+    key = f.sprite + "-" + face + "-" + fr;
+    img = Assets[key] || Assets[f.sprite + "-" + face + "-0"] || Assets[f.sprite + "-down-0"];
+    if (img) {
+      dw = 16; dh = 24;
+      smooth = g.imageSmoothingEnabled;
+      g.imageSmoothingEnabled = false;
+      g.drawImage(
+        img, 0, 0, img.naturalWidth || img.width || 32, img.naturalHeight || img.height || 48,
+        Math.round(f.x - dw / 2), Math.round(f.y - dh + bob), dw, dh
+      );
+      g.imageSmoothingEnabled = smooth;
+      if (f && talkCueNear(f.tx, f.ty)) drawTalkCue(g, f.x, f.y + bob);
+      return;
+    }
+    if (!Assets.spr[sid]) sid = f.sprite + "-down";
     Assets.draw(g, sid, f.x, f.y + bob, f.frame || 0);
     if (f && talkCueNear(f.tx, f.ty)) drawTalkCue(g, f.x, f.y + bob);
   }
@@ -30197,7 +30261,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jl", BUILD);
+      ok("BUILD", BUILD === "20260905jm", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
