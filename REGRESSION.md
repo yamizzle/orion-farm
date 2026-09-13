@@ -1,3 +1,6 @@
+## BUILD 20260905jo (Local 9/12) — mushroom cap climb-down via stalk
+mushroomCapSouth on walkable south rim (ty 8, was 10 past gap); ladder/stairs → mushroomStalkHole (glowing stalk + DOWN); stalk scene ends same; cache rebuild if old ladder. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905jn (Local 9/12) — darkForest wand BRIGHT LIGHT cutout (no white wash)
 Illumination in darkForest is a large offscreen dest-out hole (~0.6 view, 100%→5% rim) via drawDarkForestOverlay — never screen white wash. drawIlluminationOverlay early-returns in darkForest; outdoors soft warm source-over only. Torch medium + unlit peek kept. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 
