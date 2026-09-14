@@ -1,3 +1,5 @@
+LIVE 9/14 ~3:44–4:17pm PT (BUILD 20260905jq, box Chrome; single tab): Peak → Caveclimb F2 → Stairs → Mine 6 (farm still UNTESTED). Clock **WORSE-again** vs am WORSE / 9/12 pm FIXED — Day 593 SPR AM → Day 595 SPR PM across ~26 min wall (`01-hud-start` 22:44Z → `02-hud-mid` 23:10Z), then Day 596 SPR EVE by end (~7 min more; `03-hud-end` 23:17Z). Weapon dock / bag dock **STILL PASS**; tray dense / pines 2× / no pink icon plates **STILL PASS**. Mine reach **PASS** (hostile bats + UP ladder). Peak ground showed thin magenta world streaks (not icon plates — flag for graphics). Boat / Cloud City / mushroom / cabin / Junie / well / kickball / planting UNTESTED. START OVER not pressed. Screenshots `/workspace/playtest-0914pm/`. Never START OVER.
+
 LIVE 9/14 ~10:23–10:52am PT (BUILD 20260905jq, box Chrome; single tab): first live of 05jq (Pages now on jq — Cloud City art / mushroom climb-down / starCookie / wand light ships). Spawned STAIRS 2 → PEAK (late household save); farm Junie/well/kickball/planting UNTESTED. Clock **WORSE** vs 9/12 pm 05ji FIXED/OK — Day 556 SPR PM → Day 557 SPR AM (~26 min wall OK-ish), then Day 557 AM → Day 557 PM within ~76s (shots `02-peak-day557-am` 17:49Z → `03-build-and-hud` 17:50Z). End still Day 557 PM (~29 min wall; +1 day total — not a multi-day jump race). Weapon dock / bag dock **STILL PASS**; tray dense / peak pines 2× / no pink **STILL PASS**. Mine/boat/Cloud City UNTESTED (could not reach farm). START OVER not pressed. Screenshots `/workspace/playtest-0914am/`. Never START OVER.
 
 Local 9/13 (BUILD 20260905jq): graphics-style audit — Cloud City tray starCookie stamped with wooden plate (bare-item drift vs Imagine prompt + canon). Regened Imagine + magenta chroma + BOX 32×32 bare golden star cookie; pink gate PASS. Shops/folk/floors 2× density OK; frozen grass0–3 MD5 unchanged. Atlas 1477 keep. Never START OVER. Kid-plain: the star cookie is just the cookie now — hard-refresh.
@@ -1503,3 +1505,4 @@ Chest now opens on tap 8/25 8am live (full house-style UI; Space-on-tile also wo
 3. One playable change.
 4. Hard-refresh the live URL and play it.
 5. Mark the row `Done` (and the date) only after that playtest.
+
