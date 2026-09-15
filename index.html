@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jq";
+  var BUILD = "20260905jr";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -28301,21 +28301,28 @@ function doCookNow() {
     var worldHud = { x: p.x + camX, y: p.y + camY };
     var hudTx = Math.floor(worldHud.x / TILE);
     var hudTy = Math.floor(worldHud.y / TILE);
+    var onBagChrome, onDockChrome, onTrayChrome, onBuildChrome, br;
     /* Sword pad MUST win over OUT / stairs / holes under the button (31t: pad-over-OUT; 31r: MINE 6 UP/PEAK). */
     if (hitSwordBtn(p)) {
       tryStrikeAction();
       return true;
     }
-    /* Prefer MINE 1 OUT over hotbar when the finger is on the ladder/OUT label (not on round sword pad). */
-    if (currentScene === "mine" && mineFloor === 1 && (isMineExit(hudTx, hudTy) || mineExitHit(hudTx, hudTy, worldHud))) {
-      return false;
+    /* 20260905jr: BAG / dock / tray / BUILD chrome MUST win before hudWorldDoor.
+       Peak cave/mouth/climb (and other doors) under the bottom-right BAG chrome used to
+       make tapHud return false before toggleBag — LIVE 9/15 bag dock WORSE. */
+    onBagChrome = hitPad(p.x, p.y, T.bagX, T.bagY, T.bagW, T.bagH, 4);
+    onDockChrome = hitPad(p.x, p.y, T.dockX, T.dockY, T.dockW, T.dockH, 2);
+    onTrayChrome = (p.y >= T.by && p.y <= T.by + T.slot && p.x >= T.bx && p.x <= T.bx + T.barW);
+    onBuildChrome = false;
+    if (showFenceBuildBtn()) {
+      br = fenceBuildBtnRect();
+      onBuildChrome = inHud(p, br.x, br.y, br.w, br.h, 0);
     }
-    if (hudWorldDoor(hudTx, hudTy, worldHud)) return false;
-    if (hitPad(p.x, p.y, T.bagX, T.bagY, T.bagW, T.bagH, 4)) {
+    if (onBagChrome) {
       toggleBag();
       return true;
     }
-    if (hitPad(p.x, p.y, T.dockX, T.dockY, T.dockW, T.dockH, 2)) {
+    if (onDockChrome) {
       if (bagOpen) {
         tapPocket("dock", 0);
         return true;
@@ -28323,15 +28330,12 @@ function doCookNow() {
       selectHotbarIndex(SLOT_WEAPON_DOCK);
       return true;
     }
-    if (showFenceBuildBtn()) {
-      var br = fenceBuildBtnRect();
-      if (inHud(p, br.x, br.y, br.w, br.h, 0)) {
-        toggleFenceBuild();
-        playSfx("ui");
-        return true;
-      }
+    if (onBuildChrome) {
+      toggleFenceBuild();
+      playSfx("ui");
+      return true;
     }
-    if (p.y >= T.by && p.y <= T.by + T.slot && p.x >= T.bx && p.x <= T.bx + T.barW) {
+    if (onTrayChrome) {
       idx = ((p.x - T.bx) / (T.slot + T.gap)) | 0;
       if (idx >= 0 && idx < TRAY_CELLS) {
         if (bagOpen) {
@@ -28367,6 +28371,11 @@ function doCookNow() {
       }
       return true;
     }
+    /* Prefer MINE 1 OUT over empty hotbar gutter when finger is on ladder/OUT (not bag/dock/tray). */
+    if (currentScene === "mine" && mineFloor === 1 && (isMineExit(hudTx, hudTy) || mineExitHit(hudTx, hudTy, worldHud))) {
+      return false;
+    }
+    if (hudWorldDoor(hudTx, hudTy, worldHud)) return false;
     /* 20260905cg: hearts/energy + DAY panels are display-only — do not swallow world taps. */
     if (inHud(p, 4, 3, 16, 16, 3)) {
       playSfx("ui");
@@ -33448,6 +33457,26 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("saveSceneBoatDockField", !!(cachedOcean && cachedOcean.boatDock && cachedOcean.boatDock.tx === 32 && cachedOcean.boatDock.ty === 50), cachedOcean && cachedOcean.boatDock && (cachedOcean.boatDock.tx + "," + cachedOcean.boatDock.ty));
       ok("saveSceneBoatVisible", !!(cachedBoat && !cachedBoat.hidden && !cachedBoat.aboard && cachedBoat.tx === 32 && cachedBoat.ty === 50), cachedBoat && (cachedBoat.tx + "," + cachedBoat.ty + " h=" + cachedBoat.hidden));
       onBoat = false;
+
+      /* 20260905jr: BAG chrome wins over Peak world-door under the button */
+      (function () {
+        var T, bagPt, before, after, doorUnder;
+        applyScene("peak");
+        placePlayer(20, 10, "down");
+        updateCamera();
+        T = trayLayout();
+        bagPt = { x: T.bagX + (T.bagW / 2) | 0, y: T.bagY + (T.bagH / 2) | 0 };
+        doorUnder = hudWorldDoor(
+          Math.floor((bagPt.x + camX) / TILE),
+          Math.floor((bagPt.y + camY) / TILE),
+          { x: bagPt.x + camX, y: bagPt.y + camY }
+        );
+        if (bagOpen) closeBag();
+        before = bagOpen;
+        after = tapHud(bagPt);
+        ok("bagChromeBeatsPeakDoor", after === true && bagOpen === true, "doorUnder=" + doorUnder + " before=" + before + " afterTap=" + after + " bagOpen=" + bagOpen);
+        if (bagOpen) closeBag();
+      })();
     } catch (e) {
       fail++;
       log.push("FAIL exception — " + (e && e.message ? e.message : e));
