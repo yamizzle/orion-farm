@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jr";
+  var BUILD = "20260905js";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -12584,6 +12584,8 @@ function selectedIs(key) {
       ensureSelectedSlot();
     } catch (err) {}
     loadingSave = false;
+    /* 20260905js: dig-hole migrate after builds[] + loadingSave clear (persist OK). */
+    migrateRepairCraftTools();
     /* 20260905cb: after load unlocks persist — mid-night three lights start Moondrop */
     maybeThreeLightsReady();
   }
@@ -14351,7 +14353,65 @@ function doCookNow() {
     parkRecInBag({ key: key, count: 1 });
   }
 
+  /* 20260905js: pocket ghosts still count as owned (same idea as forceSwordIntoTray
+     sword recover) — bag wipe / alias bugs must not leave shovelOwned false forever. */
+  function recoverCraftToolOwnedFromPockets() {
+    var i, c;
+    function note(key) {
+      if (!key) return;
+      if (key === "shovel") shovelOwned = true;
+      else if (key === "axe") axeOwned = true;
+      else if (key === "pick") pickaxeOwned = true;
+      else if (key === "diamondPick") diamondPickOwned = true;
+      else if (key === "pole") poleOwned = true;
+      else if (key === "hat") hatOwned = true;
+      else if (key === "redHat") redHatOwned = true;
+      else if (key === "bow") bowOwned = true;
+      else if (key === "sword") swordOwned = true;
+      else if (key === "wand") wandOwned = true;
+      else if (key === "leash") inventory.leash = 1;
+    }
+    for (i = 0; i < TRAY_CELLS; i++) {
+      c = trayCells[i];
+      if (c && c.key) note(c.key);
+    }
+    for (i = 0; i < BAG_CELLS; i++) {
+      c = bagCells[i];
+      if (c && c.key) note(c.key);
+    }
+    if (bagHeld && bagHeld.key) note(bagHeld.key);
+    if (weaponDock && weaponDock.key) note(weaponDock.key);
+  }
+
+  /* Dig holes / shovel tip prove the shovel was crafted earlier. */
+  function digEvidenceOwnedShovel() {
+    var i, b;
+    if (unlocked && unlocked.shovelDigTip) return true;
+    for (i = 0; i < builds.length; i++) {
+      b = builds[i];
+      if (!b) continue;
+      if (b.kind === "farmHole" || b.kind === "woodsHole" || b.kind === "hole") return true;
+    }
+    return false;
+  }
+
+  /* 20260905js: one-time load repair — restore shovelOwned from dig evidence, then
+     re-pin owned tools into tray/bag. Never grants shovel on early-kit (no dig proof). */
+  function migrateRepairCraftTools() {
+    var before = !!shovelOwned;
+    var repaired = false;
+    recoverCraftToolOwnedFromPockets();
+    if (!shovelOwned && digEvidenceOwnedShovel()) {
+      shovelOwned = true;
+      repaired = !before;
+    }
+    ensureOwnedTools();
+    if (repaired && !loadingSave) persistSave();
+    return repaired;
+  }
+
   function ensureOwnedTools() {
+    recoverCraftToolOwnedFromPockets();
     if ((inventory.leash | 0) >= 1) placeToolInTrayFirst("leash");
     if (hatOwned) placeToolInTrayFirst("hat");
     if (redHatOwned) placeToolInTrayFirst("redHat");
@@ -27213,6 +27273,8 @@ function doCookNow() {
 
   function openBag() {
     ensureCaveSword(true);
+    /* 20260905js: re-pin owned tools (shovel/axe/pick) if a mid-session wipe dropped them. */
+    ensureOwnedTools();
     forceSwordIntoTray();
     ensureOnePole();
     showOwnedGoodsInBag();
@@ -30332,7 +30394,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jn", BUILD);
+      ok("BUILD", BUILD === "20260905js", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -33457,6 +33519,64 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("saveSceneBoatDockField", !!(cachedOcean && cachedOcean.boatDock && cachedOcean.boatDock.tx === 32 && cachedOcean.boatDock.ty === 50), cachedOcean && cachedOcean.boatDock && (cachedOcean.boatDock.tx + "," + cachedOcean.boatDock.ty));
       ok("saveSceneBoatVisible", !!(cachedBoat && !cachedBoat.hidden && !cachedBoat.aboard && cachedBoat.tx === 32 && cachedBoat.ty === 50), cachedBoat && (cachedBoat.tx + "," + cachedBoat.ty + " h=" + cachedBoat.hidden));
       onBoat = false;
+
+      /* 20260905js: owned shovel stays findable with sword docked (Mine 6 smoke). */
+      (function () {
+        var ti, shovelTray, shovelBag, dockOk;
+        emptyTray();
+        emptyBag();
+        swordOwned = true;
+        shovelOwned = true;
+        axeOwned = true;
+        pickaxeOwned = true;
+        weaponDock = { key: "sword", count: 1 };
+        selectedSlot = SLOT_WEAPON_DOCK;
+        /* Simulate lost pocket copies while ownership flags remain. */
+        for (ti = 0; ti < TRAY_CELLS; ti++) trayCells[ti] = null;
+        for (ti = 0; ti < BAG_CELLS; ti++) bagCells[ti] = null;
+        trayCells[0] = { key: "seed", count: 1 };
+        trayCells[1] = { key: "wood", count: 3 };
+        trayCells[2] = { key: "mushroom", count: 1 };
+        ensureOwnedTools();
+        shovelTray = trayHasKey("shovel") >= 0;
+        shovelBag = false;
+        for (ti = 0; ti < BAG_CELLS; ti++) {
+          if (bagCells[ti] && bagCells[ti].key === "shovel") shovelBag = true;
+        }
+        dockOk = !!(weaponDock && weaponDock.key === "sword");
+        ok("ownedShovelRestored", bagCount("shovel") >= 1 && (shovelTray || shovelBag),
+          "n=" + bagCount("shovel") + " tray=" + shovelTray + " bag=" + shovelBag);
+        ok("ownedShovelSwordDockKept", dockOk, weaponDock && weaponDock.key);
+        ok("ownedAxeRestored", bagCount("axe") >= 1, "axe=" + bagCount("axe"));
+        ok("ownedPickRestored", bagCount("pick") >= 1, "pick=" + bagCount("pick"));
+        /* Tray cycle / select reaches shovel when it landed in tray. */
+        if (shovelTray) {
+          ok("ownedShovelSelectable", !!selectTool("shovel") && selectedIs("shovel"), "sel=" + selectedKey());
+        } else {
+          placeToolInTrayFirst("shovel");
+          ok("ownedShovelSelectable", !!selectTool("shovel") && selectedIs("shovel"), "sel=" + selectedKey());
+        }
+        /* Dig-evidence migrate restores shovelOwned when flag was wiped. */
+        emptyTray();
+        emptyBag();
+        shovelOwned = false;
+        builds = [{ kind: "farmHole", tx: 10, ty: 10 }];
+        unlocked.shovelDigTip = false;
+        weaponDock = { key: "sword", count: 1 };
+        migrateRepairCraftTools();
+        ok("migrateShovelFromDigHole", !!shovelOwned && bagCount("shovel") >= 1,
+          "owned=" + shovelOwned + " n=" + bagCount("shovel"));
+        /* Early-kit: no dig evidence → do NOT invent a shovel grant. */
+        emptyTray();
+        emptyBag();
+        shovelOwned = false;
+        builds = [];
+        unlocked.shovelDigTip = false;
+        migrateRepairCraftTools();
+        ok("migrateNoEarlyKitShovel", !shovelOwned && bagCount("shovel") < 1,
+          "owned=" + shovelOwned + " n=" + bagCount("shovel"));
+        builds = [];
+      })();
 
       /* 20260905jr: BAG chrome wins over Peak world-door under the button */
       (function () {
