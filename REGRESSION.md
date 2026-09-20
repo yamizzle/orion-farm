@@ -18,6 +18,9 @@ Staged day1/2/3 sizes; day2+ climb gate; day3 → mushroomStalk → mushroomCap 
 
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
+Local 9/20 (BUILD 20260905jt): KEEP — moss craft icon dense 32×32 (finish 05ja); bag/world NN blit matches branch/torch. Pink gate PASS. Never START OVER.
+
+
 ## BUILD 20260905jj (Local 9/12) — darkForest torch offscreen cutout (green leak)
 Darkness on reused VIEW_W×VIEW_H offscreen: opaque black + destination-out sphere; source-over blit to main. Never dest-out on main game ctx (was punching transparent holes → CSS #5FBF22 lime sphere). Lit torchIsLitHeld medium ~1/3; unlit tiny peek; no color wash. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 

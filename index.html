@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905js";
+  var BUILD = "20260905jt";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -24766,10 +24766,11 @@ function doCookNow() {
       fill(g, x + 1, y - 3, 14, 10, "#80C8FF");
       g.restore();
     } else if (p.kind === "mossClump") {
+      /* 20260905jt: 32×32 source → 16×16 logical NN blit (match branch/torch) */
       if (Assets.moss) {
         var _mo = Assets.moss, _mos = g.imageSmoothingEnabled;
         g.imageSmoothingEnabled = false;
-        g.drawImage(_mo, x, y, 16, 16);
+        g.drawImage(_mo, 0, 0, _mo.naturalWidth || 32, _mo.naturalHeight || 32, x, y, 16, 16);
         g.imageSmoothingEnabled = _mos;
       } else {
         fill(g, x + 2, y + 6, 12, 8, "#3A7A28");
@@ -27150,10 +27151,11 @@ function doCookNow() {
       } else paintBagKeyFallback(g, x, y, "#8B5A28", "#C47A38");
     }
     else if (key === "moss") {
+      /* 20260905jt: dense 32→16 bag icon (finish 05ja; was 16×16 thin) */
       if (Assets.moss) {
         var _mss = g.imageSmoothingEnabled;
         g.imageSmoothingEnabled = false;
-        g.drawImage(Assets.moss, 0, 0, Assets.moss.naturalWidth || 16, Assets.moss.naturalHeight || 16, x, y, 16, 16);
+        g.drawImage(Assets.moss, 0, 0, Assets.moss.naturalWidth || 32, Assets.moss.naturalHeight || 32, x, y, 16, 16);
         g.imageSmoothingEnabled = _mss;
       } else paintBagKeyFallback(g, x, y, "#3A7A28", "#8FD42A");
     }
@@ -30394,7 +30396,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905js", BUILD);
+      ok("BUILD", BUILD === "20260905jt", BUILD);
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
@@ -33195,6 +33197,9 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("lootKindOkBranch", lootKindOk("branch") === "branch", String(lootKindOk("branch")));
       ok("lootKindOkMoss", lootKindOk("moss") === "moss", String(lootKindOk("moss")));
       ok("stackKeyBranch", stackKey("branch") === "branch" && stackKey("moss") === "moss", stackKey("branch") + "/" + stackKey("moss"));
+      /* 20260905jt: finish 05ja — moss craft icon dense like branch/torch */
+      ok("mossCraftIconDense", !!(Assets.moss && (Assets.moss.naturalWidth || Assets.moss.width) >= 32), "w=" + (Assets.moss && (Assets.moss.naturalWidth || Assets.moss.width)));
+      ok("branchCraftIconDense", !!(Assets.branch && (Assets.branch.naturalWidth || Assets.branch.width) >= 32), "w=" + (Assets.branch && (Assets.branch.naturalWidth || Assets.branch.width)));
       (function () {
         var pine = null, i, before, hasBranchLoot, pile;
         found.bearFed = true; found.pathClear = true; found.logBridge = true;
