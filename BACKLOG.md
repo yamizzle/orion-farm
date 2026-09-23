@@ -492,9 +492,12 @@ Local 9/4 (BUILD 20260904f): ocean pier/beach fishing has a 1-in-50 Golden Sword
 
 After Cloud City spells: one spell turns the hero into a **squirrel**. In the **giant forest** north of the mountain cabin, squirrel form can enter a **hole** in a far tree, climb the hollow to the top, then **walk the giant-forest treetops**. Lesson themes: exploration, transformation, patience. Small playable iterations; every version stays playable; hide the tech stack. Story voice in the ask used *Esther* (confirm name vs Orion when building).
 
+**Payoff slice (continuation):** after Esther walks the canopy all the way to the far end, she gets her **first view of the real Moondrop Mountain** — a huge mountain so vast it almost looks like it's touching the moon. Same lesson arc; canopy walk ends with that reveal. Story words only; keep every version a whole playable game. Moondrop-only backlog (do not fan out).
+
 | Priority | Status | Item | Notes |
 | --- | --- | --- | --- |
 | Medium | Open | Squirrel spell → tree hole → treetops | Gate: Cloud City squirrel spell. Only works (or only useful) in darkForest. Far-end tree has climbable hole → hollow climb scene → treetop walk across giant canopy. Teach Orion via tiny shippable slices (spell only → hole toast → climb room → treetops). Never START OVER. |
+| Medium | Open | Canopy far end → Moondrop Mountain reveal | Later slice of the same arc: walk treetops to the far end → first view of the real Moondrop Mountain (vast, nearly touching the moon). Payoff beat; small playable; story-worded. Moondrop-only. Never START OVER. |
 
 ## Queued 9/10 (Darren asks)
 
