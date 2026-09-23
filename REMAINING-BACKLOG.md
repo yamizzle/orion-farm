@@ -15,6 +15,10 @@ Format: `Priority | Status | Title | note`
 - **Low** Closing a panel by tapping the world also walks → **Done 9/5 7:10pm live** (05bc/05be PASS; table was stale “live still needed”).
 - **Critical** Day clock races → was **Done 9/10 live 05ir**; **REOPENED Local/Partial 9/11 BUILD 20260905iv** (multi-tab WORSE 9/10 pm; Needs live verify).
 
+## Queued 9/22 — teach Orion / story
+
+- **Medium** | Open | Squirrel spell → tree hole → treetops | After Cloud City: squirrel transform; darkForest far tree hole → climb → canopy walk. Exploration / transformation / patience. Small playable slices. Confirm Esther vs Orion name when building. Never START OVER.
+
 ## Queued 9/10 — Darren asks (past High Peak bear)
 
 - **High** | Done Local 9/12 05jm | Cloud City Imagine art | BUILD 20260905jm: Imagine AREA shops/folk/icons (gameplay 05jl). Cap/ledge east → cloudCity. **Needs live.**

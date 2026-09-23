@@ -488,6 +488,14 @@ Local 9/4 (BUILD 20260904h): dog runs around more inside the house (faster/short
 Local 9/4 (BUILD 20260904g): only one fishing pole (dedupe tray/bag on load/grant); walk into / tap chicken scoots it off the tile. Darren 9/4 asks still Open (dog indoors livelier, boat, bigger ocean, island Diamond Pickaxe, more trees, Pip shop art). Household save intact. Never START OVER.
 Local 9/4 (BUILD 20260904f): ocean pier/beach fishing has a 1-in-50 Golden Swordfish (ocean-only; farm ponds unchanged). Sword swing still 300ms. Pip shop art still queued. Household save intact. Never START OVER.
 
+## Queued 9/22 (Darren — teach Orion / story)
+
+After Cloud City spells: one spell turns the hero into a **squirrel**. In the **giant forest** north of the mountain cabin, squirrel form can enter a **hole** in a far tree, climb the hollow to the top, then **walk the giant-forest treetops**. Lesson themes: exploration, transformation, patience. Small playable iterations; every version stays playable; hide the tech stack. Story voice in the ask used *Esther* (confirm name vs Orion when building).
+
+| Priority | Status | Item | Notes |
+| --- | --- | --- | --- |
+| Medium | Open | Squirrel spell → tree hole → treetops | Gate: Cloud City squirrel spell. Only works (or only useful) in darkForest. Far-end tree has climbable hole → hollow climb scene → treetop walk across giant canopy. Teach Orion via tiny shippable slices (spell only → hole toast → climb room → treetops). Never START OVER. |
+
 ## Queued 9/10 (Darren asks)
 
 Past the High Peak bear / wizard path. Household save; never START OVER. Frozen: Orion art, farm grass0–3, evening color, walk energy, DAY_MS. Imagine art for new scenes/props.
