@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jt";
+  var BUILD = "20260905ju";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -26300,7 +26300,7 @@ function doCookNow() {
   }
 
   function drawAchieveList(g) {
-    var L, i, a, ly, barH, barY, barX;
+    var L, i, a, ly, barH, barY, barX, badgeSpr, badgeSz, badgeY;
     if (!achieveOpen) return;
     L = achieveLayout();
     clampAchieveScroll();
@@ -26319,10 +26319,21 @@ function doCookNow() {
       ly = L.listY + i * L.rowH - achieveScroll;
       if (ly + L.rowH < L.listY || ly > L.listY + L.listH) continue;
       if (unlocked[a.id]) {
-        /* 20260905cw: little star badge + soft twinkle on earned Stars */
-        if (Assets.spr.starBadge) Assets.draw(g, "starBadge", L.listX, ly - 2);
-        else Assets.draw(g, "trophy", L.listX, ly - 3);
-        drawText(g, a.name, L.listX + 20, ly + 1, C.uiText);
+        /* 20260905ju: shrink starBadge ~10×10 to fit rowH=11 (was full 32 covering labels; HUD uses 16) */
+        badgeSz = 10;
+        badgeY = ly + ((L.rowH - badgeSz) / 2) | 0;
+        badgeSpr = Assets.spr.starBadge;
+        if (badgeSpr && Assets.img) {
+          g.imageSmoothingEnabled = false;
+          g.drawImage(Assets.img, badgeSpr.x, badgeSpr.y, badgeSpr.fw || badgeSpr.w, badgeSpr.h, L.listX, badgeY, badgeSz, badgeSz);
+        } else if (Assets.spr.trophy && Assets.img) {
+          badgeSpr = Assets.spr.trophy;
+          g.imageSmoothingEnabled = false;
+          g.drawImage(Assets.img, badgeSpr.x, badgeSpr.y, badgeSpr.fw || badgeSpr.w, badgeSpr.h, L.listX, badgeY, badgeSz, badgeSz);
+        } else {
+          Assets.draw(g, "trophy", L.listX, ly);
+        }
+        drawText(g, a.name, L.listX + 14, ly + 1, C.uiText);
         if (Assets.spr.sparkle) {
           g.save();
           g.globalAlpha = 0.28 + 0.42 * Math.abs(Math.sin(tick / 220 + i * 0.7));
@@ -30396,7 +30407,11 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jt", BUILD);
+      ok("BUILD", BUILD === "20260905ju", BUILD);
+      (function () {
+        var _ach = Function.prototype.toString.call(drawAchieveList);
+        ok("achieveBadgeSmall", _ach.indexOf("imageSmoothingEnabled") >= 0 && _ach.indexOf("badgeSz = 10") >= 0 && _ach.indexOf("listX + 14") >= 0, "Stars list still full-size badge?");
+      })();
       (function () {
         /* 20260905is: tray/bag bake24/show6 cream tight NN; dialogue Press Start 8px; labels/HUD 8px; no 0.85 */
         var _ws, _os, _ms, _anc, _i, _savedScene, _src, _hud, _clk, _shaft, _dlg;
