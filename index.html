@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ju";
+  var BUILD = "20260905jv";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -937,10 +937,12 @@
   var swordTier = 0;
   var bowTier = 0;
   var shieldTier = 0;
-  var wandSpells = { fireball: false, lightning: false, illumination: false };
+  var wandSpells = { fireball: false, lightning: false, illumination: false, squirrel: false };
   var wandSpellSel = "fireball";
   var spellFx = null;
   var illumUntil = 0;
+  /* 20260905jv: Cloud City squirrel wand spell — transform Orion to Assets.squirrel */
+  var squirrelUntil = 0;
   var cloudShopKind = null;
   var cloudShopItems = null;
   var cloudShopOpen = false;
@@ -5551,7 +5553,8 @@
     return [
       { id: "spellFireball", name: "FIREBALL", price: 35, icon: "wand" },
       { id: "spellLightning", name: "LIGHTNING", price: 40, icon: "wand" },
-      { id: "spellIllumination", name: "BRIGHT LIGHT", price: 30, icon: "wand" }
+      { id: "spellIllumination", name: "BRIGHT LIGHT", price: 30, icon: "wand" },
+      { id: "spellSquirrel", name: "SQUIRREL", price: 45, icon: "wand" }
     ];
   }
   function openCloudShop(kind) {
@@ -5628,8 +5631,11 @@
       notifyShopBuySuccess();
       return;
     }
-    if (item.id === "spellFireball" || item.id === "spellLightning" || item.id === "spellIllumination") {
-      key = item.id === "spellFireball" ? "fireball" : (item.id === "spellLightning" ? "lightning" : "illumination");
+    if (item.id === "spellFireball" || item.id === "spellLightning" || item.id === "spellIllumination" || item.id === "spellSquirrel") {
+      if (item.id === "spellFireball") key = "fireball";
+      else if (item.id === "spellLightning") key = "lightning";
+      else if (item.id === "spellIllumination") key = "illumination";
+      else key = "squirrel";
       if (wandSpells[key]) { cloudShopMsg = "ALREADY LEARNED!"; cloudShopMsgT = 1200; return; }
       if (!wandOwned) { cloudShopMsg = "NEED THE WAND."; cloudShopMsgT = 1200; return; }
       if (gold < item.price) { notifyNotEnoughGold(item.price); return; }
@@ -5700,18 +5706,26 @@
     }
     return true;
   }
+  function wandSpellLabel(k) {
+    if (k === "illumination") return "BRIGHT LIGHT";
+    if (k === "squirrel") return "SQUIRREL";
+    return (k || "").toUpperCase();
+  }
   function cycleWandSpell() {
-    var order = ["fireball", "lightning", "illumination"], i, next, start;
+    var order = ["fireball", "lightning", "illumination", "squirrel"], i, next, start;
     var have = order.filter(function (k) { return !!wandSpells[k]; });
     if (!have.length) return;
     start = have.indexOf(wandSpellSel);
     next = have[(start + 1) % have.length];
     wandSpellSel = next;
-    showLineNote(next === "illumination" ? "SPELL: BRIGHT LIGHT" : ("SPELL: " + next.toUpperCase()));
+    showLineNote("SPELL: " + wandSpellLabel(next));
     persistSave();
   }
   function anyWandSpell() {
-    return !!(wandSpells.fireball || wandSpells.lightning || wandSpells.illumination);
+    return !!(wandSpells.fireball || wandSpells.lightning || wandSpells.illumination || wandSpells.squirrel);
+  }
+  function squirrelFormActive() {
+    return squirrelUntil > tick;
   }
   function tryCastWandSpell() {
     var i, m, dx, dy, hit, dmg, key;
@@ -5727,6 +5741,22 @@
       illumUntil = Math.max(illumUntil, tick + 14000);
       spellFx = { kind: "illumination", life: 900 };
       showLineNote("BRIGHT LIGHT!");
+      playSfx("craft");
+      spawnSparks(player.x, player.y - 12);
+      persistSave();
+      return true;
+    }
+    /* 20260905jv: squirrel transform — reuse Assets.squirrel; recast ends early */
+    if (key === "squirrel") {
+      if (squirrelFormActive()) {
+        squirrelUntil = 0;
+        showLineNote("BACK TO NORMAL.");
+      } else {
+        squirrelUntil = tick + 12000;
+        showLineNote("YOU TURN INTO A SQUIRREL!");
+        if (!unlocked.squirrelSpellTip) unlocked.squirrelSpellTip = true;
+      }
+      spellFx = { kind: "squirrel", life: 700 };
       playSfx("craft");
       spawnSparks(player.x, player.y - 12);
       persistSave();
@@ -5793,6 +5823,10 @@
       spellFx.life -= dt;
       if (spellFx.life <= 0) spellFx = null;
     }
+    if (squirrelUntil > 0 && squirrelUntil <= tick) {
+      squirrelUntil = 0;
+      showLineNote("BACK TO NORMAL.");
+    }
   }
   function drawSpellFx(g) {
     var a, ox, oy;
@@ -5807,6 +5841,9 @@
     } else if (spellFx.kind === "lightning") {
       fill(g, Math.round(ox - 2), Math.round(oy - 28), 4, 36, "rgba(200,230,255,0.95)");
       fill(g, Math.round(ox - 12), Math.round(oy - 8), 24, 4, "rgba(255,255,255,0.9)");
+    } else if (spellFx.kind === "squirrel") {
+      fill(g, Math.round(ox - 10), Math.round(oy - 10), 20, 20, "rgba(200,140,80,0.55)");
+      fill(g, Math.round(ox - 5), Math.round(oy - 5), 10, 10, "rgba(255,220,160,0.7)");
     } else {
       fill(g, Math.round(ox - 14), Math.round(oy - 14), 28, 28, "rgba(255,255,210,0.7)");
     }
@@ -12364,11 +12401,13 @@ function selectedIs(key) {
         wandSpells.fireball = !!data.wandSpells.fireball;
         wandSpells.lightning = !!data.wandSpells.lightning;
         wandSpells.illumination = !!data.wandSpells.illumination;
+        wandSpells.squirrel = !!data.wandSpells.squirrel;
       }
-      if (data.wandSpellSel === "fireball" || data.wandSpellSel === "lightning" || data.wandSpellSel === "illumination") {
+      if (data.wandSpellSel === "fireball" || data.wandSpellSel === "lightning" || data.wandSpellSel === "illumination" || data.wandSpellSel === "squirrel") {
         wandSpellSel = data.wandSpellSel;
       }
       illumUntil = 0;
+      squirrelUntil = 0;
       axeHintSeen = !!data.axeHintSeen;
       pickHintSeen = !!data.pickHintSeen;
       swordOwned = !!data.swordOwned;
@@ -12884,7 +12923,7 @@ function selectedIs(key) {
         swordTier: swordTier | 0,
         bowTier: bowTier | 0,
         shieldTier: shieldTier | 0,
-        wandSpells: { fireball: !!wandSpells.fireball, lightning: !!wandSpells.lightning, illumination: !!wandSpells.illumination },
+        wandSpells: { fireball: !!wandSpells.fireball, lightning: !!wandSpells.lightning, illumination: !!wandSpells.illumination, squirrel: !!wandSpells.squirrel },
         wandSpellSel: wandSpellSel,
         axeHintSeen: !!axeHintSeen,
         pickHintSeen: !!pickHintSeen,
@@ -16495,6 +16534,8 @@ function doCookNow() {
       if (!unlocked.cloudShopTip_wizard) return "LEARN WAND SPELLS.";
       if (wandOwned && anyWandSpell() && !selectedIs("wand")) return "HOLD WAND + SPACE TO CAST.";
     }
+    /* 20260905jv: once after learning squirrel spell (any scene) */
+    if (wandSpells.squirrel && !unlocked.squirrelSpellTip) return "TRY THE SQUIRREL SPELL.";
     /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
     if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
       return "SWORD THE NIGHT SLUGS.";
@@ -19024,6 +19065,7 @@ function doCookNow() {
       if (item.id === "spellFireball" && wandSpells.fireball) label = "FIREBALL OWNED";
       if (item.id === "spellLightning" && wandSpells.lightning) label = "LIGHTNING OWNED";
       if (item.id === "spellIllumination" && wandSpells.illumination) label = "BRIGHT LIGHT OWNED";
+      if (item.id === "spellSquirrel" && wandSpells.squirrel) label = "SQUIRREL OWNED";
       price = (item.id === "redHat" && redHatOwned) ? "0G" : ((item.price | 0) + "G");
       if (item.id === "upSword") price = (25 + (swordTier | 0) * 15) + "G+" + (item.wood | 0) + "W";
       if (item.id === "upBow") price = (25 + (bowTier | 0) * 15) + "G+" + (item.wood | 0) + "W";
@@ -23931,6 +23973,26 @@ function doCookNow() {
     fill(g, ix - hw + 2, iy - 3, hw * 2 - 4, 1, "rgba(30,90,18,0.22)");
   }
 
+  function drawSquirrelForm(g, x, y) {
+    var img, iw, ih, dw, dh, smooth;
+    img = Assets.squirrel;
+    if (!img) {
+      fill(g, Math.round(x - 6), Math.round(y - 12), 12, 10, "#C88848");
+      return;
+    }
+    iw = img.width || img.naturalWidth || 32;
+    ih = img.height || img.naturalHeight || 32;
+    dw = (iw / 2) | 0;
+    dh = (ih / 2) | 0;
+    smooth = g.imageSmoothingEnabled;
+    g.imageSmoothingEnabled = false;
+    g.save();
+    g.translate(Math.round(x), Math.round(y));
+    if (player.face === "left") g.scale(-1, 1);
+    g.drawImage(img, -(dw / 2 | 0), -dh, dw, dh);
+    g.restore();
+    g.imageSmoothingEnabled = smooth;
+  }
   function drawPlayer(g) {
     if (birdRideFx) return;
     var bob, sx, sy, amp, boatBob;
@@ -23957,6 +24019,23 @@ function doCookNow() {
       else if (player.face === "up") sy = -amp;
       else sy = amp;
       bob -= 1;
+    }
+    /* 20260905jv: squirrel form draws critter sprite (Orion base art frozen) */
+    if (squirrelFormActive()) {
+      drawShadow(g, player.x, player.y, 4);
+      if (!(iFrames > 0 && ((tick / 80) | 0) % 2 === 0)) {
+        drawSquirrelForm(g, player.x + sx, player.y + bob + sy);
+      }
+      if (iframeFlash > 0) {
+        var flashAs = Math.min(0.92, 0.35 + iframeFlash / 280);
+        g.fillStyle = "rgba(255,252,240," + flashAs.toFixed(3) + ")";
+        g.fillRect(Math.round(player.x - 9 + sx), Math.round(player.y - 18 + bob + sy), 18, 20);
+      } else if (hurtFlash > 0) {
+        g.fillStyle = "rgba(232,72,72," + (0.25 + 0.35 * (hurtFlash / 420)).toFixed(3) + ")";
+        g.fillRect(Math.round(player.x - 8 + sx), Math.round(player.y - 16 + bob + sy), 16, 18);
+      }
+      drawTiredZs(g);
+      return;
     }
     if (player.arc > 0 && player.face === "up") {
       drawSwordArc(g, sx, sy, bob);
@@ -25406,6 +25485,7 @@ function doCookNow() {
   function drawPlayerCanopyPeek(g) {
     var bob, sx, sy, amp, dur, left, top, peekH;
     if (!canopyHidesPlayerHead()) return;
+    if (squirrelFormActive()) return;
     if (iFrames > 0 && ((tick / 80) | 0) % 2 === 0) return;
     bob = (player.moving && player.frame) ? -1 : 0;
     sx = 0;
@@ -30407,7 +30487,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ju", BUILD);
+      ok("BUILD", BUILD === "20260905jv", BUILD);
       (function () {
         var _ach = Function.prototype.toString.call(drawAchieveList);
         ok("achieveBadgeSmall", _ach.indexOf("imageSmoothingEnabled") >= 0 && _ach.indexOf("badgeSz = 10") >= 0 && _ach.indexOf("listX + 14") >= 0, "Stars list still full-size badge?");
@@ -33184,9 +33264,15 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       ok("spellLightningUnlock", !!wandSpells.lightning, String(wandSpells.lightning));
       buyCloudShopItem(cloudWizardItems()[2]);
       ok("spellIllumUnlock", !!wandSpells.illumination, String(wandSpells.illumination));
+      buyCloudShopItem(cloudWizardItems()[3]);
+      ok("spellSquirrelUnlock", !!wandSpells.squirrel && !!unlocked.spell_squirrel, String(wandSpells.squirrel));
       selectTool("wand");
       wandSpellSel = "illumination";
       ok("spellCastStub", !!tryCastWandSpell() && illuminationActive(), "illum");
+      wandSpellSel = "squirrel";
+      squirrelUntil = 0;
+      ok("spellSquirrelCast", !!tryCastWandSpell() && squirrelFormActive(), "form=" + squirrelFormActive());
+      ok("spellSquirrelRecastOff", !!tryCastWandSpell() && !squirrelFormActive(), "form=" + squirrelFormActive());
       closeCloudShop();
       exitCloudCityToCap();
       if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
@@ -33254,9 +33340,12 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
       wandOwned = false;
       maxHpBonus = 0;
       swordTier = 0; bowTier = 0; shieldTier = 0;
-      wandSpells = { fireball: false, lightning: false, illumination: false };
+      wandSpells = { fireball: false, lightning: false, illumination: false, squirrel: false };
       wandSpellSel = "fireball";
       illumUntil = 0;
+      squirrelUntil = 0;
+      delete unlocked.spell_squirrel;
+      delete unlocked.squirrelSpellTip;
       redHatOwned = false; redHatOn = false;
       closeCloudShop();
       bridgeFall = null;
