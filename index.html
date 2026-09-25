@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jv";
+  var BUILD = "20260905jw";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -2806,7 +2806,7 @@
     if (currentScene === "highPeak") rec.artRev = "05iz";
     if (currentScene === "peak") rec.artRev = "05ib";
     if (currentScene === "cabin") rec.artRev = "05jb";
-    if (currentScene === "darkForest") rec.artRev = "05jf";
+    if (currentScene === "darkForest") rec.artRev = "05jw";
     if (currentScene === "cloudCity") rec.artRev = "05jm";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
@@ -3108,9 +3108,16 @@
       cached = null;
     }
     /* 20260905jf: bust darkForest cache — readable torch floors/trees */
-    if (name === "darkForest" && cached && (cached.artRev || "") !== "05jf") {
+    if (name === "darkForest" && cached && (cached.artRev || "") !== "05jw") {
       cached = null;
       sceneCache.darkForest = null;
+    }
+    if (name === "darkForest" && cached && cached.props) {
+      var _sh = false, _si;
+      for (_si = 0; _si < cached.props.length; _si++) {
+        if (cached.props[_si] && cached.props[_si].kind === "darkGiantTree" && cached.props[_si].squirrelHole) _sh = true;
+      }
+      if (!_sh) { cached = null; sceneCache.darkForest = null; }
     }
     /* 20260905jb: bust cabin cache so lean props replace trophy extras */
     if (name === "cabin" && cached && (cached.artRev || "") !== "05jb") {
@@ -4772,7 +4779,7 @@
       { kind: "darkGiantTree", tx: 16, ty: 17 },
       { kind: "darkGiantTree", tx: 4, ty: 20 },
       { kind: "darkGiantTree", tx: 14, ty: 19 },
-      { kind: "darkGiantTree", tx: 7, ty: 8 },
+      { kind: "darkGiantTree", tx: 7, ty: 8, squirrelHole: true },
       { kind: "darkGiantTree", tx: 12, ty: 9 }
     ];
     if (!found.blueGlowMushroom) {
@@ -5174,6 +5181,75 @@
     if (tx === darkForestOut.tx && ty === darkForestOut.ty) return true;
     var p = propAt(tx, ty);
     return !!(p && p.kind === "caveMouth" && p.darkForestExit);
+  }
+
+  /* 20260905jw: darkForest far-tree squirrel hole — toast slice only (no climb yet). */
+  function findSquirrelHoleTree() {
+    var i, p;
+    if (currentScene !== "darkForest") return null;
+    for (i = 0; i < PROPS.length; i++) {
+      p = PROPS[i];
+      if (p && p.kind === "darkGiantTree" && p.squirrelHole) return p;
+    }
+    return null;
+  }
+
+  function nearSquirrelHole(prop) {
+    var x, y;
+    if (!prop || !prop.squirrelHole) return false;
+    for (y = 0; y < 2; y++) {
+      for (x = 0; x < 2; x++) {
+        if (isNear(player.tx, player.ty, prop.tx + x, prop.ty + y) ||
+            (player.tx === prop.tx + x && player.ty === prop.ty + y)) return true;
+      }
+    }
+    return false;
+  }
+
+  function talkSquirrelHole() {
+    var prop = findSquirrelHoleTree();
+    if (!prop) return;
+    if (squirrelFormActive()) {
+      showLineNote("A SQUIRREL HOLE!");
+      if (!unlocked.squirrelHoleTip) unlocked.squirrelHoleTip = true;
+      if (!unlocked.squirrelHoleSeen) {
+        unlocked.squirrelHoleSeen = true;
+        openDialogue("ORION", ["A TINY HOLE!", "MAYBE I CAN CLIMB", "INSIDE LATER."]);
+      }
+      persistSave();
+      return;
+    }
+    showLineNote("TOO BIG TO FIT.");
+    if (!unlocked.squirrelHoleTooBig) {
+      unlocked.squirrelHoleTooBig = true;
+      openDialogue("ORION", ["A TINY HOLE IN THE TREE.", "ONLY A SQUIRREL COULD FIT."]);
+      persistSave();
+    }
+  }
+
+  function goSquirrelHole(prop) {
+    var dest, path;
+    prop = prop || findSquirrelHoleTree();
+    if (!prop) return;
+    highlight = { tx: prop.tx, ty: prop.ty };
+    if (nearSquirrelHole(prop)) {
+      pending = null;
+      talkSquirrelHole();
+      return;
+    }
+    dest = nearestAdjacent(prop.tx, prop.ty) || nearestAdjacent(prop.tx + 1, prop.ty) ||
+           nearestAdjacent(prop.tx, prop.ty + 1) || nearestAdjacent(prop.tx + 1, prop.ty + 1);
+    if (!dest) {
+      talkSquirrelHole();
+      return;
+    }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) {
+      talkSquirrelHole();
+      return;
+    }
+    pending = { type: "squirrelHole" };
+    startWalk(player, path, 3.5);
   }
 
   function enterDarkForest() {
@@ -16536,6 +16612,11 @@ function doCookNow() {
     }
     /* 20260905jv: once after learning squirrel spell (any scene) */
     if (wandSpells.squirrel && !unlocked.squirrelSpellTip) return "TRY THE SQUIRREL SPELL.";
+    /* 20260905jw: once in darkForest after squirrel form / before hole seen */
+    if (currentScene === "darkForest" && wandSpells.squirrel && !unlocked.squirrelHoleSeen) {
+      if (squirrelFormActive()) return "TRY THE HOLE IN THE TREE.";
+      return "FIND THE TREE HOLE.";
+    }
     /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
     if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
       return "SWORD THE NIGHT SLUGS.";
@@ -22807,6 +22888,8 @@ function doCookNow() {
       talkBoat();
     } else if (act.type === "peakRocks") {
       talkPeakRocks();
+    } else if (act.type === "squirrelHole") {
+      talkSquirrelHole();
     } else if (act.type === "talkBird") {
       talkBird();
     } else if (act.type === "talkTreeNest") {
@@ -23026,6 +23109,10 @@ function doCookNow() {
          wired; facing-only propAt left side-of-hull silent; tap already goTalkBoat'd). */
       p = findRowboat();
       if (p && !p.hidden && nearProp(p)) { talkBoat(); return true; }
+    } else if (currentScene === "darkForest") {
+      /* 20260905jw: adjacent squirrel-hole Space (tap already goSquirrelHole'd). */
+      p = findSquirrelHoleTree();
+      if (p && nearSquirrelHole(p)) { talkSquirrelHole(); return true; }
     }
     return false;
   }
@@ -24767,7 +24854,7 @@ function doCookNow() {
     /* 20260905im: Press Start 8px white + thin cardinal outline; OUT same (no gold) */
     var tw, lx, ly, exitish, x, y, bh;
     if (!word || !p) return;
-    exitish = word === "OUT" || word === "UP" || word === "DOWN" || word === "MINE" || word === "PEAK";
+    exitish = word === "OUT" || word === "UP" || word === "DOWN" || word === "MINE" || word === "PEAK" || word === "HOLE";
     x = p.tx * TILE;
     y = p.ty * TILE;
     tw = pixelTextWidth(word, PIXEL_HUD_SIZE);
@@ -24828,6 +24915,20 @@ function doCookNow() {
       if (!drawStandSprite(g, _dt, x + 16, y, 144, 384)) {
         fill(g, x + 10, y - 300, 20, 320, "#12100C");
         fill(g, x - 8, y - 360, 56, 70, "#0A120C");
+      }
+      /* 20260905jw: simple dark hole oval on far squirrel tree (code-paint letters/shapes OK) */
+      if (p.squirrelHole) {
+        g.save();
+        g.fillStyle = "#0A0806";
+        g.beginPath();
+        g.ellipse(x + 40, y - 8, 7, 9, 0, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "#1A1410";
+        g.beginPath();
+        g.ellipse(x + 40, y - 8, 4, 5, 0, 0, Math.PI * 2);
+        g.fill();
+        g.restore();
+        drawShaftLabel(g, { tx: p.tx, ty: p.ty }, "HOLE");
       }
     } else if (p.kind === "blueGlowMushroom") {
       if (Assets.blueGlowMushroom) {
@@ -29472,6 +29573,11 @@ if (currentScene === "ocean") goExitOcean();
       goPeakRocks();
       return;
     }
+    /* 20260905jw: tap far darkGiantTree squirrel hole (toast slice). */
+    if (hitProp && hitProp.kind === "darkGiantTree" && hitProp.squirrelHole) {
+      goSquirrelHole(hitProp);
+      return;
+    }
     if (hitProp && hitProp.kind === "sleepingBear") {
       goTalkSleepingBear();
       return;
@@ -30487,7 +30593,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jv", BUILD);
+      ok("BUILD", BUILD === "20260905jw", BUILD);
       (function () {
         var _ach = Function.prototype.toString.call(drawAchieveList);
         ok("achieveBadgeSmall", _ach.indexOf("imageSmoothingEnabled") >= 0 && _ach.indexOf("badgeSz = 10") >= 0 && _ach.indexOf("listX + 14") >= 0, "Stars list still full-size badge?");
@@ -33171,7 +33277,7 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         return b && b.w === 144 && b.h === 384;
       })(), "tree 144x384");
       saveScene();
-      ok("darkForestArtRev", !!(sceneCache.darkForest && sceneCache.darkForest.artRev === "05jf"), sceneCache.darkForest && sceneCache.darkForest.artRev);
+      ok("darkForestArtRev", !!(sceneCache.darkForest && sceneCache.darkForest.artRev === "05jw"), sceneCache.darkForest && sceneCache.darkForest.artRev);
       /* 20260905jf: sleep/save scene cabin|darkForest|wizardHouse must reload into that scene (not overworld) */
       (function () {
         var raw, data, scenes, si, sc, before;
@@ -33685,6 +33791,38 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         ok("migrateNoEarlyKitShovel", !shovelOwned && bagCount("shovel") < 1,
           "owned=" + shovelOwned + " n=" + bagCount("shovel"));
         builds = [];
+      })();
+
+      /* 20260905jw: darkForest squirrel hole toast — last so earlier scene tests stay clean */
+      (function () {
+        var hole;
+        wandOwned = true; found.wand = true;
+        wandSpells.squirrel = true;
+        unlocked.spell_squirrel = true;
+        selectTool("wand");
+        wandSpellSel = "squirrel";
+        if (sceneCache) sceneCache.darkForest = null;
+        applyScene("darkForest");
+        hole = findSquirrelHoleTree();
+        ok("squirrelHoleProp", !!(hole && hole.squirrelHole && hole.tx === 7 && hole.ty === 8), hole ? (hole.tx + "," + hole.ty) : "none");
+        if (!hole) return;
+        placePlayer(10, 10, "up");
+        if (!walkable(player.tx, player.ty)) placePlayer(10, 11, "up");
+        if (!walkable(player.tx, player.ty)) placePlayer(9, 10, "up");
+        squirrelUntil = 0;
+        delete unlocked.squirrelHoleSeen;
+        delete unlocked.squirrelHoleTooBig;
+        delete unlocked.squirrelHoleTip;
+        closeDialogue();
+        talkSquirrelHole();
+        ok("squirrelHoleTooBig", !squirrelFormActive() && !!unlocked.squirrelHoleTooBig, "tooBig=" + !!unlocked.squirrelHoleTooBig + " form=" + squirrelFormActive());
+        closeDialogue();
+        squirrelUntil = (tick | 0) + 20000;
+        ok("squirrelHoleFormArmed", squirrelFormActive(), "until=" + squirrelUntil + " tick=" + tick);
+        talkSquirrelHole();
+        ok("squirrelHoleAsSquirrel", !!squirrelFormActive() && !!unlocked.squirrelHoleSeen && !!unlocked.squirrelHoleTip, "seen=" + !!unlocked.squirrelHoleSeen + " tip=" + !!unlocked.squirrelHoleTip + " form=" + squirrelFormActive());
+        squirrelUntil = 0;
+        closeDialogue();
       })();
 
       /* 20260905jr: BAG chrome wins over Peak world-door under the button */

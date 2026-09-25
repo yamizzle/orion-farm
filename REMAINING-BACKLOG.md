@@ -17,7 +17,7 @@ Format: `Priority | Status | Title | note`
 
 ## Queued 9/22 — teach Orion / story
 
-- **Medium** | Open | Squirrel spell → tree hole → treetops | After Cloud City: squirrel transform; darkForest far tree hole → climb → canopy walk. Exploration / transformation / patience. Small playable slices. Confirm Esther vs Orion name when building. Never START OVER.
+- **Medium** | Local Partial 9/25 05jw | Squirrel spell → tree hole → treetops | Spell (05jv) + hole toast (05jw) shipped; hollow climb / treetops still Open. Never START OVER.
 - **Medium** | Open | Canopy far end → Moondrop Mountain reveal | Same arc payoff: walk treetops to far end → first view of real Moondrop Mountain (vast, nearly touching the moon). Story words; small playable slice. Moondrop-only. Never START OVER.
 
 ## Queued 9/10 — Darren asks (past High Peak bear)

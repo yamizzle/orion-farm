@@ -16,6 +16,9 @@ Cap/ledge east → cloudCity (30×16); west→cap. Food/Potion/Hat/Weapons/Wizar
 ## BUILD 20260905jk (Local 9/12) — blue glow mushroom climb stages
 Staged day1/2/3 sizes; day2+ climb gate; day3 → mushroomStalk → mushroomCap → cloudLedge stub (Cloud City later). Persist growDays migrate. Atlas 1477 keep.
 
+## BUILD 20260905jw (Local 9/25) — darkForest squirrel hole toast
+Far north darkGiantTree (7,8) shows HOLE; Orion → TOO BIG TO FIT.; squirrel form → A SQUIRREL HOLE! (+ climb-later dialogue once). No hollow climb yet. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 # Moondrop Mountain — REGRESSION / KEEP-FIXED
 
 Local 9/20 (BUILD 20260905jt): KEEP — moss craft icon dense 32×32 (finish 05ja); bag/world NN blit matches branch/torch. Pink gate PASS. Never START OVER.
