@@ -1,3 +1,6 @@
+## BUILD 20260905jx (Local 9/26) — squirrel treeHollow climb room
+Squirrel form + far HOLE → `treeHollow` door fade; south lands darkForest (10,11) 2-tile gap; north UP toast THE TREETOPS ARE AHEAD. (no treetops yet). Non-squirrel TOO BIG. artRev `05jx`. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
+
 ## BUILD 20260905jp (Local 9/12) — wizard robes face with walk
 While wand held, robes overlay uses left/right/up Imagine stamps (down keeps wizardRobes.png); never replace Orion base. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 

@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jw";
+  var BUILD = "20260905jx";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -689,7 +689,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null, mushroomStalk: null, mushroomCap: null, cloudLedge: null, cloudCity: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null, mushroomStalk: null, mushroomCap: null, cloudLedge: null, cloudCity: null, treeHollow: null };
   var tick = 0;
   var lastTs = 0;
   /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
@@ -855,6 +855,13 @@
   var darkForestAt = { tx: 32, ty: 4 };
   var darkForestLand = { tx: 10, ty: 21 };
   var darkForestOut = { tx: 10, ty: 22 };
+  /* 20260905jx: squirrel hollow climb room (vertical bark shaft; treetops later) */
+  var TREE_HOLLOW_COLS = 10;
+  var TREE_HOLLOW_ROWS = 22;
+  var treeHollowSouth = { tx: 4, ty: 20 };
+  var treeHollowNorth = { tx: 4, ty: 2 };
+  /* land 2 tiles SE of hole tree (7,8 footprint) so one step cannot re-enter */
+  var squirrelHoleLand = { tx: 10, ty: 11 };
   var peakCaveAt = { tx: 18, ty: 25 };
   var OCEAN_COLS = 64;
   var OCEAN_ROWS = 56;
@@ -2806,7 +2813,8 @@
     if (currentScene === "highPeak") rec.artRev = "05iz";
     if (currentScene === "peak") rec.artRev = "05ib";
     if (currentScene === "cabin") rec.artRev = "05jb";
-    if (currentScene === "darkForest") rec.artRev = "05jw";
+    if (currentScene === "darkForest") rec.artRev = "05jx";
+    if (currentScene === "treeHollow") rec.artRev = "05jx";
     if (currentScene === "cloudCity") rec.artRev = "05jm";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
@@ -3108,7 +3116,11 @@
       cached = null;
     }
     /* 20260905jf: bust darkForest cache — readable torch floors/trees */
-    if (name === "darkForest" && cached && (cached.artRev || "") !== "05jw") {
+    if (name === "treeHollow" && cached && (cached.artRev || "") !== "05jx") {
+      cached = null;
+      sceneCache.treeHollow = null;
+    }
+    if (name === "darkForest" && cached && (cached.artRev || "") !== "05jx") {
       cached = null;
       sceneCache.darkForest = null;
     }
@@ -3223,6 +3235,11 @@
       ROWS = DARK_FOREST_ROWS;
       GROUND = buildDarkForestGround();
       PROPS = buildDarkForestProps();
+    } else if (name === "treeHollow") {
+      COLS = TREE_HOLLOW_COLS;
+      ROWS = TREE_HOLLOW_ROWS;
+      GROUND = buildTreeHollowGround();
+      PROPS = buildTreeHollowProps();
     } else if (name === "mushroomStalk") {
       COLS = MUSHROOM_STALK_COLS;
       ROWS = MUSHROOM_STALK_ROWS;
@@ -5183,7 +5200,7 @@
     return !!(p && p.kind === "caveMouth" && p.darkForestExit);
   }
 
-  /* 20260905jw: darkForest far-tree squirrel hole — toast slice only (no climb yet). */
+  /* 20260905jx: darkForest far-tree squirrel hole → treeHollow climb room (treetops later). */
   function findSquirrelHoleTree() {
     var i, p;
     if (currentScene !== "darkForest") return null;
@@ -5210,13 +5227,9 @@
     var prop = findSquirrelHoleTree();
     if (!prop) return;
     if (squirrelFormActive()) {
-      showLineNote("A SQUIRREL HOLE!");
       if (!unlocked.squirrelHoleTip) unlocked.squirrelHoleTip = true;
-      if (!unlocked.squirrelHoleSeen) {
-        unlocked.squirrelHoleSeen = true;
-        openDialogue("ORION", ["A TINY HOLE!", "MAYBE I CAN CLIMB", "INSIDE LATER."]);
-      }
-      persistSave();
+      if (!unlocked.squirrelHoleSeen) unlocked.squirrelHoleSeen = true;
+      enterTreeHollow();
       return;
     }
     showLineNote("TOO BIG TO FIT.");
@@ -5250,6 +5263,76 @@
     }
     pending = { type: "squirrelHole" };
     startWalk(player, path, 3.5);
+  }
+
+  /* 20260905jx: cozy vertical bark hollow (mushroomStalk pattern) */
+  function buildTreeHollowGround() {
+    var cols = TREE_HOLLOW_COLS, rows = TREE_HOLLOW_ROWS;
+    var g = [], y, x, mid;
+    mid = (cols / 2) | 0;
+    for (y = 0; y < rows; y++) {
+      g[y] = [];
+      for (x = 0; x < cols; x++) {
+        if (x === mid - 1 || x === mid) g[y][x] = "f";
+        else g[y][x] = "y"; /* unwalkable bark sides */
+      }
+    }
+    return g;
+  }
+  function buildTreeHollowProps() {
+    var list = [], y, mid = (TREE_HOLLOW_COLS / 2) | 0;
+    for (y = 1; y < TREE_HOLLOW_ROWS - 1; y += 3) {
+      list.push({ kind: "hollowBark", tx: mid - 3, ty: y });
+      list.push({ kind: "hollowBark", tx: mid + 2, ty: y });
+    }
+    list.push({ kind: "treeHollowHole", tx: treeHollowSouth.tx, ty: treeHollowSouth.ty, dir: "down" });
+    list.push({ kind: "treeHollowHole", tx: treeHollowNorth.tx, ty: treeHollowNorth.ty, dir: "up" });
+    return list;
+  }
+  function enterTreeHollow() {
+    startDoorFade(function () {
+      applyScene("treeHollow");
+      unlocked.treeHollowEntered = true;
+      if (!unlocked.squirrelHoleSeen) unlocked.squirrelHoleSeen = true;
+      if (!unlocked.squirrelHoleTip) unlocked.squirrelHoleTip = true;
+      placePlayer(treeHollowSouth.tx, treeHollowSouth.ty - 1, "up");
+      if (!walkable(player.tx, player.ty)) placePlayer(treeHollowSouth.tx, treeHollowSouth.ty - 2, "up");
+      showLineNote("INSIDE THE HOLLOW TREE!");
+      persistSave();
+    });
+  }
+  function exitTreeHollowToForest() {
+    startDoorFade(function () {
+      applyScene("darkForest");
+      placePlayer(squirrelHoleLand.tx, squirrelHoleLand.ty, "down");
+      if (!walkable(player.tx, player.ty)) placePlayer(10, 12, "down");
+      if (!walkable(player.tx, player.ty)) placePlayer(9, 11, "down");
+      showLineNote("BACK IN THE DARK FOREST.");
+      persistSave();
+    });
+  }
+  function talkTreeHollowNorth() {
+    showLineNote("THE TREETOPS ARE AHEAD.");
+    if (!unlocked.treeHollowNorthTip) {
+      unlocked.treeHollowNorthTip = true;
+      persistSave();
+    }
+  }
+  function isTreeHollowSouth(tx, ty) {
+    return currentScene === "treeHollow" && tx === treeHollowSouth.tx && ty === treeHollowSouth.ty;
+  }
+  function isTreeHollowNorth(tx, ty) {
+    return currentScene === "treeHollow" && tx === treeHollowNorth.tx && ty === treeHollowNorth.ty;
+  }
+  function tryTreeHollowDoors() {
+    if (currentScene !== "treeHollow") return false;
+    if (isTreeHollowSouth(player.tx, player.ty) || isTreeHollowSouth(facingTile().tx, facingTile().ty)) {
+      exitTreeHollowToForest(); return true;
+    }
+    if (isTreeHollowNorth(player.tx, player.ty) || isTreeHollowNorth(facingTile().tx, facingTile().ty)) {
+      talkTreeHollowNorth(); return true;
+    }
+    return false;
   }
 
   function enterDarkForest() {
@@ -8294,8 +8377,8 @@
       } else if (p.kind === "glowMushroomPlant") {
         /* trunk tile only — wide cap is Y-sort walk-behind, not a solid wall */
         block(p.tx, p.ty);
-      } else if (p.kind === "cloudWall" || p.kind === "mushroomCapTop" || p.kind === "cloudLedge") {
-        /* decorative; ground "y" already blocks cloud sides */
+      } else if (p.kind === "cloudWall" || p.kind === "mushroomCapTop" || p.kind === "cloudLedge" || p.kind === "hollowBark") {
+        /* decorative; ground "y" already blocks bark/cloud sides */
       } else if (p.kind === "fountain") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
@@ -8625,7 +8708,7 @@
         maxY = Math.max(0, worldH - VIEW_H);
       }
     }
-    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
       } else {
@@ -8654,7 +8737,7 @@
     if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
           if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
         } else if (camY < minY) {
           camY = minY;
@@ -12112,7 +12195,7 @@ function selectedIs(key) {
     if (isMineEntrance(tx, ty) || isHouseEntrance(tx, ty) || houseDoorHit(tx, ty, world)) return true;
     if (isForestEntrance(tx, ty) || isForestExit(tx, ty)) return true;
     if (isOceanEntrance(tx, ty) || isOceanExit(tx, ty)) return true;
-    if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world) || isWizardHouseEntrance(tx, ty) || isWizardHouseExit(tx, ty) || wizardHouseDoorHit(tx, ty) || isCabinEntrance(tx, ty) || isCabinExit(tx, ty) || cabinDoorHit(tx, ty) || isDarkForestMouth(tx, ty) || isDarkForestExit(tx, ty) || isMushroomStalkSouth(tx, ty) || isMushroomStalkNorth(tx, ty) || isMushroomCapSouth(tx, ty) || isMushroomCapEast(tx, ty) || isCloudLedgeWest(tx, ty) || !!isGlowClimbSpot(tx, ty)) return true;
+    if (isCottageEntrance(tx, ty) || isCottageExit(tx, ty) || cottageDoorHit(tx, ty, world) || isCottage2Entrance(tx, ty) || isCottage2Exit(tx, ty) || cottage2DoorHit(tx, ty, world) || isTallCottageEntrance(tx, ty) || isTallCottageExit(tx, ty) || tallCottageDoorHit(tx, ty, world) || isLHouseEntrance(tx, ty) || isLHouseExit(tx, ty) || lHouseDoorHit(tx, ty, world) || isWizardHouseEntrance(tx, ty) || isWizardHouseExit(tx, ty) || wizardHouseDoorHit(tx, ty) || isCabinEntrance(tx, ty) || isCabinExit(tx, ty) || cabinDoorHit(tx, ty) || isDarkForestMouth(tx, ty) || isDarkForestExit(tx, ty) || isTreeHollowSouth(tx, ty) || isTreeHollowNorth(tx, ty) || isMushroomStalkSouth(tx, ty) || isMushroomStalkNorth(tx, ty) || isMushroomCapSouth(tx, ty) || isMushroomCapEast(tx, ty) || isCloudLedgeWest(tx, ty) || !!isGlowClimbSpot(tx, ty)) return true;
     if (isTreetopExit(tx, ty) || isTreetopSouthExit(tx, ty)) return true;
     if (isPeakCave(tx, ty) || isPeakMineMouth(tx, ty) || isPeakRocks(tx, ty) || isClimbDown(tx, ty) || isClimbUp(tx, ty) || isClimbMouth(tx, ty) || isMountainMineExit(tx, ty) || isMountainMineHighExit(tx, ty) || isHighPeakCave(tx, ty) || isSleepingBear(tx, ty)) return true;
     return false;
@@ -12681,10 +12764,10 @@ function selectedIs(key) {
       }
       syncLilaFlowers();
       /* 20260905jf: cabin/darkForest/wizardHouse were missing — sleep save remapped to overworld */
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" || data.scene === "treeHollow" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" || data.scene === "treeHollow") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down",
@@ -13335,6 +13418,7 @@ function selectedIs(key) {
       }
       else if (scene === "wizardHouse") { tx = wizardHouseOut.tx; ty = wizardHouseOut.ty - 2; face = "up"; }
       else if (scene === "darkForest") { tx = darkForestLand.tx; ty = darkForestLand.ty; face = "up"; }
+      else if (scene === "treeHollow") { tx = treeHollowSouth.tx; ty = treeHollowSouth.ty - 2; face = "up"; }
       else if (scene === "caveclimb") {
         if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
         else { tx = 5; ty = 7; face = "up"; }
@@ -15647,6 +15731,7 @@ function doCookNow() {
     if (currentScene === "islandCave") return "ISLAND CAVE";
     if (currentScene === "mountainMine") return "MOUNTAIN MINE";
     if (currentScene === "highPeak") return "HIGH PEAK";
+    if (currentScene === "treeHollow") return "TREE HOLLOW";
     if (currentScene === "mushroomStalk") return "MUSHROOM STALK";
     if (currentScene === "mushroomCap") return "MUSHROOM CAP";
     if (currentScene === "cloudLedge") return "CLOUD LEDGE";
@@ -16612,10 +16697,14 @@ function doCookNow() {
     }
     /* 20260905jv: once after learning squirrel spell (any scene) */
     if (wandSpells.squirrel && !unlocked.squirrelSpellTip) return "TRY THE SQUIRREL SPELL.";
-    /* 20260905jw: once in darkForest after squirrel form / before hole seen */
-    if (currentScene === "darkForest" && wandSpells.squirrel && !unlocked.squirrelHoleSeen) {
-      if (squirrelFormActive()) return "TRY THE HOLE IN THE TREE.";
-      return "FIND THE TREE HOLE.";
+    /* 20260905jx: darkForest hole → hollow climb tips */
+    if (currentScene === "darkForest" && wandSpells.squirrel && !unlocked.treeHollowEntered) {
+      if (squirrelFormActive()) return "CLIMB INSIDE THE HOLE.";
+      if (!unlocked.squirrelHoleSeen) return "FIND THE TREE HOLE.";
+      return "TRY THE HOLE IN THE TREE.";
+    }
+    if (currentScene === "treeHollow" && !unlocked.treeHollowNorthTip) {
+      return "CLIMB THE HOLLOW TREE.";
     }
     /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
     if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
@@ -22494,6 +22583,17 @@ function doCookNow() {
       exitDarkForest();
       return;
     }
+    /* 20260905jx: tree hollow south exit / north treetops tip */
+    if (isTreeHollowSouth(player.tx, player.ty)) {
+      pending = null;
+      exitTreeHollowToForest();
+      return;
+    }
+    if (isTreeHollowNorth(player.tx, player.ty)) {
+      pending = null;
+      talkTreeHollowNorth();
+      return;
+    }
     /* 20260905jk: mushroom climb scene doors + yard climb trigger */
     if (currentScene === "highPeak" && isGlowClimbSpot(player.tx, player.ty)) {
       var _gc = isGlowClimbSpot(player.tx, player.ty);
@@ -22890,6 +22990,10 @@ function doCookNow() {
       talkPeakRocks();
     } else if (act.type === "squirrelHole") {
       talkSquirrelHole();
+    } else if (act.type === "treeHollowSouth") {
+      exitTreeHollowToForest();
+    } else if (act.type === "treeHollowNorth") {
+      talkTreeHollowNorth();
     } else if (act.type === "talkBird") {
       talkBird();
     } else if (act.type === "talkTreeNest") {
@@ -24540,7 +24644,7 @@ function doCookNow() {
     if (p.kind === "moonAltar") return p.ty * TILE + 28;
     if (p.kind === "hole") return p.ty * TILE + 2;
     if (p.kind === "ladder") return p.ty * TILE + 20;
-    if (p.kind === "mushroomStalkHole") return p.ty * TILE + 18;
+    if (p.kind === "mushroomStalkHole" || p.kind === "treeHollowHole" || p.kind === "hollowBark") return p.ty * TILE + 18;
     if (p.kind === "swordPedestal") return p.ty * TILE + 20;
     if (p.kind === "giantTree") return p.ty * TILE + 24;
     if (p.kind === "woodsDown") return p.ty * TILE + 4;
@@ -25171,6 +25275,25 @@ function doCookNow() {
       else if (!drawAtlas2x(g, lit ? "lantern" : "lanternOff", x, y)) {
         Assets.draw(g, lit ? "lantern" : "lanternOff", x, y);
       }
+    } else if (p.kind === "hollowBark") {
+      /* 20260905jx: decorative bark studs on hollow walls */
+      fill(g, x + 2, y - 4, 12, 20, "#4A3020");
+      fill(g, x + 4, y - 2, 8, 16, "#2A1810");
+    } else if (p.kind === "treeHollowHole") {
+      /* 20260905jx: bark hollow opening (south exit / north treetops stub) */
+      var _htx = p.tx * TILE, _hty = p.ty * TILE;
+      fill(g, _htx + 1, _hty + 1, TILE - 2, TILE - 2, "#1A1008");
+      g.save();
+      g.fillStyle = "#0A0604";
+      g.beginPath();
+      g.ellipse(_htx + 8, _hty + 8, 6, 7, 0, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#2A1C12";
+      g.beginPath();
+      g.ellipse(_htx + 8, _hty + 8, 3, 4, 0, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+      drawShaftLabel(g, p, p.dir === "up" ? "UP" : "DOWN");
     } else if (p.kind === "mushroomStalkHole") {
       /* 20260905jo: glowing blue stalk opening (not stairs) */
       var _stx = p.tx * TILE, _sty = p.ty * TILE;
@@ -25983,7 +26106,7 @@ function doCookNow() {
     sortActors(list);
     for (i = 0; i < list.length; i++) {
       item = list[i];
-      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "treeHollow" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
         if (item.kind === "prop") drawGradedProp(g, item);
         else drawWashedActor(g, item);
       } else {
@@ -28071,7 +28194,7 @@ function doCookNow() {
     frameDayT = null;
     beginFrameGrade();
     updateCamera();
-    g.fillStyle = (currentScene === "darkForest") ? "#000000" : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "darkForest" || currentScene === "treeHollow") ? "#000000" : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -28093,7 +28216,7 @@ function doCookNow() {
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -28104,8 +28227,8 @@ function doCookNow() {
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
-          if (currentScene === "darkForest") { g.fillStyle = "#000000"; g.fillRect(dx, dy, TILE, TILE); }
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+          if (currentScene === "darkForest" || currentScene === "treeHollow") { g.fillStyle = "#000000"; g.fillRect(dx, dy, TILE, TILE); }
           else if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") drawSkyTile(g, tx, ty, dx, dy);
           else if (currentScene === "ocean") { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
           else if (isCozyInterior()) Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
@@ -28194,6 +28317,22 @@ function doCookNow() {
             if (ch === "f") {
               g.fillStyle = "rgba(40,48,28,0.35)";
               g.fillRect(dx, dy, TILE, TILE);
+            }
+          } else if (currentScene === "treeHollow") {
+            /* 20260905jx: reuse darkForest floors on path; bark-brown sides */
+            if (ch === "f") {
+              var _thf = ((tx + ty) & 1) ? (Assets.darkForestFloor2 || Assets.darkForestFloor) : (Assets.darkForestFloor || Assets.darkForestFloor2);
+              if (_thf) g.drawImage(_thf, dx, dy, 16, 16);
+              else { g.fillStyle = "#2A1C12"; g.fillRect(dx, dy, TILE, TILE); }
+              g.fillStyle = "rgba(60,40,20,0.25)";
+              g.fillRect(dx, dy, TILE, TILE);
+            } else {
+              g.fillStyle = ((tx + ty) & 1) ? "#3A2818" : "#2E1E12";
+              g.fillRect(dx, dy, TILE, TILE);
+              g.fillStyle = "rgba(20,12,8,0.35)";
+              g.fillRect(dx + 2, dy + 1, 3, TILE - 2);
+              g.fillStyle = "rgba(80,55,30,0.2)";
+              g.fillRect(dx + 10, dy + 2, 2, TILE - 4);
             }
           } else if (currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
             if (ch === "f") {
@@ -28882,6 +29021,22 @@ function doCookNow() {
         return;
       }
     }
+    if (currentScene === "treeHollow") {
+      if (isTreeHollowSouth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { exitTreeHollowToForest(); return; }
+        var _ths = findPath(player.tx, player.ty, tx, ty);
+        if (_ths && _ths.length) { pending = { type: "treeHollowSouth" }; startWalk(player, _ths, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) exitTreeHollowToForest();
+        return;
+      }
+      if (isTreeHollowNorth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { talkTreeHollowNorth(); return; }
+        var _thn = findPath(player.tx, player.ty, tx, ty);
+        if (_thn && _thn.length) { pending = { type: "treeHollowNorth" }; startWalk(player, _thn, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) talkTreeHollowNorth();
+        return;
+      }
+    }
     if (currentScene === "mushroomStalk") {
       if (isMushroomStalkSouth(tx, ty)) {
         if (player.tx === tx && player.ty === ty) { exitMushroomStalkToYard(); return; }
@@ -29417,7 +29572,7 @@ function doCookNow() {
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "mushroomStalkHole" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "sleepingBear" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "mushroomStalkHole" || PROPS[hi].kind === "treeHollowHole" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "sleepingBear" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -29999,6 +30154,7 @@ if (currentScene === "ocean") goExitOcean();
       if (tryTreeDoors()) return;
       /* 20260905jk/jl: climb mushroom / Cloud City doors */
       if (tryMushroomDoors()) return;
+      if (tryTreeHollowDoors()) return;
       if (tryCloudShopHere()) return;
       if (tryCookHere()) return;
       if (trySmeltHere()) return;
@@ -30593,7 +30749,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jw", BUILD);
+      ok("BUILD", BUILD === "20260905jx", BUILD);
       (function () {
         var _ach = Function.prototype.toString.call(drawAchieveList);
         ok("achieveBadgeSmall", _ach.indexOf("imageSmoothingEnabled") >= 0 && _ach.indexOf("badgeSz = 10") >= 0 && _ach.indexOf("listX + 14") >= 0, "Stars list still full-size badge?");
@@ -33277,7 +33433,7 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         return b && b.w === 144 && b.h === 384;
       })(), "tree 144x384");
       saveScene();
-      ok("darkForestArtRev", !!(sceneCache.darkForest && sceneCache.darkForest.artRev === "05jw"), sceneCache.darkForest && sceneCache.darkForest.artRev);
+      ok("darkForestArtRev", !!(sceneCache.darkForest && sceneCache.darkForest.artRev === "05jx"), sceneCache.darkForest && sceneCache.darkForest.artRev);
       /* 20260905jf: sleep/save scene cabin|darkForest|wizardHouse must reload into that scene (not overworld) */
       (function () {
         var raw, data, scenes, si, sc, before;
@@ -33793,15 +33949,15 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         builds = [];
       })();
 
-      /* 20260905jw: darkForest squirrel hole toast — last so earlier scene tests stay clean */
+      /* 20260905jx: darkForest squirrel hole → treeHollow climb — last so earlier scene tests stay clean */
       (function () {
-        var hole;
+        var hole, landOk;
         wandOwned = true; found.wand = true;
         wandSpells.squirrel = true;
         unlocked.spell_squirrel = true;
         selectTool("wand");
         wandSpellSel = "squirrel";
-        if (sceneCache) sceneCache.darkForest = null;
+        if (sceneCache) { sceneCache.darkForest = null; sceneCache.treeHollow = null; }
         applyScene("darkForest");
         hole = findSquirrelHoleTree();
         ok("squirrelHoleProp", !!(hole && hole.squirrelHole && hole.tx === 7 && hole.ty === 8), hole ? (hole.tx + "," + hole.ty) : "none");
@@ -33813,14 +33969,31 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         delete unlocked.squirrelHoleSeen;
         delete unlocked.squirrelHoleTooBig;
         delete unlocked.squirrelHoleTip;
+        delete unlocked.treeHollowEntered;
+        delete unlocked.treeHollowNorthTip;
         closeDialogue();
         talkSquirrelHole();
-        ok("squirrelHoleTooBig", !squirrelFormActive() && !!unlocked.squirrelHoleTooBig, "tooBig=" + !!unlocked.squirrelHoleTooBig + " form=" + squirrelFormActive());
+        ok("squirrelHoleTooBig", !squirrelFormActive() && !!unlocked.squirrelHoleTooBig && currentScene === "darkForest", "tooBig=" + !!unlocked.squirrelHoleTooBig + " form=" + squirrelFormActive() + " sc=" + currentScene);
         closeDialogue();
         squirrelUntil = (tick | 0) + 20000;
         ok("squirrelHoleFormArmed", squirrelFormActive(), "until=" + squirrelUntil + " tick=" + tick);
         talkSquirrelHole();
-        ok("squirrelHoleAsSquirrel", !!squirrelFormActive() && !!unlocked.squirrelHoleSeen && !!unlocked.squirrelHoleTip, "seen=" + !!unlocked.squirrelHoleSeen + " tip=" + !!unlocked.squirrelHoleTip + " form=" + squirrelFormActive());
+        if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+        ok("squirrelHoleAsSquirrel", !!squirrelFormActive() && currentScene === "treeHollow" && !!unlocked.treeHollowEntered, "sc=" + currentScene + " entered=" + !!unlocked.treeHollowEntered + " form=" + squirrelFormActive());
+        ok("treeHollowWalk", walkable(treeHollowSouth.tx, treeHollowSouth.ty - 1) || walkable(treeHollowSouth.tx, treeHollowSouth.ty - 2), "path");
+        saveScene();
+        ok("treeHollowArtRev", !!(sceneCache.treeHollow && sceneCache.treeHollow.artRev === "05jx"), sceneCache.treeHollow && sceneCache.treeHollow.artRev);
+        placePlayer(treeHollowNorth.tx, treeHollowNorth.ty, "up");
+        talkTreeHollowNorth();
+        ok("treeHollowNorthTip", !!unlocked.treeHollowNorthTip, "tip");
+        placePlayer(treeHollowSouth.tx, treeHollowSouth.ty, "down");
+        exitTreeHollowToForest();
+        if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+        ok("treeHollowExitForest", currentScene === "darkForest", currentScene);
+        landOk = (player.tx === squirrelHoleLand.tx && player.ty === squirrelHoleLand.ty) || walkable(player.tx, player.ty);
+        ok("treeHollowSouthLand", landOk && walkable(player.tx, player.ty), player.tx + "," + player.ty);
+        /* 2-tile gap: land not adjacent to hole footprint */
+        ok("treeHollowLandGap", Math.abs(player.tx - 7) + Math.abs(player.ty - 8) >= 2 || Math.abs(player.tx - 8) + Math.abs(player.ty - 9) >= 2, player.tx + "," + player.ty);
         squirrelUntil = 0;
         closeDialogue();
       })();
