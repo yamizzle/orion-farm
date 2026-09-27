@@ -502,14 +502,29 @@ Local 9/4 (BUILD 20260904f): ocean pier/beach fishing has a 1-in-50 Golden Sword
 
 ## Queued 9/22 (Darren — teach Orion / story)
 
-After Cloud City spells: one spell turns the hero into a **squirrel**. In the **giant forest** north of the mountain cabin, squirrel form can enter a **hole** in a far tree, climb the hollow to the top, then **walk the giant-forest treetops**. Lesson themes: exploration, transformation, patience. Small playable iterations; every version stays playable; hide the tech stack. Story voice in the ask used *Esther* (confirm name vs Orion when building).
+**Moondrop-only** lesson arc (do **not** share with Moondrop Ops / other agents). Hero locked: **Orion** (not Esther). Themes: exploration, transformation, patience. Small playable slices; every version stays playable; hide the tech stack. Never START OVER.
 
-**Payoff slice (continuation):** after Esther walks the canopy all the way to the far end, she gets her **first view of the real Moondrop Mountain** — a huge mountain so vast it almost looks like it's touching the moon. Same lesson arc; canopy walk ends with that reveal. Story words only; keep every version a whole playable game. Moondrop-only backlog (do not fan out).
+### Locked design (clarified 9/22–9/26)
+
+**Beat chain**
+1. Buy **Squirrel** at the **Cloud City wizard shop** (same shop as fireball / lightning / bright light) — already Local Partial via 05jv.
+2. In **darkForest** / giant forest: far-tree **hole** is visible; **sparkles/glows when squirrel form is on**. Non-squirrel → short “too big / try as a squirrel” line, stay outside (05jw).
+3. As squirrel: hole → short **`treeHollow` climb scene** (simple climb/walk, no enemies/puzzles) → **own canopy scene** (05jx hollow; canopy walk still Open).
+4. **Canopy**: short scenic walk to far end, **no combat**. Squirrel form **required** for hole + whole canopy; canceling squirrel in canopy is **blocked** with a short need-squirrel line. Player chooses when to cancel squirrel elsewhere (like other wand spells).
+5. Canopy returns are **two-way at both ends**: hollow trunk up/down at the start; **outside spiral** (vines/branches/spiral trunk) up/down at the far end. Spiral = simple climb/walk, no enemies/puzzles.
+6. Far-end **vista**: first view of the **real Moondrop Mountain** (vast, nearly touching the moon). Reaching far end **forces a short evening/night moment** for the vista; afterward day clock **continues from evening/night** with the normal day cycle (no snap-back).
+7. After spiral climb-down: **own small approach map** (quiet scenic path, no combat) **north** between giant forest and mountain.
+8. **Enter Moondrop Mountain soon after** (not vista-only). First map = **small foothills clearing** (trail, rocks, wizard, first ledge nearby).
+9. **Wizard** waits with a short talk that **starts a clear next quest**: climb/reach a nearby **overlook / first ledge**. Payoff: reaching it **opens the next climb path higher up**. Wizard still lives at **High Peak house** and also appears for this mountain entry talk (cameo, not a full move).
+
+### Ship status / remaining slices
 
 | Priority | Status | Item | Notes |
 | --- | --- | --- | --- |
-| Medium | Local Partial 9/26 05jx | Squirrel spell → tree hole → treetops | **Local Partial (spell + hole + climb):** BUILD 20260905jv squirrel; **05jw** hole toast; **05jx** `treeHollow` climb room (south back to darkForest; north treetops stub toast only). Giant-forest treetops walk still **Open**. Gate: Cloud City squirrel spell. Never START OVER. Hero is Orion / YOU (no Esther). |
-| Medium | Open | Canopy far end → Moondrop Mountain reveal | Later slice of the same arc: walk treetops to the far end → first view of the real Moondrop Mountain (vast, nearly touching the moon). Payoff beat; small playable; story-worded. Moondrop-only. Never START OVER. |
+| Medium | Local Partial 9/26 05jx | Squirrel spell → tree hole → hollow | **Shipped:** 05jv squirrel shop spell; 05jw hole toast + too-big; 05jx `treeHollow` (south back to darkForest; north treetops stub only). Hole glow-when-squirrel + need-squirrel cancel-on-canopy still to harden when canopy ships. Never START OVER. |
+| Medium | Open | Own canopy scene + far-end vista | Own canopy map via hollow; short scenic no-combat walk; far-end mountain+moon vista with forced evening/night then continue night cycle; squirrel required; cancel blocked on canopy; both ends two-way (hollow + outside spiral). Moondrop-only. Never START OVER. |
+| Medium | Open | Outside spiral ↔ approach ↔ foothills quest | Spiral simple climb; own quiet approach map north of forest; small foothills + wizard quest (reach first ledge → opens next climb). Moondrop-only. Never START OVER. |
+
 
 ## Queued 9/10 (Darren asks)
 

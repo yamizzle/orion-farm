@@ -15,10 +15,13 @@ Format: `Priority | Status | Title | note`
 - **Low** Closing a panel by tapping the world also walks → **Done 9/5 7:10pm live** (05bc/05be PASS; table was stale “live still needed”).
 - **Critical** Day clock races → was **Done 9/10 live 05ir**; **REOPENED Local/Partial 9/11 BUILD 20260905iv** (multi-tab WORSE 9/10 pm; Needs live verify).
 
-## Queued 9/22 — teach Orion / story
+## Queued 9/22 — teach Orion / story (Moondrop-only; hero Orion)
 
-- **Medium** | Local Partial 9/26 05jx | Squirrel spell → tree hole → treetops | Spell (05jv) + hole toast (05jw) + hollow climb (05jx) shipped; giant-forest treetops still Open. Never START OVER.
-- **Medium** | Open | Canopy far end → Moondrop Mountain reveal | Same arc payoff: walk treetops to far end → first view of real Moondrop Mountain (vast, nearly touching the moon). Story words; small playable slice. Moondrop-only. Never START OVER.
+Locks 9/22–9/26 in `BACKLOG.md` Queued 9/22. Do not fan out to Moondrop Ops.
+
+- **Medium** | Local Partial 9/26 05jx | Squirrel → hole → hollow | 05jv/05jw/05jx shipped; canopy+ still Open. Never START OVER.
+- **Medium** | Open | Own canopy + far-end mountain/moon vista | Scenic no-combat canopy; squirrel required; cancel blocked; forced evening/night vista then continue night cycle; hollow + spiral both two-way. Never START OVER.
+- **Medium** | Open | Spiral → approach map → foothills wizard quest | Simple spiral; quiet approach north of forest; small foothills; wizard quest = first ledge opens next climb; wizard house + mountain cameo. Never START OVER.
 
 ## Queued 9/10 — Darren asks (past High Peak bear)
 
