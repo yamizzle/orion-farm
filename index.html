@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jy";
+  var BUILD = "20260905jz";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -14866,16 +14866,18 @@ function doCookNow() {
   }
 
   function chestLayout() {
-    var w = 280, h = 180;
+    /* 20260905jz: modest panel bump + larger foot gap so scroll list never sits under PUT/TAKE */
+    var w = 280, h = 184;
     var x = ((VIEW_W - w) / 2) | 0;
-    var y = 10;
+    var y = 8; /* CHEST title at y-8 stays on-screen; bottom y+h=192 */
     var listX = x + 8;
     var listY = y + 20;
     var listW = w - 20;
     var btnH = 14;
     var btnW = 78;
     var allY = y + h - 18;
-    var listH = allY - listY - 6;
+    var footGap = 12; /* was 6 — footer must never cover row text/icons */
+    var listH = allY - listY - footGap;
     var rowH = 11;
     var contentH = CHEST_ROWS.length * rowH;
     var maxScroll = contentH - listH;
@@ -14885,6 +14887,7 @@ function doCookNow() {
       headY: y + 6,
       listX: listX, listY: listY, listW: listW, listH: listH,
       rowH: rowH, contentH: contentH, maxScroll: maxScroll,
+      footGap: footGap,
       /* 20260905dw: X close like craft/Jobs/BAG */
       closeX: x + w - 16, closeY: y + 2, closeW: 13, closeH: 12,
       putX: x + 8, takeX: x + w - 8 - btnW,
@@ -15050,8 +15053,9 @@ function doCookNow() {
     }
     /* Footer: PUT ALL is the left wood; everything else on this strip is TAKE ALL
        (covers the old clustered TAKE ALL at x+88 and the new right-aligned wood).
-       2pm live missed the 70x12 because it sat under the list's PUT half. */
-    if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.allY - 6 && p.y < L.allY + L.btnH + 8) {
+       2pm live missed the 70x12 because it sat under the list's PUT half.
+       20260905jz: hit strip starts at list bottom (footGap), not allY-6 into the rows. */
+    if (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.listY + L.listH && p.y < L.allY + L.btnH + 8) {
       if (p.x < L.putX + L.btnW + 4) chestPut(true);
       else chestTake(true);
       return true;
@@ -25100,6 +25104,46 @@ function doCookNow() {
     drawWoodsSign(g, x, y, "MINE", p);
   }
 
+  function deskNorthOfChair(p) {
+    var i, q;
+    if (!p) return null;
+    for (i = 0; i < PROPS.length; i++) {
+      q = PROPS[i];
+      if (q && q.kind === "desk" && q.tx === p.tx && q.ty === p.ty - 1) return q;
+    }
+    return null;
+  }
+
+  function chairSitLabelBox(p) {
+    /* 20260905jz: SIT geometry. Default floats above the chair (SLEEP/WELL style).
+       House / tallCottage put a 64×48 desk on the tile north; that sprite covers the
+       middle of "SIT" so kids only saw "ST". Anchor above the desk top instead. */
+    var tw, bh, lx, ly, x, y, desk, db;
+    if (!p) return null;
+    x = p.tx * TILE;
+    y = p.ty * TILE;
+    tw = pixelTextWidth("SIT", PIXEL_HUD_SIZE);
+    bh = pixelTextGlyphH(PIXEL_HUD_SIZE) + 2;
+    lx = x + ((TILE - tw) / 2) | 0;
+    desk = deskNorthOfChair(p);
+    if (desk) {
+      db = propBounds(desk);
+      ly = db.y - (bh + 2);
+    } else {
+      ly = y - (bh + 3);
+    }
+    return { lx: lx, ly: ly, tw: tw, bh: bh, x: lx - 2, y: ly - 1, w: tw + 4, h: bh + 2 };
+  }
+
+  function drawChairSitLabel(g, p) {
+    var box;
+    if (!p) return;
+    box = chairSitLabelBox(p);
+    if (!box) return;
+    fill(g, box.x, box.y, box.w, box.h, "rgba(42,26,16,0.78)");
+    drawPixelText(g, "SIT", box.lx, box.ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
+  }
+
   function drawShaftLabel(g, p, word) {
     /* 20260905im: Press Start 8px white + thin cardinal outline; OUT same (no gold) */
     var tw, lx, ly, exitish, x, y, bh;
@@ -25297,8 +25341,9 @@ function doCookNow() {
       Assets.draw(g, "desk", x, y);
     } else if (p.kind === "chair") {
       if (!drawAtlas2x(g, "chair", x, y)) Assets.draw(g, "chair", x, y);
-      /* 20260905hd: SIT float so kids spot the rest chair (SLEEP/WELL style). */
-      drawShaftLabel(g, p, "SIT");
+      /* 20260905hd: SIT float so kids spot the rest chair (SLEEP/WELL style).
+         20260905jz: clear desk occlusion (live 9/27 read as "ST"). */
+      drawChairSitLabel(g, p);
     } else if (p.kind === "fireplace") {
       var fireFlicker = 0.12 + 0.08 * (0.5 + 0.5 * Math.sin(tick / 120 + p.tx));
       g.fillStyle = "rgba(240,150,70," + fireFlicker.toFixed(3) + ")";
@@ -31011,7 +31056,15 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jy", BUILD);
+      ok("BUILD", BUILD === "20260905jz", BUILD);
+      (function () {
+        /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
+        var L = chestLayout();
+        var lastBot = L.listY + L.contentH - L.maxScroll;
+        ok("chestListAboveFooter", L.listY + L.listH < L.allY, "listBot=" + (L.listY + L.listH) + " allY=" + L.allY);
+        ok("chestFootGap", (L.allY - (L.listY + L.listH)) >= 10, "gap=" + (L.allY - (L.listY + L.listH)));
+        ok("chestLastRowAtMaxScroll", lastBot <= L.listY + L.listH, "lastBot=" + lastBot + " listBot=" + (L.listY + L.listH));
+      })();
       (function () {
         var _ach = Function.prototype.toString.call(drawAchieveList);
         ok("achieveBadgeSmall", _ach.indexOf("imageSmoothingEnabled") >= 0 && _ach.indexOf("badgeSz = 10") >= 0 && _ach.indexOf("listX + 14") >= 0, "Stars list still full-size badge?");
@@ -33393,6 +33446,24 @@ if (currentScene === "ocean") goExitOcean();
         energy = 40;
         _en0 = energy;
         ok("chairSpaceSit", !!tryChairAdjacent() && energy === _en0 + 12, "en=" + energy + " was=" + _en0);
+        /* 20260905jz: house desk+chair — SIT label box must not overlap desk bounds (was "ST"). */
+        (function () {
+          var _desk = null, _di, _box, _db, _overlap;
+          for (_di = 0; _di < PROPS.length; _di++) {
+            if (PROPS[_di] && PROPS[_di].kind === "desk" && PROPS[_di].tx === _ch.tx && PROPS[_di].ty === _ch.ty - 1) {
+              _desk = PROPS[_di];
+              break;
+            }
+          }
+          ok("houseDeskNorthOfChair", !!_desk, _ch.tx + "," + _ch.ty);
+          if (_desk && typeof chairSitLabelBox === "function") {
+            _box = chairSitLabelBox(_ch);
+            _db = propBounds(_desk);
+            _overlap = !!(_box && !(_box.y + _box.h <= _db.y || _box.y >= _db.y + _db.h || _box.x + _box.w <= _db.x || _box.x >= _db.x + _db.w));
+            ok("chairSitClearsDesk", !!_box && !_overlap,
+              _box ? ("box=" + _box.x + "," + _box.y + "," + _box.w + "," + _box.h + " desk=" + _db.x + "," + _db.y + "," + _db.w + "," + _db.h) : "no box");
+          }
+        })();
         applyScene("overworld");
       }
 
