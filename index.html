@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905jz";
+  var BUILD = "20260905ka";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -1024,25 +1024,25 @@
     { key: "catfish", name: "CATFISH", icon: "catfish" },
     { key: "trout", name: "TROUT", icon: "trout" },
     { key: "bass", name: "BASS", icon: "bass" },
-    { key: "goldenCarp", name: "GOLDEN CARP", icon: "goldenCarp" },
+    { key: "goldenCarp", name: "GOLD CARP", icon: "goldenCarp" },
     { key: "moonfish", name: "MOONFISH", icon: "moonfish" },
     { key: "starfin", name: "STARFIN", icon: "starfin" },
-    { key: "goldenSwordfish", name: "GOLDEN SWORDFISH", icon: "goldenSwordfish" },
-    { key: "cookedMinnow", name: "COOKED MINNOW", icon: "cookedMinnow" },
-    { key: "cookedBluegill", name: "COOKED BLUEGILL", icon: "cookedBluegill" },
-    { key: "cookedPerch", name: "COOKED PERCH", icon: "cookedPerch" },
-    { key: "cookedCatfish", name: "COOKED CATFISH", icon: "cookedCatfish" },
-    { key: "cookedTrout", name: "COOKED TROUT", icon: "cookedTrout" },
-    { key: "cookedBass", name: "COOKED BASS", icon: "cookedBass" },
-    { key: "cookedGoldenCarp", name: "COOKED GOLDEN CARP", icon: "cookedGoldenCarp" },
-    { key: "cookedMoonfish", name: "COOKED MOONFISH", icon: "cookedMoonfish" },
-    { key: "cookedStarfin", name: "COOKED STARFIN", icon: "cookedStarfin" },
-    { key: "cookedGoldenSwordfish", name: "GRILLED GOLDEN SWORDFISH", icon: "cookedGoldenSwordfish" },
+    { key: "goldenSwordfish", name: "G.SWORDFISH", icon: "goldenSwordfish" },
+    { key: "cookedMinnow", name: "C.MINNOW", icon: "cookedMinnow" },
+    { key: "cookedBluegill", name: "C.BLUEGILL", icon: "cookedBluegill" },
+    { key: "cookedPerch", name: "C.PERCH", icon: "cookedPerch" },
+    { key: "cookedCatfish", name: "C.CATFISH", icon: "cookedCatfish" },
+    { key: "cookedTrout", name: "C.TROUT", icon: "cookedTrout" },
+    { key: "cookedBass", name: "C.BASS", icon: "cookedBass" },
+    { key: "cookedGoldenCarp", name: "C.GOLD CARP", icon: "cookedGoldenCarp" },
+    { key: "cookedMoonfish", name: "C.MOONFISH", icon: "cookedMoonfish" },
+    { key: "cookedStarfin", name: "C.STARFIN", icon: "cookedStarfin" },
+    { key: "cookedGoldenSwordfish", name: "GRILL SWORD", icon: "cookedGoldenSwordfish" },
     { key: "branch", name: "BRANCH", icon: "branch" },
     { key: "moss", name: "MOSS", icon: "moss" },
     { key: "torch", name: "TORCH", icon: "torchUnlit" },
     { key: "litTorch", name: "LIT TORCH", icon: "torch" },
-    { key: "blueGlowMushroom", name: "GLOW MUSHROOM", icon: "blueGlowMushroom" }
+    { key: "blueGlowMushroom", name: "GLOW MUSH", icon: "blueGlowMushroom" }
   ];
   var shieldSkip = false;
   var arrows = [];
@@ -9145,15 +9145,20 @@
 
   function moveKey(e) {
     var c = e.code;
-    if (c === "KeyW" || c === "ArrowUp") return { id: c, dx: 0, dy: -1, face: "up" };
-    if (c === "KeyS" || c === "ArrowDown") return { id: c, dx: 0, dy: 1, face: "down" };
-    if (c === "KeyA" || c === "ArrowLeft") return { id: c, dx: -1, dy: 0, face: "left" };
-    if (c === "KeyD" || c === "ArrowRight") return { id: c, dx: 1, dy: 0, face: "right" };
+    if (c === "KeyW" || c === "ArrowUp") return { id: c === "ArrowUp" ? "ArrowUp" : "KeyW", dx: 0, dy: -1, face: "up" };
+    if (c === "KeyS" || c === "ArrowDown") return { id: c === "ArrowDown" ? "ArrowDown" : "KeyS", dx: 0, dy: 1, face: "down" };
+    if (c === "KeyA" || c === "ArrowLeft") return { id: c === "ArrowLeft" ? "ArrowLeft" : "KeyA", dx: -1, dy: 0, face: "left" };
+    if (c === "KeyD" || c === "ArrowRight") return { id: c === "ArrowRight" ? "ArrowRight" : "KeyD", dx: 1, dy: 0, face: "right" };
     var k = e.key;
     if (k === "w" || k === "W") return { id: "KeyW", dx: 0, dy: -1, face: "up" };
     if (k === "s" || k === "S") return { id: "KeyS", dx: 0, dy: 1, face: "down" };
     if (k === "a" || k === "A") return { id: "KeyA", dx: -1, dy: 0, face: "left" };
     if (k === "d" || k === "D") return { id: "KeyD", dx: 1, dy: 0, face: "right" };
+    /* 20260905ka: Arrow via e.key so keyup/keydown cannot desync when code is blank */
+    if (k === "ArrowUp" || k === "Up") return { id: "ArrowUp", dx: 0, dy: -1, face: "up" };
+    if (k === "ArrowDown" || k === "Down") return { id: "ArrowDown", dx: 0, dy: 1, face: "down" };
+    if (k === "ArrowLeft" || k === "Left") return { id: "ArrowLeft", dx: -1, dy: 0, face: "left" };
+    if (k === "ArrowRight" || k === "Right") return { id: "ArrowRight", dx: 1, dy: 0, face: "right" };
     return null;
   }
 
@@ -11813,6 +11818,18 @@ function selectedIs(key) {
     player.stepT = 0;
     player.frame = 0;
     faceToward(player, prop.tx, prop.ty);
+    /* 20260905ka: sword/bow/wand on a rock is a silent fail — toast NEED A PICKAXE
+       (or SELECT THE PICK) instead of chipping with the wrong tool. Fists still work. */
+    if (prop.kind === "rock" && !toolEquipped("pick")) {
+      if (swordEquipped() || toolEquipped("bow") || toolEquipped("wand")) {
+        showLineNote((pickaxeOwned || diamondPickOwned) ? "SELECT THE PICK." : "NEED A PICKAXE.");
+        return;
+      }
+    }
+    if (prop.kind === "peakRocks" && !toolEquipped("diamondPick")) {
+      showLineNote(diamondPickOwned ? "SELECT THE DIAMOND PICK" : "NEED A STRONGER PICK");
+      return;
+    }
     maybeToolHint(prop);
     player.hitting = { prop: prop, left: harvestHitsFor(prop), wait: 0 };
     doHit();
@@ -14888,13 +14905,14 @@ function doCookNow() {
       listX: listX, listY: listY, listW: listW, listH: listH,
       rowH: rowH, contentH: contentH, maxScroll: maxScroll,
       footGap: footGap,
-      /* 20260905dw: X close like craft/Jobs/BAG */
+      /* 20260905dw: X close like craft/Jobs/BAG
+         20260905ka: BOX column left of close X so title/X never collide */
       closeX: x + w - 16, closeY: y + 2, closeW: 13, closeH: 12,
       putX: x + 8, takeX: x + w - 8 - btnW,
       allY: allY,
       btnW: btnW, btnH: btnH,
       bagX: x + 112,
-      chestX: x + w - 16
+      chestX: x + w - 34
     };
   }
 
@@ -14925,6 +14943,61 @@ function doCookNow() {
     return move;
   }
 
+  /* 20260905ka: chest TAKE fills bag first so the 10-tray hotbar does not reshuffle. */
+  function addToBagPreferBag(key, amount) {
+    var n, left, cap, take, idx;
+    n = amount | 0;
+    if (!key || n <= 0) return 0;
+    if (isToolKey(key)) return addToBag(key, n);
+    cap = stackCap(key);
+    left = n;
+    /* Grow existing tray stacks (same slot) — do not open new tray cells. */
+    left = fillStacksIn(trayCells, TRAY_CELLS, key, left, cap);
+    left = fillStacksIn(bagCells, BAG_CELLS, key, left, cap);
+    while (left > 0) {
+      take = left < cap ? left : cap;
+      idx = firstEmptyBag();
+      if (idx < 0) {
+        idx = firstEmptyTray();
+        if (idx < 0) break;
+        trayCells[idx] = { key: key, count: take };
+        left -= take;
+        continue;
+      }
+      bagCells[idx] = { key: key, count: take };
+      left -= take;
+    }
+    syncBagCounts();
+    return n - left;
+  }
+
+  /* Pin chest-take to an empty tray slot only — never swap/reorder hotbar. */
+  function pinChestTakeNoSwap(key) {
+    var i, empty, c;
+    if (!key) return;
+    if (isWeaponKey(key)) {
+      selectTool(key);
+      return;
+    }
+    if (trayHasKey(key) >= 0) {
+      selectTool(key);
+      return;
+    }
+    empty = firstEmptyTray();
+    if (empty < 0) return;
+    for (i = 0; i < BAG_CELLS; i++) {
+      c = bagCells[i];
+      if (c && c.key === key) {
+        trayCells[empty] = { key: c.key, count: c.count | 0 };
+        bagCells[i] = null;
+        selectedSlot = empty;
+        setFenceBuildOn(false);
+        syncBagCounts();
+        return;
+      }
+    }
+  }
+
   function takeFromChest(key, amount) {
     var n, have, room, move;
     n = amount | 0;
@@ -14936,7 +15009,7 @@ function doCookNow() {
     if (move > room) move = room;
     if (move <= 0) return 0;
     chest[key] = have - move;
-    addToBag(key, move);
+    addToBagPreferBag(key, move);
     persistSave();
     return move;
   }
@@ -14993,12 +15066,9 @@ function doCookNow() {
         chestMsgT = 1200;
         return;
       }
-      /* 20260905gt: pin + select last TAKE ALL stack — tray-tap eat / plant / cook tip need selected;
-         TAKE ALL left food/fish bag-only or unselected (same single TAKE equip gap as 05gj). */
-      if (lastKey) {
-        placeToolInTrayFirst(lastKey);
-        selectTool(lastKey);
-      }
+      /* 20260905gt + 20260905ka: pin + select last TAKE ALL without reshuffling tray
+         (empty-slot pin only; no non-tool swap). */
+      if (lastKey) pinChestTakeNoSwap(lastKey);
       playSfx("ui");
       chestMsg = "TOOK IT OUT.";
       chestMsgT = 900;
@@ -15013,8 +15083,8 @@ function doCookNow() {
       chestMsgT = 1200;
       return;
     }
-    /* 20260905gj: pin + select the taken stack — tray-tap eat / plant / cook tip need selected;
-       chest TAKE left food/fish bag-only or unselected (same Pip/cook/catch equip gap as 05gi). */
+    /* 20260905gj: pin + select the taken stack — tray-tap eat / plant / cook tip need selected.
+       (TAKE ALL uses pinChestTakeNoSwap so the hotbar does not reshuffle — 20260905ka.) */
     placeToolInTrayFirst(rec.key);
     selectTool(rec.key);
     playSfx("ui");
@@ -15113,7 +15183,11 @@ function doCookNow() {
       drawItemIcon(g, rec.icon, L.x + 10, rowY - 1);
       col = C.uiText;
       name = rec.name;
-      if (textWidth(name) > 78) name = name.slice(0, 10);
+      /* 20260905ka: ellipsis clip (short CHEST_ROWS names already kid-plain) */
+      if (textWidth(name) > 78) {
+        while (name.length > 2 && textWidth(name + "..") > 78) name = name.slice(0, name.length - 1);
+        name = name + "..";
+      }
       drawText(g, name, L.x + 28, rowY + 3, col);
       bagN = String(bagCount(rec.key));
       boxN = String(chestCount(rec.key));
@@ -27786,9 +27860,17 @@ function doCookNow() {
     fill(g, sx, sy, slot, slot, sel ? C.woodHi : (trayish ? "#8A5A28" : C.woodSh));
     fill(g, sx + 1, sy + 1, slot - 2, slot - 2, C.slot);
     fill(g, sx + 2, sy + 2, slot - 4, slot - 4, sel ? "#6A4420" : (trayish ? "#4A2E14" : "#5A3818"));
+    /* Tray chrome first; selection / pop rim MUST paint after so seed taps show
+       the same bright highlight as the weapon dock (20260905ka). */
+    if (trayish) {
+      fill(g, sx, sy, slot, 1, C.flower);
+      fill(g, sx, sy + slot - 1, slot, 1, C.flower);
+    }
     if (sel) {
       fill(g, sx, sy, slot, 1, C.parch);
+      fill(g, sx, sy + slot - 1, slot, 1, C.parch);
       fill(g, sx, sy, 1, slot, C.parch);
+      fill(g, sx + slot - 1, sy, 1, slot, C.parch);
     }
     /* 20260905dx: number-key / tap select pop — bright rim */
     if (trayish && hotbarPop > 0 && hotbarPopSlot === selectedSlot && sel) {
@@ -27796,10 +27878,6 @@ function doCookNow() {
       fill(g, sx, sy + slot - 1, slot, 1, "#FFF8E0");
       fill(g, sx, sy, 1, slot, "#FFF8E0");
       fill(g, sx + slot - 1, sy, 1, slot, "#FFF8E0");
-    }
-    if (trayish) {
-      fill(g, sx, sy, slot, 1, C.flower);
-      fill(g, sx, sy + slot - 1, slot, 1, C.flower);
     }
     if (rec && rec.key === "wood" && fenceBuildOn && sel) {
       fill(g, sx, sy, slot, 1, C.flower);
@@ -30398,10 +30476,20 @@ if (currentScene === "ocean") goExitOcean();
     mk = moveKey(e);
     if (mk) {
       e.preventDefault();
-      if (e.repeat) return;
-      dropMoveKey(mk.id);
-      kbHeld.push(mk);
-      takeKeyboard();
+      /* 20260905ka: keep continuous walk if a spurious keyup cleared kbHeld while
+         the OS still auto-repeats — re-arm on repeat when the id is missing. */
+      var kbHave = false, _kbi;
+      for (_kbi = 0; _kbi < kbHeld.length; _kbi++) {
+        if (kbHeld[_kbi].id === mk.id) { kbHave = true; break; }
+      }
+      if (!kbHave) {
+        kbHeld.push(mk);
+        takeKeyboard();
+      } else if (!e.repeat) {
+        dropMoveKey(mk.id);
+        kbHeld.push(mk);
+        takeKeyboard();
+      }
       return;
     }
     var slotN = 0;
@@ -31056,7 +31144,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905jz", BUILD);
+      ok("BUILD", BUILD === "20260905ka", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -31064,6 +31152,93 @@ if (currentScene === "ocean") goExitOcean();
         ok("chestListAboveFooter", L.listY + L.listH < L.allY, "listBot=" + (L.listY + L.listH) + " allY=" + L.allY);
         ok("chestFootGap", (L.allY - (L.listY + L.listH)) >= 10, "gap=" + (L.allY - (L.listY + L.listH)));
         ok("chestLastRowAtMaxScroll", lastBot <= L.listY + L.listH, "lastBot=" + lastBot + " listBot=" + (L.listY + L.listH));
+        /* 20260905ka: BOX column left of close X */
+        ok("chestBoxClearsCloseX", L.chestX <= L.closeX - 4, "chestX=" + L.chestX + " closeX=" + L.closeX);
+        ok("chestShortCookedNames", (function () {
+          var i, rec, bad = [];
+          for (i = 0; i < CHEST_ROWS.length; i++) {
+            rec = CHEST_ROWS[i];
+            if (/^COOKED |^GRILLED GOLDEN/.test(rec.name)) bad.push(rec.name);
+            if (textWidth(rec.name) > 78) bad.push(rec.name + ">78");
+          }
+          return bad.length === 0 ? true : bad.join(",");
+        })() === true, (function () {
+          var i, rec, bad = [];
+          for (i = 0; i < CHEST_ROWS.length; i++) {
+            rec = CHEST_ROWS[i];
+            if (/^COOKED |^GRILLED GOLDEN/.test(rec.name) || textWidth(rec.name) > 78) bad.push(rec.name);
+          }
+          return bad.join(",") || "ok";
+        })());
+      })();
+      (function () {
+        /* 20260905ka: held-key repeat re-arms kbHeld after a spurious clear */
+        var prev = kbHeld.slice();
+        clearMoveKeys();
+        ok("kbClearEmpty", kbHeld.length === 0, "n=" + kbHeld.length);
+        kbHeld.push({ id: "ArrowRight", dx: 1, dy: 0, face: "right" });
+        ok("kbHeldPush", kbHeld.length === 1 && kbDir() && kbDir().id === "ArrowRight", "n=" + kbHeld.length);
+        clearMoveKeys();
+        /* simulate OS repeat after lost keyup: ensure path re-adds */
+        var mk = { id: "ArrowRight", dx: 1, dy: 0, face: "right" };
+        var kbHave = false, _kbi;
+        for (_kbi = 0; _kbi < kbHeld.length; _kbi++) if (kbHeld[_kbi].id === mk.id) kbHave = true;
+        if (!kbHave) kbHeld.push(mk);
+        ok("kbRepeatRearm", kbHeld.length === 1 && kbDir().id === "ArrowRight", "n=" + kbHeld.length);
+        clearMoveKeys();
+        kbHeld = prev;
+      })();
+      (function () {
+        /* 20260905ka: sword on rock → NEED A PICKAXE (no chip) */
+        var _sc = currentScene, _note, _hit, _rock;
+        applyScene("overworld");
+        lineNote = null;
+        player.swing = 0;
+        player.hitting = null;
+        swordOwned = true;
+        equipWeaponToDock("sword");
+        selectedSlot = SLOT_WEAPON_DOCK;
+        pickaxeOwned = false;
+        diamondPickOwned = false;
+        _rock = { kind: "rock", tx: player.tx + 1, ty: player.ty };
+        beginHit(_rock);
+        _note = lineNote && lineNote.text;
+        _hit = player.hitting;
+        ok("swordRockNeedPickaxe", _note === "NEED A PICKAXE." && !_hit, "note=" + _note + " hit=" + !!_hit);
+        lineNote = null;
+        applyScene(_sc);
+      })();
+      (function () {
+        /* 20260905ka: TAKE ALL does not reshuffle existing tray order */
+        var before, after, i, same;
+        applyScene("house");
+        emptyTray();
+        emptyBag();
+        trayCells[0] = { key: "axe", count: 1 };
+        trayCells[1] = { key: "seed", count: 1 };
+        trayCells[2] = { key: "wood", count: 3 };
+        selectedSlot = 0;
+        axeOwned = true;
+        for (var _ck in chest) { if (Object.prototype.hasOwnProperty.call(chest, _ck)) chest[_ck] = 0; }
+        chest.snack = 2;
+        chest.potato = 1;
+        syncBagCounts();
+        before = [];
+        for (i = 0; i < TRAY_CELLS; i++) before.push(trayCells[i] ? trayCells[i].key : "");
+        chestTake(true);
+        after = [];
+        for (i = 0; i < TRAY_CELLS; i++) after.push(trayCells[i] ? trayCells[i].key : "");
+        same = before[0] === after[0] && before[1] === after[1] && before[2] === after[2];
+        ok("chestTakeAllNoReshuffle", same && bagCount("snack") >= 2 && bagCount("potato") >= 1,
+          "before=" + before.slice(0, 4).join(",") + " after=" + after.slice(0, 4).join(",") +
+          " snack=" + bagCount("snack") + " potato=" + bagCount("potato") + " sel=" + selectedKey());
+      })();
+      (function () {
+        /* 20260905ka: tray select rim draws after flower chrome (seed highlight visible) */
+        var src = Function.prototype.toString.call(drawOneBagCell);
+        var flowerAt = src.indexOf('trayish) {');
+        var selAt = src.indexOf("if (sel)");
+        ok("traySelectRimAfterChrome", flowerAt >= 0 && selAt > flowerAt, "flowerAt=" + flowerAt + " selAt=" + selAt);
       })();
       (function () {
         var _ach = Function.prototype.toString.call(drawAchieveList);
