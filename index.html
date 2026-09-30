@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ka";
+  var BUILD = "20260905kb";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -7568,6 +7568,35 @@
       paintFishingPole(g, x, y); return;
     }
     if (fishKindById(id) || cookedFishKindById(id)) { paintFishIcon(g, x, y, id); return; }
+    /* 20260905kb: branch/moss/glow mush — props Assets (tray drawBagKey already had these;
+       chest drawItemIcon fell through to missing atlas spr → blank). */
+    if (id === "branch") {
+      if (Assets.branch) {
+        var _bri = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.branch, 0, 0, Assets.branch.naturalWidth || 32, Assets.branch.naturalHeight || 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _bri;
+      } else paintBagKeyFallback(g, x, y, "#8B5A28", "#C47A38");
+      return;
+    }
+    if (id === "moss") {
+      if (Assets.moss) {
+        var _moi = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.moss, 0, 0, Assets.moss.naturalWidth || 32, Assets.moss.naturalHeight || 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _moi;
+      } else paintBagKeyFallback(g, x, y, "#3A7A28", "#8FD42A");
+      return;
+    }
+    if (id === "blueGlowMushroom") {
+      if (Assets.blueGlowMushroom) {
+        var _bgi = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.blueGlowMushroom, 0, 0, Assets.blueGlowMushroom.naturalWidth || 32, Assets.blueGlowMushroom.naturalHeight || 32, x, y, 16, 16);
+        g.imageSmoothingEnabled = _bgi;
+      } else paintBagKeyFallback(g, x, y, "#4090FF", "#80C8FF");
+      return;
+    }
     /* 20260905jh: standalone torch props (not atlas) — craft/loot use drawItemIcon */
     if (id === "torch" || id === "torchUnlit") {
       if (Assets.torchUnlit) {
@@ -21841,6 +21870,11 @@ function doCookNow() {
   }
 
   function eatFood(key, heal, energyAmt, lines) {
+    /* 20260905kb: do not waste food when hearts + energy are already full */
+    if (hp >= playerMaxHp() && energy >= MAX_ENERGY) {
+      showLineNote("ALREADY FULL!");
+      return false;
+    }
     if (spendSelected(key, 1) < 1) return false;
     hp += heal;
     energy += energyAmt;
@@ -25220,7 +25254,8 @@ function doCookNow() {
 
   function drawShaftLabel(g, p, word) {
     /* 20260905im: Press Start 8px white + thin cardinal outline; OUT same (no gold) */
-    var tw, lx, ly, exitish, x, y, bh;
+    /* 20260905kb: exitish labels skip when they cover Orion (house door OUT / mine OUT) */
+    var tw, lx, ly, exitish, x, y, bh, px0, px1, py0, py1;
     if (!word || !p) return;
     exitish = word === "OUT" || word === "UP" || word === "DOWN" || word === "MINE" || word === "PEAK" || word === "HOLE";
     x = p.tx * TILE;
@@ -25229,6 +25264,13 @@ function doCookNow() {
     bh = pixelTextGlyphH(PIXEL_HUD_SIZE) + 2;
     lx = x + ((TILE - tw) / 2) | 0;
     ly = y - (exitish ? (bh + 7) : (bh + 3));
+    if (exitish && player) {
+      px0 = player.x - 8;
+      px1 = player.x + 8;
+      py0 = player.y - 32;
+      py1 = player.y;
+      if (!(lx + tw + 4 < px0 || lx - 2 > px1 || ly + bh + 2 < py0 || ly - 1 > py1)) return;
+    }
     fill(g, lx - 2, ly - 1, tw + 4, bh + 2, "rgba(42,26,16,0.78)");
     drawPixelText(g, word, lx, ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
   }
@@ -28180,6 +28222,7 @@ function doCookNow() {
   }
 
   /* 20260905hm: weapon dock cell — frame sprite + icon or faint WEAPON ghost */
+  /* 20260905kb: cream frame + bright rim ONLY when the dock weapon is selected */
   function drawWeaponDockCell(g, x, y, w, h, big) {
     var sel, spr, ix, iy, iconS, prev, heldHere;
     sel = selectedSlot === SLOT_WEAPON_DOCK;
@@ -28188,15 +28231,15 @@ function doCookNow() {
     fill(g, x + 1, y + 1, w - 2, h - 2, sel ? C.woodHi : C.woodSh);
     fill(g, x + 2, y + 2, w - 4, h - 4, C.slot);
     fill(g, x + 3, y + 3, w - 6, h - 6, sel ? "#6A4420" : "#4A2E14");
-    spr = Assets.spr.weaponDockFrame;
-    if (spr && Assets.img) {
-      prev = g.imageSmoothingEnabled;
-      g.imageSmoothingEnabled = false;
-      g.drawImage(Assets.img, spr.x, spr.y, spr.fw || spr.w, spr.h,
-        x + ((w - 20) / 2) | 0, y + ((h - 20) / 2) | 0, 20, 20);
-      g.imageSmoothingEnabled = prev;
-    }
     if (sel) {
+      spr = Assets.spr.weaponDockFrame;
+      if (spr && Assets.img) {
+        prev = g.imageSmoothingEnabled;
+        g.imageSmoothingEnabled = false;
+        g.drawImage(Assets.img, spr.x, spr.y, spr.fw || spr.w, spr.h,
+          x + ((w - 20) / 2) | 0, y + ((h - 20) / 2) | 0, 20, 20);
+        g.imageSmoothingEnabled = prev;
+      }
       fill(g, x, y, w, 1, "#FFF8E0");
       fill(g, x, y + h - 1, w, 1, "#FFF8E0");
       fill(g, x, y, 1, h, "#FFF8E0");
@@ -31144,7 +31187,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ka", BUILD);
+      ok("BUILD", BUILD === "20260905kb", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -31239,6 +31282,81 @@ if (currentScene === "ocean") goExitOcean();
         var flowerAt = src.indexOf('trayish) {');
         var selAt = src.indexOf("if (sel)");
         ok("traySelectRimAfterChrome", flowerAt >= 0 && selAt > flowerAt, "flowerAt=" + flowerAt + " selAt=" + selAt);
+      })();
+      (function () {
+        /* 20260905kb: OUT label skips when overlapping Orion */
+        var _sc = currentScene, _tx, _ty, _face, src;
+        src = Function.prototype.toString.call(drawShaftLabel);
+        ok("outLabelSkipsPlayerOverlap", src.indexOf("20260905kb") >= 0 && src.indexOf("exitish && player") >= 0, "shaft label missing overlap skip");
+        applyScene("house");
+        _tx = player.tx; _ty = player.ty; _face = player.face;
+        placePlayer(10, 10, "down");
+        /* standing on house doormat — label rect overlaps player; draw must no-op safely */
+        try {
+          drawShaftLabel(ctx, { tx: 10, ty: 10 }, "OUT");
+          ok("outLabelOnDoormatSafe", true, "drew");
+        } catch (errOut) {
+          ok("outLabelOnDoormatSafe", false, String(errOut && errOut.message ? errOut.message : errOut));
+        }
+        placePlayer(_tx, _ty, _face);
+        applyScene(_sc);
+      })();
+      (function () {
+        /* 20260905kb: weapon dock cream frame only when selected */
+        var src = Function.prototype.toString.call(drawWeaponDockCell);
+        var selFrame = src.indexOf("if (sel)");
+        var frameSpr = src.indexOf("weaponDockFrame");
+        /* frame blit must sit inside the first if (sel) block — not drawn when tray item selected */
+        ok("dockFrameOnlyWhenSelected", selFrame >= 0 && frameSpr > selFrame,
+          "selAt=" + selFrame + " frameAt=" + frameSpr);
+        selectedSlot = 0;
+        ok("dockNotSelectedWhenTray", selectedSlot !== SLOT_WEAPON_DOCK, "sel=" + selectedSlot);
+        selectedSlot = SLOT_WEAPON_DOCK;
+        ok("dockSelectedWhenWeapon", selectedSlot === SLOT_WEAPON_DOCK, "sel=" + selectedSlot);
+        selectedSlot = 0;
+      })();
+      (function () {
+        /* 20260905kb: full hearts+energy blocks coconut eat (no spend) */
+        var prevHp = hp, prevEn = energy, prevNote, nBefore, ate;
+        emptyTray();
+        trayCells[0] = { key: "coconut", count: 1 };
+        selectedSlot = 0;
+        syncBagCounts();
+        hp = playerMaxHp();
+        energy = MAX_ENERGY;
+        lineNote = null;
+        nBefore = bagCount("coconut");
+        ate = eatCoconut();
+        prevNote = lineNote && lineNote.text;
+        ok("eatCoconutFullBlocked", ate === false && bagCount("coconut") === nBefore && prevNote === "ALREADY FULL!",
+          "ate=" + ate + " n=" + bagCount("coconut") + " note=" + prevNote);
+        /* not full — still eats */
+        hp = Math.max(1, playerMaxHp() - 20);
+        energy = Math.max(1, MAX_ENERGY - 30);
+        lineNote = null;
+        ate = eatCoconut();
+        ok("eatCoconutWhenHurt", ate === true && bagCount("coconut") === 0, "ate=" + ate + " n=" + bagCount("coconut"));
+        hp = prevHp;
+        energy = prevEn;
+        lineNote = null;
+      })();
+      (function () {
+        /* 20260905kb: chest/tray icons for branch/moss/glow mush wire to Assets props */
+        var src = Function.prototype.toString.call(drawItemIcon);
+        ok("chestBranchMossGlowIcons",
+          src.indexOf('id === "branch"') >= 0 &&
+          src.indexOf('id === "moss"') >= 0 &&
+          src.indexOf('id === "blueGlowMushroom"') >= 0 &&
+          src.indexOf("Assets.branch") >= 0 &&
+          src.indexOf("Assets.moss") >= 0 &&
+          src.indexOf("Assets.blueGlowMushroom") >= 0,
+          "drawItemIcon missing prop icon branches");
+        var bsrc = Function.prototype.toString.call(drawBagKey);
+        ok("trayBranchMossGlowIcons",
+          bsrc.indexOf('key === "branch"') >= 0 &&
+          bsrc.indexOf('key === "moss"') >= 0 &&
+          bsrc.indexOf('key === "blueGlowMushroom"') >= 0,
+          "drawBagKey missing");
       })();
       (function () {
         var _ach = Function.prototype.toString.call(drawAchieveList);
@@ -33540,11 +33658,14 @@ if (currentScene === "ocean") goExitOcean();
         "n=" + bagCount("acorn") + " hp=" + hp + " en=" + energy);
       selectedSlot = 3;
       ok("eatPineconeWorks", !!eatPinecone() && bagCount("pinecone") === 0, "n=" + bagCount("pinecone"));
-      /* 20260905gz: palm coconut drop + tray-tap eat. */
+      /* 20260905gz: palm coconut drop + tray-tap eat.
+         20260905kb: lower vitals first — eatFood blocks when already full. */
       emptyTray();
       emptyBag();
       trayCells[2] = { key: "coconut", count: 1 };
       selectedSlot = 2;
+      hp = Math.max(1, playerMaxHp() - 10);
+      energy = Math.max(1, MAX_ENERGY - 20);
       ok("eatCoconutWorks", !!eatCoconut() && bagCount("coconut") === 0, "n=" + bagCount("coconut"));
       ok("palmSeedKind", treeSeedKind({ kind: "palm" }) === "coconut", treeSeedKind({ kind: "palm" }));
       ok("palmStumpSeed", treeSeedKind({ kind: "stump", was: "palm" }) === "coconut", treeSeedKind({ kind: "stump", was: "palm" }));
