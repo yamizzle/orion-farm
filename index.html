@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kb";
+  var BUILD = "20260905kc";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -689,7 +689,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null, mushroomStalk: null, mushroomCap: null, cloudLedge: null, cloudCity: null, treeHollow: null, squirrelCanopy: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null, mushroomStalk: null, mushroomCap: null, cloudLedge: null, cloudCity: null, treeHollow: null, squirrelCanopy: null, canopySpiral: null, mountainApproach: null, moondropFoothills: null };
   var tick = 0;
   var lastTs = 0;
   /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
@@ -868,6 +868,20 @@
   var squirrelCanopySouth = { tx: 6, ty: 18 };
   var squirrelCanopyNorth = { tx: 6, ty: 2 };
   var squirrelCanopyVistaTy = 4; /* first reach ty <= this forces evening/night once */
+  /* 20260905kc: outside spiral climb → approach → foothills (Queued 9/22) */
+  var CANOPY_SPIRAL_COLS = 10;
+  var CANOPY_SPIRAL_ROWS = 20;
+  var canopySpiralSouth = { tx: 4, ty: 18 };
+  var canopySpiralNorth = { tx: 4, ty: 2 };
+  var MOUNTAIN_APPROACH_COLS = 12;
+  var MOUNTAIN_APPROACH_ROWS = 18;
+  var mountainApproachSouth = { tx: 5, ty: 16 };
+  var mountainApproachNorth = { tx: 5, ty: 2 };
+  var MOONDROP_FOOTHILLS_COLS = 14;
+  var MOONDROP_FOOTHILLS_ROWS = 14;
+  var moondropFoothillsSouth = { tx: 6, ty: 12 };
+  var foothillsWizardAt = { tx: 4, ty: 6 };
+  var foothillsLedgeAt = { tx: 10, ty: 4 };
   var peakCaveAt = { tx: 18, ty: 25 };
   var OCEAN_COLS = 64;
   var OCEAN_ROWS = 56;
@@ -2822,6 +2836,7 @@
     if (currentScene === "darkForest") rec.artRev = "05jy";
     if (currentScene === "treeHollow") rec.artRev = "05jx";
     if (currentScene === "squirrelCanopy") rec.artRev = "05jy";
+    if (currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills") rec.artRev = "05kc";
     if (currentScene === "cloudCity") rec.artRev = "05jm";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
@@ -3131,6 +3146,18 @@
       cached = null;
       sceneCache.squirrelCanopy = null;
     }
+    if (name === "canopySpiral" && cached && (cached.artRev || "") !== "05kc") {
+      cached = null;
+      sceneCache.canopySpiral = null;
+    }
+    if (name === "mountainApproach" && cached && (cached.artRev || "") !== "05kc") {
+      cached = null;
+      sceneCache.mountainApproach = null;
+    }
+    if (name === "moondropFoothills" && cached && (cached.artRev || "") !== "05kc") {
+      cached = null;
+      sceneCache.moondropFoothills = null;
+    }
     if (name === "darkForest" && cached && (cached.artRev || "") !== "05jy") {
       cached = null;
       sceneCache.darkForest = null;
@@ -3256,6 +3283,21 @@
       ROWS = SQUIRREL_CANOPY_ROWS;
       GROUND = buildSquirrelCanopyGround();
       PROPS = buildSquirrelCanopyProps();
+    } else if (name === "canopySpiral") {
+      COLS = CANOPY_SPIRAL_COLS;
+      ROWS = CANOPY_SPIRAL_ROWS;
+      GROUND = buildCanopySpiralGround();
+      PROPS = buildCanopySpiralProps();
+    } else if (name === "mountainApproach") {
+      COLS = MOUNTAIN_APPROACH_COLS;
+      ROWS = MOUNTAIN_APPROACH_ROWS;
+      GROUND = buildMountainApproachGround();
+      PROPS = buildMountainApproachProps();
+    } else if (name === "moondropFoothills") {
+      COLS = MOONDROP_FOOTHILLS_COLS;
+      ROWS = MOONDROP_FOOTHILLS_ROWS;
+      GROUND = buildMoondropFoothillsGround();
+      PROPS = buildMoondropFoothillsProps();
     } else if (name === "mushroomStalk") {
       COLS = MUSHROOM_STALK_COLS;
       ROWS = MUSHROOM_STALK_ROWS;
@@ -5404,11 +5446,266 @@
     });
   }
   function talkCanopySpiral() {
-    showLineNote("THE SPIRAL PATH IS AHEAD.");
-    if (!unlocked.canopySpiralTip) {
+    /* 20260905kc: spiral tile enters real climb scene (was toast stub) */
+    if (!squirrelFormActive()) {
+      showLineNote("NEED TO STAY A SQUIRREL UP HERE.");
+      return;
+    }
+    enterCanopySpiral();
+  }
+
+  /* 20260905kc: outside spiral = simple vine/branch climb (code-paint; no new PNG) */
+  function buildCanopySpiralGround() {
+    var cols = CANOPY_SPIRAL_COLS, rows = CANOPY_SPIRAL_ROWS;
+    var g = [], y, x, mid, spiral;
+    mid = (cols / 2) | 0;
+    for (y = 0; y < rows; y++) {
+      g[y] = [];
+      spiral = ((y / 3) | 0) % 2;
+      for (x = 0; x < cols; x++) {
+        if (x === mid - 1 + spiral || x === mid + spiral) g[y][x] = "f";
+        else if (x === mid - 1 || x === mid) g[y][x] = "f";
+        else g[y][x] = "y";
+      }
+    }
+    g[canopySpiralSouth.ty][canopySpiralSouth.tx] = "f";
+    g[canopySpiralNorth.ty][canopySpiralNorth.tx] = "f";
+    if (canopySpiralSouth.tx + 1 < cols) g[canopySpiralSouth.ty][canopySpiralSouth.tx + 1] = "f";
+    if (canopySpiralNorth.tx + 1 < cols) g[canopySpiralNorth.ty][canopySpiralNorth.tx + 1] = "f";
+    return g;
+  }
+  function buildCanopySpiralProps() {
+    var list = [], y, mid = (CANOPY_SPIRAL_COLS / 2) | 0;
+    for (y = 2; y < CANOPY_SPIRAL_ROWS - 2; y += 3) {
+      list.push({ kind: "hollowBark", tx: mid - 3, ty: y });
+      list.push({ kind: "hollowBark", tx: mid + 2, ty: y + 1 });
+      list.push({ kind: "canopyLeafClump", tx: mid - 4, ty: y });
+      list.push({ kind: "canopyLeafClump", tx: mid + 3, ty: y + 1 });
+    }
+    list.push({ kind: "spiralDoor", tx: canopySpiralSouth.tx, ty: canopySpiralSouth.ty, dir: "down" });
+    list.push({ kind: "spiralDoor", tx: canopySpiralNorth.tx, ty: canopySpiralNorth.ty, dir: "up" });
+    return list;
+  }
+  function enterCanopySpiral() {
+    startDoorFade(function () {
+      applyScene("canopySpiral");
+      unlocked.canopySpiralEntered = true;
       unlocked.canopySpiralTip = true;
+      placePlayer(canopySpiralSouth.tx, canopySpiralSouth.ty - 1, "up");
+      if (!walkable(player.tx, player.ty)) placePlayer(canopySpiralSouth.tx, canopySpiralSouth.ty - 2, "up");
+      if (!squirrelFormActive()) squirrelUntil = (tick | 0) + 12000;
+      showLineNote("THE SPIRAL PATH!");
+      persistSave();
+    });
+  }
+  function exitCanopySpiralToCanopy() {
+    startDoorFade(function () {
+      applyScene("squirrelCanopy");
+      placePlayer(squirrelCanopyNorth.tx, squirrelCanopyNorth.ty + 1, "down");
+      if (!walkable(player.tx, player.ty)) placePlayer(squirrelCanopyNorth.tx, squirrelCanopyNorth.ty + 2, "down");
+      if (!squirrelFormActive()) squirrelUntil = (tick | 0) + 12000;
+      showLineNote("BACK IN THE TREETOPS.");
+      persistSave();
+    });
+  }
+  function enterMountainApproachFromSpiral() {
+    startDoorFade(function () {
+      applyScene("mountainApproach");
+      unlocked.mountainApproachEntered = true;
+      placePlayer(mountainApproachSouth.tx, mountainApproachSouth.ty - 1, "up");
+      if (!walkable(player.tx, player.ty)) placePlayer(mountainApproachSouth.tx, mountainApproachSouth.ty - 2, "up");
+      showLineNote("THE MOUNTAIN PATH.");
+      persistSave();
+    });
+  }
+  function isCanopySpiralSouth(tx, ty) {
+    return currentScene === "canopySpiral" && tx === canopySpiralSouth.tx && ty === canopySpiralSouth.ty;
+  }
+  function isCanopySpiralNorth(tx, ty) {
+    return currentScene === "canopySpiral" && tx === canopySpiralNorth.tx && ty === canopySpiralNorth.ty;
+  }
+  function tryCanopySpiralDoors() {
+    if (currentScene !== "canopySpiral") return false;
+    if (isCanopySpiralSouth(player.tx, player.ty) || isCanopySpiralSouth(facingTile().tx, facingTile().ty)) {
+      exitCanopySpiralToCanopy(); return true;
+    }
+    if (isCanopySpiralNorth(player.tx, player.ty) || isCanopySpiralNorth(facingTile().tx, facingTile().ty)) {
+      enterMountainApproachFromSpiral(); return true;
+    }
+    return false;
+  }
+
+  /* 20260905kc: quiet scenic approach between spiral and foothills — no combat */
+  function buildMountainApproachGround() {
+    var cols = MOUNTAIN_APPROACH_COLS, rows = MOUNTAIN_APPROACH_ROWS;
+    var g = [], y, x, mid;
+    mid = (cols / 2) | 0;
+    for (y = 0; y < rows; y++) {
+      g[y] = [];
+      for (x = 0; x < cols; x++) {
+        if (x === mid - 1 || x === mid || (y % 4 === 1 && (x === mid - 2 || x === mid + 1))) g[y][x] = "f";
+        else g[y][x] = "y";
+      }
+    }
+    g[mountainApproachSouth.ty][mountainApproachSouth.tx] = "f";
+    g[mountainApproachNorth.ty][mountainApproachNorth.tx] = "f";
+    if (mountainApproachSouth.tx + 1 < cols) g[mountainApproachSouth.ty][mountainApproachSouth.tx + 1] = "f";
+    if (mountainApproachNorth.tx + 1 < cols) g[mountainApproachNorth.ty][mountainApproachNorth.tx + 1] = "f";
+    return g;
+  }
+  function buildMountainApproachProps() {
+    var list = [], y, mid = (MOUNTAIN_APPROACH_COLS / 2) | 0;
+    for (y = 3; y < MOUNTAIN_APPROACH_ROWS - 2; y += 4) {
+      list.push({ kind: "canopyLeafClump", tx: mid - 4, ty: y });
+      list.push({ kind: "canopyLeafClump", tx: mid + 3, ty: y + 1 });
+      list.push({ kind: "rock", tx: mid - 3, ty: y + 2 });
+    }
+    list.push({ kind: "approachGate", tx: mountainApproachSouth.tx, ty: mountainApproachSouth.ty, dir: "down" });
+    list.push({ kind: "approachGate", tx: mountainApproachNorth.tx, ty: mountainApproachNorth.ty, dir: "up" });
+    return list;
+  }
+  function exitMountainApproachToSpiral() {
+    startDoorFade(function () {
+      applyScene("canopySpiral");
+      placePlayer(canopySpiralNorth.tx, canopySpiralNorth.ty + 1, "down");
+      if (!walkable(player.tx, player.ty)) placePlayer(canopySpiralNorth.tx, canopySpiralNorth.ty + 2, "down");
+      if (!squirrelFormActive()) squirrelUntil = (tick | 0) + 12000;
+      showLineNote("BACK ON THE SPIRAL.");
+      persistSave();
+    });
+  }
+  function enterMoondropFoothillsFromApproach() {
+    startDoorFade(function () {
+      applyScene("moondropFoothills");
+      unlocked.moondropFoothillsEntered = true;
+      placePlayer(moondropFoothillsSouth.tx, moondropFoothillsSouth.ty - 1, "up");
+      if (!walkable(player.tx, player.ty)) placePlayer(moondropFoothillsSouth.tx, moondropFoothillsSouth.ty - 2, "up");
+      showLineNote("MOONDROP FOOTHILLS!");
+      persistSave();
+    });
+  }
+  function isMountainApproachSouth(tx, ty) {
+    return currentScene === "mountainApproach" && tx === mountainApproachSouth.tx && ty === mountainApproachSouth.ty;
+  }
+  function isMountainApproachNorth(tx, ty) {
+    return currentScene === "mountainApproach" && tx === mountainApproachNorth.tx && ty === mountainApproachNorth.ty;
+  }
+  function tryMountainApproachDoors() {
+    if (currentScene !== "mountainApproach") return false;
+    if (isMountainApproachSouth(player.tx, player.ty) || isMountainApproachSouth(facingTile().tx, facingTile().ty)) {
+      exitMountainApproachToSpiral(); return true;
+    }
+    if (isMountainApproachNorth(player.tx, player.ty) || isMountainApproachNorth(facingTile().tx, facingTile().ty)) {
+      enterMoondropFoothillsFromApproach(); return true;
+    }
+    return false;
+  }
+
+  /* 20260905kc: small foothills clearing + wizard cameo + first ledge */
+  function buildMoondropFoothillsGround() {
+    var cols = MOONDROP_FOOTHILLS_COLS, rows = MOONDROP_FOOTHILLS_ROWS;
+    var g = [], y, x, mid;
+    mid = (cols / 2) | 0;
+    for (y = 0; y < rows; y++) {
+      g[y] = [];
+      for (x = 0; x < cols; x++) {
+        /* open clearing with trail spine */
+        if (y >= 2 && y <= rows - 3 && x >= 2 && x <= cols - 3) g[y][x] = "f";
+        else if (x === mid - 1 || x === mid) g[y][x] = "f";
+        else g[y][x] = "y";
+      }
+    }
+    g[moondropFoothillsSouth.ty][moondropFoothillsSouth.tx] = "f";
+    g[foothillsLedgeAt.ty][foothillsLedgeAt.tx] = "f";
+    if (foothillsLedgeAt.tx + 1 < cols) g[foothillsLedgeAt.ty][foothillsLedgeAt.tx + 1] = "f";
+    return g;
+  }
+  function buildMoondropFoothillsProps() {
+    var list = [];
+    list.push({ kind: "rock", tx: 2, ty: 3 });
+    list.push({ kind: "rock", tx: 11, ty: 5 });
+    list.push({ kind: "rock", tx: 3, ty: 9 });
+    list.push({ kind: "rock", tx: 9, ty: 8 });
+    list.push({ kind: "rock", tx: 12, ty: 3 });
+    list.push({ kind: "canopyLeafClump", tx: 1, ty: 5 });
+    list.push({ kind: "canopyLeafClump", tx: 12, ty: 7 });
+    list.push({ kind: "foothillsGate", tx: moondropFoothillsSouth.tx, ty: moondropFoothillsSouth.ty, dir: "down" });
+    list.push({ kind: "firstLedge", tx: foothillsLedgeAt.tx, ty: foothillsLedgeAt.ty });
+    return list;
+  }
+  function exitMoondropFoothillsToApproach() {
+    startDoorFade(function () {
+      applyScene("mountainApproach");
+      placePlayer(mountainApproachNorth.tx, mountainApproachNorth.ty + 1, "down");
+      if (!walkable(player.tx, player.ty)) placePlayer(mountainApproachNorth.tx, mountainApproachNorth.ty + 2, "down");
+      showLineNote("BACK ON THE PATH.");
+      persistSave();
+    });
+  }
+  function talkFoothillsWizard() {
+    faceToward(player, foothillsWizardAt.tx, foothillsWizardAt.ty);
+    unlocked.foothillsWizardMet = true;
+    if (!unlocked.foothillsQuestStarted) {
+      unlocked.foothillsQuestStarted = true;
+      openDialogue("WIZARD", [
+        "WELCOME TO THE MOUNTAIN.",
+        "REACH THE FIRST LEDGE.",
+        "THE OVERLOOK IS NEAR."
+      ]);
+      showLineNote("REACH THE FIRST LEDGE.");
+      persistSave();
+      return;
+    }
+    if (unlocked.firstLedgeReached) {
+      openDialogue("WIZARD", [
+        "GOOD CLIMB!",
+        "THE PATH GOES HIGHER",
+        "ANOTHER DAY."
+      ]);
+      persistSave();
+      return;
+    }
+    openDialogue("WIZARD", [
+      "THE FIRST LEDGE",
+      "IS JUST AHEAD.",
+      "GO ON!"
+    ]);
+    persistSave();
+  }
+  function goTalkFoothillsWizard() {
+    var dest, path;
+    highlight = { tx: foothillsWizardAt.tx, ty: foothillsWizardAt.ty };
+    if (isNear(player.tx, player.ty, foothillsWizardAt.tx, foothillsWizardAt.ty) ||
+        (player.tx === foothillsWizardAt.tx && player.ty === foothillsWizardAt.ty)) {
+      pending = null;
+      talkFoothillsWizard();
+      return;
+    }
+    dest = nearestAdjacent(foothillsWizardAt.tx, foothillsWizardAt.ty);
+    if (!dest) { talkFoothillsWizard(); return; }
+    path = findPath(player.tx, player.ty, dest.tx, dest.ty);
+    if (!path.length) { talkFoothillsWizard(); return; }
+    pending = { type: "talkFoothillsWizard" };
+    startWalk(player, path, 3.5);
+  }
+  function maybeFirstLedge() {
+    if (currentScene !== "moondropFoothills") return;
+    if (unlocked.firstLedgeReached) return;
+    if (player.tx === foothillsLedgeAt.tx && player.ty === foothillsLedgeAt.ty) {
+      unlocked.firstLedgeReached = true;
+      showLineNote("THE CLIMB CONTINUES.");
       persistSave();
     }
+  }
+  function isMoondropFoothillsSouth(tx, ty) {
+    return currentScene === "moondropFoothills" && tx === moondropFoothillsSouth.tx && ty === moondropFoothillsSouth.ty;
+  }
+  function tryMoondropFoothillsDoors() {
+    if (currentScene !== "moondropFoothills") return false;
+    if (isMoondropFoothillsSouth(player.tx, player.ty) || isMoondropFoothillsSouth(facingTile().tx, facingTile().ty)) {
+      exitMoondropFoothillsToApproach(); return true;
+    }
+    return false;
   }
   function forceCanopyVistaEvening() {
     var ph;
@@ -6019,7 +6316,7 @@
     if (key === "squirrel") {
       if (squirrelFormActive()) {
         /* 20260905jy: cannot cancel squirrel form on canopy */
-        if (currentScene === "squirrelCanopy") {
+        if (currentScene === "squirrelCanopy" || currentScene === "canopySpiral") {
           showLineNote("NEED TO STAY A SQUIRREL UP HERE.");
           spellFx = { kind: "squirrel", life: 500 };
           persistSave();
@@ -6101,7 +6398,7 @@
     }
     if (squirrelUntil > 0 && squirrelUntil <= tick) {
       /* 20260905jy: stay squirrel on canopy (ending blocked) */
-      if (currentScene === "squirrelCanopy") {
+      if (currentScene === "squirrelCanopy" || currentScene === "canopySpiral") {
         squirrelUntil = tick + 12000;
       } else {
         squirrelUntil = 0;
@@ -8528,7 +8825,7 @@
       } else if (p.kind === "glowMushroomPlant") {
         /* trunk tile only — wide cap is Y-sort walk-behind, not a solid wall */
         block(p.tx, p.ty);
-      } else if (p.kind === "cloudWall" || p.kind === "mushroomCapTop" || p.kind === "cloudLedge" || p.kind === "hollowBark" || p.kind === "canopyLeafClump" || p.kind === "canopyVista" || p.kind === "canopyHole" || p.kind === "canopySpiral") {
+      } else if (p.kind === "cloudWall" || p.kind === "mushroomCapTop" || p.kind === "cloudLedge" || p.kind === "hollowBark" || p.kind === "canopyLeafClump" || p.kind === "canopyVista" || p.kind === "canopyHole" || p.kind === "canopySpiral" || p.kind === "spiralDoor" || p.kind === "approachGate" || p.kind === "foothillsGate" || p.kind === "firstLedge") {
         /* decorative / door tiles — ground walk mask owns solid */
       } else if (p.kind === "fountain") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
@@ -8859,7 +9156,7 @@
         maxY = Math.max(0, worldH - VIEW_H);
       }
     }
-    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
       } else {
@@ -8888,7 +9185,7 @@
     if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
           if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
         } else if (camY < minY) {
           camY = minY;
@@ -12932,10 +13229,10 @@ function selectedIs(key) {
       }
       syncLilaFlowers();
       /* 20260905jf: cabin/darkForest/wizardHouse were missing — sleep save remapped to overworld */
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" || data.scene === "treeHollow" || data.scene === "squirrelCanopy" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" || data.scene === "treeHollow" || data.scene === "squirrelCanopy" || data.scene === "canopySpiral" || data.scene === "mountainApproach" || data.scene === "moondropFoothills" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" || data.scene === "treeHollow" || data.scene === "squirrelCanopy") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" || data.scene === "treeHollow" || data.scene === "squirrelCanopy" || data.scene === "canopySpiral" || data.scene === "mountainApproach" || data.scene === "moondropFoothills") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down",
@@ -13588,6 +13885,9 @@ function selectedIs(key) {
       else if (scene === "darkForest") { tx = darkForestLand.tx; ty = darkForestLand.ty; face = "up"; }
       else if (scene === "treeHollow") { tx = treeHollowSouth.tx; ty = treeHollowSouth.ty - 2; face = "up"; }
       else if (scene === "squirrelCanopy") { tx = squirrelCanopySouth.tx; ty = squirrelCanopySouth.ty - 2; face = "up"; }
+      else if (scene === "canopySpiral") { tx = canopySpiralSouth.tx; ty = canopySpiralSouth.ty - 2; face = "up"; }
+      else if (scene === "mountainApproach") { tx = mountainApproachSouth.tx; ty = mountainApproachSouth.ty - 2; face = "up"; }
+      else if (scene === "moondropFoothills") { tx = moondropFoothillsSouth.tx; ty = moondropFoothillsSouth.ty - 2; face = "up"; }
       else if (scene === "caveclimb") {
         if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
         else { tx = 5; ty = 7; face = "up"; }
@@ -15963,6 +16263,9 @@ function doCookNow() {
     if (currentScene === "highPeak") return "HIGH PEAK";
     if (currentScene === "treeHollow") return "TREE HOLLOW";
     if (currentScene === "squirrelCanopy") return "TREETOPS";
+    if (currentScene === "canopySpiral") return "SPIRAL PATH";
+    if (currentScene === "mountainApproach") return "APPROACH";
+    if (currentScene === "moondropFoothills") return "FOOTHILLS";
     if (currentScene === "mushroomStalk") return "MUSHROOM STALK";
     if (currentScene === "mushroomCap") return "MUSHROOM CAP";
     if (currentScene === "cloudLedge") return "CLOUD LEDGE";
@@ -16942,6 +17245,22 @@ function doCookNow() {
     }
     if (currentScene === "squirrelCanopy" && !unlocked.canopyVistaSeen) {
       return "SEE THE MOUNTAIN FROM THE CANOPY.";
+    }
+    /* 20260905kc: spiral → approach → foothills quest tips */
+    if (currentScene === "squirrelCanopy" && unlocked.canopyVistaSeen && !unlocked.canopySpiralEntered) {
+      return "TAKE THE SPIRAL PATH.";
+    }
+    if (currentScene === "canopySpiral" && !unlocked.mountainApproachEntered) {
+      return "CLIMB THE SPIRAL PATH.";
+    }
+    if (currentScene === "mountainApproach" && !unlocked.moondropFoothillsEntered) {
+      return "WALK TO THE FOOTHILLS.";
+    }
+    if (currentScene === "moondropFoothills" && !unlocked.foothillsQuestStarted) {
+      return "TALK TO THE WIZARD.";
+    }
+    if (currentScene === "moondropFoothills" && unlocked.foothillsQuestStarted && !unlocked.firstLedgeReached) {
+      return "REACH THE FIRST LEDGE.";
     }
     /* 20260905cm: evening/night outdoor slugs drop loot — kid tip until first kill */
     if (!found.outdoorSlug && outdoorSlugScene() && (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT")) {
@@ -22847,6 +23166,33 @@ function doCookNow() {
       talkCanopySpiral();
       return;
     }
+    /* 20260905kc: spiral / approach / foothills auto doors + ledge */
+    if (isCanopySpiralSouth(player.tx, player.ty)) {
+      pending = null;
+      exitCanopySpiralToCanopy();
+      return;
+    }
+    if (isCanopySpiralNorth(player.tx, player.ty)) {
+      pending = null;
+      enterMountainApproachFromSpiral();
+      return;
+    }
+    if (isMountainApproachSouth(player.tx, player.ty)) {
+      pending = null;
+      exitMountainApproachToSpiral();
+      return;
+    }
+    if (isMountainApproachNorth(player.tx, player.ty)) {
+      pending = null;
+      enterMoondropFoothillsFromApproach();
+      return;
+    }
+    if (isMoondropFoothillsSouth(player.tx, player.ty)) {
+      pending = null;
+      exitMoondropFoothillsToApproach();
+      return;
+    }
+    maybeFirstLedge();
     maybeCanopyVista();
     /* 20260905jk: mushroom climb scene doors + yard climb trigger */
     if (currentScene === "highPeak" && isGlowClimbSpot(player.tx, player.ty)) {
@@ -23252,6 +23598,18 @@ function doCookNow() {
       exitSquirrelCanopyToHollow();
     } else if (act.type === "squirrelCanopyNorth") {
       talkCanopySpiral();
+    } else if (act.type === "canopySpiralSouth") {
+      exitCanopySpiralToCanopy();
+    } else if (act.type === "canopySpiralNorth") {
+      enterMountainApproachFromSpiral();
+    } else if (act.type === "mountainApproachSouth") {
+      exitMountainApproachToSpiral();
+    } else if (act.type === "mountainApproachNorth") {
+      enterMoondropFoothillsFromApproach();
+    } else if (act.type === "moondropFoothillsSouth") {
+      exitMoondropFoothillsToApproach();
+    } else if (act.type === "talkFoothillsWizard") {
+      talkFoothillsWizard();
     } else if (act.type === "talkBird") {
       talkBird();
     } else if (act.type === "talkTreeNest") {
@@ -24902,7 +25260,7 @@ function doCookNow() {
     if (p.kind === "moonAltar") return p.ty * TILE + 28;
     if (p.kind === "hole") return p.ty * TILE + 2;
     if (p.kind === "ladder") return p.ty * TILE + 20;
-    if (p.kind === "mushroomStalkHole" || p.kind === "treeHollowHole" || p.kind === "hollowBark" || p.kind === "canopyHole" || p.kind === "canopySpiral" || p.kind === "canopyLeafClump" || p.kind === "canopyVista") return p.ty * TILE + 18;
+    if (p.kind === "mushroomStalkHole" || p.kind === "treeHollowHole" || p.kind === "hollowBark" || p.kind === "canopyHole" || p.kind === "canopySpiral" || p.kind === "spiralDoor" || p.kind === "approachGate" || p.kind === "foothillsGate" || p.kind === "firstLedge" || p.kind === "canopyLeafClump" || p.kind === "canopyVista") return p.ty * TILE + 18;
     if (p.kind === "swordPedestal") return p.ty * TILE + 20;
     if (p.kind === "giantTree") return p.ty * TILE + 24;
     if (p.kind === "woodsDown") return p.ty * TILE + 4;
@@ -25633,7 +25991,7 @@ function doCookNow() {
       g.restore();
       drawShaftLabel(g, p, "DOWN");
     } else if (p.kind === "canopySpiral") {
-      /* 20260905jy: far-end spiral stub (approach later) */
+      /* 20260905jy/kc: canopy north spiral door into climb scene */
       var _spx = p.tx * TILE, _spy = p.ty * TILE;
       fill(g, _spx + 2, _spy - 10, 12, 22, "#5A3A20");
       fill(g, _spx + 4, _spy - 8, 8, 18, "#3A2414");
@@ -25646,6 +26004,29 @@ function doCookNow() {
       g.stroke();
       g.restore();
       drawShaftLabel(g, p, "SPIRAL");
+    } else if (p.kind === "spiralDoor" || p.kind === "approachGate" || p.kind === "foothillsGate") {
+      /* 20260905kc: climb/path door markers (code-paint) */
+      var _gdx = p.tx * TILE, _gdy = p.ty * TILE;
+      fill(g, _gdx + 2, _gdy - 8, 12, 20, "#5A3A20");
+      fill(g, _gdx + 4, _gdy - 6, 8, 16, "#3A2414");
+      if (p.kind === "spiralDoor") {
+        g.save();
+        g.strokeStyle = "#8A6040";
+        g.lineWidth = 1;
+        g.beginPath();
+        g.moveTo(_gdx + 5, _gdy + 10);
+        g.quadraticCurveTo(_gdx + 14, _gdy + 2, _gdx + 6, _gdy - 6);
+        g.stroke();
+        g.restore();
+      }
+      drawShaftLabel(g, p, p.dir === "up" ? "UP" : "DOWN");
+    } else if (p.kind === "firstLedge") {
+      /* 20260905kc: first overlook ledge (higher climb stub later) */
+      var _flx = p.tx * TILE, _fly = p.ty * TILE;
+      fill(g, _flx - 2, _fly + 6, 20, 8, "#6A6870");
+      fill(g, _flx, _fly + 2, 16, 6, "#8A8890");
+      fill(g, _flx + 2, _fly - 2, 12, 6, "#A0A0A8");
+      drawShaftLabel(g, p, "LEDGE");
     } else if (p.kind === "canopyLeafClump") {
       fill(g, x - 2, y - 6, 20, 14, "#3A6828");
       fill(g, x + 2, y - 10, 14, 10, "#4A8030");
@@ -26205,6 +26586,9 @@ function doCookNow() {
     if (currentScene === "wizardHouse") {
       list.push({ foot: tileFootY(wizardNpcAt.ty), kind: "wizardNpc" });
     }
+    if (currentScene === "moondropFoothills") {
+      list.push({ foot: tileFootY(foothillsWizardAt.ty), kind: "foothillsWizard" });
+    }
     return list;
   }
 
@@ -26235,6 +26619,14 @@ function doCookNow() {
     } else if (item.kind === "maple") {
       drawShadow(g, tileCenterX(4), tileFootY(3), 5);
       Assets.draw(g, Assets.spr["reed-down"] ? "reed-down" : "pip-down", tileCenterX(4), tileFootY(3), 0);
+    } else if (item.kind === "foothillsWizard") {
+      var fwBob = Math.round(Math.sin(tick / 390) * 1);
+      var fwx = tileCenterX(foothillsWizardAt.tx), fwy = tileFootY(foothillsWizardAt.ty);
+      drawShadow(g, fwx, fwy, 5);
+      if (!drawStandSprite(g, Assets.wizardNpc, foothillsWizardAt.tx * TILE, foothillsWizardAt.ty * TILE + fwBob, 16, 32)) {
+        fill(g, foothillsWizardAt.tx * TILE + 4, foothillsWizardAt.ty * TILE - 8 + fwBob, 8, 20, "#4A3080");
+      }
+      if (talkCueNear(foothillsWizardAt.tx, foothillsWizardAt.ty)) drawTalkCue(g, fwx, fwy + fwBob);
     } else if (item.kind === "wizardNpc") {
       var wBob = Math.round(Math.sin(tick / 390) * 1);
       var wx = tileCenterX(wizardNpcAt.tx), wy = tileFootY(wizardNpcAt.ty);
@@ -26494,7 +26886,7 @@ function doCookNow() {
     sortActors(list);
     for (i = 0; i < list.length; i++) {
       item = list[i];
-      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
         if (item.kind === "prop") drawGradedProp(g, item);
         else drawWashedActor(g, item);
       } else {
@@ -28587,7 +28979,7 @@ function doCookNow() {
     frameDayT = null;
     beginFrameGrade();
     updateCamera();
-    g.fillStyle = (currentScene === "darkForest" || currentScene === "treeHollow") ? "#000000" : (currentScene === "squirrelCanopy") ? (C.sky || "#6A98C8") : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "darkForest" || currentScene === "treeHollow") ? "#000000" : (currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills") ? (C.sky || "#6A98C8") : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -28609,7 +29001,7 @@ function doCookNow() {
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -28620,9 +29012,9 @@ function doCookNow() {
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
           if (currentScene === "darkForest" || currentScene === "treeHollow") { g.fillStyle = "#000000"; g.fillRect(dx, dy, TILE, TILE); }
-          else if (currentScene === "squirrelCanopy") { g.fillStyle = C.sky || "#6A98C8"; g.fillRect(dx, dy, TILE, TILE); }
+          else if (currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills") { g.fillStyle = C.sky || "#6A98C8"; g.fillRect(dx, dy, TILE, TILE); }
           else if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") drawSkyTile(g, tx, ty, dx, dy);
           else if (currentScene === "ocean") { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
           else if (isCozyInterior()) Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
@@ -28728,21 +29120,33 @@ function doCookNow() {
               g.fillStyle = "rgba(80,55,30,0.2)";
               g.fillRect(dx + 10, dy + 2, 2, TILE - 4);
             }
-          } else if (currentScene === "squirrelCanopy") {
-            /* 20260905jy: branch path + leafy sky sides (reuse darkForest / code-paint) */
+          } else if (currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills") {
+            /* 20260905jy/kc: branch/trail floors + leafy/rock sky sides (reuse darkForest / code-paint) */
             if (ch === "f") {
               var _scf = ((tx + ty) & 1) ? (Assets.darkForestFloor2 || Assets.darkForestFloor) : (Assets.darkForestFloor || Assets.darkForestFloor2);
               if (_scf) g.drawImage(_scf, dx, dy, 16, 16);
               else { g.fillStyle = "#3A2A18"; g.fillRect(dx, dy, TILE, TILE); }
-              g.fillStyle = "rgba(40,70,30,0.22)";
-              g.fillRect(dx, dy, TILE, TILE);
+              if (currentScene === "moondropFoothills") {
+                g.fillStyle = "rgba(90,90,70,0.18)";
+                g.fillRect(dx, dy, TILE, TILE);
+              } else {
+                g.fillStyle = "rgba(40,70,30,0.22)";
+                g.fillRect(dx, dy, TILE, TILE);
+              }
             } else {
-              g.fillStyle = ((tx * 3 + ty * 5) & 1) ? "#4A7A38" : "#3A6830";
-              g.fillRect(dx, dy, TILE, TILE);
-              g.fillStyle = "rgba(120,180,80,0.18)";
-              g.fillRect(dx + 1, dy + 2, 6, 5);
-              g.fillStyle = "rgba(30,50,90,0.25)";
-              g.fillRect(dx + 9, dy + 8, 5, 5);
+              if (currentScene === "moondropFoothills") {
+                g.fillStyle = ((tx * 3 + ty * 5) & 1) ? "#6A7888" : "#5A6878";
+                g.fillRect(dx, dy, TILE, TILE);
+                g.fillStyle = "rgba(200,210,220,0.15)";
+                g.fillRect(dx + 1, dy + 2, 6, 5);
+              } else {
+                g.fillStyle = ((tx * 3 + ty * 5) & 1) ? "#4A7A38" : "#3A6830";
+                g.fillRect(dx, dy, TILE, TILE);
+                g.fillStyle = "rgba(120,180,80,0.18)";
+                g.fillRect(dx + 1, dy + 2, 6, 5);
+                g.fillStyle = "rgba(30,50,90,0.25)";
+                g.fillRect(dx + 9, dy + 8, 5, 5);
+              }
             }
           } else if (currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
             if (ch === "f") {
@@ -29463,6 +29867,53 @@ function doCookNow() {
         return;
       }
     }
+    if (currentScene === "canopySpiral") {
+      if (isCanopySpiralSouth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { exitCanopySpiralToCanopy(); return; }
+        var _css = findPath(player.tx, player.ty, tx, ty);
+        if (_css && _css.length) { pending = { type: "canopySpiralSouth" }; startWalk(player, _css, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) exitCanopySpiralToCanopy();
+        return;
+      }
+      if (isCanopySpiralNorth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { enterMountainApproachFromSpiral(); return; }
+        var _csn = findPath(player.tx, player.ty, tx, ty);
+        if (_csn && _csn.length) { pending = { type: "canopySpiralNorth" }; startWalk(player, _csn, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) enterMountainApproachFromSpiral();
+        return;
+      }
+    }
+    if (currentScene === "mountainApproach") {
+      if (isMountainApproachSouth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { exitMountainApproachToSpiral(); return; }
+        var _mas = findPath(player.tx, player.ty, tx, ty);
+        if (_mas && _mas.length) { pending = { type: "mountainApproachSouth" }; startWalk(player, _mas, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) exitMountainApproachToSpiral();
+        return;
+      }
+      if (isMountainApproachNorth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { enterMoondropFoothillsFromApproach(); return; }
+        var _man = findPath(player.tx, player.ty, tx, ty);
+        if (_man && _man.length) { pending = { type: "mountainApproachNorth" }; startWalk(player, _man, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) enterMoondropFoothillsFromApproach();
+        return;
+      }
+    }
+    if (currentScene === "moondropFoothills") {
+      if (hitSprite(world, tileCenterX(foothillsWizardAt.tx), tileFootY(foothillsWizardAt.ty), 16, 32, 8, 28) ||
+          (tx === foothillsWizardAt.tx && ty === foothillsWizardAt.ty) ||
+          isNear(tx, ty, foothillsWizardAt.tx, foothillsWizardAt.ty)) {
+        goTalkFoothillsWizard();
+        return;
+      }
+      if (isMoondropFoothillsSouth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { exitMoondropFoothillsToApproach(); return; }
+        var _mfs = findPath(player.tx, player.ty, tx, ty);
+        if (_mfs && _mfs.length) { pending = { type: "moondropFoothillsSouth" }; startWalk(player, _mfs, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) exitMoondropFoothillsToApproach();
+        return;
+      }
+    }
     if (currentScene === "mushroomStalk") {
       if (isMushroomStalkSouth(tx, ty)) {
         if (player.tx === tx && player.ty === ty) { exitMushroomStalkToYard(); return; }
@@ -29998,7 +30449,7 @@ function doCookNow() {
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "mushroomStalkHole" || PROPS[hi].kind === "treeHollowHole" || PROPS[hi].kind === "canopyHole" || PROPS[hi].kind === "canopySpiral" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "sleepingBear" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "mushroomStalkHole" || PROPS[hi].kind === "treeHollowHole" || PROPS[hi].kind === "canopyHole" || PROPS[hi].kind === "canopySpiral" || PROPS[hi].kind === "spiralDoor" || PROPS[hi].kind === "approachGate" || PROPS[hi].kind === "foothillsGate" || PROPS[hi].kind === "firstLedge" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "sleepingBear" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -30593,6 +31044,18 @@ if (currentScene === "ocean") goExitOcean();
       if (tryMushroomDoors()) return;
       if (tryTreeHollowDoors()) return;
       if (trySquirrelCanopyDoors()) return;
+      if (tryCanopySpiralDoors()) return;
+      if (tryMountainApproachDoors()) return;
+      if (tryMoondropFoothillsDoors()) return;
+      if (currentScene === "moondropFoothills") {
+        var _fwf = facingTile();
+        if ((player.tx === foothillsWizardAt.tx && player.ty === foothillsWizardAt.ty) ||
+            (_fwf.tx === foothillsWizardAt.tx && _fwf.ty === foothillsWizardAt.ty) ||
+            isNear(player.tx, player.ty, foothillsWizardAt.tx, foothillsWizardAt.ty)) {
+          talkFoothillsWizard();
+          return;
+        }
+      }
       if (tryCloudShopHere()) return;
       if (tryCookHere()) return;
       if (trySmeltHere()) return;
@@ -31187,7 +31650,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kb", BUILD);
+      ok("BUILD", BUILD === "20260905kc", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -34578,7 +35041,7 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         builds = [];
       })();
 
-      /* 20260905jx/jy: darkForest hole → treeHollow → squirrelCanopy + vista — last so earlier tests stay clean */
+      /* 20260905jx/jy/kc: darkForest hole → treeHollow → squirrelCanopy → spiral → approach → foothills — last so earlier tests stay clean */
       (function () {
         var hole, landOk, phBefore, phAfter, cancelBlocked;
         wandOwned = true; found.wand = true;
@@ -34603,6 +35066,17 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         delete unlocked.squirrelCanopyEntered;
         delete unlocked.canopyVistaSeen;
         delete unlocked.canopySpiralTip;
+        delete unlocked.canopySpiralEntered;
+        delete unlocked.mountainApproachEntered;
+        delete unlocked.moondropFoothillsEntered;
+        delete unlocked.foothillsQuestStarted;
+        delete unlocked.foothillsWizardMet;
+        delete unlocked.firstLedgeReached;
+        if (sceneCache) {
+          sceneCache.canopySpiral = null;
+          sceneCache.mountainApproach = null;
+          sceneCache.moondropFoothills = null;
+        }
         closeDialogue();
         talkSquirrelHole();
         ok("squirrelHoleTooBig", !squirrelFormActive() && !!unlocked.squirrelHoleTooBig && currentScene === "darkForest", "tooBig=" + !!unlocked.squirrelHoleTooBig + " form=" + squirrelFormActive() + " sc=" + currentScene);
@@ -34642,10 +35116,58 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         forceCanopyVistaEvening();
         phAfter = clockPhaseName();
         ok("canopyVistaEvening", !!unlocked.canopyVistaSeen && (phAfter === "EVENING" || phAfter === "NIGHT"), "before=" + phBefore + " after=" + phAfter + " dayMs=" + dayMs);
-        /* spiral stub */
+        /* 20260905kc: spiral enters real scene (not toast stub) */
+        squirrelUntil = (tick | 0) + 20000;
         talkCanopySpiral();
-        ok("canopySpiralStub", !!unlocked.canopySpiralTip, "tip");
+        if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+        ok("canopySpiralEnter", currentScene === "canopySpiral" && !!unlocked.canopySpiralEntered && !!unlocked.canopySpiralTip, "sc=" + currentScene);
+        ok("canopySpiralWalk", walkable(canopySpiralSouth.tx, canopySpiralSouth.ty - 1) || walkable(canopySpiralSouth.tx, canopySpiralSouth.ty - 2), "path");
+        saveScene();
+        ok("canopySpiralArtRev", !!(sceneCache.canopySpiral && sceneCache.canopySpiral.artRev === "05kc"), sceneCache.canopySpiral && sceneCache.canopySpiral.artRev);
+        /* cancel squirrel blocked on spiral */
+        wandOwned = true; found.wand = true;
+        weaponDock = { key: "wand", count: 1 };
+        selectedSlot = SLOT_WEAPON_DOCK;
+        wandSpellSel = "squirrel";
+        squirrelUntil = (tick | 0) + 20000;
+        cancelBlocked = tryCastWandSpell();
+        ok("canopySpiralCancelBlocked", !!cancelBlocked && squirrelFormActive() && currentScene === "canopySpiral", "cast=" + !!cancelBlocked + " form=" + squirrelFormActive() + " sc=" + currentScene);
+        /* spiral south → canopy */
+        placePlayer(canopySpiralSouth.tx, canopySpiralSouth.ty, "down");
+        exitCanopySpiralToCanopy();
+        if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+        ok("canopySpiralExitCanopy", currentScene === "squirrelCanopy", currentScene);
+        /* re-enter spiral → approach → foothills */
+        squirrelUntil = (tick | 0) + 20000;
+        talkCanopySpiral();
+        if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+        placePlayer(canopySpiralNorth.tx, canopySpiralNorth.ty, "up");
+        enterMountainApproachFromSpiral();
+        if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+        ok("mountainApproachEnter", currentScene === "mountainApproach" && !!unlocked.mountainApproachEntered, "sc=" + currentScene);
+        ok("mountainApproachWalk", walkable(mountainApproachSouth.tx, mountainApproachSouth.ty - 1) || walkable(mountainApproachSouth.tx, mountainApproachSouth.ty - 2), "path");
+        saveScene();
+        ok("mountainApproachArtRev", !!(sceneCache.mountainApproach && sceneCache.mountainApproach.artRev === "05kc"), sceneCache.mountainApproach && sceneCache.mountainApproach.artRev);
+        placePlayer(mountainApproachNorth.tx, mountainApproachNorth.ty, "up");
+        enterMoondropFoothillsFromApproach();
+        if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+        ok("moondropFoothillsEnter", currentScene === "moondropFoothills" && !!unlocked.moondropFoothillsEntered, "sc=" + currentScene);
+        saveScene();
+        ok("moondropFoothillsArtRev", !!(sceneCache.moondropFoothills && sceneCache.moondropFoothills.artRev === "05kc"), sceneCache.moondropFoothills && sceneCache.moondropFoothills.artRev);
+        /* wizard quest + first ledge */
+        talkFoothillsWizard();
+        closeDialogue();
+        ok("foothillsWizardQuest", !!unlocked.foothillsQuestStarted, "quest");
+        placePlayer(foothillsLedgeAt.tx, foothillsLedgeAt.ty, "up");
+        maybeFirstLedge();
+        ok("firstLedgeReach", !!unlocked.firstLedgeReached, "ledge");
+        /* foothills south → approach */
+        placePlayer(moondropFoothillsSouth.tx, moondropFoothillsSouth.ty, "down");
+        exitMoondropFoothillsToApproach();
+        if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+        ok("foothillsExitApproach", currentScene === "mountainApproach", currentScene);
         /* return canopy → hollow → forest */
+        applyScene("squirrelCanopy");
         placePlayer(squirrelCanopySouth.tx, squirrelCanopySouth.ty, "down");
         exitSquirrelCanopyToHollow();
         if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
