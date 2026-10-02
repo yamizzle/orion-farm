@@ -1,3 +1,6 @@
+## BUILD 20260905kd (Local 10/2) — sleep exactly +1 day
+finishSleepAdvance uses sleepFx.fromDay+1 once (dayDone); pause keeps sleep wall re-arm; maybeAdopt refused during sleep/faint + normalize dayMs + jump>=DAY_MS multi-day gate. DAY_MS frozen. Needs live verify. Never START OVER.
+
 ## BUILD 20260905jx (Local 9/26) — squirrel treeHollow climb room
 Squirrel form + far HOLE → `treeHollow` door fade; south lands darkForest (10,11) 2-tile gap; north UP toast THE TREETOPS ARE AHEAD. (no treetops yet). Non-squirrel TOO BIG. artRev `05jx`. Atlas 1477. Frozen DAY_MS/walk/Orion/grass/evening. Never START OVER.
 

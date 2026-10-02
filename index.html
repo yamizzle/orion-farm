@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kc";
+  var BUILD = "20260905kd";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -13377,15 +13377,22 @@ function selectedIs(key) {
   function maybeAdoptStoredClock(data) {
     var sDay, sMs, jump, remoteAt;
     if (!data || typeof data !== "object") return false;
+    /* 20260905kd: never adopt over an in-flight sleep/faint day advance. */
+    if (sleepFx || faintFx) return false;
     sDay = data.day | 0;
     if (!(sDay >= 1)) return false;
     sMs = (typeof data.dayMs === "number" && data.dayMs >= 0) ? data.dayMs : 0;
+    /* Normalize stored ms so rank/jump match adoptClockFields (dayMs>=DAY_MS → extra days). */
+    while (sMs >= DAY_MS) {
+      sMs -= DAY_MS;
+      sDay += 1;
+    }
     jump = clockRank(sDay, sMs) - clockRank(dayNumber, dayMs);
     if (!(jump > 0)) return false;
     remoteAt = (typeof data.savedAt === "number" && data.savedAt === data.savedAt) ? data.savedAt : 0;
-    /* 20260905je: refuse multi-day storage jumps unless that write is clearly newer
-       than our last persist (real other-tab play). Stops same-origin noise leaping days. */
-    if (jump > DAY_MS && !(remoteAt > lastWrittenAt + 500)) return false;
+    /* 20260905je + 20260905kd: refuse multi-day (>=1 day) storage jumps unless that write
+       is clearly newer than our last persist (real other-tab play). */
+    if (jump >= DAY_MS && !(remoteAt > lastWrittenAt + 500)) return false;
     return adoptClockFields(sDay, sMs);
   }
 
@@ -15637,12 +15644,17 @@ function doCookNow() {
   }
 
   function finishSleepAdvance() {
-    var spot;
+    var spot, from;
+    /* 20260905kd: LIVE 10/2 am sleep +2 days — advance exactly once from sleep start day. */
+    if (!sleepFx || sleepFx.dayDone) return;
+    sleepFx.dayDone = true;
     if (currentScene === "cabin") {
       found.cabinBed = true;
       unlocked.cabinBed = true;
     }
-    dayNumber += 1;
+    from = sleepFx.fromDay | 0;
+    if (!(from >= 1)) from = dayNumber | 0;
+    dayNumber = from + 1;
     dayMs = 0;
     /* 20260905je: sleep is intentional day+1 — re-arm wall ceiling to the new rank. */
     clockWallOrigin = Date.now();
@@ -15683,8 +15695,9 @@ function doCookNow() {
     player.moving = false;
     player.stepT = 0;
     player.frame = 0;
-    /* 20260905cx: floating bed Z's during the sleep fade */
-    sleepFx = { age: 0, stage: "out", zs: [], woke: false };
+    /* 20260905cx: floating bed Z's during the sleep fade
+       20260905kd: lock fromDay so wake is exactly +1 even if day races mid-fade. */
+    sleepFx = { age: 0, stage: "out", zs: [], woke: false, dayDone: false, fromDay: dayNumber | 0 };
     for (i = 0; i < 3; i++) {
       sleepFx.zs.push({
         x: (VIEW_W / 2 | 0) - 10 + i * 12,
@@ -16462,7 +16475,15 @@ function doCookNow() {
   function updateClock() {
     var now, dt, before, beforeDay, rolled, wall, wallDate;
     if (timePaused()) {
-      resetClockMark();
+      /* 20260905kd: during sleep/faint keep wall ceiling if sleep already re-armed it.
+         Full resetClockMark wiped finishSleepAdvance's wall and invited adopt races. */
+      clockMark = 0;
+      clockBudgetWall = 0;
+      clockBudgetMs = 0;
+      if (!sleepFx && !faintFx) {
+        clockWallOrigin = 0;
+        clockRankOrigin = 0;
+      }
       return;
     }
     now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
@@ -31650,7 +31671,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kc", BUILD);
+      ok("BUILD", BUILD === "20260905kd", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -31940,6 +31961,11 @@ if (currentScene === "ocean") goExitOcean();
         nowFn = function () {
           return (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
         };
+        /* 20260905kd: earlier tests may leave toast/dialogue which pause the day clock. */
+        toast = null;
+        dialogue = null;
+        sleepFx = null;
+        faintFx = null;
         resetClockMark();
         /* First tick only arms the mark — no advance. */
         updateClock();
@@ -31985,6 +32011,52 @@ if (currentScene === "ocean") goExitOcean();
         ok("clockBurstBudget", burst <= 1100 && dayNumber <= beforeDay + 1, "burst=" + burst + " day=" + dayNumber);
         ok("clockOneDayMaxTick", true); /* ≤1 day/tick enforced in updateClock loop */
         ok("clockRankHelper", typeof clockRank === "function" && clockRank(2, 100) === 2 * DAY_MS + 100, String(clockRank(2, 100)));
+        /* 20260905kd: bed sleep advances exactly one day (LIVE 10/2 am was +2). */
+        (function () {
+          var d0, m0, scene0, bed, stand, began;
+          d0 = dayNumber;
+          m0 = dayMs;
+          scene0 = currentScene;
+          /* Keep farm bed sleepable even if earlier tests armed cabin save. */
+          found.pathClear = false;
+          found.logBridge = false;
+          applyScene("house");
+          sleepFx = null;
+          faintFx = null;
+          toast = null;
+          dialogue = null;
+          dayNumber = 50;
+          dayMs = PHASE_MS + 1000; /* PM */
+          bed = findBed();
+          ok("sleepDayBedFound", !!bed && sleepSceneOk(), "bed=" + !!bed + " ok=" + sleepSceneOk());
+          stand = null;
+          if (bed) {
+            if (walkable(bed.tx, bed.ty + 2)) stand = { tx: bed.tx, ty: bed.ty + 2, face: "up" };
+            else if (walkable(bed.tx + 1, bed.ty + 2)) stand = { tx: bed.tx + 1, ty: bed.ty + 2, face: "up" };
+            else if (walkable(bed.tx + 2, bed.ty + 1)) stand = { tx: bed.tx + 2, ty: bed.ty + 1, face: "left" };
+            else if (walkable(bed.tx - 1, bed.ty + 1)) stand = { tx: bed.tx - 1, ty: bed.ty + 1, face: "right" };
+            else if (walkable(bed.tx, bed.ty - 1)) stand = { tx: bed.tx, ty: bed.ty - 1, face: "down" };
+          }
+          ok("sleepDayStand", !!stand, "stand");
+          if (stand) {
+            placePlayer(stand.tx, stand.ty, stand.face);
+            began = trySleepHere();
+            ok("sleepDayBegin", !!began && !!sleepFx && (sleepFx.fromDay | 0) === 50, "began=" + began + " from=" + (sleepFx && sleepFx.fromDay));
+            /* Simulate mid-fade race bumping day — wake must still land on fromDay+1. */
+            dayNumber = 99;
+            finishSleepAdvance();
+            ok("sleepDayExactlyPlusOne", dayNumber === 51 && dayMs === 0, "day=" + dayNumber + " ms=" + dayMs);
+            finishSleepAdvance();
+            ok("sleepDayNoDoubleAdvance", dayNumber === 51 && dayMs === 0 && !!(sleepFx && sleepFx.dayDone), "day=" + dayNumber);
+          }
+          sleepFx = null;
+          faintFx = null;
+          toast = null;
+          dayNumber = d0;
+          dayMs = m0;
+          resetClockMark();
+          applyScene(scene0 || "overworld");
+        })();
         /* 20260905je: absolute wall ceiling clamps a forged ahead rank. */
         (function () {
           var d0 = dayNumber, m0 = dayMs, rank0, after;
