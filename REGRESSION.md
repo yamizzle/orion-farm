@@ -1,3 +1,6 @@
+## BUILD 20260905ke (Local 10/3) — first ledge opens higher climb
+`ledgeClimb` N–S rocky climb after foothills first ledge; south ↔ foothillsLedgeAt; north overlook toast once. foothills artRev `05ke` climb gate. Frozen DAY_MS/walk/Orion/grass/evening/START OVER. Needs live. Never START OVER.
+
 ## BUILD 20260905kd (Local 10/2) — sleep exactly +1 day
 finishSleepAdvance uses sleepFx.fromDay+1 once (dayDone); pause keeps sleep wall re-arm; maybeAdopt refused during sleep/faint + normalize dayMs + jump>=DAY_MS multi-day gate. DAY_MS frozen. Needs live verify. Never START OVER.
 
