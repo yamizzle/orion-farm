@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ke";
+  var BUILD = "20260905kf";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -689,7 +689,7 @@
   var STONE_PER_ROCK = 1;
   var FENCE_COST = 2;
   var PATH_COST = 1;
-  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null, mushroomStalk: null, mushroomCap: null, cloudLedge: null, cloudCity: null, treeHollow: null, squirrelCanopy: null, canopySpiral: null, mountainApproach: null, moondropFoothills: null, ledgeClimb: null };
+  var sceneCache = { overworld: null, mine: null, mine2: null, mine3: null, house: null, shop: null, forest: null, treetop: null, tree: null, tree2: null, tree3: null, tree4: null, ocean: null, cottage: null, cottage2: null, tallCottage: null, lHouse: null, wizardHouse: null, islandCave: null, mountainMine: null, highPeak: null, cabin: null, darkForest: null, mushroomStalk: null, mushroomCap: null, cloudLedge: null, cloudCity: null, treeHollow: null, squirrelCanopy: null, canopySpiral: null, mountainApproach: null, moondropFoothills: null, ledgeClimb: null, ledgeOverlook: null };
   var tick = 0;
   var lastTs = 0;
   /* 20260905bq: clock has its own baseline so lag/resume/UI-pause cannot
@@ -887,6 +887,11 @@
   var LEDGE_CLIMB_ROWS = 16;
   var ledgeClimbSouth = { tx: 4, ty: 14 };
   var ledgeClimbNorth = { tx: 4, ty: 2 };
+  /* 20260905kf: climb north opens scenic overlook (Queued 9/22 payoff) */
+  var LEDGE_OVERLOOK_COLS = 12;
+  var LEDGE_OVERLOOK_ROWS = 12;
+  var ledgeOverlookSouth = { tx: 5, ty: 10 };
+  var ledgeOverlookVistaAt = { tx: 5, ty: 2 };
   var peakCaveAt = { tx: 18, ty: 25 };
   var OCEAN_COLS = 64;
   var OCEAN_ROWS = 56;
@@ -2843,6 +2848,7 @@
     if (currentScene === "squirrelCanopy") rec.artRev = "05jy";
     if (currentScene === "canopySpiral" || currentScene === "mountainApproach") rec.artRev = "05kc";
     if (currentScene === "moondropFoothills" || currentScene === "ledgeClimb") rec.artRev = "05ke";
+    if (currentScene === "ledgeOverlook") rec.artRev = "05kf";
     if (currentScene === "cloudCity") rec.artRev = "05jm";
     sceneCache[sceneCacheKey(currentScene)] = rec;
   }
@@ -3168,6 +3174,10 @@
       cached = null;
       sceneCache.ledgeClimb = null;
     }
+    if (name === "ledgeOverlook" && cached && (cached.artRev || "") !== "05kf") {
+      cached = null;
+      sceneCache.ledgeOverlook = null;
+    }
     if (name === "darkForest" && cached && (cached.artRev || "") !== "05jy") {
       cached = null;
       sceneCache.darkForest = null;
@@ -3313,6 +3323,11 @@
       ROWS = LEDGE_CLIMB_ROWS;
       GROUND = buildLedgeClimbGround();
       PROPS = buildLedgeClimbProps();
+    } else if (name === "ledgeOverlook") {
+      COLS = LEDGE_OVERLOOK_COLS;
+      ROWS = LEDGE_OVERLOOK_ROWS;
+      GROUND = buildLedgeOverlookGround();
+      PROPS = buildLedgeOverlookProps();
     } else if (name === "mushroomStalk") {
       COLS = MUSHROOM_STALK_COLS;
       ROWS = MUSHROOM_STALK_ROWS;
@@ -5676,11 +5691,19 @@
       return;
     }
     if (unlocked.firstLedgeReached) {
-      openDialogue("WIZARD", [
-        "GOOD CLIMB!",
-        "THE PATH GOES HIGHER.",
-        "TAKE THE LEDGE CLIMB."
-      ]);
+      if (unlocked.ledgeOverlookSeen) {
+        openDialogue("WIZARD", [
+          "YOU REACHED THE OVERLOOK.",
+          "THE MOUNTAIN TOUCHES THE MOON.",
+          "REST HERE AWHILE."
+        ]);
+      } else {
+        openDialogue("WIZARD", [
+          "GOOD CLIMB!",
+          "THE PATH GOES HIGHER.",
+          "TAKE THE LEDGE CLIMB."
+        ]);
+      }
       persistSave();
       return;
     }
@@ -5742,7 +5765,7 @@
     return false;
   }
 
-  /* 20260905ke: short rocky climb above first ledge — scenic overlook stub at north */
+  /* 20260905ke/kf: short rocky climb above first ledge — north opens real overlook */
   function buildLedgeClimbGround() {
     var cols = LEDGE_CLIMB_COLS, rows = LEDGE_CLIMB_ROWS;
     var g = [], y, x, mid;
@@ -5792,14 +5815,68 @@
       persistSave();
     });
   }
-  function maybeLedgeOverlook() {
-    if (currentScene !== "ledgeClimb") return;
-    if (unlocked.ledgeOverlookSeen) return;
-    if (player.tx === ledgeClimbNorth.tx && player.ty === ledgeClimbNorth.ty) {
-      unlocked.ledgeOverlookSeen = true;
-      showLineNote("THE PATH GOES HIGHER.");
-      persistSave();
+  /* 20260905kf: scenic overlook clearing north of ledge climb (replaces toast stub) */
+  function buildLedgeOverlookGround() {
+    var cols = LEDGE_OVERLOOK_COLS, rows = LEDGE_OVERLOOK_ROWS;
+    var g = [], y, x, mid;
+    mid = (cols / 2) | 0;
+    for (y = 0; y < rows; y++) {
+      g[y] = [];
+      for (x = 0; x < cols; x++) {
+        /* open rocky clearing with floor spine toward vista */
+        if (Math.abs(x - mid) <= 2 || (y >= 3 && y <= 8 && Math.abs(x - mid) <= 3)) g[y][x] = "f";
+        else g[y][x] = "y";
+      }
     }
+    g[ledgeOverlookSouth.ty][ledgeOverlookSouth.tx] = "f";
+    if (ledgeOverlookSouth.tx + 1 < cols) g[ledgeOverlookSouth.ty][ledgeOverlookSouth.tx + 1] = "f";
+    if (ledgeOverlookSouth.tx - 1 >= 0) g[ledgeOverlookSouth.ty][ledgeOverlookSouth.tx - 1] = "f";
+    g[ledgeOverlookVistaAt.ty][ledgeOverlookVistaAt.tx] = "f";
+    if (ledgeOverlookVistaAt.tx + 1 < cols) g[ledgeOverlookVistaAt.ty][ledgeOverlookVistaAt.tx + 1] = "f";
+    return g;
+  }
+  function buildLedgeOverlookProps() {
+    var list = [], mid = (LEDGE_OVERLOOK_COLS / 2) | 0;
+    list.push({ kind: "rock", tx: mid - 4, ty: 4 });
+    list.push({ kind: "rock", tx: mid + 3, ty: 5 });
+    list.push({ kind: "rock", tx: mid - 3, ty: 7 });
+    list.push({ kind: "rock", tx: mid + 2, ty: 8 });
+    list.push({ kind: "canopyLeafClump", tx: mid - 5, ty: 3 });
+    list.push({ kind: "canopyLeafClump", tx: mid + 4, ty: 4 });
+    list.push({ kind: "canopyLeafClump", tx: mid - 4, ty: 9 });
+    list.push({ kind: "canopyVista", tx: ledgeOverlookVistaAt.tx, ty: ledgeOverlookVistaAt.ty });
+    list.push({ kind: "overlookGate", tx: ledgeOverlookSouth.tx, ty: ledgeOverlookSouth.ty, dir: "down" });
+    return list;
+  }
+  function enterLedgeOverlookFromClimb() {
+    startDoorFade(function () {
+      applyScene("ledgeOverlook");
+      if (!unlocked.ledgeClimbEntered) unlocked.ledgeClimbEntered = true;
+      unlocked.ledgeOverlookSeen = true;
+      placePlayer(ledgeOverlookSouth.tx, ledgeOverlookSouth.ty - 1, "up");
+      if (!walkable(player.tx, player.ty)) placePlayer(ledgeOverlookSouth.tx, ledgeOverlookSouth.ty - 2, "up");
+      showLineNote("THE OVERLOOK!");
+      persistSave();
+    });
+  }
+  function exitLedgeOverlookToClimb() {
+    startDoorFade(function () {
+      applyScene("ledgeClimb");
+      placePlayer(ledgeClimbNorth.tx, ledgeClimbNorth.ty + 1, "down");
+      if (!walkable(player.tx, player.ty)) placePlayer(ledgeClimbNorth.tx, ledgeClimbNorth.ty + 2, "down");
+      showLineNote("BACK ON THE CLIMB.");
+      persistSave();
+    });
+  }
+  function isLedgeOverlookSouth(tx, ty) {
+    return currentScene === "ledgeOverlook" && tx === ledgeOverlookSouth.tx && ty === ledgeOverlookSouth.ty;
+  }
+  function tryLedgeOverlookDoors() {
+    if (currentScene !== "ledgeOverlook") return false;
+    if (isLedgeOverlookSouth(player.tx, player.ty) || isLedgeOverlookSouth(facingTile().tx, facingTile().ty)) {
+      exitLedgeOverlookToClimb(); return true;
+    }
+    return false;
   }
   function isLedgeClimbSouth(tx, ty) {
     return currentScene === "ledgeClimb" && tx === ledgeClimbSouth.tx && ty === ledgeClimbSouth.ty;
@@ -5813,7 +5890,7 @@
       exitLedgeClimbToFoothills(); return true;
     }
     if (isLedgeClimbNorth(player.tx, player.ty) || isLedgeClimbNorth(facingTile().tx, facingTile().ty)) {
-      maybeLedgeOverlook();
+      enterLedgeOverlookFromClimb();
       return true;
     }
     return false;
@@ -8936,7 +9013,7 @@
       } else if (p.kind === "glowMushroomPlant") {
         /* trunk tile only — wide cap is Y-sort walk-behind, not a solid wall */
         block(p.tx, p.ty);
-      } else if (p.kind === "cloudWall" || p.kind === "mushroomCapTop" || p.kind === "cloudLedge" || p.kind === "hollowBark" || p.kind === "canopyLeafClump" || p.kind === "canopyVista" || p.kind === "canopyHole" || p.kind === "canopySpiral" || p.kind === "spiralDoor" || p.kind === "approachGate" || p.kind === "foothillsGate" || p.kind === "firstLedge" || p.kind === "ledgeClimbGate") {
+      } else if (p.kind === "cloudWall" || p.kind === "mushroomCapTop" || p.kind === "cloudLedge" || p.kind === "hollowBark" || p.kind === "canopyLeafClump" || p.kind === "canopyVista" || p.kind === "canopyHole" || p.kind === "canopySpiral" || p.kind === "spiralDoor" || p.kind === "approachGate" || p.kind === "foothillsGate" || p.kind === "firstLedge" || p.kind === "ledgeClimbGate" || p.kind === "overlookGate") {
         /* decorative / door tiles — ground walk mask owns solid */
       } else if (p.kind === "fountain") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
@@ -9267,7 +9344,7 @@
         maxY = Math.max(0, worldH - VIEW_H);
       }
     }
-    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+    if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
       if (worldW < VIEW_W) {
         minX = maxX = (worldW - VIEW_W) >> 1;
       } else {
@@ -9296,7 +9373,7 @@
     if (currentScene === "forest" || currentScene === "overworld" || currentScene === "treetop" || currentScene === "tree" || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "islandCave") {
       if (player.y - camY < topInset) {
         camY = Math.round(player.y - topInset);
-        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+        if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
           if (camY < -CAM_PAD_TOP) camY = -CAM_PAD_TOP;
         } else if (camY < minY) {
           camY = minY;
@@ -13340,10 +13417,10 @@ function selectedIs(key) {
       }
       syncLilaFlowers();
       /* 20260905jf: cabin/darkForest/wizardHouse were missing — sleep save remapped to overworld */
-      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" || data.scene === "treeHollow" || data.scene === "squirrelCanopy" || data.scene === "canopySpiral" || data.scene === "mountainApproach" || data.scene === "moondropFoothills" || data.scene === "ledgeClimb" ||
+      if (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "overworld" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" || data.scene === "treeHollow" || data.scene === "squirrelCanopy" || data.scene === "canopySpiral" || data.scene === "mountainApproach" || data.scene === "moondropFoothills" || data.scene === "ledgeClimb" || data.scene === "ledgeOverlook" ||
           (data.player && typeof data.player === "object")) {
         pendingRestore = {
-          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" || data.scene === "treeHollow" || data.scene === "squirrelCanopy" || data.scene === "canopySpiral" || data.scene === "mountainApproach" || data.scene === "moondropFoothills" || data.scene === "ledgeClimb") ? data.scene : "overworld",
+          scene: (data.scene === "mine" || data.scene === "house" || data.scene === "shop" || data.scene === "forest" || data.scene === "treetop" || data.scene === "tree" || data.scene === "peak" || data.scene === "caveclimb" || data.scene === "ocean" || data.scene === "cottage" || data.scene === "cottage2" || data.scene === "tallCottage" || data.scene === "lHouse" || data.scene === "islandCave" || data.scene === "mountainMine" || data.scene === "highPeak" || data.scene === "cabin" || data.scene === "darkForest" || data.scene === "wizardHouse" || data.scene === "mushroomStalk" || data.scene === "mushroomCap" || data.scene === "cloudLedge" || data.scene === "cloudCity" || data.scene === "treeHollow" || data.scene === "squirrelCanopy" || data.scene === "canopySpiral" || data.scene === "mountainApproach" || data.scene === "moondropFoothills" || data.scene === "ledgeClimb" || data.scene === "ledgeOverlook") ? data.scene : "overworld",
           tx: data.player && typeof data.player.tx === "number" ? data.player.tx | 0 : -1,
           ty: data.player && typeof data.player.ty === "number" ? data.player.ty | 0 : -1,
           face: data.player ? readFace(data.player.face) : "down",
@@ -14007,6 +14084,7 @@ function selectedIs(key) {
       else if (scene === "mountainApproach") { tx = mountainApproachSouth.tx; ty = mountainApproachSouth.ty - 2; face = "up"; }
       else if (scene === "moondropFoothills") { tx = moondropFoothillsSouth.tx; ty = moondropFoothillsSouth.ty - 2; face = "up"; }
       else if (scene === "ledgeClimb") { tx = ledgeClimbSouth.tx; ty = ledgeClimbSouth.ty - 2; face = "up"; }
+      else if (scene === "ledgeOverlook") { tx = ledgeOverlookSouth.tx; ty = ledgeOverlookSouth.ty - 2; face = "up"; }
       else if (scene === "caveclimb") {
         if (climbFloor === 2) { tx = 9; ty = 4; face = "down"; }
         else { tx = 5; ty = 7; face = "up"; }
@@ -16392,6 +16470,7 @@ function doCookNow() {
     if (currentScene === "mountainApproach") return "APPROACH";
     if (currentScene === "moondropFoothills") return "FOOTHILLS";
     if (currentScene === "ledgeClimb") return "LEDGE CLIMB";
+    if (currentScene === "ledgeOverlook") return "OVERLOOK";
     if (currentScene === "mushroomStalk") return "MUSHROOM STALK";
     if (currentScene === "mushroomCap") return "MUSHROOM CAP";
     if (currentScene === "cloudLedge") return "CLOUD LEDGE";
@@ -23346,11 +23425,15 @@ function doCookNow() {
     }
     if (isLedgeClimbNorth(player.tx, player.ty)) {
       pending = null;
-      maybeLedgeOverlook();
+      enterLedgeOverlookFromClimb();
+      return;
+    }
+    if (isLedgeOverlookSouth(player.tx, player.ty)) {
+      pending = null;
+      exitLedgeOverlookToClimb();
       return;
     }
     maybeFirstLedge();
-    maybeLedgeOverlook();
     maybeCanopyVista();
     /* 20260905jk: mushroom climb scene doors + yard climb trigger */
     if (currentScene === "highPeak" && isGlowClimbSpot(player.tx, player.ty)) {
@@ -23771,7 +23854,9 @@ function doCookNow() {
     } else if (act.type === "ledgeClimbSouth") {
       exitLedgeClimbToFoothills();
     } else if (act.type === "ledgeClimbNorth") {
-      maybeLedgeOverlook();
+      enterLedgeOverlookFromClimb();
+    } else if (act.type === "ledgeOverlookSouth") {
+      exitLedgeOverlookToClimb();
     } else if (act.type === "talkFoothillsWizard") {
       talkFoothillsWizard();
     } else if (act.type === "talkBird") {
@@ -25424,7 +25509,7 @@ function doCookNow() {
     if (p.kind === "moonAltar") return p.ty * TILE + 28;
     if (p.kind === "hole") return p.ty * TILE + 2;
     if (p.kind === "ladder") return p.ty * TILE + 20;
-    if (p.kind === "mushroomStalkHole" || p.kind === "treeHollowHole" || p.kind === "hollowBark" || p.kind === "canopyHole" || p.kind === "canopySpiral" || p.kind === "spiralDoor" || p.kind === "approachGate" || p.kind === "foothillsGate" || p.kind === "firstLedge" || p.kind === "ledgeClimbGate" || p.kind === "canopyLeafClump" || p.kind === "canopyVista") return p.ty * TILE + 18;
+    if (p.kind === "mushroomStalkHole" || p.kind === "treeHollowHole" || p.kind === "hollowBark" || p.kind === "canopyHole" || p.kind === "canopySpiral" || p.kind === "spiralDoor" || p.kind === "approachGate" || p.kind === "foothillsGate" || p.kind === "firstLedge" || p.kind === "ledgeClimbGate" || p.kind === "overlookGate" || p.kind === "canopyLeafClump" || p.kind === "canopyVista") return p.ty * TILE + 18;
     if (p.kind === "swordPedestal") return p.ty * TILE + 20;
     if (p.kind === "giantTree") return p.ty * TILE + 24;
     if (p.kind === "woodsDown") return p.ty * TILE + 4;
@@ -26168,8 +26253,8 @@ function doCookNow() {
       g.stroke();
       g.restore();
       drawShaftLabel(g, p, "SPIRAL");
-    } else if (p.kind === "spiralDoor" || p.kind === "approachGate" || p.kind === "foothillsGate" || p.kind === "ledgeClimbGate") {
-      /* 20260905kc/ke: climb/path door markers (code-paint) */
+    } else if (p.kind === "spiralDoor" || p.kind === "approachGate" || p.kind === "foothillsGate" || p.kind === "ledgeClimbGate" || p.kind === "overlookGate") {
+      /* 20260905kc/ke/kf: climb/path door markers (code-paint) */
       var _gdx = p.tx * TILE, _gdy = p.ty * TILE;
       fill(g, _gdx + 2, _gdy - 8, 12, 20, "#5A3A20");
       fill(g, _gdx + 4, _gdy - 6, 8, 16, "#3A2414");
@@ -26183,7 +26268,8 @@ function doCookNow() {
         g.stroke();
         g.restore();
       }
-      drawShaftLabel(g, p, p.dir === "up" ? "UP" : "DOWN");
+      if (p.kind === "overlookGate") drawShaftLabel(g, p, p.dir === "up" ? "OVERLOOK" : "OUT");
+      else drawShaftLabel(g, p, p.dir === "up" ? "UP" : "DOWN");
     } else if (p.kind === "firstLedge") {
       /* 20260905kc/ke: first overlook ledge (climb gate appears after unlock) */
       var _flx = p.tx * TILE, _fly = p.ty * TILE;
@@ -27050,7 +27136,7 @@ function doCookNow() {
     sortActors(list);
     for (i = 0; i < list.length; i++) {
       item = list[i];
-      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+      if (currentScene === "overworld" || currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
         if (item.kind === "prop") drawGradedProp(g, item);
         else drawWashedActor(g, item);
       } else {
@@ -29143,7 +29229,7 @@ function doCookNow() {
     frameDayT = null;
     beginFrameGrade();
     updateCamera();
-    g.fillStyle = (currentScene === "darkForest" || currentScene === "treeHollow") ? "#000000" : (currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb") ? (C.sky || "#6A98C8") : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
+    g.fillStyle = (currentScene === "darkForest" || currentScene === "treeHollow") ? "#000000" : (currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook") ? (C.sky || "#6A98C8") : (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") ? (C.caveDark || "#14110E") : (isCozyInterior()) ? (C.woodSh || "#7A3E18") : (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") ? ((currentScene === "peak" || currentScene === "highPeak") ? "#9BB8D0" : (currentScene === "ocean" ? (C.water || "#4A96C8") : (C.sky || "#8EC8E8"))) : (currentScene === "forest" ? (forestNightFlora() ? "#3A7A28" : "#2F6A22") : C.grassMid);
     g.fillRect(0, 0, VIEW_W, VIEW_H);
     g.save();
     g.translate(-camX, -camY);
@@ -29165,7 +29251,7 @@ function doCookNow() {
     var x1 = Math.min(COLS, ((camX + VIEW_W) / TILE | 0) + 2);
     var y1 = Math.min(ROWS, ((camY + VIEW_H) / TILE | 0) + 2);
     var tx, ty, ch, dx, dy;
-    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
+    if (currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") {
       x0 = Math.floor(camX / TILE);
       y0 = Math.floor(camY / TILE);
       x1 = Math.floor((camX + VIEW_W) / TILE) + 2;
@@ -29176,9 +29262,9 @@ function doCookNow() {
       for (tx = x0; tx < x1; tx++) {
         dx = tx * TILE;
         dy = ty * TILE;
-        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
+        if ((currentScene === "forest" || currentScene === "treetop" || currentScene === "tree" || isCozyInterior() || currentScene === "mine" || currentScene === "peak" || currentScene === "highPeak" || currentScene === "ocean" || currentScene === "caveclimb" || currentScene === "mountainMine" || currentScene === "darkForest" || currentScene === "treeHollow" || currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook" || currentScene === "mushroomStalk" || currentScene === "mushroomCap" || currentScene === "cloudLedge" || currentScene === "cloudCity") && (tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS)) {
           if (currentScene === "darkForest" || currentScene === "treeHollow") { g.fillStyle = "#000000"; g.fillRect(dx, dy, TILE, TILE); }
-          else if (currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb") { g.fillStyle = C.sky || "#6A98C8"; g.fillRect(dx, dy, TILE, TILE); }
+          else if (currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook") { g.fillStyle = C.sky || "#6A98C8"; g.fillRect(dx, dy, TILE, TILE); }
           else if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") drawSkyTile(g, tx, ty, dx, dy);
           else if (currentScene === "ocean") { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
           else if (isCozyInterior()) Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
@@ -29284,13 +29370,13 @@ function doCookNow() {
               g.fillStyle = "rgba(80,55,30,0.2)";
               g.fillRect(dx + 10, dy + 2, 2, TILE - 4);
             }
-          } else if (currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb") {
-            /* 20260905jy/kc/ke: branch/trail floors + leafy/rock sky sides (reuse darkForest / code-paint) */
+          } else if (currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook") {
+            /* 20260905jy/kc/ke/kf: branch/trail floors + leafy/rock sky sides (reuse darkForest / code-paint) */
             if (ch === "f") {
               var _scf = ((tx + ty) & 1) ? (Assets.darkForestFloor2 || Assets.darkForestFloor) : (Assets.darkForestFloor || Assets.darkForestFloor2);
               if (_scf) g.drawImage(_scf, dx, dy, 16, 16);
               else { g.fillStyle = "#3A2A18"; g.fillRect(dx, dy, TILE, TILE); }
-              if (currentScene === "moondropFoothills" || currentScene === "ledgeClimb") {
+              if (currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook") {
                 g.fillStyle = "rgba(90,90,70,0.18)";
                 g.fillRect(dx, dy, TILE, TILE);
               } else {
@@ -29298,7 +29384,7 @@ function doCookNow() {
                 g.fillRect(dx, dy, TILE, TILE);
               }
             } else {
-              if (currentScene === "moondropFoothills" || currentScene === "ledgeClimb") {
+              if (currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook") {
                 g.fillStyle = ((tx * 3 + ty * 5) & 1) ? "#6A7888" : "#5A6878";
                 g.fillRect(dx, dy, TILE, TILE);
                 g.fillStyle = "rgba(200,210,220,0.15)";
@@ -30094,10 +30180,19 @@ function doCookNow() {
         return;
       }
       if (isLedgeClimbNorth(tx, ty)) {
-        if (player.tx === tx && player.ty === ty) { maybeLedgeOverlook(); return; }
+        if (player.tx === tx && player.ty === ty) { enterLedgeOverlookFromClimb(); return; }
         var _lcn = findPath(player.tx, player.ty, tx, ty);
         if (_lcn && _lcn.length) { pending = { type: "ledgeClimbNorth" }; startWalk(player, _lcn, 3.5); }
-        else if (isNear(player.tx, player.ty, tx, ty)) maybeLedgeOverlook();
+        else if (isNear(player.tx, player.ty, tx, ty)) enterLedgeOverlookFromClimb();
+        return;
+      }
+    }
+    if (currentScene === "ledgeOverlook") {
+      if (isLedgeOverlookSouth(tx, ty)) {
+        if (player.tx === tx && player.ty === ty) { exitLedgeOverlookToClimb(); return; }
+        var _los = findPath(player.tx, player.ty, tx, ty);
+        if (_los && _los.length) { pending = { type: "ledgeOverlookSouth" }; startWalk(player, _los, 3.5); }
+        else if (isNear(player.tx, player.ty, tx, ty)) exitLedgeOverlookToClimb();
         return;
       }
     }
@@ -30636,7 +30731,7 @@ function doCookNow() {
     if (!hitProp) {
       var hi;
       for (hi = 0; hi < PROPS.length; hi++) {
-        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "mushroomStalkHole" || PROPS[hi].kind === "treeHollowHole" || PROPS[hi].kind === "canopyHole" || PROPS[hi].kind === "canopySpiral" || PROPS[hi].kind === "spiralDoor" || PROPS[hi].kind === "approachGate" || PROPS[hi].kind === "foothillsGate" || PROPS[hi].kind === "firstLedge" || PROPS[hi].kind === "ledgeClimbGate" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "sleepingBear" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
+        if (isCollectible(PROPS[hi]) || PROPS[hi].kind === "note" || PROPS[hi].kind === "mailbox" || PROPS[hi].kind === "swordPedestal" || PROPS[hi].kind === "hole" || PROPS[hi].kind === "ladder" || PROPS[hi].kind === "mushroomStalkHole" || PROPS[hi].kind === "treeHollowHole" || PROPS[hi].kind === "canopyHole" || PROPS[hi].kind === "canopySpiral" || PROPS[hi].kind === "spiralDoor" || PROPS[hi].kind === "approachGate" || PROPS[hi].kind === "foothillsGate" || PROPS[hi].kind === "firstLedge" || PROPS[hi].kind === "ledgeClimbGate" || PROPS[hi].kind === "overlookGate" || PROPS[hi].kind === "moonAltar" || PROPS[hi].kind === "pond" || PROPS[hi].kind === "nest" || PROPS[hi].kind === "giantBird" || PROPS[hi].kind === "peakRocks" || PROPS[hi].kind === "sleepingBear" || PROPS[hi].kind === "caveMouth" || PROPS[hi].kind === "caveStairs" || PROPS[hi].kind === "peakSign" || PROPS[hi].kind === "rowboat" || PROPS[hi].kind === "oceanSign" || PROPS[hi].kind === "shopSign" || PROPS[hi].kind === "brokenBridge" || PROPS[hi].kind === "fixedBridge") {
           var bb = propBounds(PROPS[hi]);
           if (world.x >= bb.x && world.x < bb.x + bb.w && world.y >= bb.y && world.y < bb.y + bb.h) {
             hitProp = PROPS[hi];
@@ -31235,6 +31330,7 @@ if (currentScene === "ocean") goExitOcean();
       if (tryMountainApproachDoors()) return;
       if (tryMoondropFoothillsDoors()) return;
       if (tryLedgeClimbDoors()) return;
+      if (tryLedgeOverlookDoors()) return;
       if (currentScene === "moondropFoothills") {
         var _fwf = facingTile();
         if ((player.tx === foothillsWizardAt.tx && player.ty === foothillsWizardAt.ty) ||
@@ -31838,7 +31934,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ke", BUILD);
+      ok("BUILD", BUILD === "20260905kf", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -35318,6 +35414,7 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           sceneCache.mountainApproach = null;
           sceneCache.moondropFoothills = null;
           sceneCache.ledgeClimb = null;
+          sceneCache.ledgeOverlook = null;
         }
         closeDialogue();
         talkSquirrelHole();
@@ -35404,7 +35501,7 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         maybeFirstLedge();
         ok("firstLedgeReach", !!unlocked.firstLedgeReached, "ledge");
         ok("foothillsClimbGate", !!PROPS.some(function (p) { return p && p.kind === "ledgeClimbGate" && p.dir === "up"; }), "gate");
-        /* 20260905ke: first ledge opens higher climb path */
+        /* 20260905ke/kf: first ledge opens higher climb → real overlook */
         enterLedgeClimbFromFoothills();
         if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
         ok("ledgeClimbEnter", currentScene === "ledgeClimb" && !!unlocked.ledgeClimbEntered, "sc=" + currentScene);
@@ -35412,8 +35509,17 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         saveScene();
         ok("ledgeClimbArtRev", !!(sceneCache.ledgeClimb && sceneCache.ledgeClimb.artRev === "05ke"), sceneCache.ledgeClimb && sceneCache.ledgeClimb.artRev);
         placePlayer(ledgeClimbNorth.tx, ledgeClimbNorth.ty, "up");
-        maybeLedgeOverlook();
-        ok("ledgeOverlookSeen", !!unlocked.ledgeOverlookSeen, "overlook");
+        enterLedgeOverlookFromClimb();
+        if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+        ok("ledgeOverlookEnter", currentScene === "ledgeOverlook" && !!unlocked.ledgeOverlookSeen, "sc=" + currentScene + " seen=" + !!unlocked.ledgeOverlookSeen);
+        ok("ledgeOverlookWalk", walkable(ledgeOverlookSouth.tx, ledgeOverlookSouth.ty - 1) || walkable(ledgeOverlookSouth.tx, ledgeOverlookSouth.ty - 2), "path");
+        saveScene();
+        ok("ledgeOverlookArtRev", !!(sceneCache.ledgeOverlook && sceneCache.ledgeOverlook.artRev === "05kf"), sceneCache.ledgeOverlook && sceneCache.ledgeOverlook.artRev);
+        ok("ledgeOverlookVista", !!PROPS.some(function (p) { return p && p.kind === "canopyVista"; }), "vista");
+        placePlayer(ledgeOverlookSouth.tx, ledgeOverlookSouth.ty, "down");
+        exitLedgeOverlookToClimb();
+        if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
+        ok("ledgeOverlookExitClimb", currentScene === "ledgeClimb", currentScene);
         placePlayer(ledgeClimbSouth.tx, ledgeClimbSouth.ty, "down");
         exitLedgeClimbToFoothills();
         if (doorFade && doorFade.pending && !doorFade.did) { doorFade.did = true; doorFade.pending(); doorFade = null; }
