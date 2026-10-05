@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kf";
+  var BUILD = "20260905kg";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -919,6 +919,17 @@
   var TOWN_GREEN = { x0: 43, y0: 29, x1: 55, y1: 32 };
   var SAVE_KEY = "moondrop-mountain-v1";
   var SAVE_VER = 4;
+  /* 20260905kg: single-active-tab guard — LIVE 10/5 am two open tabs on one save
+     ticked one sleep +2. Only the owner tab runs the clock/sleep and writes SAVE_KEY.
+     Lock = { id, at } in localStorage (heartbeat); BroadcastChannel is a bonus nudge. */
+  var TAB_LOCK_KEY = SAVE_KEY + "-tab";
+  var TAB_HEARTBEAT_MS = 2000;
+  var TAB_STALE_MS = 6000;
+  var TAB_ID = Date.now().toString(36) + "-" + Math.floor(Math.random() * 1e9).toString(36);
+  var tabGuard = { paused: false, reloading: false, flushing: false, dimmed: false, missingSince: 0, chan: null, timer: 0 };
+  var tabGuardReloadFn = function () {
+    try { location.reload(); } catch (err) {}
+  };
   var DAY_MS = 480000;
   var PHASES = ["MORNING", "AFTERNOON", "EVENING", "NIGHT"];
   var PHASE_MS = DAY_MS / PHASES.length;
@@ -13587,6 +13598,8 @@ function selectedIs(key) {
   function onRemoteSaveClock(data) {
     var sDay, sMs, remoteRank, localRank, remoteAt;
     if (!data || typeof data !== "object") return false;
+    /* 20260905kg: paused tab reloads on take-over — do not merge clocks meanwhile. */
+    if (tabGuard.paused || tabGuard.reloading) return false;
     sDay = data.day | 0;
     if (!(sDay >= 1)) return false;
     sMs = (typeof data.dayMs === "number" && data.dayMs >= 0) ? data.dayMs : 0;
@@ -13601,8 +13614,214 @@ function selectedIs(key) {
     return false;
   }
 
+  /* ---- 20260905kg single-active-tab guard ---- */
+  function tabGuardReadLock() {
+    var raw, d;
+    try {
+      raw = localStorage.getItem(TAB_LOCK_KEY);
+    } catch (err) {
+      return null;
+    }
+    if (!raw) return null;
+    try {
+      d = JSON.parse(raw);
+    } catch (err2) {
+      return null;
+    }
+    if (!d || typeof d !== "object" || typeof d.id !== "string") return null;
+    return d;
+  }
+
+  function tabGuardWriteLock() {
+    try {
+      localStorage.setItem(TAB_LOCK_KEY, JSON.stringify({ id: TAB_ID, at: Date.now() }));
+    } catch (err) {}
+  }
+
+  function tabGuardPost(type) {
+    if (!tabGuard.chan) return;
+    try {
+      tabGuard.chan.postMessage({ t: type, id: TAB_ID });
+    } catch (err) {}
+  }
+
+  function tabGuardLockIsOther(lock) {
+    return !!(lock && lock.id && lock.id !== TAB_ID);
+  }
+
+  function tabGuardLockStale(lock, now) {
+    var at;
+    if (!lock) return false;
+    at = +lock.at;
+    if (!(at > 0)) return true;
+    now = now || Date.now();
+    return now - at > TAB_STALE_MS;
+  }
+
+  /* Owner = lock is ours (or missing / unreadable — degrade to old single-tab behavior). */
+  function tabGuardMayWrite() {
+    var lock;
+    if (tabGuard.flushing) return true;
+    if (tabGuard.reloading || tabGuard.paused) return false;
+    lock = tabGuardReadLock();
+    if (tabGuardLockIsOther(lock)) {
+      tabGuardYield();
+      return false;
+    }
+    return true;
+  }
+
+  function tabGuardIsOwner() {
+    return !tabGuard.paused && !tabGuard.reloading && !tabGuardLockIsOther(tabGuardReadLock());
+  }
+
+  /* Another tab took the game — freeze here (no clock, no sleep, no save writes).
+     Hand-off: one final save of our state ONLY if nobody else saved since our last
+     write (the taker is reloading and has not read yet) — never clobber newer play. */
+  function tabGuardYield() {
+    if (tabGuard.paused || tabGuard.reloading) return;
+    if (!tabGuardSavedByOther()) {
+      tabGuard.flushing = true;
+      try {
+        persistSave();
+      } catch (errFlush) {}
+      tabGuard.flushing = false;
+    }
+    tabGuard.paused = true;
+    tabGuard.dimmed = false;
+    tabGuard.missingSince = 0;
+    try { clearMoveKeys(); } catch (err) {}
+    resetClockMark();
+    lastTs = 0;
+    audioTune = "";
+    try {
+      if (overworldBgm && !overworldBgm.paused) overworldBgm.pause();
+      if (forestBgm && !forestBgm.paused) forestBgm.pause();
+    } catch (err2) {}
+  }
+
+  /* Someone else saved after our last write (other tab / older build tab). */
+  function tabGuardSavedByOther() {
+    var raw, d;
+    try {
+      raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      d = JSON.parse(raw);
+    } catch (err) {
+      return false;
+    }
+    if (!d || typeof d !== "object") return false;
+    if (d.tab === TAB_ID) return false;
+    return (typeof d.savedAt === "number") && d.savedAt > lastWrittenAt;
+  }
+
+  /* Take the game here: claim the lock (others pause), then reload so this tab
+     boots from the latest save — never resume on stale in-memory state. */
+  function tabGuardTakeOver() {
+    if (tabGuard.reloading) return false;
+    tabGuard.reloading = true;
+    tabGuard.paused = true;
+    tabGuardWriteLock();
+    tabGuardPost("claim");
+    tabGuardReloadFn();
+    return true;
+  }
+
+  /* Tab shown / focused / restored: newest-focused tab owns the game. */
+  function tabGuardWake() {
+    var lock;
+    if (tabGuard.reloading) return false;
+    if (typeof document !== "undefined" && document.visibilityState && document.visibilityState !== "visible") return false;
+    lock = tabGuardReadLock();
+    if (tabGuard.paused || tabGuardLockIsOther(lock) || tabGuardSavedByOther()) {
+      return tabGuardTakeOver();
+    }
+    /* Still ours (single-tab path) — just refresh the heartbeat. */
+    tabGuardWriteLock();
+    return false;
+  }
+
+  /* Owner heartbeat; paused visible tab claims if the owner went quiet (closed/crashed/hidden). */
+  function tabGuardHeartbeat() {
+    var lock, now;
+    if (tabGuard.reloading) return;
+    if (typeof document !== "undefined" && document.visibilityState && document.visibilityState !== "visible") return;
+    now = Date.now();
+    lock = tabGuardReadLock();
+    if (!tabGuard.paused) {
+      if (tabGuardLockIsOther(lock)) {
+        tabGuardYield();
+        return;
+      }
+      tabGuardWriteLock();
+      return;
+    }
+    if (!lock) {
+      if (!tabGuard.missingSince) tabGuard.missingSince = now;
+      if (now - tabGuard.missingSince > TAB_STALE_MS) tabGuardTakeOver();
+      return;
+    }
+    tabGuard.missingSince = 0;
+    if (!tabGuardLockIsOther(lock) || tabGuardLockStale(lock, now)) tabGuardTakeOver();
+  }
+
+  function tabGuardOnClaimFrom(id) {
+    if (!id || id === TAB_ID || tabGuard.reloading) return;
+    tabGuardYield();
+  }
+
+  function tabGuardBoot() {
+    /* Newest tab wins at boot — claim BEFORE loadSave so the old tab stops writing. */
+    tabGuardWriteLock();
+    try {
+      if (typeof BroadcastChannel === "function") {
+        tabGuard.chan = new BroadcastChannel(SAVE_KEY + "-tabs");
+        tabGuard.chan.onmessage = function (ev) {
+          var m = ev && ev.data;
+          if (m && m.t === "claim") tabGuardOnClaimFrom(m.id);
+        };
+      }
+    } catch (err) {
+      tabGuard.chan = null;
+    }
+    tabGuardPost("claim");
+    try {
+      tabGuard.timer = setInterval(tabGuardHeartbeat, TAB_HEARTBEAT_MS);
+    } catch (err2) {}
+  }
+
+  function tabGuardOverlayRect() {
+    var l1 = "PLAYING IN ANOTHER TAB.";
+    var l2 = "TAP TO PLAY HERE.";
+    var w = Math.max(textWidth(l1), textWidth(l2)) + 24;
+    var h = 38;
+    return { x: ((VIEW_W - w) / 2) | 0, y: ((VIEW_H - h) / 2) | 0, w: w, h: h, l1: l1, l2: l2 };
+  }
+
+  function drawTabGuardOverlay(g) {
+    var R = tabGuardOverlayRect();
+    if (!tabGuard.dimmed) {
+      /* one-time dim over the frozen last frame */
+      g.fillStyle = "rgba(8,6,12,0.62)";
+      g.fillRect(0, 0, VIEW_W, VIEW_H);
+      tabGuard.dimmed = true;
+    }
+    woodPanel(g, R.x, R.y, R.w, R.h);
+    drawText(g, R.l1, R.x + ((R.w - textWidth(R.l1)) / 2 | 0), R.y + 9, C.parch);
+    drawText(g, R.l2, R.x + ((R.w - textWidth(R.l2)) / 2 | 0), R.y + 22, C.parch);
+  }
+
+  function tabGuardPausedFrame() {
+    lastTs = 0;
+    resetClockMark();
+    applyDrawBuffer(ctx);
+    drawTabGuardOverlay(ctx);
+  }
+
   function persistSave() {
     if (loadingSave || persistBlocked || persistSave.busy) return;
+    /* 20260905kg: a paused / handing-over tab never writes (no stale clobber). */
+    if (!tabGuardMayWrite()) return;
     persistSave.busy = true;
     try {
       /* 20260905ee: mid-drag bagHeld is not in tray/bag arrays — stash before serialize
@@ -13618,6 +13837,7 @@ function selectedIs(key) {
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         v: SAVE_VER,
         savedAt: lastWrittenAt,
+        tab: TAB_ID,
         found: found,
         unlocked: unlocked,
         introSeen: introSeen,
@@ -16628,7 +16848,7 @@ function doCookNow() {
         unfocused = !document.hasFocus();
       }
     } catch (err) { unfocused = false; }
-    return !!(uiPaused() || document.hidden || (vis && vis !== "visible") || unfocused);
+    return !!(tabGuard.paused || uiPaused() || document.hidden || (vis && vis !== "visible") || unfocused);
   }
 
   function resetClockMark() {
@@ -29860,6 +30080,11 @@ function doCookNow() {
   function tap(e) {
     var p = pointFromEvent(e);
     var L, wasOpen;
+    /* 20260905kg: PLAYING IN ANOTHER TAB. — any tap takes the game here. */
+    if (tabGuard.paused || tabGuard.reloading) {
+      if (!tabGuard.reloading) tabGuardTakeOver();
+      return;
+    }
     if (p.x < 0 || p.y < 0 || p.x >= VIEW_W || p.y >= VIEW_H) return;
 
     if (toast) {
@@ -31029,6 +31254,12 @@ if (currentScene === "ocean") goExitOcean();
   function loop(ts) {
     var dt;
     rafScheduled = false;
+    /* 20260905kg: another tab owns the game — frozen here, overlay only. */
+    if (tabGuard.paused) {
+      tabGuardPausedFrame();
+      scheduleLoop();
+      return;
+    }
     if (!lastTs) lastTs = ts;
     dt = ts - lastTs;
     if (dt > 64) dt = 64;
@@ -31131,6 +31362,7 @@ if (currentScene === "ocean") goExitOcean();
       persistBlocked = false;
     }
   } catch (err) {}
+  tabGuardBoot();
   loadSave();
   applyScene("overworld");
   applyRestore();
@@ -31199,6 +31431,14 @@ if (currentScene === "ocean") goExitOcean();
     unlockAudio();
     var mk, dismissKey, actionKey;
     if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    /* 20260905kg: paused tab — Enter/Space takes the game here; other keys do nothing. */
+    if (tabGuard.paused || tabGuard.reloading) {
+      if (e.code === "Space" || e.key === " " || e.code === "Enter" || e.key === "Enter") {
+        e.preventDefault();
+        if (!e.repeat && !tabGuard.reloading) tabGuardTakeOver();
+      }
+      return;
+    }
     /* 20260905du: Esc goes through dismissTopDialog (toast → panels → bag) */
     if (!e.repeat && bagOpen && (e.code === "Space" || e.key === " " || e.code === "Enter" || e.key === "Enter")) {
       e.preventDefault();
@@ -31427,9 +31667,20 @@ if (currentScene === "ocean") goExitOcean();
   window.addEventListener("focus", function () {
     resetClockMark();
     lastTs = 0;
+    /* 20260905kg: newest-focused tab owns the game (no-op when already ours). */
+    tabGuardWake();
   });
   /* 20260905iv: another tab wrote SAVE_KEY — sync clock fields only (no full loadSave). */
   window.addEventListener("storage", function (e) {
+    var lk;
+    /* 20260905kg: another tab claimed the game lock → pause here. */
+    if (e && e.key === TAB_LOCK_KEY) {
+      if (e.newValue) {
+        try { lk = JSON.parse(e.newValue); } catch (errLk) { lk = null; }
+        if (lk && lk.id && lk.id !== TAB_ID && !tabGuardLockStale(lk)) tabGuardOnClaimFrom(lk.id);
+      }
+      return;
+    }
     if (!e || e.key !== SAVE_KEY || e.newValue == null || e.newValue === "") return;
     try {
       onRemoteSaveClock(JSON.parse(e.newValue));
@@ -31458,18 +31709,29 @@ if (currentScene === "ocean") goExitOcean();
       /* 20260905bq: discard the wake gap — do not pour tab-sleep into the day clock. */
       resetClockMark();
       lastTs = 0;
+      /* 20260905kg: shown tab takes the game (reloads if another tab played meanwhile). */
+      tabGuardWake();
       if (audioUnlocked && audioCtx && audioCtx.state === "suspended" && (!sfxMuted || !musicMuted)) {
         audioCtx.resume();
       }
     }
   });
   window.addEventListener("pagehide", function () {
+    var lk;
     resetClockMark();
     persistSave();
+    /* 20260905kg: closing owner frees the lock so a waiting tab can take over at once. */
+    if (!tabGuard.reloading && !tabGuard.paused) {
+      lk = tabGuardReadLock();
+      if (lk && lk.id === TAB_ID) {
+        try { localStorage.removeItem(TAB_LOCK_KEY); } catch (err) {}
+      }
+    }
   });
   window.addEventListener("pageshow", function () {
     resetClockMark();
     lastTs = 0;
+    tabGuardWake();
   });
   /* 20260905ir: Page Lifecycle freeze/resume — visibility alone can miss some OS sleeps. */
   document.addEventListener("freeze", function () {
@@ -31722,6 +31984,12 @@ if (currentScene === "ocean") goExitOcean();
       lastWrittenAt: function () { return lastWrittenAt; },
       persistSave: persistSave,
       SAVE_KEY: SAVE_KEY,
+      TAB_LOCK_KEY: TAB_LOCK_KEY,
+      TAB_ID: TAB_ID,
+      tabGuardState: function () {
+        var lk = tabGuardReadLock();
+        return { id: TAB_ID, paused: !!tabGuard.paused, reloading: !!tabGuard.reloading, owner: tabGuardIsOwner(), lockId: lk ? lk.id : null, chan: !!tabGuard.chan, day: dayNumber, dayMs: dayMs };
+      },
       setDayMs: function (n) {
         n = +n;
         if (!(n >= 0) || n !== n) return;
@@ -31934,7 +32202,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kf", BUILD);
+      ok("BUILD", BUILD === "20260905kg", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -35573,6 +35841,119 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         after = tapHud(bagPt);
         ok("bagChromeBeatsPeakDoor", after === true && bagOpen === true, "doorUnder=" + doorUnder + " before=" + before + " afterTap=" + after + " bagOpen=" + bagOpen);
         if (bagOpen) closeBag();
+      })();
+      /* 20260905kg: single-active-tab guard — second owner pauses clock + never persists;
+         single tab unchanged. Reload stubbed; household save only ever re-persisted as-is. */
+      (function () {
+        var realReload = tabGuardReloadFn, reloads = 0;
+        var realGet = localStorage.getItem.bind(localStorage);
+        var realSet = localStorage.setItem.bind(localStorage);
+        var d0 = dayNumber, ms0 = dayMs, saveBefore, lk, R, rect, chan, writes, t0, raw0;
+        function resetTab() {
+          tabGuard.paused = false;
+          tabGuard.reloading = false;
+          tabGuard.flushing = false;
+          tabGuard.dimmed = false;
+          tabGuard.missingSince = 0;
+          tabGuardWriteLock();
+        }
+        function otherLock(ageMs) {
+          realSet(TAB_LOCK_KEY, JSON.stringify({ id: "autotest-other-tab", at: Date.now() - (ageMs || 0) }));
+        }
+        tabGuardReloadFn = function () { reloads++; };
+        try {
+          resetTab();
+          persistSave();
+          lk = tabGuardReadLock();
+          ok("tabGuardSingleOwner", tabGuardIsOwner() && !tabGuard.paused && !!lk && lk.id === TAB_ID, JSON.stringify(lk));
+          raw0 = realGet(SAVE_KEY);
+          ok("tabGuardSaveTagged", !!raw0 && JSON.parse(raw0).tab === TAB_ID && !tabGuardSavedByOther(), raw0 ? raw0.slice(0, 80) : "no save");
+          tabGuardWake();
+          ok("tabGuardSingleWakeNoReload", reloads === 0 && !tabGuard.paused && !tabGuard.reloading, "reloads=" + reloads);
+          tabGuardHeartbeat();
+          lk = tabGuardReadLock();
+          ok("tabGuardSingleHeartbeat", reloads === 0 && !tabGuard.paused && !!lk && lk.id === TAB_ID, JSON.stringify(lk));
+          ok("tabGuardSingleTimeNotPausedByGuard", !tabGuard.paused && timePaused() === !!(uiPaused() || document.hidden || document.visibilityState !== "visible" || (document.hasFocus && !document.hasFocus())), "");
+          /* Another (newer) tab claims the game. */
+          otherLock(0);
+          tabGuardOnClaimFrom("autotest-other-tab");
+          ok("tabGuardSecondOwnerPauses", tabGuard.paused && !tabGuardIsOwner() && timePaused(), JSON.stringify({ p: tabGuard.paused, tp: timePaused() }));
+          saveBefore = realGet(SAVE_KEY);
+          persistSave();
+          ok("tabGuardPausedNoPersist", realGet(SAVE_KEY) === saveBefore, "");
+          dayMs = 1000;
+          resetClockMark();
+          updateClock();
+          t0 = Date.now();
+          while (Date.now() - t0 < 30) { /* spin so performance.now advances */ }
+          updateClock();
+          ok("tabGuardPausedClockFrozen", dayMs === 1000, "dayMs=" + dayMs);
+          ok("tabGuardPausedIgnoresRemoteClock", onRemoteSaveClock({ savedAt: Date.now() + 99999, day: d0 + 7, dayMs: 5 }) === false && dayMs === 1000, "day=" + dayNumber);
+          R = tabGuardOverlayRect();
+          drawTabGuardOverlay(ctx);
+          ok("tabGuardOverlayFits", R.x >= 0 && R.y >= 0 && R.x + R.w <= VIEW_W && R.y + R.h <= VIEW_H && R.l1 === "PLAYING IN ANOTHER TAB." && R.l2 === "TAP TO PLAY HERE.", JSON.stringify(R));
+          rect = canvas.getBoundingClientRect();
+          tap({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
+          lk = tabGuardReadLock();
+          ok("tabGuardTapTakesOver", reloads === 1 && tabGuard.reloading && !!lk && lk.id === TAB_ID, "reloads=" + reloads + " lock=" + JSON.stringify(lk));
+          saveBefore = realGet(SAVE_KEY);
+          persistSave();
+          ok("tabGuardReloadingNoPersist", realGet(SAVE_KEY) === saveBefore, "");
+          tap({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
+          ok("tabGuardTakeOverOnce", reloads === 1, "reloads=" + reloads);
+          /* Missed the claim message: heartbeat sees the other lock and yields. */
+          resetTab();
+          dayMs = ms0;
+          otherLock(0);
+          tabGuardHeartbeat();
+          lk = tabGuardReadLock();
+          ok("tabGuardHeartbeatYields", tabGuard.paused && reloads === 1 && !!lk && lk.id === "autotest-other-tab", JSON.stringify(lk));
+          /* Owner closed/crashed: stale heartbeat → visible paused tab takes the game. */
+          otherLock(TAB_STALE_MS + 2000);
+          tabGuardHeartbeat();
+          ok("tabGuardStaleOwnerTakeover", document.visibilityState !== "visible" || (reloads === 2 && tabGuard.reloading), "vis=" + document.visibilityState + " reloads=" + reloads);
+          /* persistSave itself refuses when another tab holds the lock. */
+          resetTab();
+          otherLock(0);
+          localStorage.getItem = function (k) {
+            if (k === SAVE_KEY) return JSON.stringify({ v: SAVE_VER, savedAt: lastWrittenAt + 5000, tab: "autotest-other-tab", day: d0, dayMs: 0 });
+            return realGet(k);
+          };
+          writes = 0;
+          localStorage.setItem = function (k, v) {
+            if (k === SAVE_KEY) { writes++; return; }
+            return realSet(k, v);
+          };
+          persistSave();
+          ok("tabGuardPersistRefusesOtherLock", writes === 0 && tabGuard.paused, "writes=" + writes);
+          /* Newer save from another tab exists → wake reloads (no stale resume). */
+          resetTab();
+          tabGuardWake();
+          ok("tabGuardWakeSavedByOtherReloads", document.visibilityState !== "visible" || (reloads >= 2 && tabGuard.reloading), "reloads=" + reloads);
+          localStorage.getItem = realGet;
+          localStorage.setItem = realSet;
+          /* Old-browser path: no BroadcastChannel still works off the lock. */
+          resetTab();
+          chan = tabGuard.chan;
+          tabGuard.chan = null;
+          tabGuardPost("claim");
+          otherLock(0);
+          tabGuardHeartbeat();
+          ok("tabGuardNoBroadcastChannelOk", tabGuard.paused, "");
+          tabGuard.chan = chan;
+        } catch (eTab) {
+          ok("tabGuardNoThrow", false, eTab && eTab.message ? eTab.message : String(eTab));
+        } finally {
+          localStorage.getItem = realGet;
+          localStorage.setItem = realSet;
+          tabGuardReloadFn = realReload;
+          resetTab();
+          dayNumber = d0;
+          dayMs = ms0;
+          resetClockMark();
+          persistSave();
+          ok("tabGuardRestoredOwner", tabGuardIsOwner() && DAY_MS === 480000, "");
+        }
       })();
     } catch (e) {
       fail++;
