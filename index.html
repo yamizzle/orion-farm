@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kg";
+  var BUILD = "20260905kh";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -969,6 +969,11 @@
   /* 20260905bc: one-shot — world tap that closed an overlay must not walk/tool. */
   var ignoreWalkTap = false;
   var sleepFx = null;
+  /* 20260905kh: one sleep per wake-up. LIVE 10/6 am: mashing Space at the bed slept
+     again right after each wake (Day 2497→2500). Set at wake on the wake tile; the bed
+     will not start another sleep until Orion steps off that tile (any teleport /
+     placePlayer clears it too). Day length + the single +1 sleep are unchanged. */
+  var sleepRearm = null;
   /* 20260905hd: brief cool so chair sit is a rest, not an energy faucet. */
   var chairSitCool = 0;
   var wipeAsk = false;
@@ -9038,6 +9043,12 @@
       } else if (p.kind === "bed") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
         block(p.tx, p.ty + 1); block(p.tx + 1, p.ty + 1);
+        /* 20260905kh: headboard strip — the bed art (propBounds y-16) + the SLEEP float
+           (centered on the bed's first tile, so it hangs one tile west) hide the row just
+           north of the bed. LIVE 10/5 pm / 10/6 am taps walked Orion there ("in the
+           wall", hair only) and saves restored him there. Solid now, so tap-walk /
+           goSleep / restore can never pick it. */
+        block(p.tx - 1, p.ty - 1); block(p.tx, p.ty - 1); block(p.tx + 1, p.ty - 1);
       } else if (p.kind === "table" || p.kind === "workbench") {
         block(p.tx, p.ty); block(p.tx + 1, p.ty);
       } else if (p.kind === "desk") {
@@ -13024,6 +13035,8 @@ function selectedIs(key) {
   }
 
   function placePlayer(tx, ty, face) {
+    /* 20260905kh: any teleport ends the just-woke bed lock (finishSleepAdvance re-arms after). */
+    sleepRearm = null;
     player.tx = tx;
     player.ty = ty;
     player.x = tileCenterX(tx);
@@ -14231,6 +14244,11 @@ function selectedIs(key) {
     return { tx: tx, ty: ty, face: face };
   }
 
+  function restoreNudgeScene(scene) {
+    return scene === "house" || scene === "cottage" || scene === "cottage2" ||
+      scene === "tallCottage" || scene === "lHouse";
+  }
+
   function applyRestore() {
     var scene, tx, ty, face, spot, wantBoat, land, gate, r, x, y, nx, ny;
     if (!pendingRestore) return;
@@ -14251,6 +14269,16 @@ function selectedIs(key) {
       if (ty < 1) ty = 1;
       if (tx >= OVER_COLS - 1) tx = OVER_COLS - 2;
       if (ty >= OVER_ROWS - 1) ty = OVER_ROWS - 2;
+    }
+    /* 20260905kh: LIVE 10/5 pm save restored Orion inside the wall strip behind the
+       bed. Cozy rooms: a solid saved spot nudges to the nearest walkable floor tile
+       (not the door landing); out-of-bounds still uses the scene landing below. */
+    if (inBounds(tx, ty) && !walkable(tx, ty) && restoreNudgeScene(scene)) {
+      spot = nearestWalkable(tx, ty);
+      if (spot && inBounds(spot.tx, spot.ty) && walkable(spot.tx, spot.ty)) {
+        tx = spot.tx;
+        ty = spot.ty;
+      }
     }
     if (!inBounds(tx, ty) || !walkable(tx, ty)) {
       if (scene === "house") { tx = 10; ty = 8; face = "up"; }
@@ -14346,6 +14374,14 @@ function selectedIs(key) {
     return null;
   }
 
+  /* 20260905kh: autotest helper — tile (tx,ty) touches the bed footprint. */
+  function nearBedAt(tx, ty, bed) {
+    var x, y;
+    if (!bed) return false;
+    for (y = 0; y < 2; y++) for (x = 0; x < 2; x++) if (isNear(tx, ty, bed.tx + x, bed.ty + y)) return true;
+    return false;
+  }
+
   function nearBed() {
     var bed = findBed();
     var x, y;
@@ -14382,6 +14418,9 @@ function selectedIs(key) {
     if (!bed) return false;
     if (propOccupies(bed, tx, ty)) return true;
     if (!world) return false;
+    /* 20260905kh: the floating SLEEP word is the bed button too (it hangs over the
+       wall row, half outside propBounds — those taps used to become wall walks). */
+    if (shaftLabelHit(bed, "SLEEP", world, 2)) return true;
     b = propBounds(bed);
     return world.x >= b.x && world.x < b.x + b.w && world.y >= b.y && world.y < b.y + b.h;
   }
@@ -16086,6 +16125,8 @@ function doCookNow() {
     else monsters = [];
     spot = sleepWakeSpot();
     placePlayer(spot.tx, spot.ty, "up");
+    /* 20260905kh: arm one-sleep-per-wake on the wake tile (after placePlayer clears it). */
+    sleepRearm = { scene: currentScene, tx: spot.tx, ty: spot.ty, at: Date.now() };
     updateCrops();
     updateHarvestNodes();
     persistSave();
@@ -16133,12 +16174,36 @@ function doCookNow() {
   }
 
 
+  /* 20260905kh: true while Orion still stands on the tile he woke on (never moved).
+     Stepping off clears it for good, so walking back to the bed sleeps normally. */
+  function sleepRearmBlocks() {
+    if (!sleepRearm) return false;
+    if (sleepRearm.scene !== currentScene || player.tx !== sleepRearm.tx || player.ty !== sleepRearm.ty) {
+      sleepRearm = null;
+      return false;
+    }
+    return true;
+  }
+
+  function updateSleepRearm() {
+    if (sleepRearm && !sleepFx) sleepRearmBlocks();
+  }
+
+  function sleepRearmNote() {
+    showLineNote("YOU JUST WOKE UP!");
+  }
+
   /* 20260905fu: Space/J/E sleep at adjacent bed (tap already goSleep'd;
      cook/smelt/craft/chest Space existed; bed Space was a silent no-op). */
   function trySleepHere() {
     if (uiPaused() || faintFx) return false;
     if (!sleepSceneOk() || sleepFx) return false;
     if (!nearBed()) return false;
+    /* 20260905kh: mashing Space right after waking does not burn another day. */
+    if (sleepRearmBlocks()) {
+      sleepRearmNote();
+      return true;
+    }
     pending = null;
     beginSleep();
     return true;
@@ -16147,6 +16212,11 @@ function doCookNow() {
   function goSleep() {
     var bed, dest, path, x, y, best, d, cand;
     if (!sleepSceneOk() || sleepFx) return;
+    /* 20260905kh: same one-sleep-per-wake lock for bed / SLEEP taps. */
+    if (sleepRearmBlocks()) {
+      sleepRearmNote();
+      return;
+    }
     bed = findBed();
     highlight = bed ? { tx: bed.tx, ty: bed.ty } : null;
     if (!bed || nearBed()) {
@@ -26079,11 +26149,11 @@ function doCookNow() {
     drawPixelText(g, "SIT", box.lx, box.ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
   }
 
-  function drawShaftLabel(g, p, word) {
-    /* 20260905im: Press Start 8px white + thin cardinal outline; OUT same (no gold) */
-    /* 20260905kb: exitish labels skip when they cover Orion (house door OUT / mine OUT) */
-    var tw, lx, ly, exitish, x, y, bh, px0, px1, py0, py1;
-    if (!word || !p) return;
+  /* 20260905kh: one source of truth for a floating world label box (draw + tap).
+     LIVE 10/5 pm + 10/6 am: SLEEP float sits over the wall row, mostly outside the
+     bed's tap bounds — taps on it walked Orion into the hidden strip behind the bed. */
+  function shaftLabelBox(p, word) {
+    var tw, lx, ly, exitish, x, y, bh, px0, px1, py0, py1, skip = false;
     exitish = word === "OUT" || word === "UP" || word === "DOWN" || word === "MINE" || word === "PEAK" || word === "HOLE";
     x = p.tx * TILE;
     y = p.ty * TILE;
@@ -26091,15 +26161,34 @@ function doCookNow() {
     bh = pixelTextGlyphH(PIXEL_HUD_SIZE) + 2;
     lx = x + ((TILE - tw) / 2) | 0;
     ly = y - (exitish ? (bh + 7) : (bh + 3));
+    /* 20260905kb: exitish labels skip when they cover Orion (house door OUT / mine OUT) */
     if (exitish && player) {
       px0 = player.x - 8;
       px1 = player.x + 8;
       py0 = player.y - 32;
       py1 = player.y;
-      if (!(lx + tw + 4 < px0 || lx - 2 > px1 || ly + bh + 2 < py0 || ly - 1 > py1)) return;
+      if (!(lx + tw + 4 < px0 || lx - 2 > px1 || ly + bh + 2 < py0 || ly - 1 > py1)) skip = true;
     }
-    fill(g, lx - 2, ly - 1, tw + 4, bh + 2, "rgba(42,26,16,0.78)");
-    drawPixelText(g, word, lx, ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
+    return { x: lx - 2, y: ly - 1, w: tw + 4, h: bh + 2, lx: lx, ly: ly, skip: skip };
+  }
+
+  function shaftLabelHit(p, word, world, pad) {
+    var b;
+    if (!p || !word || !world) return false;
+    b = shaftLabelBox(p, word);
+    if (b.skip) return false;
+    pad = pad || 0;
+    return world.x >= b.x - pad && world.x < b.x + b.w + pad && world.y >= b.y - pad && world.y < b.y + b.h + pad;
+  }
+
+  function drawShaftLabel(g, p, word) {
+    /* 20260905im: Press Start 8px white + thin cardinal outline; OUT same (no gold) */
+    var b;
+    if (!word || !p) return;
+    b = shaftLabelBox(p, word);
+    if (b.skip) return;
+    fill(g, b.x, b.y, b.w, b.h, "rgba(42,26,16,0.78)");
+    drawPixelText(g, word, b.lx, b.ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
   }
 
   function drawFence(g, kind, x, y) {
@@ -29974,6 +30063,19 @@ function doCookNow() {
     return p.x >= x + pad && p.x < x + w - pad && p.y >= y + pad && p.y < y + h - pad;
   }
 
+  /* 20260905kh: header buttons = drawn wood panels (drawHUD: star 4,3 18×18; book
+     24,3 18×18) + a 2px fat-finger rim; the 2px gap between them splits down the middle. */
+  var HUD_STAR_RECT = { x: 4, y: 3, w: 18, h: 18 };
+  var HUD_BOOK_RECT = { x: 24, y: 3, w: 18, h: 18 };
+  function hudHeaderButtonAt(p) {
+    var pad = 2, mid = (HUD_STAR_RECT.x + HUD_STAR_RECT.w + HUD_BOOK_RECT.x) / 2;
+    if (!p) return null;
+    if (p.y < HUD_STAR_RECT.y - pad || p.y >= HUD_STAR_RECT.y + HUD_STAR_RECT.h + pad) return null;
+    if (p.x >= HUD_STAR_RECT.x - pad && p.x < mid) return "star";
+    if (p.x >= mid && p.x < HUD_BOOK_RECT.x + HUD_BOOK_RECT.w + pad) return "book";
+    return null;
+  }
+
   function tapHud(p) {
     var T = trayLayout();
     var idx, key;
@@ -30050,13 +30152,13 @@ function doCookNow() {
       }
       return true;
     }
-    /* Prefer MINE 1 OUT over empty hotbar gutter when finger is on ladder/OUT (not bag/dock/tray). */
-    if (currentScene === "mine" && mineFloor === 1 && (isMineExit(hudTx, hudTy) || mineExitHit(hudTx, hudTy, worldHud))) {
-      return false;
-    }
-    if (hudWorldDoor(hudTx, hudTy, worldHud)) return false;
-    /* 20260905cg: hearts/energy + DAY panels are display-only — do not swallow world taps. */
-    if (inHud(p, 4, 3, 16, 16, 3)) {
+    /* 20260905kh: header STAR / BOOK buttons own their whole wood panel and always eat
+       the tap. LIVE 10/6 am: the old hit box was a 10×10 inset (book 25–35 while its
+       panel is 24–42), and hudWorldDoor ran first — a click on the panel rim fell
+       through to the room and walked Orion into the top wall. The hearts / DAY panels
+       stay display-only (20260905cg) — not buttons. */
+    key = hudHeaderButtonAt(p);
+    if (key === "star") {
       playSfx("ui");
       if (bagOpen) closeBag();
       achieveOpen = !achieveOpen;
@@ -30067,13 +30169,19 @@ function doCookNow() {
       achieveDrag = null;
       return true;
     }
-    if (inHud(p, 22, 3, 16, 16, 3)) {
+    if (key === "book") {
       playSfx("ui");
       if (bagOpen) closeBag();
       questOpen = !questOpen;
       achieveOpen = false;
       return true;
     }
+    key = null;
+    /* Prefer MINE 1 OUT over empty hotbar gutter when finger is on ladder/OUT (not bag/dock/tray). */
+    if (currentScene === "mine" && mineFloor === 1 && (isMineExit(hudTx, hudTy) || mineExitHit(hudTx, hudTy, worldHud))) {
+      return false;
+    }
+    if (hudWorldDoor(hudTx, hudTy, worldHud)) return false;
     return false;
   }
 
@@ -30965,6 +31073,19 @@ function doCookNow() {
         }
       }
     }
+    /* 20260905kh: tapping the floating OUT over a room's door mat exits like Space
+       (LIVE 10/6 am: the word sits over the floor tile north of the mat, so the tap
+       only walked Orion next to the mat). Same scenes that draw that OUT. */
+    if (currentScene === "house" || currentScene === "shop" || currentScene === "cottage" ||
+        currentScene === "cottage2" || currentScene === "tallCottage" || currentScene === "lHouse") {
+      var _omi;
+      for (_omi = 0; _omi < PROPS.length; _omi++) {
+        if (PROPS[_omi] && PROPS[_omi].kind === "doormat" && shaftLabelHit(PROPS[_omi], "OUT", world, 1)) {
+          hitProp = PROPS[_omi];
+          break;
+        }
+      }
+    }
     /* 20260905he: tap bed sleep in cottage / tall / L too (SLEEP float was a lie). */
     if (sleepSceneOk() && (bedHit(tx, ty, world) || (hitProp && hitProp.kind === "bed"))) {
       goSleep();
@@ -31271,6 +31392,7 @@ if (currentScene === "ocean") goExitOcean();
       if (chairSitCool < 0) chairSitCool = 0;
     }
     updateSleep(dt);
+    updateSleepRearm();
     updateFaint(dt);
     updateBirdFx(dt);
     updateDoorFade(dt);
@@ -32202,7 +32324,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kg", BUILD);
+      ok("BUILD", BUILD === "20260905kh", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -32301,7 +32423,8 @@ if (currentScene === "ocean") goExitOcean();
       (function () {
         /* 20260905kb: OUT label skips when overlapping Orion */
         var _sc = currentScene, _tx, _ty, _face, src;
-        src = Function.prototype.toString.call(drawShaftLabel);
+        /* 20260905kh: box math (incl. the 05kb overlap skip) lives in shaftLabelBox now. */
+        src = Function.prototype.toString.call(drawShaftLabel) + Function.prototype.toString.call(shaftLabelBox);
         ok("outLabelSkipsPlayerOverlap", src.indexOf("20260905kb") >= 0 && src.indexOf("exitish && player") >= 0, "shaft label missing overlap skip");
         applyScene("house");
         _tx = player.tx; _ty = player.ty; _face = player.face;
@@ -35953,6 +36076,206 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           resetClockMark();
           persistSave();
           ok("tabGuardRestoredOwner", tabGuardIsOwner() && DAY_MS === 480000, "");
+        }
+      })();
+      (function () {
+        /* 20260905kh: bed / SLEEP tap never walks into the hidden wall strip; save
+           restore out of a solid tile; header STAR / BOOK always eat the tap;
+           one sleep per wake; door-mat OUT tap exits. Day length frozen. */
+        var scene0 = currentScene, px0 = player.tx, py0 = player.ty, pf0 = player.face;
+        var d0 = dayNumber, ms0 = dayMs;
+        var fpc0 = found.pathClear, flb0 = found.logBridge;
+        var scenes = ["house", "cottage", "tallCottage", "lHouse"];
+        var i, j, k, bed, b, rect, bad, starts, taps, endT, pts, sx, sy, okAll, lbl, mat;
+        function clean() {
+          toast = null; dialogue = null; achieveOpen = false; questOpen = false;
+          if (bagOpen) closeBag();
+          bagOpen = false; shopOpen = false; craftOpen = false; chestOpen = false;
+          cloudShopOpen = false; wipeAsk = false; ignoreWalkTap = false;
+          sleepFx = null; faintFx = null; pending = null; doorFade = null;
+          birdFly = null; birdRideFx = null; fishing = null; player.arc = 0;
+        }
+        function tapView(vx, vy) {
+          var r = canvas.getBoundingClientRect();
+          tap({ clientX: r.left + (vx + 0.5) * r.width / VIEW_W, clientY: r.top + (vy + 0.5) * r.height / VIEW_H });
+        }
+        function tapWorld(wx, wy) { tapView(wx - camX, wy - camY); }
+        function walkEnd() {
+          var pth = player.path || [];
+          return pth.length ? { tx: pth[pth.length - 1].tx, ty: pth[pth.length - 1].ty } : { tx: player.tx, ty: player.ty };
+        }
+        function inStrip(t, bd) { return t.ty === bd.ty - 1 && t.tx >= bd.tx - 1 && t.tx <= bd.tx + 1; }
+        function sleepy() { return !!sleepFx || !!(pending && pending.type === "sleep"); }
+        try {
+          found.pathClear = false;
+          found.logBridge = false;
+          /* headboard strip solid in every bed room */
+          bad = [];
+          for (i = 0; i < scenes.length; i++) {
+            applyScene(scenes[i]);
+            bed = findBed();
+            if (!bed || walkable(bed.tx - 1, bed.ty - 1) || walkable(bed.tx, bed.ty - 1) || walkable(bed.tx + 1, bed.ty - 1)) bad.push(scenes[i]);
+          }
+          ok("bedHeadboardSolid", bad.length === 0, bad.join(","));
+          /* SLEEP label taps sleep (or walk-to-sleep) from anywhere in the room */
+          bad = [];
+          okAll = 0;
+          for (i = 0; i < scenes.length; i++) {
+            applyScene(scenes[i]);
+            bed = findBed();
+            lbl = shaftLabelBox(bed, "SLEEP");
+            pts = [[lbl.x + 1, lbl.y + 1], [lbl.x + (lbl.w >> 1), lbl.y + (lbl.h >> 1)], [lbl.x + lbl.w - 2, lbl.y + lbl.h - 2], [lbl.x + 1, lbl.y + lbl.h - 2]];
+            starts = [];
+            for (sy = 1; sy < ROWS - 1; sy++) for (sx = 1; sx < COLS - 1; sx++) if (walkable(sx, sy)) starts.push([sx, sy]);
+            for (j = 0; j < starts.length; j++) {
+              for (k = 0; k < pts.length; k++) {
+                clean();
+                placePlayer(starts[j][0], starts[j][1], "up");
+                /* HUD chrome drawn over the float (farmhouse: STAR panel) wins by design */
+                if (hudHeaderButtonAt({ x: pts[k][0] - camX, y: pts[k][1] - camY })) continue;
+                tapWorld(pts[k][0], pts[k][1]);
+                endT = walkEnd();
+                okAll++;
+                if (!sleepy() || !walkable(endT.tx, endT.ty) || inStrip(endT, bed)) {
+                  if (bad.length < 6) bad.push(scenes[i] + "@" + starts[j] + " pt" + k + "->" + endT.tx + "," + endT.ty + " sleep=" + sleepy());
+                }
+              }
+            }
+          }
+          ok("bedTapSleepLabel", bad.length === 0 && okAll > 100, bad.join(" | ") + " n=" + okAll);
+          /* bed body + the wall row above the bed: never end in a wall / hidden strip */
+          bad = [];
+          applyScene("lHouse");
+          bed = findBed();
+          b = propBounds(bed);
+          taps = [];
+          for (sy = 1; sy < b.y + b.h; sy += 3) for (sx = b.x - 16; sx < b.x + b.w + 16; sx += 3) taps.push([sx, sy]);
+          starts = [[6, 4], [5, 2], [4, 5], [1, 4], [6, 2], [4, 1], [1, 2], [2, 4], [7, 7], [12, 1]];
+          for (j = 0; j < starts.length; j++) {
+            for (k = 0; k < taps.length; k++) {
+              clean();
+              placePlayer(starts[j][0], starts[j][1], "up");
+              tapWorld(taps[k][0], taps[k][1]);
+              endT = walkEnd();
+              if (!walkable(endT.tx, endT.ty) || inStrip(endT, bed) || endT.ty < 1) {
+                if (bad.length < 6) bad.push(starts[j] + " tap" + taps[k] + "->" + endT.tx + "," + endT.ty);
+              }
+            }
+          }
+          ok("bedTapNeverWall", bad.length === 0, bad.join(" | "));
+          /* bed tap from afar walks to a real bedside tile (not the strip) and sleeps there */
+          clean();
+          placePlayer(6, 5, "up");
+          goSleep();
+          endT = walkEnd();
+          ok("bedTapWalkBedside", !!(pending && pending.type === "sleep") && walkable(endT.tx, endT.ty) && !inStrip(endT, bed) && nearBedAt(endT.tx, endT.ty, bed), endT.tx + "," + endT.ty);
+          /* save restored inside the hidden strip / a wall nudges to nearest walkable */
+          bad = [];
+          pts = [[bed.tx - 1, bed.ty - 1], [bed.tx, bed.ty - 1], [bed.tx + 1, bed.ty - 1], [bed.tx, bed.ty], [0, 3], [5, 0], [0, 0]];
+          for (k = 0; k < pts.length; k++) {
+            clean();
+            applyScene("overworld");
+            pendingRestore = { scene: "lHouse", tx: pts[k][0], ty: pts[k][1], face: "up" };
+            applyRestore();
+            if (currentScene !== "lHouse" || !walkable(player.tx, player.ty) || inStrip({ tx: player.tx, ty: player.ty }, bed) ||
+                Math.abs(player.tx - pts[k][0]) + Math.abs(player.ty - pts[k][1]) > 3) {
+              bad.push(pts[k] + "->" + currentScene + " " + player.tx + "," + player.ty);
+            }
+          }
+          ok("saveRestoreOutOfWall", bad.length === 0, bad.join(" | "));
+          /* header STAR / BOOK: every pixel of both panels opens its panel, Orion never moves */
+          bad = [];
+          for (i = 0; i < 3; i++) {
+            applyScene(i === 0 ? "lHouse" : (i === 1 ? "house" : "overworld"));
+            if (i === 2) placePlayer(player.tx, player.ty, "down");
+            for (sy = HUD_STAR_RECT.y; sy < HUD_STAR_RECT.y + HUD_STAR_RECT.h; sy += 2) {
+              for (sx = HUD_STAR_RECT.x; sx < HUD_BOOK_RECT.x + HUD_BOOK_RECT.w; sx += 2) {
+                clean();
+                if (i < 2) placePlayer(6, 5, "up");
+                var _hx = player.tx, _hy = player.ty;
+                tapView(sx, sy);
+                if (!(achieveOpen || questOpen) || (player.path && player.path.length) || pending || player.tx !== _hx || player.ty !== _hy) {
+                  if (bad.length < 6) bad.push(currentScene + "@" + sx + "," + sy + " a=" + achieveOpen + " q=" + questOpen + " path=" + (player.path ? player.path.length : 0));
+                }
+              }
+            }
+          }
+          clean();
+          ok("hudClickNoWalk", bad.length === 0, bad.join(" | "));
+          ok("hudStarBookSplit", hudHeaderButtonAt({ x: 12, y: 11 }) === "star" && hudHeaderButtonAt({ x: 33, y: 11 }) === "book" &&
+            hudHeaderButtonAt({ x: 41, y: 20 }) === "book" && hudHeaderButtonAt({ x: 50, y: 11 }) === null && hudHeaderButtonAt({ x: 12, y: 40 }) === null, "");
+          /* one sleep per wake: mashing Space / tapping bed right after waking does nothing */
+          applyScene("lHouse");
+          clean();
+          bed = findBed();
+          var wake = sleepWakeSpot();
+          dayNumber = 70;
+          dayMs = PHASE_MS + 1000;
+          placePlayer(wake.tx, wake.ty, "up");
+          var began = trySleepHere();
+          finishSleepAdvance();
+          sleepFx = null;
+          var dWake = dayNumber;
+          var mashOk = true;
+          for (k = 0; k < 4; k++) {
+            toast = null;
+            lineNote = null;
+            if (trySleepHere() !== true || sleepFx) mashOk = false;
+          }
+          var noteOk = !!(lineNote && lineNote.text === "YOU JUST WOKE UP!");
+          clean();
+          goSleep();
+          var tapBlocked = !sleepFx && !pending;
+          tapView(bed.tx * TILE + 16 - camX, bed.ty * TILE + 16 - camY);
+          tapBlocked = tapBlocked && !sleepFx && !(pending && pending.type === "sleep");
+          ok("sleepMashOnce", !!began && dWake === 71 && dayNumber === 71 && mashOk && noteOk && tapBlocked && DAY_MS === 480000,
+            "began=" + began + " wake=" + dWake + " day=" + dayNumber + " mash=" + mashOk + " note=" + noteOk + " tap=" + tapBlocked);
+          /* stepping off the wake tile re-arms the bed: next sleep is exactly +1 again */
+          clean();
+          var stepT = walkable(wake.tx + 1, wake.ty) ? { tx: wake.tx + 1, ty: wake.ty } : nearestAdjacent(wake.tx, wake.ty);
+          player.tx = stepT.tx; player.ty = stepT.ty;
+          updateSleepRearm();
+          player.tx = wake.tx; player.ty = wake.ty;
+          var again = trySleepHere();
+          var fx2 = !!sleepFx;
+          finishSleepAdvance();
+          ok("sleepRearmAfterStepOff", again === true && fx2 && dayNumber === 72 && dayMs === 0, "again=" + again + " fx=" + fx2 + " day=" + dayNumber);
+          sleepFx = null;
+          /* normal single sleep still exactly +1, and Space from a fresh spot works */
+          clean();
+          placePlayer(wake.tx, wake.ty, "up");
+          dayNumber = 80;
+          var one = trySleepHere();
+          finishSleepAdvance();
+          finishSleepAdvance();
+          ok("sleepSingleStillPlusOne", one === true && dayNumber === 81 && sleepRearm && sleepRearm.tx === wake.tx, "day=" + dayNumber);
+          sleepFx = null;
+          clean();
+          /* door-mat OUT float tap exits like Space (walks onto mat with exit pending) */
+          applyScene("lHouse");
+          mat = null;
+          for (k = 0; k < PROPS.length; k++) if (PROPS[k].kind === "doormat") mat = PROPS[k];
+          placePlayer(4, 5, "up");
+          lbl = shaftLabelBox(mat, "OUT");
+          tapWorld(lbl.x + (lbl.w >> 1), lbl.y + (lbl.h >> 1));
+          endT = walkEnd();
+          ok("doorOutLabelExits", !!(pending && pending.type === "exitLHouse") && endT.tx === lHouseOut.tx && endT.ty === lHouseOut.ty,
+            "pending=" + (pending ? pending.type : "") + " end=" + endT.tx + "," + endT.ty);
+          clean();
+        } catch (eKh) {
+          ok("khNoThrow", false, eKh && eKh.message ? eKh.message + " " + (eKh.stack || "").split("\n")[1] : String(eKh));
+        } finally {
+          clean();
+          lineNote = null;
+          found.pathClear = fpc0;
+          found.logBridge = flb0;
+          dayNumber = d0;
+          dayMs = ms0;
+          resetClockMark();
+          applyScene(scene0 || "overworld");
+          placePlayer(px0, py0, pf0);
+          sleepRearm = null;
+          persistSave();
         }
       })();
     } catch (e) {
