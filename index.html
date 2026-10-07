@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kh";
+  var BUILD = "20260905ki";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -8717,10 +8717,15 @@
     /* 20260905im: Press Start 8px white + thin cardinal outline; walk-through + centered */
     var tw, lx, ly, bh;
     if (!word) return;
+    if (labelCapture) {
+      labelCapture.push({ k: "door", x: x, y: y, word: word });
+      return;
+    }
     tw = pixelTextWidth(word, PIXEL_HUD_SIZE);
     bh = pixelTextGlyphH(PIXEL_HUD_SIZE) + 2;
     lx = x + ((TILE - tw) / 2) | 0;
     ly = y - (bh + 5);
+    if (worldLabelCovered(lx - 2, ly - 1, tw + 4, bh + 2)) return;
     fill(g, lx - 2, ly - 1, tw + 4, bh + 2, "rgba(42,26,16,0.78)");
     drawPixelText(g, word, lx, ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
   }
@@ -26143,10 +26148,81 @@ function doCookNow() {
   function drawChairSitLabel(g, p) {
     var box;
     if (!p) return;
+    if (labelCapture) {
+      labelCapture.push({ k: "sit", p: p });
+      return;
+    }
     box = chairSitLabelBox(p);
     if (!box) return;
+    if (worldLabelCovered(box.x, box.y, box.w, box.h)) return;
     fill(g, box.x, box.y, box.w, box.h, "rgba(42,26,16,0.78)");
     drawPixelText(g, "SIT", box.lx, box.ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
+  }
+
+  /* 20260905ki: floating world labels (SHOP / 8 WOOD / SLEEP / OUT…) hide while any part
+     sits under a HUD panel or the line-note strip. LIVE 10/6 pm + 10/7 am: on camera scroll
+     the bridge "8 WOOD" slid under the Day panel and read "8 W"; SHOP clipped the same way;
+     YOU JUST WOKE UP! drew over the SLEEP word. Draw-only — taps keep the raw box. */
+  var labelCapture = null;
+
+  function worldLabelHudRects() {
+    var rects = [], word, tw, gh, T, lbl, lw, ly, br, msg;
+    rects.push({ x: 4, y: 3, w: 18, h: 18 });
+    rects.push({ x: 24, y: 3, w: 18, h: 18 });
+    rects.push({ x: 46, y: 3, w: Math.max(68, 18 + playerHearts() * 10), h: 18 });
+    rects.push({ x: 206, y: 3, w: 114, h: 21 });
+    word = placeHudLabel();
+    if (word) {
+      tw = pixelTextWidth(word, PIXEL_HUD_SIZE);
+      gh = pixelTextGlyphH(PIXEL_HUD_SIZE);
+      rects.push({ x: VIEW_W - tw - 8, y: 26, w: tw + 6, h: gh + 4 });
+    }
+    if (inTownSquare()) {
+      lbl = holidayHudLabel();
+      if (lbl) {
+        lw = textWidth(lbl) + 8;
+        ly = 26;
+        br = buildStampRect();
+        if (VIEW_W - lw - 2 < br.x + br.w && VIEW_W - 2 > br.x) ly = 38;
+        rects.push({ x: Math.max(46, VIEW_W - lw - 2), y: ly, w: lw, h: textGlyphH() + 4 });
+      }
+    }
+    T = trayLayout();
+    rects.push({ x: T.dockX, y: T.dockY, w: T.dockW, h: T.dockH });
+    rects.push({ x: T.bx - 2, y: T.by - 2, w: T.barW + 4, h: T.slot + 4 });
+    rects.push({ x: T.bagX, y: T.bagY, w: T.bagW, h: T.bagH });
+    if (lineNote) {
+      msg = lineNote.text;
+      tw = textWidth(msg);
+      rects.push({ x: ((VIEW_W - tw - 24) / 2) | 0, y: 28, w: tw + 24, h: 18 });
+    }
+    return rects;
+  }
+
+  /* x/y are world coords (actor pass draws under translate(-camX, -camY)). */
+  function worldLabelCovered(x, y, w, h) {
+    var rects, i, r, sx, sy;
+    sx = x - camX;
+    sy = y - camY;
+    rects = worldLabelHudRects();
+    for (i = 0; i < rects.length; i++) {
+      r = rects[i];
+      if (sx < r.x + r.w && sx + w > r.x && sy < r.y + r.h && sy + h > r.y) return true;
+    }
+    return false;
+  }
+
+  /* Graded prop bitmaps (AM / evening / night) are cached per prop; labels used to bake in
+     at one camera spot. Capture them during the bake and replay live after each blit. */
+  function replayWorldLabels(g, labels) {
+    var i, L;
+    if (!labels || !labels.length) return;
+    for (i = 0; i < labels.length; i++) {
+      L = labels[i];
+      if (L.k === "shaft") drawShaftLabel(g, L.p, L.word);
+      else if (L.k === "door") drawDoorSignLabel(g, L.x, L.y, L.word);
+      else if (L.k === "sit") drawChairSitLabel(g, L.p);
+    }
   }
 
   /* 20260905kh: one source of truth for a floating world label box (draw + tap).
@@ -26185,8 +26261,13 @@ function doCookNow() {
     /* 20260905im: Press Start 8px white + thin cardinal outline; OUT same (no gold) */
     var b;
     if (!word || !p) return;
+    if (labelCapture) {
+      labelCapture.push({ k: "shaft", p: { tx: p.tx, ty: p.ty }, word: word });
+      return;
+    }
     b = shaftLabelBox(p, word);
     if (b.skip) return;
+    if (worldLabelCovered(b.x, b.y, b.w, b.h)) return;
     fill(g, b.x, b.y, b.w, b.h, "rgba(42,26,16,0.78)");
     drawPixelText(g, word, b.lx, b.ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
   }
@@ -26903,6 +26984,8 @@ function doCookNow() {
     if (p.kind === "berryBush") extra += p.picked ? "P" : "F";
     if (p.kind === "nest") extra += p.eggs ? ("e" + p.eggs) : "0";
     if (p.kind === "fixedBridge") extra += "fix";
+    /* 20260905ki: broken-bridge float flips 8 WOOD → FIX! with wood in the bag */
+    if (p.kind === "brokenBridge") extra += bagCount("wood") >= 8 ? "w8" : "w";
     return p.kind + "@" + p.tx + "," + p.ty + ":" + hs + extra;
   }
 
@@ -27291,7 +27374,7 @@ function doCookNow() {
   }
 
   function rebuildGradedPropScratch(p, bx, by, bw, bh) {
-    var sc, sg, mk, mg, dbw, dbh;
+    var sc, sg, mk, mg, dbw, dbh, labels = null;
     sc = ensurePropScratch(bw, bh);
     sg = propScratchCtx;
     mk = propMask;
@@ -27314,7 +27397,13 @@ function doCookNow() {
     sg.imageSmoothingEnabled = false;
     sg.save();
     sg.translate(-bx, -by);
-    drawProp(sg, p);
+    labelCapture = [];
+    try {
+      drawProp(sg, p);
+    } finally {
+      labels = labelCapture;
+      labelCapture = null;
+    }
     sg.restore();
     mg.drawImage(sc, 0, 0, dbw, dbh, 0, 0, dbw, dbh);
     applyOutdoorGrade(sg, bw, bh);
@@ -27323,7 +27412,7 @@ function doCookNow() {
     sg.imageSmoothingEnabled = false;
     sg.drawImage(mk, 0, 0, dbw, dbh, 0, 0, dbw, dbh);
     sg.globalCompositeOperation = "source-over";
-    return { sc: sc, dbw: dbw, dbh: dbh };
+    return { sc: sc, dbw: dbw, dbh: dbh, labels: labels };
   }
 
   function storeGradedPropCache(key, sc, dbw, dbh, bx, by, bw, bh) {
@@ -27374,6 +27463,7 @@ function doCookNow() {
         g.imageSmoothingEnabled = false;
         g.drawImage(entry.c, 0, 0, entry.dbw, entry.dbh, entry.bx, entry.by, entry.bw, entry.bh);
         paintForestPropRim(g, p);
+        replayWorldLabels(g, entry.labels);
         touchGradedPropCache(key);
         return;
       }
@@ -27382,6 +27472,7 @@ function doCookNow() {
     if (state && frameGradeCacheKey) {
       key = frameGradeCacheKey + "|" + state;
       entry = storeGradedPropCache(key, built.sc, built.dbw, built.dbh, bx, by, bw, bh);
+      entry.labels = built.labels;
       g.imageSmoothingEnabled = false;
       g.drawImage(entry.c, 0, 0, entry.dbw, entry.dbh, entry.bx, entry.by, entry.bw, entry.bh);
     } else {
@@ -27389,6 +27480,7 @@ function doCookNow() {
       g.drawImage(built.sc, 0, 0, built.dbw, built.dbh, bx, by, bw, bh);
     }
     paintForestPropRim(g, p);
+    replayWorldLabels(g, built.labels);
   }
 
   function paintForestPropRim(g, p) {
@@ -32120,6 +32212,8 @@ if (currentScene === "ocean") goExitOcean();
         resetClockMark();
       },
       dayMs: function () { return dayMs; },
+      outdoorGradeActive: function () { return outdoorGradeActive(); },
+      cam: function () { return { x: camX, y: camY }; },
       flushPickups: flushPickups,
       pickups: function () { return pickups; },
       propAt: propAt,
@@ -32324,7 +32418,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kh", BUILD);
+      ok("BUILD", BUILD === "20260905ki", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -36276,6 +36370,56 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           placePlayer(px0, py0, pf0);
           sleepRearm = null;
           persistSave();
+        }
+      })();
+      /* 20260905ki: world labels hide under HUD panels / line note; graded bake replays live. */
+      (function () {
+        var scene0 = currentScene, px0 = player.tx, py0 = player.ty, pf0 = player.face;
+        var cx0, cy0, sign = null, i, built, b, hasShop, w0, k0, k1, br = null, wood0;
+        try {
+          applyScene("overworld");
+          cx0 = camX; cy0 = camY;
+          lineNote = null;
+          ok("labelUnderDayPanelHidden", worldLabelCovered(camX + 214, camY + 6, 30, 10) === true, "");
+          ok("labelUnderHeartsHidden", worldLabelCovered(camX + 60, camY + 10, 30, 10) === true, "");
+          ok("labelOpenWorldShows", worldLabelCovered(camX + 140, camY + 90, 30, 10) === false, "");
+          ok("labelEdgeTouchHidden", worldLabelCovered(camX + 180, camY + 18, 30, 10) === true, "8 W partial under Day panel");
+          showLineNote("YOU JUST WOKE UP!");
+          ok("labelUnderLineNoteHidden", worldLabelCovered(camX + 150, camY + 32, 20, 10) === true, "");
+          lineNote = null;
+          ok("labelLineNoteGoneShows", worldLabelCovered(camX + 150, camY + 32, 20, 10) === false, "");
+          for (i = 0; i < PROPS.length; i++) {
+            if (PROPS[i] && PROPS[i].kind === "shopSign") sign = PROPS[i];
+            if (PROPS[i] && PROPS[i].kind === "brokenBridge") br = PROPS[i];
+          }
+          if (sign) {
+            b = propBounds(sign);
+            built = rebuildGradedPropScratch(sign, b.x - 24, b.y - 24, b.w + 48, b.h + 48);
+            hasShop = false;
+            for (i = 0; built.labels && i < built.labels.length; i++) {
+              if (built.labels[i].k === "shaft" && built.labels[i].word === "SHOP") hasShop = true;
+            }
+            ok("gradedBakeCapturesLabel", hasShop && labelCapture === null, JSON.stringify(built.labels));
+          } else {
+            ok("gradedBakeCapturesLabel", false, "no shopSign prop");
+          }
+          if (br && !found.bridgeFixed) {
+            wood0 = bagCount("wood");
+            k0 = gradedPropStateKey(br);
+            w0 = wood0 >= 8;
+            if (w0) takeFromBag("wood", wood0); else addToBag("wood", 8 - wood0);
+            k1 = gradedPropStateKey(br);
+            if (w0) addToBag("wood", wood0); else takeFromBag("wood", 8 - wood0);
+            /* animated props (null key) never cache, so the float is always live */
+            ok("bridgeLabelKeyFollowsWood", ((k0 === null && k1 === null) || (!!k0 && !!k1 && k0 !== k1)) && bagCount("wood") === wood0, k0 + " / " + k1);
+          }
+        } catch (eKi) {
+          ok("kiNoThrow", false, eKi && eKi.message ? eKi.message : String(eKi));
+        } finally {
+          labelCapture = null;
+          lineNote = null;
+          applyScene(scene0 || "overworld");
+          placePlayer(px0, py0, pf0);
         }
       })();
     } catch (e) {
