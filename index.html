@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ki";
+  var BUILD = "20260905kj";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -27548,8 +27548,58 @@ function doCookNow() {
     drawPlayerCanopyPeek(g);
   }
 
+  /* 20260905kj: tinted sprite-silhouette copies (cached per sprite/frame/color) so the
+     05cp dusk rim and 05ci hit flash follow the foe's own shape instead of a square plate. */
+  var tintSilCache = {};
+  function tintedSpriteCanvas(id, frame, color) {
+    var s = Assets.spr[id], key, c, cx, fw;
+    if (!s || !Assets.img) return null;
+    key = id + "|" + (frame || 0) + "|" + color;
+    if (tintSilCache[key]) return tintSilCache[key];
+    fw = s.fw || s.w;
+    c = document.createElement("canvas");
+    /* BUFFER-dense scratch so the copy stays as crisp as the atlas blit */
+    c.width = fw * BUFFER;
+    c.height = s.h * BUFFER;
+    c.lw = fw;
+    c.lh = s.h;
+    cx = c.getContext("2d");
+    if (!cx) return null;
+    cx.imageSmoothingEnabled = false;
+    cx.drawImage(Assets.img, s.x + (frame || 0) * fw, s.y, fw, s.h, 0, 0, c.width, c.height);
+    cx.globalCompositeOperation = "source-in";
+    cx.fillStyle = color;
+    cx.fillRect(0, 0, c.width, c.height);
+    tintSilCache[key] = c;
+    return c;
+  }
+  /* Draw the tinted silhouette at the same spot Assets.draw would put the sprite (+dx,dy). */
+  function drawSpriteSilhouette(g, id, x, y, frame, sc, color, alpha, dx, dy) {
+    var s = Assets.spr[id], c, ox, oy, ax, ay;
+    if (!s) return false;
+    c = tintedSpriteCanvas(id, frame, color);
+    if (!c) return false;
+    ox = s.ox || 0;
+    oy = s.oy || 0;
+    ax = (s.anchor && s.anchor[0]) || 0;
+    ay = (s.anchor && s.anchor[1]) || 0;
+    g.save();
+    g.imageSmoothingEnabled = false;
+    g.globalAlpha = alpha;
+    if (sc !== 1) {
+      g.translate(Math.round(x), Math.round(y));
+      g.scale(sc, sc);
+      g.drawImage(c, (ox - ax) + (dx || 0), (oy - ay) + (dy || 0), c.lw, c.lh);
+    } else {
+      g.drawImage(c, Math.round(x + (ox - ax)) + (dx || 0), Math.round(y + (oy - ay)) + (dy || 0), c.lw, c.lh);
+    }
+    g.restore();
+    return true;
+  }
+  var DUSK_RIM_OFFSETS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
   function drawMonster(g, m) {
-    var bob, sx, sc, maxHp, pips, filled, i, px, py, gap, totalW, duskSlug, glow;
+    var bob, sx, sc, maxHp, pips, filled, i, px, py, gap, totalW, duskSlug, glow, fa;
     if (!m || m.hp <= 0) return;
     bob = m.frame ? -1 : 0;
     sx = 0;
@@ -27557,15 +27607,17 @@ function doCookNow() {
     sc = m.scale || 1;
     duskSlug = m.kind === "slug" && outdoorSlugScene() &&
       (clockPhaseName() === "EVENING" || clockPhaseName() === "NIGHT");
-    if (duskSlug) {
-      /* 20260905cp: warm rim so evening wash cannot swallow night slugs */
-      glow = 0.28 + 0.18 * (0.5 + 0.5 * Math.sin(tick / 200 + (m.tx || 0)));
-      g.fillStyle = "rgba(255,220,140," + glow.toFixed(3) + ")";
-      g.fillRect(Math.round(m.x + sx - 10 * sc), Math.round(m.y + bob - 16 * sc), Math.round(20 * sc), Math.round(18 * sc));
-      g.fillStyle = "rgba(255,245,210," + (glow * 0.55).toFixed(3) + ")";
-      g.fillRect(Math.round(m.x + sx - 6 * sc), Math.round(m.y + bob - 12 * sc), Math.round(12 * sc), Math.round(10 * sc));
-    }
     drawShadow(g, m.x + sx, m.y, sc > 1.2 ? 6 : 4);
+    if (duskSlug) {
+      /* 20260905cp → 05kj: warm rim so evening wash cannot swallow night slugs — now a
+         1px warm sprite-silhouette outline behind the slime (was two fillRect squares
+         that read as a pale square plate at EVENING/NIGHT). */
+      glow = 0.55 + 0.25 * (0.5 + 0.5 * Math.sin(tick / 200 + (m.tx || 0)));
+      for (i = 0; i < DUSK_RIM_OFFSETS.length; i++) {
+        drawSpriteSilhouette(g, m.sprite, m.x + sx, m.y + bob, m.frame, sc, "rgb(255,220,140)", glow,
+          DUSK_RIM_OFFSETS[i][0], DUSK_RIM_OFFSETS[i][1]);
+      }
+    }
     if (sc !== 1) {
       g.save();
       g.imageSmoothingEnabled = false;
@@ -27577,15 +27629,10 @@ function doCookNow() {
       Assets.draw(g, m.sprite, m.x + sx, m.y + bob, m.frame);
     }
     if (m.flash > 0) {
-      /* 20260905ci: brighter longer hit flash */
-      g.save();
-      g.globalAlpha = Math.min(0.92, 0.4 + 0.55 * (m.flash / 340));
-      g.fillStyle = "#FFFDF4";
-      g.fillRect(Math.round(m.x + sx - 9 * sc), Math.round(m.y + bob - 17 * sc), Math.round(18 * sc), Math.round(18 * sc));
-      g.globalAlpha = Math.min(0.7, 0.25 + 0.4 * (m.flash / 340));
-      g.fillStyle = "#FFFFFF";
-      g.fillRect(Math.round(m.x + sx - 6 * sc), Math.round(m.y + bob - 14 * sc), Math.round(12 * sc), Math.round(12 * sc));
-      g.restore();
+      /* 20260905ci → 05kj: brighter longer hit flash — white sprite silhouette over the
+         foe (same shape, no square). */
+      fa = Math.min(0.92, 0.4 + 0.55 * (m.flash / 340));
+      drawSpriteSilhouette(g, m.sprite, m.x + sx, m.y + bob, m.frame, sc, "#FFFDF4", fa, 0, 0);
     }
     /* 20260905ci: kid HP pips above foes */
     maxHp = m.maxHp | 0;
@@ -32023,6 +32070,7 @@ if (currentScene === "ocean") goExitOcean();
   if (typeof window !== "undefined") {
     window.orionTest = {
       BUILD: BUILD,
+      monsters: function () { return monsters; }, /* 20260905kj: headless dusk-slug render check */
       buildStampRect: buildStampRect,
       bagCap: bagCap,
       chestCap: chestCap,
@@ -32418,7 +32466,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ki", BUILD);
+      ok("BUILD", BUILD === "20260905kj", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -36420,6 +36468,64 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           lineNote = null;
           applyScene(scene0 || "overworld");
           placePlayer(px0, py0, pf0);
+        }
+      })();
+      /* 20260905kj: dusk slug rim + hit flash follow the slime silhouette (no square plate). */
+      (function () {
+        var scene0 = currentScene, dm0 = dayMs, tc, tg, m, sc, cx, cy, a0, a1, a2, a3, nDay, nDusk, flashA, inA;
+        function alphaAt(lx, ly) {
+          return tg.getImageData(Math.floor(lx * BUFFER), Math.floor(ly * BUFFER), 1, 1).data[3];
+        }
+        function rgbaAt(lx, ly) {
+          return tg.getImageData(Math.floor(lx * BUFFER), Math.floor(ly * BUFFER), 1, 1).data;
+        }
+        function countOpaque() {
+          var d = tg.getImageData(0, 0, tc.width, 50 * BUFFER).data, n = 0, i;
+          for (i = 3; i < d.length; i += 4) if (d[i] > 0) n++;
+          return n;
+        }
+        function paintSlug(phaseIdx, flash) {
+          dayMs = PHASE_MS * phaseIdx + 10;
+          tg.setTransform(1, 0, 0, 1, 0, 0);
+          tg.clearRect(0, 0, tc.width, tc.height);
+          tg.setTransform(BUFFER, 0, 0, BUFFER, 0, 0);
+          m.flash = flash;
+          drawMonster(tg, m);
+        }
+        try {
+          applyScene("forest");
+          tc = document.createElement("canvas");
+          tc.width = 96 * BUFFER;
+          tc.height = 96 * BUFFER;
+          tg = tc.getContext("2d");
+          tg.imageSmoothingEnabled = false;
+          sc = 1.2;
+          cx = 48;
+          cy = 40;
+          m = { kind: "slug", sprite: "slime", x: cx, y: cy, scale: sc, frame: 0, hp: 9, maxHp: 0, tx: 3, ty: 3, shake: 0, flash: 0 };
+          /* HP pips draw above the foe (y < cy-20*sc); sample only the sprite band. */
+          paintSlug(0, 0);
+          nDay = countOpaque();
+          paintSlug(2, 0);
+          nDusk = countOpaque();
+          a0 = alphaAt(cx - 9.5 * sc, cy - 15.5 * sc); /* old 05cp rect top-left corner */
+          a1 = alphaAt(cx + 9.5 * sc, cy - 15.5 * sc); /* old rect top-right corner */
+          a2 = alphaAt(cx - 7 * sc + 0.3, cy - 13 * sc + 0.3); /* sprite-box corner (sprite clear) */
+          ok("duskSlugNoSquarePlate", a0 === 0 && a1 === 0 && a2 === 0, a0 + "," + a1 + "," + a2);
+          ok("duskSlugRimShows", nDusk > nDay, nDay + " → " + nDusk);
+          paintSlug(3, 0);
+          a3 = alphaAt(cx - 9.5 * sc, cy - 15.5 * sc);
+          ok("nightSlugNoSquarePlate", a3 === 0, String(a3));
+          paintSlug(0, 340);
+          flashA = alphaAt(cx - 8.5 * sc, cy - 16.5 * sc); /* old 05ci flash rect corner */
+          inA = rgbaAt(cx, cy - 6 * sc);
+          ok("hitFlashNoSquare", flashA === 0 && alphaAt(cx - 7 * sc + 0.3, cy - 13 * sc + 0.3) === 0, String(flashA));
+          ok("hitFlashWhitensSprite", inA[3] > 0 && inA[0] > 200 && inA[1] > 200 && inA[2] > 200, Array.prototype.slice.call(inA).join(","));
+        } catch (eKj) {
+          ok("kjNoThrow", false, eKj && eKj.message ? eKj.message : String(eKj));
+        } finally {
+          dayMs = dm0;
+          applyScene(scene0 || "overworld");
         }
       })();
     } catch (e) {
