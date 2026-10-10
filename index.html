@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kj";
+  var BUILD = "20260905kk";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -8423,7 +8423,7 @@
     else if (p.kind === "toadstool") drawToadstool(g, x, y);
     else if (p.kind === "berryBush") drawBerryBush(g, x, y, !!p.picked);
     else if (p.kind === "woodsSign") drawWoodsSign(g, x, y, p.label, p);
-    else if (p.kind === "oceanSign") drawWoodsSign(g, x, y, p.label || "OCEAN", p);
+    else if (p.kind === "oceanSign") drawWoodsSign(g, x, y, oceanSignWord(p), p);
     else if (p.kind === "giantTree") drawGiantTree(g, x, y);
     else if (p.kind === "woodsDown") drawWoodsDown(g, x, y);
     else if (p.kind === "nest") drawNest(g, x, y, p);
@@ -8689,8 +8689,9 @@
     if (p.kind === "oceanSign") {
       if (currentScene === "overworld") return { tx: 14, ty: 37 };
       if (currentScene === "ocean") {
-        if (p.label === "ISLAND") return { tx: p.tx, ty: p.ty };
-        return { tx: oceanLand.tx, ty: 0 };
+        /* 20260905kk: was oceanLand row 0 — label drew above the map edge (never seen), so the
+           way home had no word. Float FARM on the sign itself like ISLAND. */
+        return { tx: p.tx, ty: p.ty };
       }
       return { tx: p.tx, ty: p.ty };
     }
@@ -8728,6 +8729,14 @@
     if (worldLabelCovered(lx - 2, ly - 1, tw + 4, bh + 2)) return;
     fill(g, lx - 2, ly - 1, tw + 4, bh + 2, "rgba(42,26,16,0.78)");
     drawPixelText(g, word, lx, ly, { size: PIXEL_HUD_SIZE, fill: PIXEL_HUD_FILL, outline: true, shadow: false });
+  }
+
+  /* 20260905kk: the ocean's way-home sign read OCEAN while you stood at the ocean, so kids
+     who wandered in from the farm's south path saw no way back. Inside the ocean it reads
+     FARM (cached saves have no label, so decide by scene, not by a stored field). */
+  function oceanSignWord(p) {
+    if (p && p.label) return p.label;
+    return currentScene === "ocean" ? "FARM" : "OCEAN";
   }
 
   function drawWoodsSign(g, x, y, word, p) {
@@ -26851,7 +26860,7 @@ function doCookNow() {
         drawShaftLabel(g, { tx: p.tx + 1, ty: p.ty }, "GET IN");
       }
     } else if (p.kind === "oceanSign") {
-      drawWoodsSign(g, x, y, p.label || "OCEAN", p);
+      drawWoodsSign(g, x, y, oceanSignWord(p), p);
     } else if (p.kind === "townHouseB") {
       Assets.draw(g, "townHouseB", x, y);
     } else if (p.kind === "fountain") {
@@ -32466,7 +32475,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kj", BUILD);
+      ok("BUILD", BUILD === "20260905kk", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -36525,6 +36534,34 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           ok("kjNoThrow", false, eKj && eKj.message ? eKj.message : String(eKj));
         } finally {
           dayMs = dm0;
+          applyScene(scene0 || "overworld");
+        }
+      })();
+      /* 20260905kk: ocean way-home sign reads FARM inside the ocean; farm side still OCEAN; ISLAND kept. */
+      (function () {
+        var scene0 = currentScene, i, home = null, isl = null, farmSign = null, words = [];
+        try {
+          applyScene("ocean");
+          for (i = 0; i < PROPS.length; i++) {
+            if (PROPS[i] && PROPS[i].kind === "oceanSign") {
+              if (PROPS[i].label === "ISLAND") isl = PROPS[i]; else home = PROPS[i];
+            }
+          }
+          ok("oceanHomeSignFarm", !!home && oceanSignWord(home) === "FARM", home ? oceanSignWord(home) : "missing");
+          ok("oceanHomeSignCachedNoLabel", oceanSignWord({ kind: "oceanSign", tx: 32, ty: 2 }) === "FARM", oceanSignWord({ kind: "oceanSign" }));
+          ok("oceanHomeLabelOnScreen", !!home && signLabelAnchor(home) && signLabelAnchor(home).ty >= 1, home && signLabelAnchor(home) ? signLabelAnchor(home).tx + "," + signLabelAnchor(home).ty : "none");
+          ok("oceanIslandSignKept", !!isl && oceanSignWord(isl) === "ISLAND", isl ? oceanSignWord(isl) : "missing");
+          labelCapture = words;
+          if (home) drawWoodsSign(document.createElement("canvas").getContext("2d"), home.tx * TILE, home.ty * TILE, oceanSignWord(home), home);
+          labelCapture = null;
+          ok("oceanHomeSignDrawsFarm", words.length > 0 && words[0].word === "FARM", words.length ? words[0].word : "none");
+          applyScene("overworld");
+          for (i = 0; i < PROPS.length; i++) if (PROPS[i] && PROPS[i].kind === "oceanSign") farmSign = PROPS[i];
+          ok("farmOceanSignStillOcean", !!farmSign && oceanSignWord(farmSign) === "OCEAN", farmSign ? oceanSignWord(farmSign) : "missing");
+        } catch (eKk) {
+          ok("kkNoThrow", false, eKk && eKk.message ? eKk.message : String(eKk));
+        } finally {
+          labelCapture = null;
           applyScene(scene0 || "overworld");
         }
       })();
