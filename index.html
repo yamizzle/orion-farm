@@ -8739,6 +8739,25 @@
     return currentScene === "ocean" ? "FARM" : "OCEAN";
   }
 
+  /* 20260905kk: round soft lamp pool (center cx,cy; radius r; yScale squashes it into an oval).
+     Peak alpha a at the center, ~half by 55%, 0 at the rim — no hard square edge. */
+  function drawSoftLampGlow(g, cx, cy, r, yScale, rgb, a) {
+    var grd;
+    if (!(a > 0) || !(r > 0)) return;
+    g.save();
+    g.translate(cx, cy);
+    g.scale(1, yScale || 1);
+    grd = g.createRadialGradient(0, 0, 0, 0, 0, r);
+    grd.addColorStop(0, "rgba(" + rgb + "," + Math.min(1, a * 1.25).toFixed(3) + ")");
+    grd.addColorStop(0.55, "rgba(" + rgb + "," + (a * 0.6).toFixed(3) + ")");
+    grd.addColorStop(1, "rgba(" + rgb + ",0)");
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(0, 0, r, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  }
+
   function drawWoodsSign(g, x, y, word, p) {
     var anc, ax, ay;
     word = word || (currentScene === "forest" ? "FARM" : "WOODS");
@@ -26595,11 +26614,12 @@ function doCookNow() {
         if (townLightOn() && p.tx === pipLanternAt.tx && p.ty === pipLanternAt.ty) {
           flicker += 0.06 * (0.5 + 0.5 * Math.sin(tick / 170 + p.tx));
         }
-        g.fillStyle = "rgba(240,192,96," + flicker.toFixed(3) + ")";
-        g.fillRect(x - (cozyLamp ? 10 : 12), y - (cozyLamp ? 14 : 16), cozyLamp ? 36 : 40, cozyLamp ? 36 : 40);
+        /* 20260905kk: was a 36×36 / 40×40 fillRect — read as a pale see-through SQUARE over the
+           farmhouse STOVE corner (LIVE 10/9 pm; same class as the 05kj slime plate). Now a
+           round soft pool with the same center, peak alpha, and size that fades to 0. */
+        drawSoftLampGlow(g, x + 8, y + 4, cozyLamp ? 18 : 20, 1, "240,192,96", flicker);
         if (holidayLan) {
-          g.fillStyle = "rgba(255,220,140," + (0.06 + 0.05 * (0.5 + 0.5 * Math.sin(tick / 180 + p.tx))).toFixed(3) + ")";
-          g.fillRect(x - 6, y - 20, 28, 12);
+          drawSoftLampGlow(g, x + 8, y - 14, 14, 0.43, "255,220,140", 0.06 + 0.05 * (0.5 + 0.5 * Math.sin(tick / 180 + p.tx)));
         }
       }
       if (currentScene === "house") {
@@ -36534,6 +36554,27 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           ok("kjNoThrow", false, eKj && eKj.message ? eKj.message : String(eKj));
         } finally {
           dayMs = dm0;
+          applyScene(scene0 || "overworld");
+        }
+      })();
+      /* 20260905kk: house lamp glow is a round soft pool, not a pale 36×36 square. */
+      (function () {
+        var scene0 = currentScene, c, cg, lamp = null, i, ox = 24, oy = 24, cornerA, sideA;
+        try {
+          applyScene("house");
+          for (i = 0; i < PROPS.length; i++) if (PROPS[i] && PROPS[i].kind === "lantern") lamp = PROPS[i];
+          c = document.createElement("canvas");
+          c.width = 64; c.height = 64;
+          cg = c.getContext("2d");
+          cg.translate(ox - lamp.tx * TILE, oy - lamp.ty * TILE);
+          drawProp(cg, lamp);
+          cornerA = cg.getImageData(ox - 9, oy - 13, 1, 1).data[3]; /* inside old square corner */
+          sideA = cg.getImageData(ox - 6, oy + 4, 1, 1).data[3];
+          ok("houseLampNoSquareCorner", cornerA === 0, String(cornerA));
+          ok("houseLampGlowShows", !lanternIsLit() || sideA > 0, String(sideA));
+        } catch (eKkL) {
+          ok("kkLampNoThrow", false, eKkL && eKkL.message ? eKkL.message : String(eKkL));
+        } finally {
           applyScene(scene0 || "overworld");
         }
       })();
