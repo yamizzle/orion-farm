@@ -29419,7 +29419,10 @@ function doCookNow() {
       g.imageSmoothingEnabled = prev;
     }
     drawWeaponDockCell(g, L.dockX + 12, L.dockY, 24, L.dockH, true);
-    drawText(g, "TOOLS + SEEDS IN TRAY", L.gridX, L.dockY + L.dockH - 2, C.woodSh);
+    /* 20260905kl: font has no "+", so this read "TOOLS   SEEDS IN TRAY", ran under the weapon
+       dock, and sat on the grid top. Split around the dock and lift 2px off the grid. */
+    drawText(g, "TOOLS AND SEEDS", L.gridX, L.dockY + L.dockH - 4, C.woodSh);
+    drawText(g, "GO IN THE TRAY", L.gridX + L.gridW - 14 * 6 + 1, L.dockY + L.dockH - 4, C.woodSh);
     for (i = 0; i < BAG_CELLS; i++) {
       col = i % L.cols;
       row = (i / L.cols) | 0;
