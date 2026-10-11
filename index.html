@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kk";
+  var BUILD = "20260905kl";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -8462,16 +8462,25 @@
   }
 
   function drawWoodsTreeImg(g, img, x, y, hurt, ox, oy, dw, dh) {
-    var prev = g.globalAlpha;
     var smooth = g.imageSmoothingEnabled;
-    if (hurt >= 2) g.globalAlpha = prev * 0.52;
-    else if (hurt) g.globalAlpha = prev * 0.74;
+    /* 20260905kl: a half-chopped tree used to draw at 52–74% alpha — it stayed see-through
+       (a "ghost" oak) until felled, which read as a stuck fade. Keep it solid and show the
+       chop as a notch in the trunk instead. */
     /* 20260905ab: props are 2× source (e.g. birch 80×128 into 40×64 logical);
        with BUFFER=2 that maps 1:1 on device — keep NN so density stays sharp */
     g.imageSmoothingEnabled = false;
     g.drawImage(img, x + ox, y + oy, dw, dh);
     g.imageSmoothingEnabled = smooth;
-    g.globalAlpha = prev;
+    if (hurt) drawTreeChopNotch(g, x, y, hurt);
+  }
+
+  /* 20260905kl: simple chop notch on the trunk base (stage 1 small, stage 2 deep). */
+  function drawTreeChopNotch(g, x, y, hurt) {
+    var deep = hurt >= 2;
+    fill(g, x + 5, y + 9, deep ? 5 : 3, deep ? 3 : 2, "#2A170A");
+    fill(g, x + 5, y + (deep ? 12 : 11), deep ? 5 : 3, 1, "#E8C890");
+    px(g, x + 11, y + 13, "#E8C890");
+    if (deep) px(g, x + 3, y + 14, "#D8B070");
   }
 
   function drawPine(g, x, y, hurt, p) {
@@ -32495,7 +32504,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kk", BUILD);
+      ok("BUILD", BUILD === "20260905kl", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -36554,6 +36563,37 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           ok("kjNoThrow", false, eKj && eKj.message ? eKj.message : String(eKj));
         } finally {
           dayMs = dm0;
+          applyScene(scene0 || "overworld");
+        }
+      })();
+      /* 20260905kl: a half-chopped Imagine tree stays solid (no ghost alpha) and shows a trunk notch. */
+      (function () {
+        var scene0 = currentScene, c, cg, oak = null, i, ox = 32, oy = 64, key, had, a0, a1, n1;
+        try {
+          applyScene("forest");
+          for (i = 0; i < PROPS.length; i++) if (PROPS[i] && PROPS[i].kind === "oak") { oak = PROPS[i]; break; }
+          key = nodeKey(liveHarvestScene(), oak.tx, oak.ty);
+          had = harvestNodes[key];
+          delete harvestNodes[key];
+          c = document.createElement("canvas");
+          c.width = 96; c.height = 96;
+          cg = c.getContext("2d");
+          cg.translate(ox - oak.tx * TILE, oy - oak.ty * TILE);
+          drawProp(cg, oak);
+          a0 = cg.getImageData(ox + 8, oy - 24, 1, 1).data[3];
+          harvestNodes[key] = { scene: liveHarvestScene(), kind: "oak", state: "hurt", tx: oak.tx, ty: oak.ty, hp: 1, maxHp: 5, harvestedAt: 0 };
+          cg.setTransform(1, 0, 0, 1, 0, 0);
+          cg.clearRect(0, 0, 96, 96);
+          cg.translate(ox - oak.tx * TILE, oy - oak.ty * TILE);
+          drawProp(cg, oak);
+          a1 = cg.getImageData(ox + 8, oy - 24, 1, 1).data[3];
+          n1 = cg.getImageData(ox + 6, oy + 10, 1, 1).data;
+          ok("hurtOakStaysSolid", a0 > 200 && a1 === a0, a0 + "/" + a1);
+          ok("hurtOakShowsNotch", n1[3] === 255 && n1[0] < 80, n1[0] + "," + n1[3]);
+        } catch (eKl) {
+          ok("klHurtOakNoThrow", false, eKl && eKl.message ? eKl.message : String(eKl));
+        } finally {
+          if (key) { if (had) harvestNodes[key] = had; else delete harvestNodes[key]; }
           applyScene(scene0 || "overworld");
         }
       })();
