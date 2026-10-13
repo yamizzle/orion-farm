@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905km";
+  var BUILD = "20260905kn";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -12716,6 +12716,16 @@ function selectedIs(key) {
     return selectedIs("wood") && fenceBuildOn;
   }
 
+  /* 20260905kn: stone lays paths only with BUILD on (like wood fences). Holding
+     stone alone used to turn every walk-tap into a paver (LIVE 10/12 pm). */
+  function placingPathNow() {
+    return selectedIs("stone") && fenceBuildOn;
+  }
+
+  function buildableSelected() {
+    return (selectedIs("wood") && selectedHas("wood", 1)) || (selectedIs("stone") && selectedHas("stone", 1));
+  }
+
   function placingLampNow() {
     return selectedIs("lampKit") && selectedHas("lampKit", 1);
   }
@@ -12751,14 +12761,14 @@ function selectedIs(key) {
   }
 
   function setFenceBuildOn(on) {
-    fenceBuildOn = !!(on && selectedIs("wood") && selectedHas("wood", 1));
-    if (!fenceBuildOn && pending && pending.type === "build" && selectedIs("wood")) {
+    fenceBuildOn = !!(on && buildableSelected());
+    if (!fenceBuildOn && pending && pending.type === "build" && (selectedIs("wood") || selectedIs("stone"))) {
       pending = null;
     }
   }
 
   function toggleFenceBuild() {
-    if (!selectedIs("wood") || !selectedHas("wood", 1)) {
+    if (!buildableSelected()) {
       setFenceBuildOn(false);
       return false;
     }
@@ -12772,7 +12782,7 @@ function selectedIs(key) {
     /* 20260905cp: once toast so kids find the BUILD button on wood */
     if (unlocked.fenceBuildTip) return;
     if (currentScene !== "overworld" && currentScene !== "forest") return;
-    if (!selectedIs("wood") || !selectedHas("wood", 1)) return;
+    if (!buildableSelected()) return;
     unlocked.fenceBuildTip = true;
     showLineNote("TAP BUILD THEN A TILE");
     persistSave();
@@ -12790,7 +12800,7 @@ function selectedIs(key) {
       return;
     }
     key = (id >= 0 && id < TRAY_CELLS && trayCells[id]) ? trayCells[id].key : "";
-    if (key === "wood" && selectedSlot === id) {
+    if ((key === "wood" || key === "stone") && selectedSlot === id) {
       toggleFenceBuild();
       return;
     }
@@ -12806,7 +12816,7 @@ function selectedIs(key) {
 
   function tryBuild(tx, ty) {
     var placingFence = placingFenceNow();
-    var placingPath = selectedIs("stone");
+    var placingPath = placingPathNow();
     var placingLamp = placingLampNow();
     var placingCrate = placingCrateNow();
     var kitKind, kitKey, kitMax;
@@ -20783,7 +20793,7 @@ function doCookNow() {
   function tryBuildFacing() {
     var t;
     if (uiPaused() || faintFx) return false;
-    if (!(placingFenceNow() || selectedIs("stone") || placingLampNow() || placingCrateNow())) return false;
+    if (!(placingFenceNow() || placingPathNow() || placingLampNow() || placingCrateNow())) return false;
     t = facingTile();
     if (tryBuild(t.tx, t.ty)) {
       faceToward(player, t.tx, t.ty);
@@ -20797,7 +20807,7 @@ function doCookNow() {
   function tryBuildAdjacent() {
     var spots, i, s;
     if (uiPaused() || faintFx) return false;
-    if (!(placingFenceNow() || selectedIs("stone") || placingLampNow() || placingCrateNow())) return false;
+    if (!(placingFenceNow() || placingPathNow() || placingLampNow() || placingCrateNow())) return false;
     spots = [
       { tx: player.tx - 1, ty: player.ty },
       { tx: player.tx + 1, ty: player.ty },
@@ -24449,7 +24459,7 @@ function doCookNow() {
   }
 
   function tryPlaceOrWalk(tx, ty) {
-    var placingNow = placingFenceNow() || selectedIs("stone") || placingLampNow() || placingCrateNow();
+    var placingNow = placingFenceNow() || placingPathNow() || placingLampNow() || placingCrateNow();
     if (placingLampNow() || placingCrateNow()) {
       if (canPlaceKitOn(tx, ty) && goBuild(tx, ty)) return "build";
       return "";
@@ -28626,7 +28636,7 @@ function doCookNow() {
     } else if (selectedSlot < 0 || selectedSlot >= TRAY_CELLS) {
       selectedSlot = 0;
     }
-    if (!selectedIs("wood")) setFenceBuildOn(false);
+    if (!buildableSelected()) setFenceBuildOn(false);
   }
 
   /* 20260905dx: soft sparkle + slot pop when picking a hotbar slot */
@@ -29051,7 +29061,7 @@ function doCookNow() {
       fill(g, sx, sy, 1, slot, "#FFF8E0");
       fill(g, sx + slot - 1, sy, 1, slot, "#FFF8E0");
     }
-    if (rec && rec.key === "wood" && fenceBuildOn && sel) {
+    if (rec && (rec.key === "wood" || rec.key === "stone") && fenceBuildOn && sel) {
       fill(g, sx, sy, slot, 1, C.flower);
       fill(g, sx, sy + slot - 1, slot, 1, C.flower);
       fill(g, sx, sy, 1, slot, C.flower);
@@ -29573,7 +29583,7 @@ function doCookNow() {
   }
 
   function showFenceBuildBtn() {
-    return selectedIs("wood") && selectedHas("wood", 1);
+    return buildableSelected();
   }
 
   function fenceBuildBtnRect() {
@@ -31461,7 +31471,7 @@ if (currentScene === "ocean") goExitOcean();
       return;
     }
     /* BUILD-on wins over cutting soft grass on the same tile (was silent-fail walk). */
-    if (placingFenceNow() || selectedIs("stone") || placingLampNow() || placingCrateNow()) {
+    if (placingFenceNow() || placingPathNow() || placingLampNow() || placingCrateNow()) {
       if (tryPlaceOrWalk(tx, ty)) return;
     }
     if (hitProp && isPickablePlant(hitProp)) {
@@ -32229,11 +32239,11 @@ if (currentScene === "ocean") goExitOcean();
         var key = keyFromOldSlot(id);
         if (key) {
           selectTool(key);
-          if (key !== "wood") setFenceBuildOn(false);
+          if (key !== "wood" && key !== "stone") setFenceBuildOn(false);
           return;
         }
         if (id >= 0 && id < TRAY_CELLS) selectedSlot = id;
-        if (!selectedIs("wood")) setFenceBuildOn(false);
+        if (!buildableSelected()) setFenceBuildOn(false);
       },
       selectedSlot: function () { return selectedSlot; },
       fenceBuildOn: function () { return fenceBuildOn; },
@@ -32509,7 +32519,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905km", BUILD);
+      ok("BUILD", BUILD === "20260905kn", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -33411,7 +33421,26 @@ if (currentScene === "ocean") goExitOcean();
       syncBagCounts();
       buyShopItem({ id: "path", name: "PATH KIT", price: 8, icon: "stoneItem" });
       ok("pathStonePinnedSelected", selectedIs("stone") && bagCount("stone") >= 3, "sel=" + selectedKey() + " n=" + bagCount("stone"));
-      ok("pathPlaceMode", !!selectedIs("stone"), "");
+      /* 20260905kn: stone alone walks; BUILD arms path place (LIVE 10/12 pm paver-per-walk-tap). */
+      setFenceBuildOn(false);
+      ok("pathStoneNoBuildWalks", !placingPathNow() && !!showFenceBuildBtn(), "build=" + fenceBuildOn);
+      (function () {
+        var _sx, _sy, _sn = bagCount("stone"), _sb = builds.length, _found = null, _r;
+        for (_sy = 2; _sy < ROWS - 2 && !_found; _sy++) {
+          for (_sx = 2; _sx < COLS - 2; _sx++) {
+            if (canBuildOn(_sx, _sy) && !(player.tx === _sx && player.ty === _sy)) { _found = { tx: _sx, ty: _sy }; break; }
+          }
+        }
+        if (!_found || currentScene !== "overworld") { ok("pathStoneWalkTapNoSpend", true, "skip scene=" + currentScene); return; }
+        _r = tryPlaceOrWalk(_found.tx, _found.ty);
+        ok("pathStoneWalkTapNoSpend", _r === "" && bagCount("stone") === _sn && builds.length === _sb && !playerPathAt(_found.tx, _found.ty),
+          "r=" + _r + " n=" + bagCount("stone") + "/" + _sn);
+        pending = null;
+        startWalk(player, [], 3.5);
+      })();
+      toggleFenceBuild();
+      ok("pathPlaceMode", !!placingPathNow() && fenceBuildOn, "build=" + fenceBuildOn);
+      setFenceBuildOn(false);
 
       /* 20260905fk: cook pins + selects cooked fish (tray-tap eat). */
       emptyTray();
@@ -33789,7 +33818,11 @@ if (currentScene === "ocean") goExitOcean();
       ok("spaceBuildTileFound", _bx >= 0, "tile");
       if (_bx >= 0) {
         placePlayer(_bx + 1, _by, "left");
+        setFenceBuildOn(false);
+        ok("spaceStoneNoBuildNoPath", !tryBuildFacing() && bagCount("stone") === 3, "stone=" + bagCount("stone"));
+        setFenceBuildOn(true);
         ok("spaceBuildPath", !!tryBuildFacing() && bagCount("stone") === 2, "stone=" + bagCount("stone"));
+        setFenceBuildOn(false);
       }
 
       /* 20260905fm: Space harvest ready crop facing (tap already picked). */
@@ -34752,7 +34785,9 @@ if (currentScene === "ocean") goExitOcean();
       if (_bax >= 0) {
         placePlayer(_baStand.tx, _baStand.ty, _baStand.face);
         var _stone0 = bagCount("stone");
+        setFenceBuildOn(true);
         var _baOk = tryBuildAdjacent();
+        setFenceBuildOn(false);
         ok("spaceBuildAdjacent", !!_baOk && bagCount("stone") === _stone0 - PATH_COST && cell(_bax, _bay) === "c",
           "ok=" + _baOk + " stone=" + bagCount("stone") + " cell=" + cell(_bax, _bay) + " face=" + _baStand.face);
       }
