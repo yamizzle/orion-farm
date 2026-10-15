@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kp";
+  var BUILD = "20260905kq";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -968,6 +968,10 @@
   var questOpen = false;
   /* 20260905bc: one-shot — world tap that closed an overlay must not walk/tool. */
   var ignoreWalkTap = false;
+  /* 20260905kq: keep eating walk/tool for a short beat after a panel X/outside close so a
+     follow-up pointerup/click (or a second pointerdown on the same spot) cannot walk Orion
+     toward the X. LIVE 10/14–10/15: STARS/JOB close-X click-through was intermittent. */
+  var ignoreWalkUntil = 0;
   var sleepFx = null;
   /* 20260905kh: one sleep per wake-up. LIVE 10/6 am: mashing Space at the bed slept
      again right after each wake (Day 2497→2500). Set at wake on the wake tile; the bed
@@ -16561,7 +16565,10 @@ function doCookNow() {
   function tapJournal(p) {
     var L = journalLayout();
     /* 20260905du: X closes Jobs (same as Esc / Stars / BAG) — not START OVER */
-    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 6)) {
+    /* 20260905kq: fat-finger the X + whole top title strip (LIVE 10/15: first X
+       click sometimes missed, second closed and walk-fell-through). */
+    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 10) ||
+        (p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y - 6 && p.y < L.y + 14 && p.x >= L.closeX - 20)) {
       playSfx("ui");
       questOpen = false;
       return true;
@@ -16902,7 +16909,14 @@ function doCookNow() {
      drop any frozen path so Orion does not resume walking after dismiss. */
   function swallowDismissTap() {
     ignoreWalkTap = true;
+    ignoreWalkUntil = (typeof performance !== "undefined" && performance.now) ? (performance.now() + 450) : 0;
     clearWalkIntent();
+  }
+
+  function walkTapBlocked() {
+    if (ignoreWalkTap) return true;
+    if (ignoreWalkUntil && typeof performance !== "undefined" && performance.now && performance.now() < ignoreWalkUntil) return true;
+    return false;
   }
 
   function dismissTopDialog() {
@@ -24473,7 +24487,7 @@ function doCookNow() {
 
   function goWalk(tx, ty) {
     var dest, path, spot;
-    if (ignoreWalkTap) return;
+    if (walkTapBlocked()) return;
     pending = null;
     if (tx < 0) tx = 0;
     if (ty < 0) ty = 0;
@@ -29292,7 +29306,7 @@ function doCookNow() {
     var L = bagLayout();
     var T = trayLayout();
     var idx;
-    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 6)) {
+    if (hitPad(p.x, p.y, L.closeX, L.closeY, L.closeW, L.closeH, 10)) {
       closeBag();
       playSfx("ui");
       return true;
@@ -29381,8 +29395,9 @@ function doCookNow() {
     L = bagLayout();
     woodPanel(g, L.x, L.y, L.w, L.h);
     fill(g, L.x + 3, L.y + 3, L.w - 6, L.h - 6, C.parch);
-    woodPanel(g, L.x + 8, L.y - 6, 38, 11);
-    drawText(g, "BAG", L.x + 14, L.y - 3, C.parch);
+    /* 20260905kq: title tab was at y-6 with bag y=4 → clipped above the canvas (LIVE 10/15). */
+    woodPanel(g, L.x + 8, Math.max(0, L.y - 6), 38, 11);
+    drawText(g, "BAG", L.x + 14, Math.max(2, L.y - 3), C.parch);
     woodPanel(g, L.closeX, L.closeY, L.closeW, L.closeH);
     drawText(g, "X", L.closeX + 4, L.closeY + 3, C.parch);
     /* Big weapon dock at top — kids see the one-weapon rule. */
@@ -30256,7 +30271,10 @@ function doCookNow() {
       onBuildChrome = inHud(p, br.x, br.y, br.w, br.h, 0);
     }
     if (onBagChrome) {
+      /* 20260905kq: closing BAG via the tray BAG chrome must swallow too. */
+      var bagWasOpen = bagOpen;
       toggleBag();
+      if (bagWasOpen && !bagOpen) swallowDismissTap();
       return true;
     }
     if (onDockChrome) {
@@ -30376,65 +30394,49 @@ function doCookNow() {
       wasOpen = true;
       L = achieveLayout();
       tapAchieve(p, e);
-      /* Outside the Stars panel → closed by world tap; swallow walk/tool. */
-      if (wasOpen && !achieveOpen) {
-        if (!(p.x >= L.x && p.x < L.x + L.w && p.y >= L.y - 8 && p.y < L.y + L.h)) {
-          swallowDismissTap();
-        }
-      }
+      /* 20260905kq: ANY close (X / header / outside) swallows the whole gesture —
+         old code only swallowed outside taps, so an X close left the next press free
+         to walk Orion toward the X (LIVE 10/14 pm STARS 3/3, 10/15 JOB 1/2). */
+      if (wasOpen && !achieveOpen) swallowDismissTap();
       return;
     }
     if (questOpen) {
+      wasOpen = true;
       if (!tapJournal(p)) {
         /* 20260905ed: outside tap soft click (matches X / Esc) */
         playSfx("ui");
         questOpen = false;
-        swallowDismissTap();
       }
+      /* 20260905kq: X close must swallow too (was only outside). */
+      if (wasOpen && !questOpen) swallowDismissTap();
       return;
     }
     if (cloudShopOpen) {
       wasOpen = true;
       L = cloudShopLayout();
       tapCloudShop(p);
-      if (wasOpen && !cloudShopOpen) {
-        if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
-          swallowDismissTap();
-        }
-      }
+      if (wasOpen && !cloudShopOpen) swallowDismissTap();
       return;
     }
     if (shopOpen) {
       wasOpen = true;
       L = shopLayout();
       tapShop(p);
-      if (wasOpen && !shopOpen) {
-        if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
-          swallowDismissTap();
-        }
-      }
+      if (wasOpen && !shopOpen) swallowDismissTap();
       return;
     }
     if (craftOpen) {
       wasOpen = true;
       L = craftLayout();
       tapCraft(p);
-      if (wasOpen && !craftOpen) {
-        if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
-          swallowDismissTap();
-        }
-      }
+      if (wasOpen && !craftOpen) swallowDismissTap();
       return;
     }
     if (chestOpen) {
       wasOpen = true;
       L = chestLayout();
       tapChest(p, e);
-      if (wasOpen && !chestOpen) {
-        if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
-          swallowDismissTap();
-        }
-      }
+      if (wasOpen && !chestOpen) swallowDismissTap();
       return;
     }
     if (bagOpen) {
@@ -30444,16 +30446,13 @@ function doCookNow() {
       wasOpen = true;
       L = bagLayout();
       tapBagUi(p);
-      if (wasOpen && !bagOpen) {
-        if (!(p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h)) {
-          swallowDismissTap();
-        }
-      }
+      if (wasOpen && !bagOpen) swallowDismissTap();
       return;
     }
 
-    /* Belt-and-suspenders: never walk/tool on the press that closed a panel. */
-    if (ignoreWalkTap) return;
+    /* Belt-and-suspenders: never walk/tool on the press that closed a panel
+       (or within the short post-close window — 20260905kq). */
+    if (walkTapBlocked()) return;
 
     if (tapHud(p)) return;
     if (player.arc > 0) return;
@@ -32088,6 +32087,14 @@ if (currentScene === "ocean") goExitOcean();
     window.orionTest = {
       BUILD: BUILD,
       monsters: function () { return monsters; }, /* 20260905kj: headless dusk-slug render check */
+      walkTapBlocked: walkTapBlocked,
+      swallowDismissTap: swallowDismissTap,
+      clearWalkIntent: clearWalkIntent,
+      ignoreWalkTapGet: function () { return ignoreWalkTap; },
+      ignoreWalkUntilGet: function () { return ignoreWalkUntil; },
+      achieveLayout: achieveLayout,
+      journalLayout: journalLayout,
+      bagLayout: bagLayout,
       buildStampRect: buildStampRect,
       bagCap: bagCap,
       chestCap: chestCap,
@@ -32483,7 +32490,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kp", BUILD);
+      ok("BUILD", BUILD === "20260905kq", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -36673,6 +36680,81 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           applyScene(scene0 || "overworld");
         }
       })();
+
+      /* 20260905kq: panel close-X always swallows walk (STARS/JOB/BAG); post-close window blocks goWalk. */
+      (function () {
+        var scene0 = currentScene, px0 = player.tx, py0 = player.ty, pf0 = player.face;
+        var L, cx, cy, path0, pend0, hx, hy, i, bad, wasIgn;
+        function cleanWalk() {
+          clearWalkIntent();
+          highlight = null;
+          ignoreWalkTap = false;
+          ignoreWalkUntil = 0;
+          achieveOpen = false; questOpen = false; bagOpen = false;
+          dialogue = null; toast = null; wipeAsk = false;
+        }
+        function tapClose(vx, vy) {
+          var r = canvas.getBoundingClientRect();
+          tap({ clientX: r.left + (vx + 0.5) * r.width / VIEW_W, clientY: r.top + (vy + 0.5) * r.height / VIEW_H, pointerId: 1 });
+        }
+        try {
+          applyScene("overworld");
+          placePlayer(12, 12, "down");
+          cleanWalk();
+          /* STARS X close → no path, ignore armed */
+          achieveOpen = true;
+          L = achieveLayout();
+          cx = L.closeX + (L.closeW >> 1);
+          cy = L.closeY + (L.closeH >> 1);
+          hx = player.tx; hy = player.ty;
+          tapClose(cx, cy);
+          ok("starsCloseXNoWalk", !achieveOpen && !(player.path && player.path.length) && !pending && player.tx === hx && player.ty === hy && !!ignoreWalkTap,
+            "open=" + achieveOpen + " path=" + (player.path && player.path.length) + " ign=" + ignoreWalkTap);
+          /* while ignore armed, a world tap at the X must not walk */
+          wasIgn = ignoreWalkTap;
+          tapClose(cx, cy);
+          ok("starsCloseXSwallowFollowUp", !(player.path && player.path.length) && !pending && player.tx === hx && player.ty === hy,
+            "path=" + (player.path && player.path.length) + " pending=" + !!pending);
+          cleanWalk();
+          /* JOB X close */
+          questOpen = true;
+          L = journalLayout();
+          cx = L.closeX + (L.closeW >> 1);
+          cy = L.closeY + (L.closeH >> 1);
+          tapClose(cx, cy);
+          ok("jobCloseXNoWalk", !questOpen && !(player.path && player.path.length) && !pending && !!ignoreWalkTap,
+            "open=" + questOpen + " ign=" + ignoreWalkTap);
+          cleanWalk();
+          /* BAG X close */
+          openBag();
+          L = bagLayout();
+          cx = L.closeX + (L.closeW >> 1);
+          cy = L.closeY + (L.closeH >> 1);
+          tapClose(cx, cy);
+          ok("bagCloseXNoWalk", !bagOpen && !(player.path && player.path.length) && !pending && !!ignoreWalkTap,
+            "open=" + bagOpen + " ign=" + ignoreWalkTap);
+          cleanWalk();
+          /* goWalk blocked while ignoreWalkUntil in the future */
+          ignoreWalkUntil = (typeof performance !== "undefined" && performance.now) ? (performance.now() + 5000) : 1;
+          ignoreWalkTap = false;
+          goWalk(player.tx + 2, player.ty);
+          ok("walkBlockedDuringUntil", !(player.path && player.path.length) && !pending, "path=" + (player.path && player.path.length));
+          ignoreWalkUntil = 0;
+          goWalk(player.tx + 2, player.ty);
+          ok("walkOkAfterUntil", !!(player.path && player.path.length) || !!pending || (player.tx !== hx), "moved or pathed");
+          cleanWalk();
+          /* BAG title tab stays on-canvas */
+          L = bagLayout();
+          ok("bagTitleOnCanvas", Math.max(0, L.y - 6) >= 0 && L.y >= 0, "y=" + L.y);
+        } catch (eKq) {
+          ok("kqCloseXNoThrow", false, eKq && eKq.message ? eKq.message : String(eKq));
+        } finally {
+          cleanWalk();
+          applyScene(scene0 || "overworld");
+          placePlayer(px0, py0, pf0);
+        }
+      })();
+
       /* 20260905kk: house lamp glow is a round soft pool, not a pale 36×36 square. */
       (function () {
         var scene0 = currentScene, c, cg, lamp = null, i, ox = 24, oy = 24, cornerA, sideA;
