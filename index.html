@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kq";
+  var BUILD = "20260905kr";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -16861,24 +16861,43 @@ function doCookNow() {
     drawText(g, label, x + 4, y + 2, C.parch);
   }
 
-  function drawMoonCarryChip(g) {
-    /* 20260905ch: kid-visible hotbar carry cue while bringing shard/heart home. */
-    var label, icon, tw, w, x, y, bob, glow;
-    if (uiPaused() || bagOpen) return;
+  /* 20260905kr: one box for draw + tap. The label used to read "SHARD → HOME" but the
+     5×7 FONT has no arrow, so it drew as "SHARD   HOME" (LIVE 10/14–10/16, same class as
+     the 05kl "+" gap). Plain words now, matching the pickup note "SHARD! TAKE IT HOME." */
+  function moonCarryChipInfo() {
+    var label, icon, w;
+    if (uiPaused() || bagOpen) return null;
     if (carryingMoonShard()) {
-      label = "SHARD → HOME";
+      label = "TAKE SHARD HOME";
       icon = "moonshard";
     } else if (carryingMountainHeart()) {
-      label = "HEART → HOME";
+      label = "TAKE HEART HOME";
       icon = "mooncrystal";
     } else {
-      return;
+      return null;
     }
-    tw = textWidth(label);
-    w = tw + 22;
-    x = ((VIEW_W - w) / 2) | 0;
+    w = textWidth(label) + 22;
+    return { label: label, icon: icon, x: ((VIEW_W - w) / 2) | 0, y: VIEW_H - 40, w: w, h: 14 };
+  }
+
+  /* 20260905kr: tapping the carry chip walked Orion (LIVE 10/14 pm). It is HUD — eat it. */
+  function hitMoonCarryChip(p) {
+    var c = moonCarryChipInfo();
+    if (!c) return false;
+    return p.x >= c.x - 2 && p.x < c.x + c.w + 2 && p.y >= c.y - 3 && p.y < c.y + c.h + 2;
+  }
+
+  function drawMoonCarryChip(g) {
+    /* 20260905ch: kid-visible hotbar carry cue while bringing shard/heart home. */
+    var c, label, icon, w, x, y, bob, glow;
+    c = moonCarryChipInfo();
+    if (!c) return;
+    label = c.label;
+    icon = c.icon;
+    w = c.w;
+    x = c.x;
     bob = ((tick / 220) | 0) % 2;
-    y = VIEW_H - 40 - bob;
+    y = c.y - bob;
     glow = ((tick / 160) | 0) % 2;
     woodPanel(g, x, y, w, 14);
     if (glow) {
@@ -30259,6 +30278,12 @@ function doCookNow() {
       tryStrikeAction();
       return true;
     }
+    /* 20260905kr: SHARD / HEART carry chip is HUD — eat the tap and say where home is. */
+    if (hitMoonCarryChip(p)) {
+      playSfx("ui");
+      showLineNote("TAKE IT INTO YOUR HOUSE.");
+      return true;
+    }
     /* 20260905jr: BAG / dock / tray / BUILD chrome MUST win before hudWorldDoor.
        Peak cave/mouth/climb (and other doors) under the bottom-right BAG chrome used to
        make tapHud return false before toggleBag — LIVE 9/15 bag dock WORSE. */
@@ -32490,7 +32515,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kq", BUILD);
+      ok("BUILD", BUILD === "20260905kr", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -36750,6 +36775,62 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           ok("kqCloseXNoThrow", false, eKq && eKq.message ? eKq.message : String(eKq));
         } finally {
           cleanWalk();
+          applyScene(scene0 || "overworld");
+          placePlayer(px0, py0, pf0);
+        }
+      })();
+
+      /* 20260905kr: SHARD/HEART carry chip — every glyph is in FONT (no arrow gap) and a tap on it never walks. */
+      (function () {
+        var scene0 = currentScene, px0 = player.tx, py0 = player.ty, pf0 = player.face;
+        var fShard0 = found.moonshard, fHeart0 = found.mooncrystal, qHome0 = quest.homeDone, qHeart0 = quest.heartHome;
+        var c, i, allGlyphs, hx, hy, r, note0;
+        function chipTap(vx, vy) {
+          r = canvas.getBoundingClientRect();
+          tap({ clientX: r.left + (vx + 0.5) * r.width / VIEW_W, clientY: r.top + (vy + 0.5) * r.height / VIEW_H, pointerId: 1 });
+        }
+        function cleanChip() {
+          clearWalkIntent();
+          highlight = null;
+          ignoreWalkTap = false;
+          ignoreWalkUntil = 0;
+          achieveOpen = false; questOpen = false; bagOpen = false;
+          dialogue = null; toast = null; wipeAsk = false;
+        }
+        try {
+          applyScene("overworld");
+          placePlayer(12, 12, "down");
+          cleanChip();
+          found.moonshard = true;
+          quest.homeDone = false;
+          c = moonCarryChipInfo();
+          allGlyphs = !!c;
+          for (i = 0; c && i < c.label.length; i++) if (!FONT[c.label.charAt(i)]) allGlyphs = false;
+          ok("carryChipShardGlyphs", allGlyphs && c.label.indexOf("SHARD") >= 0 && c.label.indexOf("HOME") >= 0, c ? c.label : "no chip");
+          ok("carryChipFitsAboveTray", !!c && c.x >= 0 && c.x + c.w <= VIEW_W && c.y + c.h + 2 <= trayLayout().by - 2, c ? (c.x + "," + c.y + "," + c.w) : "");
+          hx = player.tx; hy = player.ty;
+          lineNote = null;
+          chipTap(c.x + (c.w >> 1), c.y + (c.h >> 1));
+          ok("carryChipTapNoWalk", !(player.path && player.path.length) && !pending && player.tx === hx && player.ty === hy && !!lineNote,
+            "path=" + (player.path && player.path.length) + " pending=" + !!pending + " note=" + (lineNote && lineNote.text));
+          cleanChip();
+          found.moonshard = fShard0;
+          quest.homeDone = true;
+          found.mooncrystal = true;
+          quest.heartHome = false;
+          c = moonCarryChipInfo();
+          allGlyphs = !!c;
+          for (i = 0; c && i < c.label.length; i++) if (!FONT[c.label.charAt(i)]) allGlyphs = false;
+          ok("carryChipHeartGlyphs", allGlyphs && c.label.indexOf("HEART") >= 0, c ? c.label : "no chip");
+          quest.heartHome = true;
+          ok("carryChipGoneWhenHome", !moonCarryChipInfo() && !hitMoonCarryChip({ x: VIEW_W >> 1, y: VIEW_H - 33 }), "");
+        } catch (eKr) {
+          ok("krCarryChipNoThrow", false, eKr && eKr.message ? eKr.message : String(eKr));
+        } finally {
+          found.moonshard = fShard0; found.mooncrystal = fHeart0;
+          quest.homeDone = qHome0; quest.heartHome = qHeart0;
+          lineNote = null;
+          cleanChip();
           applyScene(scene0 || "overworld");
           placePlayer(px0, py0, pf0);
         }
