@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kr";
+  var BUILD = "20260905ks";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -1128,6 +1128,7 @@
   var homeLight = false;
   var lilaFlowers = 0;
   var lilaDone = false;
+  var statueNoticed = false; /* 20260905ks: one-shot gold from Lila statue twinkle */
   var pipDone = false;
   var pipLantern = false;
   var reedDone = false;
@@ -13252,6 +13253,7 @@ function selectedIs(key) {
       }
       lilaFlowers = 0;
       lilaDone = !!data.lilaDone;
+      statueNoticed = !!data.statueNoticed;
       if (typeof data.lilaFlowers === "number" && data.lilaFlowers > 0) {
         lilaFlowers = data.lilaFlowers | 0;
       }
@@ -13916,6 +13918,7 @@ function selectedIs(key) {
         homeLight: !!homeLight,
         lilaFlowers: lilaFlowers | 0,
         lilaDone: !!lilaDone,
+        statueNoticed: !!statueNoticed,
         pipDone: !!pipDone,
         pipLantern: !!pipLantern,
         reedDone: !!reedDone,
@@ -18955,7 +18958,19 @@ function doCookNow() {
 
   function talkLandmark(p) {
     if (p.kind === "statue") {
-      if (festivalOn) openDialogue("STATUE", ["THE MOON KID SHINES.", "MOONDROP NIGHT."]);
+      /* 20260905ks: after Lila's flower job the statue finally notices (LIVE 10/15 am). */
+      if (lilaDone) {
+        if (!statueNoticed) {
+          statueNoticed = true;
+          gold += 1;
+          spawnSparks(p.tx * TILE + 8, p.ty * TILE - 12);
+          playSfx("toast");
+          persistSave();
+          openDialogue("STATUE", ["THE MOON KID TWINKLES!", "A GOLD COIN FOR YOU."]);
+        } else {
+          openDialogue("STATUE", ["THE FLOWERS WOKE ME.", "THE GREEN SHINES."]);
+        }
+      } else if (festivalOn) openDialogue("STATUE", ["THE MOON KID SHINES.", "MOONDROP NIGHT."]);
       else if (townHoliday() === "flower") openDialogue("STATUE", ["THE TOWN SMELLS SWEET."]);
       else openDialogue("STATUE", ["A MOON KID HOLDS", "UP THE NIGHT."]);
     } else if (p.kind === "fountain") {
@@ -26982,6 +26997,19 @@ function doCookNow() {
           px(g, x + 4, y - 8, "#FFFDF8");
         }
         g.restore();
+      } else if (lilaDone) {
+        /* 20260905ks: soft sparkle only (no fillRect plate — same class as 05kj slime) */
+        sa = 0.28 + 0.40 * Math.abs(Math.sin(tick / 280 + p.tx));
+        sfr = ((tick / 190 + p.tx + p.ty * 3) | 0) % 3;
+        g.save();
+        g.globalAlpha = sa;
+        if (Assets.spr.sparkle) Assets.draw(g, "sparkle", x + 2, y - 16, sfr);
+        else {
+          px(g, x + 6, y - 14, "#E8F0FF");
+          px(g, x + 10, y - 10, "#FFE9A0");
+          px(g, x + 4, y - 8, "#FFFDF8");
+        }
+        g.restore();
       }
     } else if (p.kind === "shopSign") {
       if (!drawAtlas2x(g, "shopSign", x, y)) Assets.draw(g, "shopSign", x, y);
@@ -29707,20 +29735,39 @@ function doCookNow() {
   }
 
   function drawOverRim(g) {
-    var w, h;
+    var w, h, prev, img, iw, ih, dx;
     if (currentScene !== "overworld" || !hasOverRim()) return;
     w = COLS * TILE;
     h = ROWS * TILE;
     /* Drawn after ground tiles (see drawWorld) so the north band overhangs the
-       top walkable row; player/actors paint after this and stay readable. */
-    if (Assets.overRimWest) g.drawImage(Assets.overRimWest, -48, 0, 64, h);
-    if (Assets.overRimEast) g.drawImage(Assets.overRimEast, w - 16, 0, 64, h);
-    if (Assets.overRimNorth) g.drawImage(Assets.overRimNorth, -48, -58, w + 96, 74);
-    if (Assets.overRimSouth) g.drawImage(Assets.overRimSouth, -48, h - 16, w + 96, 56);
-    if (Assets.overClumpA) g.drawImage(Assets.overClumpA, 18 * TILE, -8, 48, 32);
-    if (Assets.overClumpB) g.drawImage(Assets.overClumpB, 42 * TILE, (ROWS - 1) * TILE - 8, 48, 32);
-    if (Assets.overClumpA) g.drawImage(Assets.overClumpA, -8, 12 * TILE, 40, 40);
-    if (Assets.overClumpB) g.drawImage(Assets.overClumpB, w - 24, 22 * TILE, 40, 40);
+       top walkable row; player/actors paint after this and stay readable.
+       20260905ks: N/S were stretched 1120→(w+96)=1312 (~17%) with default
+       smoothing — LIVE town south-edge + north backdrop blurry band. Draw
+       native 1:1 with nearest-neighbor; clumps too (were soft-downscaled). */
+    prev = g.imageSmoothingEnabled;
+    g.imageSmoothingEnabled = false;
+    if (Assets.overRimWest) g.drawImage(Assets.overRimWest, -48, 0);
+    if (Assets.overRimEast) g.drawImage(Assets.overRimEast, w - 16, 0);
+    if (Assets.overRimNorth) {
+      img = Assets.overRimNorth;
+      iw = img.naturalWidth || img.width;
+      ih = img.naturalHeight || img.height;
+      dx = (w - iw) >> 1;
+      g.drawImage(img, dx, -58);
+    }
+    if (Assets.overRimSouth) {
+      img = Assets.overRimSouth;
+      iw = img.naturalWidth || img.width;
+      ih = img.naturalHeight || img.height;
+      dx = (w - iw) >> 1;
+      /* keep h-16 so the band still hangs into the south camera pad */
+      g.drawImage(img, dx, h - 16);
+    }
+    if (Assets.overClumpA) g.drawImage(Assets.overClumpA, 18 * TILE - 8, -8);
+    if (Assets.overClumpB) g.drawImage(Assets.overClumpB, 42 * TILE - 8, (ROWS - 1) * TILE - 8);
+    if (Assets.overClumpA) g.drawImage(Assets.overClumpA, -8, 12 * TILE);
+    if (Assets.overClumpB) g.drawImage(Assets.overClumpB, w - (Assets.overClumpB.naturalWidth || Assets.overClumpB.width || 64), 22 * TILE);
+    g.imageSmoothingEnabled = prev;
   }
 
   function drawWorld(g, dt) {
@@ -32515,7 +32562,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kr", BUILD);
+      ok("BUILD", BUILD === "20260905ks", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -36833,6 +36880,42 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           cleanChip();
           applyScene(scene0 || "overworld");
           placePlayer(px0, py0, pf0);
+        }
+      })();
+
+
+      /* 20260905ks: overworld N/S rims draw native 1:1 (no w+96 stretch); Lila statue twinkles once. */
+      (function () {
+        var src = drawOverRim.toString();
+        ok("overRimNoStretch", src.indexOf("20260905ks") >= 0 && src.indexOf("w + 96") < 0 && src.indexOf("imageSmoothingEnabled = false") >= 0, "src missing ks native draw");
+        ok("overRimNativeSizes", !!Assets.overRimSouth && (Assets.overRimSouth.naturalWidth || Assets.overRimSouth.width) === 1120 && (Assets.overRimSouth.naturalHeight || Assets.overRimSouth.height) === 56, Assets.overRimSouth ? ((Assets.overRimSouth.naturalWidth || Assets.overRimSouth.width) + "x" + (Assets.overRimSouth.naturalHeight || Assets.overRimSouth.height)) : "missing");
+        ok("overRimNorthNative", !!Assets.overRimNorth && (Assets.overRimNorth.naturalWidth || Assets.overRimNorth.width) === 1120, Assets.overRimNorth ? String(Assets.overRimNorth.naturalWidth || Assets.overRimNorth.width) : "missing");
+      })();
+      (function () {
+        var scene0 = currentScene, g0 = gold, sn0 = statueNoticed, ld0 = lilaDone, d0 = dialogue, fest0 = festivalOn;
+        var statue = { kind: "statue", tx: 51, ty: 29 };
+        try {
+          festivalOn = false;
+          lilaDone = false;
+          statueNoticed = false;
+          talkLandmark(statue);
+          ok("statueQuietBeforeLila", !statueNoticed && gold === g0 && dialogue && dialogue.title === "STATUE", dialogue ? dialogue.title : "none");
+          dismissTopDialog();
+          lilaDone = true;
+          statueNoticed = false;
+          gold = g0;
+          talkLandmark(statue);
+          ok("statueTwinkleFirstGold", statueNoticed && gold === g0 + 1 && dialogue && dialogue.lines && dialogue.lines[0].indexOf("TWINKLES") >= 0,
+            "noticed=" + statueNoticed + " goldDelta=" + (gold - g0) + " line=" + (dialogue && dialogue.lines && dialogue.lines[0]));
+          dismissTopDialog();
+          talkLandmark(statue);
+          ok("statueTwinkleNoDoubleGold", statueNoticed && gold === g0 + 1 && dialogue && dialogue.lines && dialogue.lines[0].indexOf("FLOWERS") >= 0,
+            "goldDelta=" + (gold - g0) + " line=" + (dialogue && dialogue.lines && dialogue.lines[0]));
+        } catch (eKs) {
+          ok("ksStatueNoThrow", false, eKs && eKs.message ? eKs.message : String(eKs));
+        } finally {
+          gold = g0; statueNoticed = sn0; lilaDone = ld0; festivalOn = fest0; dialogue = d0;
+          applyScene(scene0 || "overworld");
         }
       })();
 
