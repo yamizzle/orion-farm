@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ks";
+  var BUILD = "20260905kt";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -6852,6 +6852,7 @@
   }
 
 
+  var BRIDGE_WOOD = 8;
   function talkBridge(p) {
     var x, y;
     if (!p) return;
@@ -6868,7 +6869,7 @@
       ]);
       return;
     }
-    takeFromBag("wood", 8);
+    takeFromBag("wood", BRIDGE_WOOD);
     found.bridgeFixed = true;
     p.kind = "fixedBridge";
     for (y = 32; y <= 33; y++) {
@@ -6878,7 +6879,9 @@
     /* 20260905de: celebration sparkle when 8 wood is spent to fix the bridge */
     spawnBridgeSparks((p.tx + 2) * TILE + 8, (p.ty + 1) * TILE + 8);
     persistSave();
-    openDialogue("WE FIXED IT!", ["THE PATH IS OPEN."]);
+    /* 20260905kt: say where the wood went (LIVE 10/18: one FIX! tap spent all 8
+       wood with no word, so it just vanished from the tray). FONT has 0-9 and !. */
+    openDialogue("WE FIXED IT!", ["YOU USED " + BRIDGE_WOOD + " WOOD!", "THE PATH IS OPEN."]);
   }
 
   function goTalkBridge(p) {
@@ -9213,6 +9216,10 @@
     if (onBoat && currentScene === "ocean") return boatOk(tx, ty);
     /* 20260905ci: belt-and-suspenders — deep ocean "y" never walkable on foot */
     if (currentScene === "ocean" && !onBoat && cell(tx, ty) === "y") return false;
+    /* 20260905kt: the ocean map's last column is flush with the camera's east clamp,
+       so Orion stood on the canvas edge and his right-facing walk bob clipped off-screen
+       (LIVE 10/18 beach east edge). Keep on-foot one tile in, like the overworld rim. */
+    if (currentScene === "ocean" && !onBoat && tx >= COLS - 1) return false;
     /* 20260905ej: mine DOWN hole rim (one tile north) looks like the pit —
        do not stand there; the hole tile itself stays walkable so you can fall. */
     if (mineHoleRimBlocks(tx, ty)) return false;
@@ -29734,8 +29741,79 @@ function doCookNow() {
     return tx <= 0 || ty <= 0 || tx >= COLS - 1 || ty >= ROWS - 1;
   }
 
+  /* 20260905kt: mirror-pad an edge band so it covers the whole camera span.
+     Since 05ks the N/S rims draw native 1120 wide centered on the 1216 map and
+     stop short of the camera pads (N top at -58 vs camera minY -64; S bottom at
+     h+40 vs camera max h+52), so x 0..48 / 1168..1216 and the pad strips showed
+     the flat grassMid canvas fill (LIVE 10/18 flat green rectangle / strips).
+     Pads are mirrored copies of the art's own edge (no new pixels, no stretch). */
+  function mirrorPadBand(img, padL, padR, padT, padB) {
+    var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    var cw, ch, c, cg, k;
+    padL = Math.max(0, Math.min(iw, padL | 0));
+    padR = Math.max(0, Math.min(iw, padR | 0));
+    padT = Math.max(0, Math.min(ih, padT | 0));
+    padB = Math.max(0, Math.min(ih, padB | 0));
+    cw = iw + padL + padR;
+    ch = ih + padT + padB;
+    k = [cw, ch, padL, padR, padT, padB].join("x");
+    if (img.__mirrorPad && img.__mirrorPad.k === k) return img.__mirrorPad.c;
+    c = document.createElement("canvas");
+    c.width = cw;
+    c.height = ch;
+    cg = c.getContext("2d");
+    cg.imageSmoothingEnabled = false;
+    cg.drawImage(img, padL, padT);
+    if (padL) {
+      cg.save(); cg.translate(padL, 0); cg.scale(-1, 1);
+      cg.drawImage(img, 0, 0, padL, ih, 0, padT, padL, ih);
+      cg.restore();
+    }
+    if (padR) {
+      cg.save(); cg.translate(padL + iw + padR, 0); cg.scale(-1, 1);
+      cg.drawImage(img, iw - padR, 0, padR, ih, 0, padT, padR, ih);
+      cg.restore();
+    }
+    if (padT) {
+      cg.save(); cg.translate(0, padT); cg.scale(1, -1);
+      cg.drawImage(c, 0, padT, cw, padT, 0, 0, cw, padT);
+      cg.restore();
+    }
+    if (padB) {
+      cg.save(); cg.translate(0, padT + ih + padB); cg.scale(1, -1);
+      cg.drawImage(c, 0, padT + ih - padB, cw, padB, 0, 0, cw, padB);
+      cg.restore();
+    }
+    try { img.__mirrorPad = { k: k, c: c }; } catch (e) {}
+    return c;
+  }
+
+  /* Visible overworld span: camera X clamps to 0..w, Y to -(top inset)..h+bottom pad. */
+  function overRimBandRects() {
+    var w = COLS * TILE, h = ROWS * TILE, out = {}, img, iw, ih, dx, top, bot;
+    var viewTop = -(CAM_PAD_TOP + CAM_PLAYER_H), viewBot = h + CAM_PAD_BOTTOM;
+    if (Assets.overRimNorth) {
+      img = Assets.overRimNorth;
+      iw = img.naturalWidth || img.width;
+      ih = img.naturalHeight || img.height;
+      dx = (w - iw) >> 1;
+      top = -58;
+      out.north = { img: img, padL: Math.max(0, dx), padR: Math.max(0, w - iw - dx), padT: Math.max(0, top - viewTop), padB: 0, x: Math.min(0, dx), y: Math.min(top, viewTop) };
+    }
+    if (Assets.overRimSouth) {
+      img = Assets.overRimSouth;
+      iw = img.naturalWidth || img.width;
+      ih = img.naturalHeight || img.height;
+      dx = (w - iw) >> 1;
+      top = h - 16; /* keep h-16 so the band still hangs into the south camera pad */
+      bot = top + ih;
+      out.south = { img: img, padL: Math.max(0, dx), padR: Math.max(0, w - iw - dx), padT: 0, padB: Math.max(0, viewBot - bot), x: Math.min(0, dx), y: top };
+    }
+    return out;
+  }
+
   function drawOverRim(g) {
-    var w, h, prev, img, iw, ih, dx;
+    var w, h, prev, r, b, band;
     if (currentScene !== "overworld" || !hasOverRim()) return;
     w = COLS * TILE;
     h = ROWS * TILE;
@@ -29743,30 +29821,47 @@ function doCookNow() {
        top walkable row; player/actors paint after this and stay readable.
        20260905ks: N/S were stretched 1120→(w+96)=1312 (~17%) with default
        smoothing — LIVE town south-edge + north backdrop blurry band. Draw
-       native 1:1 with nearest-neighbor; clumps too (were soft-downscaled). */
+       native 1:1 with nearest-neighbor; clumps too (were soft-downscaled).
+       20260905kt: N/S bands mirror-padded to the full camera span (no flat gaps). */
     prev = g.imageSmoothingEnabled;
     g.imageSmoothingEnabled = false;
     if (Assets.overRimWest) g.drawImage(Assets.overRimWest, -48, 0);
     if (Assets.overRimEast) g.drawImage(Assets.overRimEast, w - 16, 0);
-    if (Assets.overRimNorth) {
-      img = Assets.overRimNorth;
-      iw = img.naturalWidth || img.width;
-      ih = img.naturalHeight || img.height;
-      dx = (w - iw) >> 1;
-      g.drawImage(img, dx, -58);
-    }
-    if (Assets.overRimSouth) {
-      img = Assets.overRimSouth;
-      iw = img.naturalWidth || img.width;
-      ih = img.naturalHeight || img.height;
-      dx = (w - iw) >> 1;
-      /* keep h-16 so the band still hangs into the south camera pad */
-      g.drawImage(img, dx, h - 16);
+    r = overRimBandRects();
+    for (b in r) {
+      if (!r.hasOwnProperty(b)) continue;
+      band = mirrorPadBand(r[b].img, r[b].padL, r[b].padR, r[b].padT, r[b].padB);
+      g.drawImage(band, r[b].x, r[b].y);
     }
     if (Assets.overClumpA) g.drawImage(Assets.overClumpA, 18 * TILE - 8, -8);
     if (Assets.overClumpB) g.drawImage(Assets.overClumpB, 42 * TILE - 8, (ROWS - 1) * TILE - 8);
     if (Assets.overClumpA) g.drawImage(Assets.overClumpA, -8, 12 * TILE);
     if (Assets.overClumpB) g.drawImage(Assets.overClumpB, w - (Assets.overClumpB.naturalWidth || Assets.overClumpB.width || 64), 22 * TILE);
+    g.imageSmoothingEnabled = prev;
+  }
+
+  /* 20260905kt: ocean camera pads (32 top / 52 bottom) showed flat C.water
+     (LIVE 10/18 slate-blue strip ~85px at the ocean north edge). Mirror the
+     painted oceanMap's own top/bottom rows into the pads instead. */
+  var OCEAN_PAD_T = 48;
+  var OCEAN_PAD_B = 64;
+  function drawOceanMapPads(g) {
+    var m = Assets.oceanMap, mw, mh, W, H, sx, sy, prev;
+    if (!m) return;
+    mw = m.naturalWidth || m.width;
+    mh = m.naturalHeight || m.height;
+    W = OCEAN_COLS * TILE;
+    H = OCEAN_ROWS * TILE;
+    sx = mw / W;
+    sy = mh / H;
+    prev = g.imageSmoothingEnabled;
+    g.imageSmoothingEnabled = false;
+    g.save(); g.scale(1, -1);
+    g.drawImage(m, 0, 0, mw, OCEAN_PAD_T * sy, 0, 0, W, OCEAN_PAD_T);
+    g.restore();
+    g.save(); g.translate(0, 2 * H); g.scale(1, -1);
+    g.drawImage(m, 0, mh - OCEAN_PAD_B * sy, mw, OCEAN_PAD_B * sy, 0, H - OCEAN_PAD_B, W, OCEAN_PAD_B);
+    g.restore();
     g.imageSmoothingEnabled = prev;
   }
 
@@ -29790,6 +29885,7 @@ function doCookNow() {
     }
     if (currentScene === "ocean" && Assets.oceanMap) {
       g.drawImage(Assets.oceanMap, 0, 0, OCEAN_COLS * TILE, OCEAN_ROWS * TILE);
+      drawOceanMapPads(g);
     }
 
     var x0 = Math.max(0, (camX / TILE) | 0);
@@ -29812,7 +29908,10 @@ function doCookNow() {
           if (currentScene === "darkForest" || currentScene === "treeHollow") { g.fillStyle = "#000000"; g.fillRect(dx, dy, TILE, TILE); }
           else if (currentScene === "squirrelCanopy" || currentScene === "canopySpiral" || currentScene === "mountainApproach" || currentScene === "moondropFoothills" || currentScene === "ledgeClimb" || currentScene === "ledgeOverlook") { g.fillStyle = C.sky || "#6A98C8"; g.fillRect(dx, dy, TILE, TILE); }
           else if (currentScene === "treetop" || currentScene === "tree" || currentScene === "peak" || currentScene === "highPeak") drawSkyTile(g, tx, ty, dx, dy);
-          else if (currentScene === "ocean") { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
+          else if (currentScene === "ocean") {
+            /* 20260905kt: N/S pads already mirror the painted map — keep flat water only past the side edges */
+            if (!(Assets.oceanMap && tx >= 0 && tx < COLS && ty >= -OCEAN_PAD_T / TILE && ty < ROWS + OCEAN_PAD_B / TILE)) { g.fillStyle = C.water || "#4A96C8"; g.fillRect(dx, dy, TILE, TILE); }
+          }
           else if (isCozyInterior()) Assets.draw(g, currentScene === "house" ? "houseFloor" : "woodfloor", dx, dy);
           else if (currentScene === "mine" || currentScene === "caveclimb" || currentScene === "mountainMine") {
             if ((currentScene === "mine" && mineFloor >= 4) || (currentScene === "caveclimb" && climbFloor === 1)) Assets.draw(g, "deepFloor", dx, dy);
@@ -30522,11 +30621,16 @@ function doCookNow() {
       return;
     }
 
-    /* Belt-and-suspenders: never walk/tool on the press that closed a panel
-       (or within the short post-close window — 20260905kq). */
-    if (walkTapBlocked()) return;
+    /* Belt-and-suspenders: never walk/tool on the press that closed a panel. */
+    if (ignoreWalkTap) return;
 
+    /* 20260905kt: HUD chrome (BAG / tray / STARS / JOB) stays live during the
+       short post-close window. LIVE 10/18: the kq window ate a quick BAG reopen
+       (<450ms after an X close), so the kid's next "close" click at the X landed
+       on the world once the window ran out and walked Orion toward the X. */
     if (tapHud(p)) return;
+    /* Short post-close window (20260905kq) still blocks world walk / tool. */
+    if (walkTapBlocked()) return;
     if (player.arc > 0) return;
     if (fishing) {
       var fxWorld = { x: p.x + camX, y: p.y + camY };
@@ -32562,7 +32666,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ks", BUILD);
+      ok("BUILD", BUILD === "20260905kt", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -36916,6 +37020,143 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         } finally {
           gold = g0; statueNoticed = sn0; lilaDone = ld0; festivalOn = fest0; dialogue = d0;
           applyScene(scene0 || "overworld");
+        }
+      })();
+
+      /* 20260905kt: overworld N/S rim bands cover the whole camera span (mirror pads, no flat gaps). */
+      (function () {
+        var w = COLS * TILE, h = ROWS * TILE, r, n, sb, band, c, cg, iw, ih, a, b, ok1, scene0 = currentScene;
+        try {
+          applyScene("overworld");
+          w = COLS * TILE; h = ROWS * TILE;
+          r = overRimBandRects();
+          n = r.north; sb = r.south;
+          ok("overRimNorthCoversSpan", !!n && n.x <= 0 && n.x + (n.img.naturalWidth || n.img.width) + n.padL + n.padR >= w && n.y <= -(CAM_PAD_TOP + CAM_PLAYER_H),
+            n ? ("x=" + n.x + " w=" + ((n.img.naturalWidth || n.img.width) + n.padL + n.padR) + " y=" + n.y) : "missing");
+          ok("overRimSouthCoversSpan", !!sb && sb.x <= 0 && sb.x + (sb.img.naturalWidth || sb.img.width) + sb.padL + sb.padR >= w && sb.y + (sb.img.naturalHeight || sb.img.height) + sb.padB >= h + CAM_PAD_BOTTOM,
+            sb ? ("x=" + sb.x + " bottom=" + (sb.y + (sb.img.naturalHeight || sb.img.height) + sb.padB) + " need=" + (h + CAM_PAD_BOTTOM)) : "missing");
+          /* pad pixels are mirrored art (not flat fill): left pad column i == art column (padL-1-i) */
+          band = mirrorPadBand(sb.img, sb.padL, sb.padR, sb.padT, sb.padB);
+          iw = sb.img.naturalWidth || sb.img.width; ih = sb.img.naturalHeight || sb.img.height;
+          c = document.createElement("canvas"); c.width = iw; c.height = ih;
+          cg = c.getContext("2d"); cg.drawImage(sb.img, 0, 0);
+          a = band.getContext("2d").getImageData(sb.padL - 1 - 5, 20, 1, 1).data;
+          b = cg.getImageData(5, 20, 1, 1).data;
+          ok1 = a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] > 200;
+          ok("overRimPadIsMirroredArt", ok1, "pad=" + [a[0], a[1], a[2], a[3]].join(",") + " art=" + [b[0], b[1], b[2]].join(","));
+          a = band.getContext("2d").getImageData(40, band.height - 3, 1, 1).data;
+          ok("overRimSouthPadOpaque", a[3] > 200, "a=" + a[3]);
+          ok("overRimKtSrc", drawOverRim.toString().indexOf("mirrorPadBand") >= 0 && drawOverRim.toString().indexOf("w + 96") < 0, "drawOverRim not using mirror pads");
+        } catch (eKt1) {
+          ok("ktRimNoThrow", false, eKt1 && eKt1.message ? eKt1.message : String(eKt1));
+        } finally {
+          applyScene(scene0 || "overworld");
+        }
+      })();
+      /* 20260905kt: ocean camera pads show mirrored oceanMap, not flat C.water. */
+      (function () {
+        var c, cg, m, a, b, scene0 = currentScene;
+        try {
+          m = Assets.oceanMap;
+          ok("oceanMapLoaded", !!m, "missing");
+          if (m) {
+            c = document.createElement("canvas");
+            c.width = OCEAN_COLS * TILE; c.height = OCEAN_ROWS * TILE + OCEAN_PAD_T + OCEAN_PAD_B;
+            cg = c.getContext("2d");
+            cg.translate(0, OCEAN_PAD_T);
+            cg.drawImage(m, 0, 0, OCEAN_COLS * TILE, OCEAN_ROWS * TILE);
+            drawOceanMapPads(cg);
+            a = cg.getImageData(300, OCEAN_PAD_T - 10, 1, 1).data;      /* 10px above map top */
+            b = cg.getImageData(300, OCEAN_PAD_T + 9, 1, 1).data;       /* mirror row inside map */
+            ok("oceanNorthPadMirrorsMap", a[3] > 200 && Math.abs(a[0] - b[0]) < 4 && Math.abs(a[1] - b[1]) < 4 && Math.abs(a[2] - b[2]) < 4,
+              "pad=" + [a[0], a[1], a[2], a[3]].join(",") + " map=" + [b[0], b[1], b[2]].join(","));
+            a = cg.getImageData(300, OCEAN_PAD_T + OCEAN_ROWS * TILE + 20, 1, 1).data;
+            ok("oceanSouthPadFilled", a[3] > 200, "a=" + a[3]);
+          }
+          applyScene("ocean");
+          ok("oceanEastEdgeNotWalkable", !walkable(COLS - 1, 5) && walkable(COLS - 2, 5), "edge=" + walkable(COLS - 1, 5) + " in=" + walkable(COLS - 2, 5));
+        } catch (eKt2) {
+          ok("ktOceanNoThrow", false, eKt2 && eKt2.message ? eKt2.message : String(eKt2));
+        } finally {
+          applyScene(scene0 || "overworld");
+        }
+      })();
+      /* 20260905kt: fast BAG close → reopen → close never walks (HUD live in the post-close window). */
+      (function () {
+        var scene0 = currentScene, px0 = player.tx, py0 = player.ty, pf0 = player.face;
+        var L, T, hx, hy, wx, wy;
+        function cleanWalk() {
+          clearWalkIntent();
+          highlight = null;
+          ignoreWalkTap = false;
+          ignoreWalkUntil = 0;
+          achieveOpen = false; questOpen = false; bagOpen = false;
+          dialogue = null; toast = null; wipeAsk = false;
+        }
+        function tapAt(vx, vy) {
+          var rr = canvas.getBoundingClientRect();
+          tap({ clientX: rr.left + (vx + 0.5) * rr.width / VIEW_W, clientY: rr.top + (vy + 0.5) * rr.height / VIEW_H, pointerId: 1 });
+          ignoreWalkTap = false; /* pointerup */
+        }
+        try {
+          applyScene("overworld");
+          placePlayer(30, 20, "down");
+          cleanWalk();
+          hx = player.tx; hy = player.ty;
+          openBag();
+          L = bagLayout();
+          T = trayLayout();
+          tapAt(L.closeX + (L.closeW >> 1), L.closeY + L.closeH - 3);
+          ok("ktBagClose1", !bagOpen && ignoreWalkUntil > 0, "open=" + bagOpen);
+          tapAt(T.bagX + (T.bagW >> 1), T.bagY + (T.bagH >> 1));
+          ok("bagReopenInsideCloseWindow", !!bagOpen, "BAG chrome tap eaten by post-close window");
+          tapAt(L.closeX + (L.closeW >> 1), L.closeY + L.closeH - 3);
+          ok("bagFastReopenCloseNoWalk", !bagOpen && !(player.path && player.path.length) && !pending && player.tx === hx && player.ty === hy,
+            "open=" + bagOpen + " path=" + (player.path && player.path.length) + " at=" + player.tx + "," + player.ty);
+          /* world taps inside the window stay blocked */
+          wx = 60; wy = 120;
+          tapAt(wx, wy);
+          ok("worldTapStillBlockedInWindow", !(player.path && player.path.length) && !pending && player.tx === hx && player.ty === hy,
+            "path=" + (player.path && player.path.length));
+          /* STARS reopen inside the window works too */
+          cleanWalk();
+          achieveOpen = true; L = achieveLayout();
+          tapAt(L.closeX + (L.closeW >> 1), L.closeY + (L.closeH >> 1));
+          tapAt(HUD_STAR_RECT.x + 9, HUD_STAR_RECT.y + 9);
+          ok("starsReopenInsideCloseWindow", !!achieveOpen && !(player.path && player.path.length), "open=" + achieveOpen);
+        } catch (eKt3) {
+          ok("ktBagNoThrow", false, eKt3 && eKt3.message ? eKt3.message : String(eKt3));
+        } finally {
+          cleanWalk();
+          applyScene(scene0 || "overworld");
+          placePlayer(px0, py0, pf0);
+        }
+      })();
+      /* 20260905kt: bridge FIX! says YOU USED 8 WOOD! and puffs wood sparks. */
+      (function () {
+        var scene0 = currentScene, fixed0 = !!found.bridgeFixed, w0, d0 = dialogue, sp0, cells = [], x, y, br, added;
+        try {
+          applyScene("overworld");
+          for (y = 32; y <= 33; y++) for (x = 64; x <= 66; x++) cells.push([x, y, cell(x, y)]);
+          found.bridgeFixed = false;
+          br = { kind: "brokenBridge", tx: 64, ty: 31 };
+          w0 = bagCount("wood");
+          added = BRIDGE_WOOD;
+          addToBag("wood", added);
+          sp0 = sparks.length;
+          talkBridge(br);
+          ok("bridgeFixUsedWoodLine", !!dialogue && dialogue.lines && dialogue.lines[0] === "YOU USED 8 WOOD!", dialogue ? JSON.stringify(dialogue.lines) : "none");
+          ok("bridgeFixSpendsEight", bagCount("wood") === w0 + added - 8, "wood=" + bagCount("wood") + " start=" + w0);
+          ok("bridgeFixWoodPuff", sparks.length >= sp0 + 10, "sparks+" + (sparks.length - sp0));
+          ok("bridgeUsedLineGlyphs", "YOU USED 8 WOOD!".split("").every(function (ch) { return !!FONT[ch]; }), "missing glyph");
+        } catch (eKt4) {
+          ok("ktBridgeNoThrow", false, eKt4 && eKt4.message ? eKt4.message : String(eKt4));
+        } finally {
+          found.bridgeFixed = fixed0;
+          for (x = 0; x < cells.length; x++) setCell(cells[x][0], cells[x][1], cells[x][2]);
+          dialogue = d0;
+          applyScene(scene0 || "overworld");
+          buildSolid();
         }
       })();
 
