@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905kt";
+  var BUILD = "20260905ku";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -276,6 +276,7 @@
   var sfxFace = document.getElementById("sfxFace");
   var musBtn = document.getElementById("musBtn");
   var musFace = document.getElementById("musFace");
+  var hudBtnsEl = document.getElementById("hudBtns");
   var scale = 3;
   var fillMode = false;
   var swipeStartY = null;
@@ -16922,6 +16923,52 @@ function doCookNow() {
     return !!(dialogue || achieveOpen || questOpen || sleepFx || faintFx || wipeAsk || shopOpen || cloudShopOpen || craftOpen || chestOpen || bagOpen);
   }
 
+  /* 20260905ku: the DOM FX / MU / FS / RL strip (#hudBtns, 4×36 CSS px, z-index 5,
+     pinned top-right of #frame) sits over the canvas's top-right corner whenever the
+     canvas reaches the frame top (5:3 or wider windows: 960×576, desktop, phones in
+     landscape, iPad Split View). That is exactly where the BAG / shop / chest / craft
+     close X live (STARS / JOB only at 1× scale), so a tap on the X's top half hit
+     MU or FS instead (LIVE side note 10/18, kid on iPad muted music / flipped full
+     screen instead of closing the bag). Fix for the whole class: while any canvas
+     panel with a top-right X is open the strip is hidden and inert, so the X is both
+     visible and tappable at every viewport; it comes back once the panel closes plus
+     the same short post-close window as the 05kq walk swallow (a fast double-tap on
+     the X can't land on MU / FS). Canvas HUD chrome (BAG / tray / STARS / JOB) is
+     not affected and stays live in that window (05kt). Talk / dialogue keeps the
+     strip (its X sits low at y≥80). */
+  var HUD_BTNS_CLOSE_HOLD_MS = 450;
+  var hudBtnsHidden = false;
+  var hudBtnsHoldUntil = 0;
+  var hudBtnsPanelWas = false;
+  function cornerXPanelOpen() {
+    return !!(bagOpen || achieveOpen || questOpen || shopOpen || cloudShopOpen || craftOpen || chestOpen);
+  }
+  function hudNowMs() {
+    return (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  }
+  function syncHudBtns() {
+    var open = cornerXPanelOpen();
+    var now = hudNowMs();
+    var want;
+    if (hudBtnsPanelWas && !open) {
+      /* end with the walk-swallow window when one is armed, else a fresh hold */
+      hudBtnsHoldUntil = (ignoreWalkUntil && ignoreWalkUntil > now) ? ignoreWalkUntil : now + HUD_BTNS_CLOSE_HOLD_MS;
+    }
+    if (open) hudBtnsHoldUntil = 0;
+    hudBtnsPanelWas = open;
+    if (hudBtnsHoldUntil && now >= hudBtnsHoldUntil) hudBtnsHoldUntil = 0;
+    want = open || !!hudBtnsHoldUntil;
+    if (want === hudBtnsHidden) return hudBtnsHidden;
+    hudBtnsHidden = want;
+    if (hudBtnsEl) {
+      hudBtnsEl.style.visibility = want ? "hidden" : "";
+      hudBtnsEl.style.pointerEvents = want ? "none" : "";
+      if (want) hudBtnsEl.setAttribute("aria-hidden", "true");
+      else hudBtnsEl.removeAttribute("aria-hidden");
+    }
+    return hudBtnsHidden;
+  }
+
   function uiPaused() {
     return !!(toast || modalOpen() || birdFly || birdRideFx || doorFade);
   }
@@ -31718,6 +31765,7 @@ if (currentScene === "ocean") goExitOcean();
     if (dt < 0) dt = 0;
     lastTs = ts;
     applyDrawBuffer(ctx);
+    syncHudBtns(); /* 20260905ku: FX/MU/FS/RL hidden while a corner-X panel is open */
     if (chairSitCool > 0) {
       chairSitCool -= dt;
       if (chairSitCool < 0) chairSitCool = 0;
@@ -32268,6 +32316,14 @@ if (currentScene === "ocean") goExitOcean();
       clearWalkIntent: clearWalkIntent,
       ignoreWalkTapGet: function () { return ignoreWalkTap; },
       ignoreWalkUntilGet: function () { return ignoreWalkUntil; },
+      /* 20260905ku: headless HUD-strip vs panel X checks */
+      bagOpenGet: function () { return bagOpen; },
+      musicMutedGet: function () { return musicMuted; },
+      sfxMutedGet: function () { return sfxMuted; },
+      fillModeGet: function () { return fillMode; },
+      hudBtnsHiddenGet: function () { return hudBtnsHidden; },
+      syncHudBtns: syncHudBtns,
+      trayLayout: trayLayout,
       achieveLayout: achieveLayout,
       journalLayout: journalLayout,
       bagLayout: bagLayout,
@@ -32666,7 +32722,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905kt", BUILD);
+      ok("BUILD", BUILD === "20260905ku", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -37128,6 +37184,170 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
           ok("ktBagNoThrow", false, eKt3 && eKt3.message ? eKt3.message : String(eKt3));
         } finally {
           cleanWalk();
+          applyScene(scene0 || "overworld");
+          placePlayer(px0, py0, pf0);
+        }
+      })();
+      /* 20260905ku: FX/MU/FS/RL page strip never sits over a panel close X.
+         Taps are routed like a real finger: elementFromPoint at the screen spot,
+         canvas → tap(), a strip button → its own pointerdown handler. */
+      (function () {
+        var scene0 = currentScene, px0 = player.tx, py0 = player.ty, pf0 = player.face;
+        var mu0 = musicMuted, sfx0 = sfxMuted, fill0 = fillMode, toast0 = toast;
+        var L, hx, hy, i, el, hits, r, mb, panels, names, bad, nowMs;
+        function cleanKu() {
+          clearWalkIntent();
+          highlight = null;
+          ignoreWalkTap = false;
+          ignoreWalkUntil = 0;
+          achieveOpen = false; questOpen = false; bagOpen = false;
+          shopOpen = false; cloudShopOpen = false; craftOpen = false; chestOpen = false;
+          dialogue = null; toast = null; wipeAsk = false;
+          hudBtnsHoldUntil = 0;
+          syncHudBtns();
+          hudBtnsHoldUntil = 0;
+          syncHudBtns();
+        }
+        function scr(vx, vy) {
+          var rr = canvas.getBoundingClientRect();
+          return { x: rr.left + vx * rr.width / VIEW_W, y: rr.top + vy * rr.height / VIEW_H };
+        }
+        function elAt(vx, vy) {
+          var q = scr(vx, vy);
+          return document.elementFromPoint(q.x, q.y);
+        }
+        /* finger tap at logical (vx, vy): whatever DOM element is on top gets it */
+        function fingerAt(vx, vy) {
+          var q = scr(vx, vy), e = document.elementFromPoint(q.x, q.y), b;
+          b = e && e.closest ? e.closest("#hudBtns button") : null;
+          if (b) {
+            b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, clientX: q.x, clientY: q.y, pointerId: 1 }));
+            return b.id;
+          }
+          if (e === canvas) {
+            tap({ clientX: q.x, clientY: q.y, pointerId: 1 });
+            ignoreWalkTap = false; /* pointerup */
+            return "game";
+          }
+          return e ? (e.id || e.tagName) : "none";
+        }
+        function noWalk() {
+          return !(player.path && player.path.length) && !pending && player.tx === hx && player.ty === hy;
+        }
+        function xSamplesOnCanvas(LL) {
+          var ix, iy, e2, miss = [];
+          for (iy = 0; iy < 4; iy++) for (ix = 0; ix < 4; ix++) {
+            e2 = elAt(LL.closeX + 1 + ix * (LL.closeW - 2) / 3, LL.closeY + 1 + iy * (LL.closeH - 2) / 3);
+            if (e2 !== canvas) miss.push((e2 && (e2.id || e2.tagName)) || "none");
+          }
+          return miss;
+        }
+        try {
+          applyScene("overworld");
+          placePlayer(30, 20, "down");
+          cleanKu();
+          hx = player.tx; hy = player.ty;
+          ok("kuHudBtnsShowNoPanel", !hudBtnsHidden && hudBtnsEl && getComputedStyle(hudBtnsEl).visibility === "visible" && getComputedStyle(hudBtnsEl).pointerEvents !== "none",
+            "hidden=" + hudBtnsHidden);
+          /* every corner-X panel hides the strip and leaves its X on the canvas */
+          panels = [
+            ["Bag", function () { openBag(); }, bagLayout],
+            ["Stars", function () { achieveOpen = true; }, achieveLayout],
+            ["Job", function () { questOpen = true; }, journalLayout],
+            ["Shop", function () { shopOpen = true; }, shopLayout],
+            ["CloudShop", function () { cloudShopOpen = true; }, cloudShopLayout],
+            ["Craft", function () { craftOpen = true; }, craftLayout],
+            ["Chest", function () { chestOpen = true; }, chestLayout]
+          ];
+          for (i = 0; i < panels.length; i++) {
+            cleanKu();
+            panels[i][1]();
+            syncHudBtns();
+            L = panels[i][2]();
+            hits = xSamplesOnCanvas(L);
+            ok("kuHudHide" + panels[i][0], hudBtnsHidden && getComputedStyle(hudBtnsEl).visibility === "hidden" &&
+              getComputedStyle(hudBtnsEl).pointerEvents === "none" && hits.length === 0,
+              "hidden=" + hudBtnsHidden + " notCanvas=" + hits.join(","));
+          }
+          /* BAG X top half: closes the bag, never MU / FS / FX, never walks */
+          cleanKu();
+          openBag(); syncHudBtns();
+          L = bagLayout();
+          el = fingerAt(L.closeX + (L.closeW >> 1), L.closeY + 2);
+          ok("kuBagXTopHalfCloses", el === "game" && !bagOpen && musicMuted === mu0 && sfxMuted === sfx0 && fillMode === fill0 && noWalk(),
+            "hit=" + el + " open=" + bagOpen + " mu=" + musicMuted + " fs=" + fillMode);
+          /* very top edge of the X (inside its 10px pad) still closes — pad not thinned */
+          cleanKu();
+          openBag(); syncHudBtns();
+          el = fingerAt(L.closeX + 2, Math.max(0, L.closeY - 4));
+          ok("kuBagXTopPadStillCloses", el === "game" && !bagOpen && musicMuted === mu0 && fillMode === fill0 && noWalk(),
+            "hit=" + el + " open=" + bagOpen);
+          /* strip stays hidden for the post-close window; a tap where MU sits doesn't walk */
+          syncHudBtns();
+          ok("kuHudHeldAfterClose", hudBtnsHidden && hudBtnsHoldUntil > 0, "hidden=" + hudBtnsHidden + " hold=" + hudBtnsHoldUntil);
+          mb = musBtn.getBoundingClientRect();
+          r = canvas.getBoundingClientRect();
+          (function () {
+            var vx = (mb.left + mb.width / 2 - r.left) / r.width * VIEW_W;
+            var vy = (mb.top + mb.height / 2 - r.top) / r.height * VIEW_H;
+            var hitHold = (vy >= 0 && vy < VIEW_H) ? fingerAt(vx, vy) : "offCanvas";
+            ok("kuHoldTapNoWalkNoMute", musicMuted === mu0 && noWalk() && hitHold !== "musBtn", "hit=" + hitHold + " mu=" + musicMuted);
+          })();
+          /* after the window the strip is back and MU works (toggle twice → restored) */
+          nowMs = hudNowMs();
+          hudBtnsHoldUntil = nowMs - 1;
+          ignoreWalkUntil = 0;
+          syncHudBtns();
+          ok("kuHudBackAfterHold", !hudBtnsHidden && getComputedStyle(hudBtnsEl).visibility === "visible", "hidden=" + hudBtnsHidden);
+          mb = musBtn.getBoundingClientRect();
+          el = document.elementFromPoint(mb.left + mb.width / 2, mb.top + mb.height / 2);
+          el = el && el.closest ? el.closest("button") : null;
+          if (el === musBtn) musBtn.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerId: 1 }));
+          bad = (el === musBtn) && musicMuted !== mu0;
+          if (el === musBtn) musBtn.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerId: 1 }));
+          ok("kuMuWorksAfterClose", bad && musicMuted === mu0, "top=" + (el ? el.id : "none") + " mu=" + musicMuted);
+          /* close → reopen fast still works with the strip hidden (05kt), and BAG X closes again */
+          cleanKu();
+          openBag(); syncHudBtns();
+          L = bagLayout();
+          fingerAt(L.closeX + (L.closeW >> 1), L.closeY + 3);
+          syncHudBtns();
+          (function () {
+            var T = trayLayout();
+            fingerAt(T.bagX + (T.bagW >> 1), T.bagY + (T.bagH >> 1));
+          })();
+          syncHudBtns();
+          ok("kuFastReopenStillHides", !!bagOpen && hudBtnsHidden, "open=" + bagOpen + " hidden=" + hudBtnsHidden);
+          el = fingerAt(L.closeX + (L.closeW >> 1), L.closeY + 3);
+          ok("kuFastReopenXCloses", el === "game" && !bagOpen && musicMuted === mu0 && noWalk(), "hit=" + el + " open=" + bagOpen);
+          /* STARS / JOB / shop / craft / chest X top halves close too */
+          names = [
+            ["Stars", function () { achieveOpen = true; }, achieveLayout, function () { return achieveOpen; }],
+            ["Job", function () { questOpen = true; }, journalLayout, function () { return questOpen; }],
+            ["Shop", function () { shopOpen = true; }, shopLayout, function () { return shopOpen; }],
+            ["Craft", function () { craftOpen = true; }, craftLayout, function () { return craftOpen; }],
+            ["Chest", function () { chestOpen = true; }, chestLayout, function () { return chestOpen; }]
+          ];
+          for (i = 0; i < names.length; i++) {
+            cleanKu();
+            names[i][1](); syncHudBtns();
+            L = names[i][2]();
+            el = fingerAt(L.closeX + (L.closeW >> 1), L.closeY + 2);
+            ok("ku" + names[i][0] + "XTopHalfCloses", el === "game" && !names[i][3]() && musicMuted === mu0 && fillMode === fill0 && noWalk(),
+              "hit=" + el + " open=" + names[i][3]());
+          }
+          /* talk dialogue keeps the strip (its X is low on the canvas) */
+          cleanKu();
+          dialogue = { lines: ["HI."], title: "" };
+          syncHudBtns();
+          ok("kuDialogueKeepsHudBtns", !hudBtnsHidden, "hidden=" + hudBtnsHidden);
+        } catch (eKu) {
+          ok("kuHudBtnsNoThrow", false, eKu && eKu.message ? eKu.message : String(eKu));
+        } finally {
+          cleanKu();
+          musicMuted = mu0; sfxMuted = sfx0; audioMuted = sfxMuted && musicMuted;
+          paintHudFaces();
+          toast = toast0;
           applyScene(scene0 || "overworld");
           placePlayer(px0, py0, pf0);
         }
