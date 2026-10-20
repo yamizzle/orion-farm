@@ -115,7 +115,7 @@
 (function () {
   "use strict";
 
-  var BUILD = "20260905ku";
+  var BUILD = "20260905kv";
   var ASSET_REV = "465026-jm";
   var PIXEL_FONT_NAME = "Press Start 2P";
   var PIXEL_FONT_URL = "assets/fonts/PressStart2P-Regular.ttf";
@@ -1697,7 +1697,9 @@
     queuedWalk: null,
     anim: 0,
     loopI: 0,
-    wait: 0
+    wait: 0,
+    dir: 1, /* 20260905kv: +1 clockwise along CAR_LOOP, -1 after yielding to Orion */
+    yieldMs: 0
   };
   var SHOP_ITEMS = [
     { id: "seeds", name: "SEED TIN", price: 5, icon: "seed" },
@@ -9172,22 +9174,54 @@
     return tx >= 0 && ty >= 0 && tx < COLS && ty < ROWS;
   }
 
-  function carSpanDelta(face) {
-    if (face === "left") return { dx: -1, dy: 0 };
-    if (face === "up") return { dx: 0, dy: -1 };
-    if (face === "down") return { dx: 0, dy: 1 };
-    return { dx: 1, dy: 0 };
+  /* 20260905kv: the town car's body footprint in tiles (LIVE 10/19 car parks on Orion).
+     The ~0.75 car sprite is much bigger than its one tile: side views are 54px wide
+     (center ±27, so it sits on the tiles in front of and behind its own), the up/down
+     views 34–36px wide and ~40px tall (the tile north of it, and part of each side).
+     The old block list (own tile + one front tile) let the car stop beside Orion — or
+     roll up to him — with its body painted over all but his hair tuft. Offsets are the
+     tiles where an Orion standing there would be ~40%+ hidden with the car painted on
+     top (measured from the opaque sprite pixels, mirrored left/right; rows south of the car paint Orion in
+     front, and a row north is only his legs behind the car — 3/4 depth, not a bug),
+     plus two tiles ahead of an up-facing car (its tall roof still hid ~30% of him), so
+     it never parks with its hood against him. */
+  var CAR_FOOT_SIDE = [[-1, 0], [0, 0], [1, 0]];
+  var CAR_FOOT_UP = [[0, 0], [0, -1], [0, -2], [-1, 0], [1, 0], [-1, -1], [1, -1]];
+  var CAR_FOOT_DOWN = [[0, 0], [0, -1], [-1, 0], [1, 0]];
+  function carFootOffsets(face) {
+    if (face === "up") return CAR_FOOT_UP;
+    if (face === "down") return CAR_FOOT_DOWN;
+    return CAR_FOOT_SIDE;
+  }
+
+  /* Car parked at (ctx, cty) facing `face` covers tile (tx, ty)? */
+  function carFootCovers(ctx, cty, face, tx, ty) {
+    var dx = tx - ctx, dy = ty - cty, offs, i;
+    if (dx < -1 || dx > 1 || dy < -2 || dy > 0) return false;
+    offs = carFootOffsets(face);
+    for (i = 0; i < offs.length; i++) {
+      if (offs[i][0] === dx && offs[i][1] === dy) return true;
+    }
+    return false;
   }
 
   function carOccupies(tx, ty) {
-    var d, ex, ey;
+    var face;
     if (currentScene !== "overworld" || !car) return false;
-    if (tx === car.tx && ty === car.ty) return true;
-    if (car.path && car.path.length && car.path[0].tx === tx && car.path[0].ty === ty) return true;
-    d = carSpanDelta(car.face || "right");
-    ex = car.tx + d.dx;
-    ey = car.ty + d.dy;
-    if (tx === ex && ty === ey) return true;
+    face = car.face || "right";
+    if (carFootCovers(car.tx, car.ty, face, tx, ty)) return true;
+    /* mid-step: the tile it is rolling into counts too */
+    if (car.path && car.path.length && carFootCovers(car.path[0].tx, car.path[0].ty, face, tx, ty)) return true;
+    return false;
+  }
+
+  /* Tiles Orion is on or already stepping into (a walk that has not started its
+     step yet is not a claim — he re-checks the car before each step instead). */
+  function carFootHitsPlayer(ctx, cty, face) {
+    if (!player) return false;
+    if (carFootCovers(ctx, cty, face, player.tx, player.ty)) return true;
+    if (player.path && player.path.length && player.stepT > 0 &&
+        carFootCovers(ctx, cty, face, player.path[0].tx, player.path[0].ty)) return true;
     return false;
   }
 
@@ -9669,11 +9703,53 @@
     applyWalk(who, path, speed);
   }
 
+  /* 20260905kv: a tap path is planned once, but the town car keeps driving. Before
+     each step Orion checks the car's body: if it now covers his next tile he takes
+     another way to the same tile, or waits at the curb for it to roll past (the car
+     doesn't wait for a step he hasn't started). Gives up after CAR_HOLD_MAX_MS so a
+     stuck tap never locks him; a new tap, or holding a walk key, walks him off now. */
+  var CAR_HOLD_MAX_MS = 4500;
+  function playerHoldForCar(dt) {
+    var end, np;
+    player.moving = false;
+    player.frame = 0;
+    player.carHold = (player.carHold || 0) + dt;
+    if (player.carHold >= CAR_HOLD_MAX_MS || kbDir()) {
+      player.carHold = 0;
+      player.path = [];
+      player.queuedWalk = null;
+      player.stepFrom = null;
+      pending = null;
+      return;
+    }
+    player.carRepathMs = (player.carRepathMs || 0) - dt;
+    if (player.carRepathMs > 0) return;
+    player.carRepathMs = 400;
+    end = player.path[player.path.length - 1];
+    np = findPath(player.tx, player.ty, end.tx, end.ty);
+    if (np.length && !carOccupies(np[0].tx, np[0].ty)) {
+      var last = np[np.length - 1];
+      if (last.tx === end.tx && last.ty === end.ty) {
+        player.path = np;
+        player.stepFrom = { tx: player.tx, ty: player.ty };
+        faceToward(player, np[0].tx, np[0].ty);
+      }
+    }
+  }
+
   function advanceWalk(who, dt) {
     if (!who.path || !who.path.length) {
       who.moving = false;
       who.frame = 0;
       return false;
+    }
+    if (who === player && currentScene === "overworld" && !(who.stepT > 0)) {
+      if (carOccupies(who.path[0].tx, who.path[0].ty)) {
+        playerHoldForCar(dt);
+        if (!who.path.length || carOccupies(who.path[0].tx, who.path[0].ty)) return false;
+      }
+      who.carHold = 0;
+      who.carRepathMs = 0;
     }
     var dest = who.path[0];
     var speed = who.speed || 3.5;
@@ -22937,8 +23013,38 @@ function doCookNow() {
     return eatFood(fk.cookedId, fk.cookedHeal | 0, fk.cookedEnergy | 0, ["YUM! " + cookedFishName(fk) + "!"]);
   }
 
+  /* 20260905kv: the car yields to Orion. Before each one-tile step it checks its whole
+     body footprint — turning in place and at the next tile — against Orion's tile (and
+     the tile he is already stepping into). Blocked: it waits; after CAR_YIELD_MS it
+     turns around and drives the loop the other way (around the block), so Orion
+     parked in the lane is never sat on and never boxed in. Folk keep the old wait. */
+  var CAR_YIELD_MS = 1500;
+  function carLoopIndex(i) {
+    var n = CAR_LOOP.length;
+    return ((i % n) + n) % n;
+  }
+
+  function carStepFace(fromTx, fromTy, toTx, toTy) {
+    var dx = toTx - fromTx, dy = toTy - fromTy;
+    if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? "right" : "left";
+    if (dy !== 0) return dy > 0 ? "down" : "up";
+    return car.face || "right";
+  }
+
+  /* Would stepping to `next` (incl. the turn on the spot) put the car's body on Orion? */
+  function carStepHitsPlayer(next) {
+    var face = carStepFace(car.tx, car.ty, next.tx, next.ty);
+    return carFootHitsPlayer(car.tx, car.ty, face) || carFootHitsPlayer(next.tx, next.ty, face);
+  }
+
+  function carStartStep(ni) {
+    var next = CAR_LOOP[ni];
+    car.loopI = ni;
+    applyWalk(car, [{ tx: next.tx, ty: next.ty }], 1.7);
+  }
+
   function updateCar(dt) {
-    var next, dest, ni;
+    var next, dest, ni, dir, bi;
     if (currentScene !== "overworld") return;
     car.anim += dt;
     if (car.anim > 160) {
@@ -22949,11 +23055,15 @@ function doCookNow() {
       car.wait -= dt;
       return;
     }
+    dir = car.dir === -1 ? -1 : 1;
     dest = car.path && car.path.length ? car.path[0] : null;
-    if (dest && (playerOccupies(dest.tx, dest.ty) || folkOccupies(dest.tx, dest.ty))) {
+    if (dest && (folkOccupies(dest.tx, dest.ty) ||
+        (carFootHitsPlayer(dest.tx, dest.ty, car.face) && !carFootHitsPlayer(car.tx, car.ty, car.face)))) {
+      /* Safety net (Orion can't walk into the footprint): back to the tile it left. */
       car.path = [];
       car.stepFrom = null;
       car.stepT = 0;
+      car.loopI = carLoopIndex(car.loopI - dir);
       car.x = tileCenterX(car.tx);
       car.y = tileFootY(car.ty);
       car.wait = 280;
@@ -22963,14 +23073,37 @@ function doCookNow() {
       advanceWalk(car, dt);
       return;
     }
-    ni = (car.loopI + 1) % CAR_LOOP.length;
+    ni = carLoopIndex(car.loopI + dir);
     next = CAR_LOOP[ni];
-    if (playerOccupies(next.tx, next.ty) || folkOccupies(next.tx, next.ty)) {
+    if (folkOccupies(next.tx, next.ty)) {
       car.wait = 200;
       return;
     }
-    car.loopI = ni;
-    applyWalk(car, [{ tx: next.tx, ty: next.ty }], 1.7);
+    if (carStepHitsPlayer(next)) {
+      if (carFootHitsPlayer(car.tx, car.ty, car.face || "right")) {
+        /* Already on him (he was placed there — door, load): leave by whichever way
+           gets off him; never sit there. */
+        bi = carLoopIndex(car.loopI - dir);
+        next = CAR_LOOP[bi];
+        if (!carFootHitsPlayer(next.tx, next.ty, carStepFace(car.tx, car.ty, next.tx, next.ty))) {
+          car.dir = -dir;
+          car.yieldMs = 0;
+          carStartStep(bi);
+        } else {
+          carStartStep(ni);
+        }
+        return;
+      }
+      car.wait = 200;
+      car.yieldMs = (car.yieldMs || 0) + 200;
+      if (car.yieldMs >= CAR_YIELD_MS) {
+        car.yieldMs = 0;
+        car.dir = -dir;
+      }
+      return;
+    }
+    car.yieldMs = 0;
+    carStartStep(ni);
   }
 
   function tryLeaveWood() {
@@ -32722,7 +32855,7 @@ if (currentScene === "ocean") goExitOcean();
       else { fail++; log.push("FAIL " + name + (detail ? " — " + detail : "")); }
     }
     try {
-      ok("BUILD", BUILD === "20260905ku", BUILD);
+      ok("BUILD", BUILD === "20260905kv", BUILD);
       (function () {
         /* 20260905jz: chest list clip ends above PUT ALL / TAKE ALL; last row fits at maxScroll */
         var L = chestLayout();
@@ -37427,6 +37560,248 @@ ok("farOpenPath", far.length > 0, "n=" + far.length);
         } finally {
           labelCapture = null;
           applyScene(scene0 || "overworld");
+        }
+      })();
+      /* 20260905kv: the town car never parks on (or rolls over) Orion (LIVE 10/19 3pm).
+         Simulated game time at 16ms frames: updateCar + Orion's own advanceWalk, folk
+         and Nim moved out of the lane so only Orion and the car are in play. "Hidden"
+         is measured from the real opaque sprite pixels (car frame at its 0.75 draw vs
+         Orion's frame), counted only when the car paints on top in the Y-sort — it does
+         not use the car footprint table, so it checks the fix rather than restating it. */
+      (function () {
+        var scene0 = currentScene, px0 = player.tx, py0 = player.ty, pf0 = player.face;
+        var folk0 = townFolk, nimTx0 = nim.tx, nimTy0 = nim.ty;
+        var car0 = { tx: car.tx, ty: car.ty, face: car.face, loopI: car.loopI, dir: car.dir, wait: car.wait };
+        var masks = {}, DT = 16, i, r, k, runs, arrived, worst, bad;
+        function mask(id, fr, sc) {
+          var key = id + "|" + fr + "|" + sc, s, fw, w, h, cv, g, d, a, j;
+          if (masks[key]) return masks[key];
+          s = Assets.spr[id];
+          if (!s || !Assets.img) return null;
+          fw = s.fw || s.w;
+          w = Math.round(fw * sc);
+          h = Math.round(s.h * sc);
+          cv = document.createElement("canvas");
+          cv.width = w; cv.height = h;
+          g = cv.getContext("2d");
+          g.imageSmoothingEnabled = false;
+          g.drawImage(Assets.img, s.x + fr * fw, s.y, fw, s.h, 0, 0, w, h);
+          d = g.getImageData(0, 0, w, h).data;
+          a = new Uint8Array(w * h);
+          for (j = 0; j < w * h; j++) a[j] = d[j * 4 + 3] > 40 ? 1 : 0;
+          masks[key] = { w: w, h: h, ax: (s.anchor && s.anchor[0]) || 0, ay: (s.anchor && s.anchor[1]) || 0, ox: s.ox || 0, oy: s.oy || 0, a: a };
+          return masks[key];
+        }
+        /* share of Orion's opaque pixels under opaque car pixels, car painted on top */
+        function hidden() {
+          var cid, cm, pm, cx0, cy0, qx0, qy0, x, y, tot = 0, hid = 0, cx, cy;
+          if (Math.abs(car.x - player.x) > 48 || Math.abs(car.y - player.y) > 72) return 0;
+          if (car.y < playerDrawFoot()) return 0;
+          cid = Assets.spr["car-" + (car.face || "right")] ? "car-" + (car.face || "right") : "car-right";
+          cm = mask(cid, car.frame || 0, 0.75);
+          pm = mask("player-" + (player.face || "down"), 0, 1);
+          if (!cm || !pm) return 0;
+          cx0 = Math.round(car.x - cm.ax * 0.75);
+          cy0 = Math.round(car.y - cm.ay * 0.75);
+          qx0 = Math.round(player.x + pm.ox - pm.ax);
+          qy0 = Math.round(player.y + pm.oy - pm.ay);
+          for (y = 0; y < pm.h; y++) for (x = 0; x < pm.w; x++) {
+            if (!pm.a[y * pm.w + x]) continue;
+            tot++;
+            cx = qx0 + x - cx0; cy = qy0 + y - cy0;
+            if (cx >= 0 && cy >= 0 && cx < cm.w && cy < cm.h && cm.a[cy * cm.w + cx]) hid++;
+          }
+          return tot ? hid / tot : 0;
+        }
+        function setCar(idx, dir) {
+          var a = CAR_LOOP[idx], b = CAR_LOOP[(idx + (dir || 1) + CAR_LOOP.length) % CAR_LOOP.length];
+          car.path = []; car.stepFrom = null; car.stepT = 0; car.queuedWalk = null;
+          car.wait = 0; car.yieldMs = 0; car.dir = dir || 1; car.loopI = idx;
+          car.tx = a.tx; car.ty = a.ty; car.x = tileCenterX(a.tx); car.y = tileFootY(a.ty);
+          car.face = carStepFace(a.tx, a.ty, b.tx, b.ty);
+          car.moving = false;
+        }
+        function setOrion(tx, ty) {
+          clearWalkIntent();
+          placePlayer(tx, ty, "down");
+          player.stepT = 0; player.stepFrom = null; player.carHold = 0; player.carRepathMs = 0;
+        }
+        function walkTo(tx, ty) {
+          var p = findPath(player.tx, player.ty, tx, ty);
+          applyWalk(player, p, 3.5);
+          return p.length;
+        }
+        function canWalkOut(gx, gy) {
+          var d = [[0, 1], [0, -1], [1, 0], [-1, 0]], j, any = false, p;
+          for (j = 0; j < 4; j++) if (walkable(player.tx + d[j][0], player.ty + d[j][1])) any = true;
+          if (!any) return false;
+          p = findPath(player.tx, player.ty, gx, gy);
+          return p.length > 0 && p[p.length - 1].tx === gx && p[p.length - 1].ty === gy;
+        }
+        /* run ms of game time; Orion parked unless walking; returns stats */
+        function sim(ms, o) {
+          var st = { maxHid: 0, maxParked: 0, onTile: 0, near: false, flips: 0, east: false, west: false, stuck: 0, visits: {}, pvisits: {}, steps: 0, arrivedAt: -1 }, t, h, d0 = car.dir, lt = car.loopI, key;
+          o = o || {};
+          for (t = 0; t < ms; t += DT) {
+            if (player.path && player.path.length) {
+              if (advanceWalk(player, DT) && st.arrivedAt < 0) st.arrivedAt = t;
+            } else if (o.walking && st.arrivedAt < 0) st.arrivedAt = t;
+            updateCar(DT);
+            h = hidden();
+            if (h > st.maxHid) { st.maxHid = h; st.worstAt = car.tx + "," + car.ty + " " + car.face + " vs " + player.tx + "," + player.ty; }
+            if (!(car.path && car.path.length) && h > st.maxParked) st.maxParked = h;
+            if (carOccupies(player.tx, player.ty)) st.onTile++;
+            if (Math.abs(car.tx - player.tx) + Math.abs(car.ty - player.ty) <= 3) st.near = true;
+            if (car.dir !== d0) { st.flips++; d0 = car.dir; }
+            if (car.loopI !== lt) { st.steps++; lt = car.loopI; }
+            if (car.tx === 57) st.east = true;
+            if (car.tx === 41) st.west = true;
+            key = car.tx + "," + car.ty;
+            st.visits[key] = true;
+            st.pvisits[player.tx + "," + player.ty] = true;
+            if (o.exit && (t % 496) === 0 && !canWalkOut(o.exit[0], o.exit[1])) st.stuck++;
+          }
+          return st;
+        }
+        function fmt(st) {
+          return "hid " + st.maxHid.toFixed(2) + " parked " + st.maxParked.toFixed(2) + (st.worstAt ? " @" + st.worstAt : "") + " onTile " + st.onTile + " flips " + st.flips + " steps " + st.steps + " stuck " + st.stuck;
+        }
+        try {
+          applyScene("overworld");
+          townFolk = [];
+          nim.tx = 2; nim.ty = 2;
+          kbHeld = [];
+          ok("kvMasksReadable", !!mask("car-up", 0, 0.75) && !!mask("player-down", 0, 1), "masks");
+
+          /* A: Orion parked in the lane at the lamp post just left of Pip's shop; car
+             comes up the west street at him. 60s. */
+          setCar(41, 1); setOrion(41, 27);
+          r = sim(60000, { exit: [44, 30] });
+          ok("kvLampLaneNeverHidden", r.maxHid < 0.4, fmt(r));
+          ok("kvLampLaneParksClear", r.maxParked < 0.15, fmt(r));
+          ok("kvLampLaneNotOnTile", r.onTile === 0, fmt(r));
+          ok("kvLampLaneCarCame", r.near, fmt(r));
+          ok("kvLampLaneTurnsAround", r.flips >= 1 && r.east, fmt(r));
+          ok("kvLampLaneCanWalkOut", r.stuck === 0, fmt(r));
+          ok("kvLampLaneNotNoCar", r.steps >= 20, fmt(r));
+
+          /* B: beside the lane, on the lamp post's sidewalk (40,27) — 60s. */
+          setCar(41, 1); setOrion(40, 27);
+          r = sim(60000, { exit: [38, 30] });
+          ok("kvLampSideNeverHidden", r.maxHid < 0.4, fmt(r));
+          ok("kvLampSideParksClear", r.maxParked < 0.15, fmt(r));
+          ok("kvLampSideNotOnTile", r.onTile === 0, fmt(r));
+          ok("kvLampSideCanWalkOut", r.stuck === 0, fmt(r));
+
+          /* C: on the top street in front of the shop row; side-view car. */
+          setCar(0, 1); setOrion(47, 26);
+          r = sim(45000, { exit: [47, 28] });
+          ok("kvTopRowNeverHidden", r.maxHid < 0.4, fmt(r));
+          ok("kvTopRowParksClear", r.maxParked < 0.15, fmt(r));
+          ok("kvTopRowNotOnTile", r.onTile === 0, fmt(r));
+          ok("kvTopRowCarCame", r.near && r.flips >= 1, fmt(r));
+          ok("kvTopRowCanWalkOut", r.stuck === 0, fmt(r));
+
+          /* D: east street, car coming down at him. */
+          setCar(14, 1); setOrion(57, 30);
+          r = sim(45000, { exit: [54, 30] });
+          ok("kvEastDownNeverHidden", r.maxHid < 0.4, fmt(r));
+          ok("kvEastDownParksClear", r.maxParked < 0.15, fmt(r));
+          ok("kvEastDownNotOnTile", r.onTile === 0 && r.near, fmt(r));
+          ok("kvEastDownCanWalkOut", r.stuck === 0, fmt(r));
+
+          /* E: west street the other way (car driving down at him). */
+          setCar(0, -1); setOrion(41, 30);
+          r = sim(45000, { exit: [44, 30] });
+          ok("kvWestDownNeverHidden", r.maxHid < 0.4, fmt(r));
+          ok("kvWestDownParksClear", r.maxParked < 0.15, fmt(r));
+          ok("kvWestDownNotOnTile", r.onTile === 0 && r.near, fmt(r));
+
+          /* F: car held at the lamp post, then Orion walks off; car resumes and drives
+             through the tile he left. */
+          setCar(41, 1); setOrion(41, 27);
+          r = sim(6000);
+          ok("kvResumeHeldOff", r.onTile === 0 && r.maxHid < 0.4 && !(car.tx === 41 && car.ty === 27), fmt(r));
+          k = walkTo(44, 29);
+          r = sim(5000, { walking: true });
+          ok("kvOrionWalksOutPastCar", k > 0 && player.tx === 44 && player.ty === 29 && r.maxHid < 0.4, "len " + k + " at " + player.tx + "," + player.ty + " " + fmt(r));
+          r = sim(45000);
+          ok("kvCarResumesThroughLamp", !!r.visits["41,27"] && r.steps >= 30, fmt(r));
+          ok("kvCarResumesNeverHidden", r.maxHid < 0.4, fmt(r));
+
+          /* G: Orion crosses the west street while the car drives by, many timings and
+             both directions. He must always get across and never be under the car. */
+          runs = 0; arrived = 0; worst = 0; bad = [];
+          for (k = 36; k <= 47; k++) {
+            for (i = -1; i <= 1; i += 2) {
+              setCar(k, i); setOrion(39, 30);
+              walkTo(44, 30);
+              r = sim(10000, { walking: true });
+              runs++;
+              if (player.tx === 44 && player.ty === 30) arrived++;
+              else bad.push(k + "/" + i + "@" + player.tx + "," + player.ty);
+              if (r.maxHid > worst) worst = r.maxHid;
+              if (r.onTile) bad.push(k + "/" + i + " onTile " + r.onTile);
+            }
+          }
+          ok("kvCrossStreetArrives", arrived === runs, arrived + "/" + runs + " " + bad.join(" "));
+          ok("kvCrossStreetNeverHidden", worst < 0.4, "worst " + worst.toFixed(2) + " " + bad.join(" "));
+
+          /* H: Orion placed right where the car's body is (door / load spot); the car
+             gets off him the short way and never rolls its middle over his tile. */
+          setCar(5, 1); setOrion(47, 26);
+          r = sim(4000);
+          ok("kvPlacedUnderCarLeaves", hidden() < 0.4 && !carOccupies(player.tx, player.ty) && !r.visits["47,26"] && player.tx === 47 && player.ty === 26, fmt(r) + " car " + car.tx + "," + car.ty);
+
+          /* I: nobody in the lane: the car keeps its normal clockwise loop, no yields. */
+          setCar(0, 1); setOrion(44, 30);
+          r = sim(40000);
+          ok("kvFreeLoopUnchanged", r.flips === 0 && r.steps >= 60 && car.dir === 1, fmt(r));
+
+          /* J: Orion's tap path was planned before the car rolled onto it. He takes
+             another way when there is one, waits at the curb when the car sits on the
+             tile he wants, then goes once it rolls on; never under it. */
+          setCar(30, 1); setOrion(49, 28);
+          k = walkTo(49, 25);
+          setCar(9, 1); car.wait = 6000; /* parked over (49..51, 26) */
+          r = sim(6000, { walking: true });
+          ok("kvTapPathRoutesAroundCar", k === 3 && player.tx === 49 && player.ty === 25 && r.onTile === 0 && r.maxHid < 0.4 && !r.pvisits["49,26"], "len " + k + " at " + player.tx + "," + player.ty + " " + fmt(r));
+          setCar(30, 1); setOrion(49, 28);
+          k = walkTo(49, 26);
+          setCar(8, 1); car.wait = 2500; /* parked on (48..50, 26) */
+          r = sim(9000, { walking: true });
+          ok("kvTapIntoCarNoHide", r.maxHid < 0.4 && r.onTile === 0, fmt(r));
+          ok("kvTapIntoCarWaitsThenGoes", k === 2 && player.tx === 49 && player.ty === 26 && !(player.path && player.path.length) && r.arrivedAt > 2500, "len " + k + " at " + player.tx + "," + player.ty + " path " + (player.path ? player.path.length : 0) + " t " + r.arrivedAt + " " + fmt(r));
+          /* K: car that won't move (long wait): the curb wait gives up by itself, and a
+             held walk key walks him off right away. */
+          setCar(30, 1); setOrion(49, 28);
+          walkTo(49, 26);
+          setCar(8, 1); car.wait = 20000;
+          r = sim(6000, { walking: true });
+          ok("kvHoldGivesUp", !(player.path && player.path.length) && player.tx === 49 && player.ty === 27 && r.onTile === 0 && r.arrivedAt > 4000, "at " + player.tx + "," + player.ty + " path " + (player.path ? player.path.length : 0) + " t " + r.arrivedAt);
+          setCar(30, 1); setOrion(49, 28);
+          walkTo(49, 26);
+          setCar(8, 1); car.wait = 20000;
+          sim(800, { walking: true });
+          k = player.path ? player.path.length : -1;
+          kbHeld = [{ id: "ArrowDown", dx: 0, dy: 1, face: "down" }];
+          sim(32);
+          tryKeyboardStep();
+          kbHeld = [];
+          ok("kvHoldKeyWalksOff", k === 1 && player.tx === 49 && player.ty === 27 && player.path && player.path.length === 1 && player.path[0].tx === 49 && player.path[0].ty === 28, "held " + k + " " + player.tx + "," + player.ty + " -> " + (player.path && player.path[0] ? player.path[0].tx + "," + player.path[0].ty : "none"));
+          clearWalkIntent();
+        } catch (eKv) {
+          ok("kvNoThrow", false, eKv && eKv.message ? eKv.message : String(eKv));
+        } finally {
+          kbHeld = [];
+          townFolk = folk0;
+          nim.tx = nimTx0; nim.ty = nimTy0;
+          setCar(car0.loopI | 0, car0.dir === -1 ? -1 : 1);
+          car.tx = car0.tx; car.ty = car0.ty; car.face = car0.face; car.wait = car0.wait;
+          car.x = tileCenterX(car.tx); car.y = tileFootY(car.ty);
+          clearWalkIntent();
+          applyScene(scene0 || "overworld");
+          placePlayer(px0, py0, pf0);
         }
       })();
     } catch (e) {
